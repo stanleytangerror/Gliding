@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# vs files
+*.vcxproj.user
+.vs/
+
+# intermediate folder
+Intermediate/
+
+# output folder
+bin/
