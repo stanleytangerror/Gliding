@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="D3D12">
+      <UniqueIdentifier>{0dade93a-cbc1-4a55-9920-af1c3ed18e07}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3D12Device.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Utils.cpp">
+      <Filter>D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D3D12Device.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Utils.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="SuspendedRelease.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="D3D12\D3D12Headers.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="SuspendedRelease_inl.h" />
+  </ItemGroup>
+</Project>
