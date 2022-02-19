@@ -1,4 +1,4 @@
-#include "DescriptorHeap.h"
+#include "D3D12DescriptorHeap.h"
 #include "D3D12/D3D12Utils.h"
 
 //////////////////////////////////////////////////////////////////////////

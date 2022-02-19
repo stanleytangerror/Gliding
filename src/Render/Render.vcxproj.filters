@@ -21,10 +21,10 @@
     <ClCompile Include="D3D12Resource.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="DescriptorHeap.cpp">
+    <ClCompile Include="D3D12DescriptorAllocator.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12DescriptorAllocator.cpp">
+    <ClCompile Include="D3D12DescriptorHeap.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
@@ -33,9 +33,6 @@
       <Filter>Source\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="D3D12\D3D12Utils.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="SuspendedRelease.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="D3D12\D3D12Headers.h">
@@ -50,13 +47,16 @@
     <ClInclude Include="D3D12Resource.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="DescriptorHeap.h">
+    <ClInclude Include="D3D12DescriptorAllocator.h">
       <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="SuspendedRelease.h">
+      <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SuspendedRelease_inl.h">
-      <Filter>Source\D3D12</Filter>
+      <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12DescriptorAllocator.h">
+    <ClInclude Include="D3D12DescriptorHeap.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
   </ItemGroup>

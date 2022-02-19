@@ -90,7 +90,7 @@
     <ClCompile Include="D3D12Resource.cpp" />
     <ClCompile Include="D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12\D3D12Utils.cpp" />
-    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="D3D12DescriptorHeap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12DescriptorAllocator.h" />
@@ -99,7 +99,7 @@
     <ClInclude Include="D3D12Resource.h" />
     <ClInclude Include="D3D12\D3D12Headers.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
-    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="D3D12DescriptorHeap.h" />
     <ClInclude Include="D3D12ResourceView.h" />
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />
