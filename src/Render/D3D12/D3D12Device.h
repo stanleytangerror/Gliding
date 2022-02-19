@@ -1,6 +1,6 @@
 #pragma once
 
-#include "D3D12/D3D12Headers.h"
+#include "D3D12Headers.h"
 #include "D3D12DescriptorHeap.h"
 #include "SuspendedRelease.h"
 #include "D3D12DescriptorAllocator.h"

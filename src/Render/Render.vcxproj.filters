@@ -9,55 +9,58 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="D3D12Device.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12\D3D12Utils.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12ResourceView.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12Resource.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12DescriptorAllocator.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12DescriptorHeap.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="D3D12Device.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12\D3D12Utils.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12\D3D12Headers.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12RenderTarget.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12ResourceView.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12Resource.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12DescriptorAllocator.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="SuspendedRelease.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SuspendedRelease_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12DescriptorHeap.h">
+    <ClInclude Include="D3D12\D3D12DescriptorAllocator.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\D3D12DescriptorHeap.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Device.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Headers.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12RenderTarget.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Resource.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12ResourceView.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Utils.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\Resource.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Device.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Resource.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12ResourceView.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Utils.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

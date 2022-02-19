@@ -59,7 +59,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -76,7 +76,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -85,22 +85,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D3D12DescriptorAllocator.cpp" />
-    <ClCompile Include="D3D12Device.cpp" />
-    <ClCompile Include="D3D12Resource.cpp" />
-    <ClCompile Include="D3D12ResourceView.cpp" />
-    <ClCompile Include="D3D12\D3D12Utils.cpp" />
-    <ClCompile Include="D3D12DescriptorHeap.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="D3D12DescriptorAllocator.h" />
-    <ClInclude Include="D3D12Device.h" />
-    <ClInclude Include="D3D12RenderTarget.h" />
-    <ClInclude Include="D3D12Resource.h" />
+    <ClInclude Include="D3D12\D3D12DescriptorAllocator.h" />
+    <ClInclude Include="D3D12\D3D12DescriptorHeap.h" />
+    <ClInclude Include="D3D12\D3D12Device.h" />
     <ClInclude Include="D3D12\D3D12Headers.h" />
+    <ClInclude Include="D3D12\D3D12RenderTarget.h" />
+    <ClInclude Include="D3D12\D3D12Resource.h" />
+    <ClInclude Include="D3D12\D3D12ResourceView.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
-    <ClInclude Include="D3D12DescriptorHeap.h" />
-    <ClInclude Include="D3D12ResourceView.h" />
+    <ClInclude Include="D3D12\Resource.h" />
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />
   </ItemGroup>
@@ -108,6 +101,14 @@
     <ProjectReference Include="..\Common\Common.vcxproj">
       <Project>{3de1d1e4-5c2a-4a60-bf90-c4ca19948bac}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp" />
+    <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />
+    <ClCompile Include="D3D12\D3D12Device.cpp" />
+    <ClCompile Include="D3D12\D3D12Resource.cpp" />
+    <ClCompile Include="D3D12\D3D12ResourceView.cpp" />
+    <ClCompile Include="D3D12\D3D12Utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

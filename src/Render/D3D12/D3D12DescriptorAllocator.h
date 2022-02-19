@@ -2,7 +2,7 @@
 
 #include "Common/FreeList.h"
 #include "Render/SuspendedRelease.h"
-#include "D3D12/D3D12Headers.h"
+#include "D3D12Headers.h"
 #include <vector>
 
 class D3D12DescriptorBlock

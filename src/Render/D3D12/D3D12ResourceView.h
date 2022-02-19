@@ -3,8 +3,8 @@
 
 #include "Common/Math.h"
 #include "D3D12/D3D12Headers.h"
-#include "D3D12Device.h"
-#include "D3D12DescriptorAllocator.h"
+#include "D3D12/D3D12Device.h"
+#include "D3D12/D3D12DescriptorAllocator.h"
 
 class IResource;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "D3D12/D3D12Headers.h"
+#include "D3D12Headers.h"
 #include "Common/CommonTypes.h"
 #include "Common/Math.h"
 
