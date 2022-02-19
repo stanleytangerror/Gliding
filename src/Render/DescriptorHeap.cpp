@@ -59,9 +59,9 @@ RuntimeDescriptorHeap::RuntimeDescriptorHeap(ID3D12Device* device, D3D12_DESCRIP
 	: mDescriptorType(type)
 	, mDevice(device)
 	, mPool(
-		SuspendedReleasePool< DescriptorHeapBlock>::FAlloc([device, type]() { return new DescriptorHeapBlock(device, type, true, msNumDescriptorsPerBlock); }),
-		SuspendedReleasePool< DescriptorHeapBlock>::FReset([](DescriptorHeapBlock* t) {}),
-		SuspendedReleasePool< DescriptorHeapBlock>::FDealloc([](DescriptorHeapBlock* t) { if (t) { delete t; } })
+		[device, type]() { return new DescriptorHeapBlock(device, type, true, msNumDescriptorsPerBlock); },
+		[](DescriptorHeapBlock* t) {},
+		[](DescriptorHeapBlock* t) { if (t) { delete t; } }
 	)
 {
 }
@@ -77,12 +77,12 @@ void RuntimeDescriptorHeap::Push(const int32_t handleCount, const D3D12_CPU_DESC
 
 	if (!mCurrentWorkingBlock)
 	{
-		mCurrentWorkingBlock = mPool.Alloc();
+		mCurrentWorkingBlock = mPool.AllocItem();
 	}
 	else if (mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount > mCurrentWorkingBlock->GetNumDescriptos())
 	{
-		mPool.Release(fenceValue, mCurrentWorkingBlock);
-		mCurrentWorkingBlock = mPool.Alloc();
+		mPool.ReleaseItem(fenceValue, mCurrentWorkingBlock);
+		mCurrentWorkingBlock = mPool.AllocItem();
 	}
 
 	for (i32 i = 0; i < handleCount; ++i)

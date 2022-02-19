@@ -8,10 +8,10 @@ class DescriptorHeapBlock
 {
 public:
 	DescriptorHeapBlock(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool shaderVisible, const i32 numDescriptors);
-	virtual ~DescriptorHeapBlock();
+	virtual								~DescriptorHeapBlock();
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE			GetCpuBaseWithOffset(i32 offset) const;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE			GetGpuBaseWithOffset(i32 offset) const;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE		GetCpuBaseWithOffset(i32 offset) const;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuBaseWithOffset(i32 offset) const;
 	ID3D12DescriptorHeap*				GetDescriptorHeap() const { return m_DescriptorHeap; }
 	i32									GetNumDescriptos() const { return mDescriptorNum; }
 
@@ -45,6 +45,6 @@ protected:
 	const D3D12_DESCRIPTOR_HEAP_TYPE	mDescriptorType = {};
 	SuspendedReleasePool<DescriptorHeapBlock> mPool;
 
-	DescriptorHeapBlock* mCurrentWorkingBlock = nullptr;
-	i32					mCurrentWorkingIndex = 0;
+	DescriptorHeapBlock*				mCurrentWorkingBlock = nullptr;
+	i32									mCurrentWorkingIndex = 0;
 };

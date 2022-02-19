@@ -1,33 +1,63 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="D3D12">
+    <Filter Include="Source">
+      <UniqueIdentifier>{9441621b-2f14-401d-a95b-073b38c36344}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\D3D12">
       <UniqueIdentifier>{0dade93a-cbc1-4a55-9920-af1c3ed18e07}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12Device.cpp">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClCompile>
     <ClCompile Include="D3D12\D3D12Utils.cpp">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="D3D12ResourceView.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Resource.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12DescriptorAllocator.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12Device.h">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="D3D12\D3D12Utils.h">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="SuspendedRelease.h">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="D3D12\D3D12Headers.h">
-      <Filter>D3D12</Filter>
+      <Filter>Source\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="SuspendedRelease_inl.h" />
+    <ClInclude Include="D3D12RenderTarget.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12ResourceView.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Resource.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeap.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="SuspendedRelease_inl.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12DescriptorAllocator.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

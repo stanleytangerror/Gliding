@@ -17,8 +17,8 @@ public:
 		: mAllocFun(alloc), mResetFun(reset), mDeallocFun(dealloc) {}
 	virtual ~SuspendedReleasePool();
 
-	T* Alloc();
-	void Release(u64 releasingTime, T*& object);
+	T* AllocItem();
+	void ReleaseItem(u64 releasingTime, T*& object);
 	void UpdateTime(u64 time);
 
 protected:

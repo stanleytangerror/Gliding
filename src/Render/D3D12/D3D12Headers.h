@@ -5,6 +5,7 @@
 #include "directx/dxgicommon.h"
 #include "directx/dxgiformat.h"
 #include "dxgi.h"
+#include "dxgiformat.h"
 #include "windows.h"
 #include <wrl/client.h>
 #include <dxgi1_4.h>

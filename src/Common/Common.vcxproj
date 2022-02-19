@@ -13,6 +13,8 @@
   <ItemGroup>
     <ClInclude Include="Assert.h" />
     <ClInclude Include="CommonTypes.h" />
+    <ClInclude Include="FreeList.h" />
+    <ClInclude Include="Math.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

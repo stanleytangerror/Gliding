@@ -40,7 +40,7 @@ void D3D12Device::Initial(HWND windowHandle)
 		AssertHResultOk(D3D12CreateDevice(
 			warpAdapter.Get(),
 			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&m_device)
+			IID_PPV_ARGS(&mDevice)
 		));
 	}
 	else
@@ -55,7 +55,7 @@ void D3D12Device::Initial(HWND windowHandle)
 		const HRESULT hr = D3D12CreateDevice(
 			hardwareAdapter.Get(),
 			D3D_FEATURE_LEVEL_12_0,
-			IID_PPV_ARGS(&m_device)
+			IID_PPV_ARGS(&mDevice)
 		);
 
 		AssertHResultOk(hr);
@@ -65,7 +65,7 @@ void D3D12Device::Initial(HWND windowHandle)
 #if defined(_DEBUG)
 	{
 		Microsoft::WRL::ComPtr<ID3D12InfoQueue> infoQueue;
-		if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&infoQueue))))
+		if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&infoQueue))))
 		{
 			AssertHResultOk(infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
 
@@ -97,7 +97,7 @@ void D3D12Device::Initial(HWND windowHandle)
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-	AssertHResultOk(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+	AssertHResultOk(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -127,9 +127,27 @@ void D3D12Device::Initial(HWND windowHandle)
 		[&]()
 		{
 			ID3D12CommandAllocator* newAllocator = nullptr;
-			Assert(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&newAllocator)));
+			Assert(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&newAllocator)));
 			return newAllocator;
 		}, 
 		[](ID3D12CommandAllocator* a) { a->Reset(); },
 		[](ID3D12CommandAllocator* a) { a->Release(); });
+
+}
+
+ID3D12Device* D3D12Device::GetDevice() const
+{
+	return mDevice;
+}
+
+RuntimeDescriptorHeap* D3D12Device::GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const
+{
+	Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
+	return mRuntimeDescHeaps[type];
+}
+
+D3D12DescriptorAllocator* D3D12Device::GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const
+{
+	Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
+	return mDescAllocator[type];
 }

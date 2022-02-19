@@ -3,7 +3,7 @@
 template <class T>
 SuspendedReleasePool<T>::~SuspendedReleasePool()
 {
-	UpdateTime(msInfiniteTime);
+	Assert(mSuspendQueue.empty());
 	
 	for (const auto& obj : mPool)
 	{
@@ -13,7 +13,7 @@ SuspendedReleasePool<T>::~SuspendedReleasePool()
 }
 
 template <class T>
-T* SuspendedReleasePool<T>::Alloc()
+T* SuspendedReleasePool<T>::AllocItem()
 {
 	if (!mPool.empty())
 	{
@@ -23,13 +23,13 @@ T* SuspendedReleasePool<T>::Alloc()
 	}
 	else
 	{
-		T* result = Alloc();
+		T* result = AllocItem();
 		return result;
 	}
 }
 
 template <class T>
-void SuspendedReleasePool<T>::Release(u64 releasingTime, T*& object)
+void SuspendedReleasePool<T>::ReleaseItem(u64 releasingTime, T*& object)
 {
 	mSuspendQueue.emplace(releasingTime, object);
 	object = nullptr;
