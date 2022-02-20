@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Assert.h" />
+    <ClInclude Include="AssertUtils.h" />
     <ClInclude Include="CommonTypes.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="Math.h" />

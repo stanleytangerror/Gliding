@@ -1,4 +1,4 @@
-#include "Common/Assert.h"
+#include "Common/AssertUtils.h"
 
 template <class T>
 SuspendedReleasePool<T>::~SuspendedReleasePool()

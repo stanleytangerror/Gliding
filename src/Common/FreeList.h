@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "CommonTypes.h"
-#include "Assert.h"
+#include "AssertUtils.h"
 
 template <typename T>
 class FreeList

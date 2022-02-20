@@ -60,6 +60,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -77,6 +78,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -85,6 +87,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="D3D12PipelineState.h" />
     <ClInclude Include="D3D12\D3D12DescriptorAllocator.h" />
     <ClInclude Include="D3D12\D3D12DescriptorHeap.h" />
     <ClInclude Include="D3D12\D3D12Device.h" />
@@ -103,12 +106,16 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="D3D12\D3D12Device.cpp" />
     <ClCompile Include="D3D12\D3D12Resource.cpp" />
     <ClCompile Include="D3D12\D3D12ResourceView.cpp" />
-    <ClCompile Include="D3D12\D3D12Utils.cpp" />
+    <ClCompile Include="D3D12\D3D12Utils.cpp">
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

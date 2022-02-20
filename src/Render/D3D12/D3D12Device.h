@@ -4,7 +4,13 @@
 #include "D3D12DescriptorHeap.h"
 #include "SuspendedRelease.h"
 #include "D3D12DescriptorAllocator.h"
+#include "D3D12PipelineState.h"
 #include <array>
+
+class CommandAllocatorPool;
+class D3D12PipelineStateLibrary;
+class RuntimeDescriptorHeap;
+class D3D12DescriptorAllocator;
 
 class D3D12Device
 {
@@ -23,6 +29,8 @@ private:
 
 	using CommandAllocatorPool = SuspendedReleasePool<ID3D12CommandAllocator>;
 	CommandAllocatorPool* mCommandAllocatorPool = nullptr;
+
+	D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
 
 	std::array<RuntimeDescriptorHeap*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mRuntimeDescHeaps = {};
 	std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};

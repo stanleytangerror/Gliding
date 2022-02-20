@@ -1,4 +1,5 @@
 #include "D3D12Utils.h"
+#include "Common/AssertUtils.h"
 
 void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter)
 {
@@ -26,4 +27,28 @@ void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppA
 	}
 
 	*ppAdapter = adapter.Detach();
+}
+
+ID3DBlob* D3D12Utils::LoadRs(const wchar_t* file, const char* entry)
+{
+	ID3DBlob* rootSignature = nullptr;
+	ID3DBlob* error = nullptr;
+
+#if defined(_DEBUG)
+	// Enable better shader debugging with the graphics debugging tools.
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	HRESULT hr = D3DCompileFromFile(file, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entry, "rootsig_1_0", compileFlags, 0, &rootSignature, &error);
+	if (FAILED(hr))
+	{
+		char errorStr[1024] = {};
+		memcpy(errorStr, error->GetBufferPointer(), error->GetBufferSize());
+		OutputDebugString(errorStr);
+		AssertHResultOk(hr);
+	}
+
+	return rootSignature;
 }

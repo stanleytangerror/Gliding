@@ -1,5 +1,5 @@
 #include "D3D12Device.h"
-#include "Common/Assert.h"
+#include "Common/AssertUtils.h"
 #include "D3D12/D3D12Utils.h"
 
 namespace
@@ -118,6 +118,8 @@ void D3D12Device::Initial(HWND windowHandle)
 		nullptr,
 		&swapChain1
 	));
+
+	mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 
 	//Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
 	//AssertHResultOk(swapChain1.As(&swapChain3));

@@ -4,6 +4,7 @@
 #include "directx/d3dx12.h"
 #include "directx/dxgicommon.h"
 #include "directx/dxgiformat.h"
+#include "d3dcompiler.h"
 #include "dxgi.h"
 #include "dxgiformat.h"
 #include "windows.h"

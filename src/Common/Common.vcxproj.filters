@@ -7,10 +7,10 @@
     <ClInclude Include="CommonTypes.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="Assert.h">
+    <ClInclude Include="FreeList.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="FreeList.h">
+    <ClInclude Include="AssertUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
