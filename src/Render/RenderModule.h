@@ -1,6 +1,9 @@
 #pragma once
 
-#include "D3D12/D3D12Device.h"
+#include "RenderMacros.h"
+#include "windows.h"
+
+class D3D12Device;
 
 class GD_RENDER_API RenderModule
 {

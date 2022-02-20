@@ -38,6 +38,11 @@ Application::Application(u32 width, u32 height, std::string name, HINSTANCE hIns
 	ShowWindow(mWindowHandle, nCmdShow);
 }
 
+void Application::Initial()
+{
+	mRenderModule = new RenderModule(mWindowHandle);
+}
+
 void Application::Run()
 {
 	MSG msg = {};

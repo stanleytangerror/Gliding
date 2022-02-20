@@ -3,11 +3,14 @@
 #include "Common/CommonTypes.h"
 #include <xstring>
 #include <wtypes.h>
+#include "Render/RenderModule.h"
 
 class Application
 {
 public:
 	Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
+
+	void			Initial();
 
 	void			Run();
 
@@ -23,4 +26,6 @@ protected:
 	u32 mHeight;
 	const std::string mTitle;
 	HWND				mWindowHandle = {};
+
+	RenderModule* mRenderModule = nullptr;
 };

@@ -17,6 +17,11 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Render\Render.vcxproj">
+      <Project>{3a699918-b1dd-47ea-b050-2dd580b9bc9d}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{624C2212-F273-42FF-B1F1-95EB0BF6BEA2}</ProjectGuid>

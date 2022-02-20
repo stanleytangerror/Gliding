@@ -64,6 +64,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
+      <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -82,6 +83,7 @@
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
+      <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -101,6 +103,7 @@
     <ClInclude Include="D3D12\D3D12ResourceView.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
     <ClInclude Include="D3D12\Resource.h" />
+    <ClInclude Include="RenderMacros.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
     <ClInclude Include="SuspendedRelease.h" />
