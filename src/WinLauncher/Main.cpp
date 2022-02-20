@@ -1,5 +1,6 @@
 #include "windows.h"
 #include <string>
+#include "Application.h"
 
 void SetupEnvironment()
 {
@@ -36,4 +37,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
 	SetupEnvironment();
 
+	Application* app = new Application(960, 640, "TestApplication", hInstance, nCmdShow);
+	app->Run();
 }
