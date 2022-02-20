@@ -15,7 +15,10 @@ class D3D12DescriptorAllocator;
 class D3D12Device
 {
 public:
-	void	Initial(HWND windowHandle);
+	D3D12Device(HWND windowHandle);
+
+	void	Present();
+
 	ID3D12Device* GetDevice() const;
 
 public:
@@ -24,7 +27,7 @@ public:
 
 private:
 	ID3D12Device* mDevice = nullptr;
-	IDXGISwapChain3* m_swapChain = nullptr;
+	IDXGISwapChain3* mSwapChain = nullptr;
 	ID3D12CommandQueue* m_commandQueue = nullptr;
 
 	using CommandAllocatorPool = SuspendedReleasePool<ID3D12CommandAllocator>;

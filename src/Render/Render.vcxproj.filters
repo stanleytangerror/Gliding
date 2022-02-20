@@ -45,6 +45,10 @@
     <ClInclude Include="D3D12PipelineState.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="RenderModule.h" />
+    <ClInclude Include="RenderPch.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -67,6 +71,10 @@
     </ClCompile>
     <ClCompile Include="D3D12PipelineState.cpp">
       <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderModule.cpp" />
+    <ClCompile Include="RenderPch.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

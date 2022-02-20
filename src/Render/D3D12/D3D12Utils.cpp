@@ -1,3 +1,4 @@
+#include "RenderPch.h"
 #include "D3D12Utils.h"
 #include "Common/AssertUtils.h"
 

@@ -1,3 +1,4 @@
+#include "RenderPch.h"
 #include "D3D12PipelineState.h"
 #include "D3D12/D3D12Utils.h"
 

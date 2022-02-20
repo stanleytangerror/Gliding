@@ -1,3 +1,4 @@
+#include "RenderPch.h"
 #include "D3D12Device.h"
 #include "Common/AssertUtils.h"
 #include "D3D12/D3D12Utils.h"
@@ -9,7 +10,7 @@ namespace
 	static int Height = 720;
 }
 
-void D3D12Device::Initial(HWND windowHandle)
+D3D12Device::D3D12Device(HWND windowHandle)
 {
 	UINT dxgiFactoryFlags = 0;
 
@@ -123,7 +124,7 @@ void D3D12Device::Initial(HWND windowHandle)
 
 	//Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
 	//AssertHResultOk(swapChain1.As(&swapChain3));
-	m_swapChain = reinterpret_cast<IDXGISwapChain3*>(swapChain1);
+	mSwapChain = reinterpret_cast<IDXGISwapChain3*>(swapChain1);
 
 	mCommandAllocatorPool = new D3D12Device::CommandAllocatorPool(
 		[&]()
@@ -135,6 +136,11 @@ void D3D12Device::Initial(HWND windowHandle)
 		[](ID3D12CommandAllocator* a) { a->Reset(); },
 		[](ID3D12CommandAllocator* a) { a->Release(); });
 
+}
+
+void D3D12Device::Present()
+{
+	AssertHResultOk(mSwapChain->Present(1, 0));
 }
 
 ID3D12Device* D3D12Device::GetDevice() const

@@ -1,3 +1,4 @@
+#include "RenderPch.h"
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12/D3D12Utils.h"
 
@@ -119,4 +120,7 @@ CpuDescItem D3D12DescriptorAllocator::AllocCpuDesc()
 
 		return { newBlock, newBlock->AllocCpuDesc() };
 	}
+
+	Assert(false);
+	return {};
 }

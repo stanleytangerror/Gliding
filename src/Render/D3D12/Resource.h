@@ -2,7 +2,7 @@
 
 #include "Common/Math.h"
 
-class IResource
+class GD_RENDER_API IResource
 {
 public:
 	virtual void Transition(ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_STATES& destState) = 0;
