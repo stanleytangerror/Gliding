@@ -54,12 +54,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(OutputDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(IntermediateDir)$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(IntermediateDir)$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Configuration)_$(Platform)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(OutputDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(IntermediateDir)$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(IntermediateDir)$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Configuration)_$(Platform)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
