@@ -41,6 +41,8 @@ Application::Application(u32 width, u32 height, std::string name, HINSTANCE hIns
 void Application::Initial()
 {
 	mRenderModule = new RenderModule(mWindowHandle);
+
+	mLogicThread = new std::thread([this]() { this->RunLogic(); });
 }
 
 void Application::Run()
@@ -54,6 +56,15 @@ void Application::Run()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+}
+
+void Application::RunLogic()
+{
+	while (true)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(25));
+		mRenderModule->Present();
 	}
 }
 

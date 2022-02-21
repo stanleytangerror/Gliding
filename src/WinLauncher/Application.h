@@ -2,6 +2,7 @@
 
 #include "Common/CommonTypes.h"
 #include <xstring>
+#include <thread>
 #include <wtypes.h>
 #include "Render/RenderModule.h"
 
@@ -13,6 +14,7 @@ public:
 	void			Initial();
 
 	void			Run();
+	void			RunLogic();
 
 	u32 GetWidth() const { return mWidth; }
 	u32 GetHeight() const { return mHeight; }
@@ -28,4 +30,6 @@ protected:
 	HWND				mWindowHandle = {};
 
 	RenderModule* mRenderModule = nullptr;
+
+	std::thread*		mLogicThread = nullptr;
 };
