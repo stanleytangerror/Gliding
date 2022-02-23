@@ -93,6 +93,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="D3D12Fence.h" />
     <ClInclude Include="D3D12PipelineState.h" />
     <ClInclude Include="D3D12\D3D12DescriptorAllocator.h" />
     <ClInclude Include="D3D12\D3D12DescriptorHeap.h" />
@@ -110,6 +111,7 @@
     <ClInclude Include="SuspendedRelease_inl.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="D3D12Fence.cpp" />
     <ClCompile Include="D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />

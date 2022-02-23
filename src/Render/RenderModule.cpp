@@ -9,7 +9,8 @@ RenderModule::RenderModule(HWND window)
 
 }
 
-void RenderModule::Present()
+void RenderModule::TickFrame()
 {
+
 	mDevice->Present();
 }

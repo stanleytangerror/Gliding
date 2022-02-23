@@ -97,8 +97,7 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-	AssertHResultOk(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+	AssertHResultOk(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
 
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -112,7 +111,7 @@ D3D12Device::D3D12Device(HWND windowHandle)
 
 	IDXGISwapChain1* swapChain1 = nullptr;
 	AssertHResultOk(factory->CreateSwapChainForHwnd(
-		m_commandQueue,		// Swap chain needs the queue so that it can force a flush on it.
+		mCommandQueue,		// Swap chain needs the queue so that it can force a flush on it.
 		windowHandle,
 		&swapChainDesc,
 		nullptr,
@@ -136,11 +135,18 @@ D3D12Device::D3D12Device(HWND windowHandle)
 		[](ID3D12CommandAllocator* a) { a->Reset(); },
 		[](ID3D12CommandAllocator* a) { a->Release(); });
 
+	mFence = new D3D12Fence(mCommandQueue);
 }
 
 void D3D12Device::Present()
 {
+	//mCommandQueue->ExecuteCommandLists()
+
 	AssertHResultOk(mSwapChain->Present(1, 0));
+
+	mFence->PlanGpuQueueWork();
+	mFence->CpuWaitForGpuQueue();
+	mFence->IncreaseCpuFence();
 }
 
 ID3D12Device* D3D12Device::GetDevice() const

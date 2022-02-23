@@ -5,12 +5,14 @@
 #include "SuspendedRelease.h"
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12PipelineState.h"
+#include "D3D12Fence.h"
 #include <array>
 
 class CommandAllocatorPool;
 class D3D12PipelineStateLibrary;
 class RuntimeDescriptorHeap;
 class D3D12DescriptorAllocator;
+class D3D12Fence;
 
 class D3D12Device
 {
@@ -28,12 +30,13 @@ public:
 private:
 	ID3D12Device* mDevice = nullptr;
 	IDXGISwapChain3* mSwapChain = nullptr;
-	ID3D12CommandQueue* m_commandQueue = nullptr;
+	ID3D12CommandQueue* mCommandQueue = nullptr;
 
 	using CommandAllocatorPool = SuspendedReleasePool<ID3D12CommandAllocator>;
 	CommandAllocatorPool* mCommandAllocatorPool = nullptr;
 
 	D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
+	D3D12Fence*					mFence = nullptr;
 
 	std::array<RuntimeDescriptorHeap*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mRuntimeDescHeaps = {};
 	std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};

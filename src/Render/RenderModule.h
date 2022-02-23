@@ -10,7 +10,7 @@ class GD_RENDER_API RenderModule
 public:
 	RenderModule(HWND window);
 
-	void Present();
+	void TickFrame();
 
 protected:
 	HWND		mWindow = {};
