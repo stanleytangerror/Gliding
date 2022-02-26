@@ -93,17 +93,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="D3D12Fence.h" />
-    <ClInclude Include="D3D12PipelineState.h" />
     <ClInclude Include="D3D12\D3D12DescriptorAllocator.h" />
     <ClInclude Include="D3D12\D3D12DescriptorHeap.h" />
     <ClInclude Include="D3D12\D3D12Device.h" />
+    <ClInclude Include="D3D12\D3D12Fence.h" />
     <ClInclude Include="D3D12\D3D12Headers.h" />
+    <ClInclude Include="D3D12\D3D12PipelineState.h" />
     <ClInclude Include="D3D12\D3D12RenderTarget.h" />
     <ClInclude Include="D3D12\D3D12Resource.h" />
     <ClInclude Include="D3D12\D3D12ResourceView.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
-    <ClInclude Include="D3D12\Resource.h" />
     <ClInclude Include="RenderMacros.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
@@ -111,11 +110,11 @@
     <ClInclude Include="SuspendedRelease_inl.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="D3D12Fence.cpp" />
-    <ClCompile Include="D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="D3D12\D3D12Device.cpp" />
+    <ClCompile Include="D3D12\D3D12Fence.cpp" />
+    <ClCompile Include="D3D12\D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12\D3D12Resource.cpp" />
     <ClCompile Include="D3D12\D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12\D3D12Utils.cpp">

@@ -39,12 +39,6 @@
     <ClInclude Include="D3D12\D3D12Utils.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12\Resource.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12PipelineState.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h">
       <Filter>Source</Filter>
@@ -52,7 +46,10 @@
     <ClInclude Include="RenderMacros.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12Fence.h">
+    <ClInclude Include="D3D12\D3D12Fence.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12PipelineState.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
   </ItemGroup>
@@ -75,14 +72,14 @@
     <ClCompile Include="D3D12\D3D12Utils.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12PipelineState.cpp">
-      <Filter>Source\D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12Fence.cpp">
+    <ClCompile Include="D3D12\D3D12Fence.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12PipelineState.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
