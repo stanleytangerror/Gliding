@@ -134,7 +134,7 @@ ID3D12PipelineState* D3D12PipelineStateLibrary::CreateComputePso(const D3D12_COM
 	return mComputePsoCache[hash];
 }
 
-ID3D12RootSignature* D3D12PipelineStateLibrary::CreateRootSignature(const wchar_t* file, const char* entry)
+ID3D12RootSignature* D3D12PipelineStateLibrary::CreateRootSignature(const char* file, const char* entry)
 {
 	Assert(file);
 	Assert(entry);

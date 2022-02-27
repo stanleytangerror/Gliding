@@ -1,6 +1,8 @@
 #include "RenderPch.h"
 #include "D3D12Utils.h"
 #include "Common/AssertUtils.h"
+#include <fstream>
+#include <sstream>
 
 void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter)
 {
@@ -15,7 +17,6 @@ void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppA
 		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 		{
 			// Don't select the Basic Render Driver adapter.
-			// If you want a software adapter, pass in "/warp" on the command line.
 			continue;
 		}
 
@@ -30,26 +31,54 @@ void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppA
 	*ppAdapter = adapter.Detach();
 }
 
-ID3DBlob* D3D12Utils::LoadRs(const wchar_t* file, const char* entry)
+ID3DBlob* D3D12Utils::LoadRs(const char* file, const char* entry)
 {
-	ID3DBlob* rootSignature = nullptr;
+	return CompileBlobFromFile(file, entry, "rootsig_1_0", 0);
+}
+
+ID3DBlob* D3D12Utils::LoadVs(const char* file)
+{
+	return CompileBlobFromFile(file, "VSMain", "vs_5_0", 0);
+}
+
+ID3DBlob* D3D12Utils::LoadCs(const char* file)
+{
+	return CompileBlobFromFile(file, "CSMain", "cs_5_0", 0);
+}
+
+ID3DBlob* D3D12Utils::LoadPs(const char* file)
+{
+	return CompileBlobFromFile(file, "PSMain", "ps_5_0", 0);
+}
+
+ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, u32 flags)
+{
+	std::ostringstream buf;
+	std::ifstream input(filePath);
+	buf << input.rdbuf();
+	
+	const std::string& content = buf.str();
+	return CompileBlob(content.c_str(), content.size(), entryName, target, flags);
+}
+
+ID3DBlob* D3D12Utils::CompileBlob(const void* date, const i32 dataSize, const char* entryName, const char* target, u32 flags)
+{
+	ID3DBlob* result = nullptr;
 	ID3DBlob* error = nullptr;
 
 #if defined(_DEBUG)
-	// Enable better shader debugging with the graphics debugging tools.
-	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-	UINT compileFlags = 0;
+	flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_SKIP_VALIDATION;
 #endif
 
-	HRESULT hr = D3DCompileFromFile(file, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entry, "rootsig_1_0", compileFlags, 0, &rootSignature, &error);
-	if (FAILED(hr))
+	std::string content;
+	const HRESULT hr = D3DCompile(date, dataSize, nullptr, nullptr, nullptr, entryName, target, flags, 0, &result, &error);
+	if (hr)
 	{
 		char errorStr[1024] = {};
-		memcpy(errorStr, error->GetBufferPointer(), error->GetBufferSize());
+		std::memcpy(errorStr, (char*)error->GetBufferPointer(), error->GetBufferSize());
 		OutputDebugString(errorStr);
 		AssertHResultOk(hr);
 	}
 
-	return rootSignature;
+	return result;
 }

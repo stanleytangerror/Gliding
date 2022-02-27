@@ -16,6 +16,8 @@ public:
 	void CpuWaitForGpuQueue();
 	void PlanGpuQueueWork();
 	void IncreaseCpuFence();
+	u64	GetPlannedValue() const;
+
 private:
 	ID3D12CommandQueue* const mQueue = nullptr;
 	ID3D12Fence*		mFence = nullptr;

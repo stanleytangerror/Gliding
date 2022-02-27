@@ -4,6 +4,7 @@
 #include "windows.h"
 
 class D3D12Device;
+class ScreenRenderer;
 
 class GD_RENDER_API RenderModule
 {
@@ -15,5 +16,7 @@ public:
 protected:
 	HWND		mWindow = {};
 	D3D12Device* mDevice = nullptr;
+
+	std::unique_ptr<ScreenRenderer>	mScreenRenderer;
 };
 

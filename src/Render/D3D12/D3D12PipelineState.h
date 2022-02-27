@@ -54,12 +54,12 @@ public:
 
 	ID3D12PipelineState* CreateGraphicsPso(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc);
 	ID3D12PipelineState* CreateComputePso(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc);
-	ID3D12RootSignature* CreateRootSignature(const wchar_t* file, const char* entry);
+	ID3D12RootSignature* CreateRootSignature(const char* file, const char* entry);
 
 public:
 	struct FileEntryKey
 	{
-		const std::wstring file;
+		const std::string file;
 		const std::string entry;
 
 		bool operator<(const FileEntryKey& other) const

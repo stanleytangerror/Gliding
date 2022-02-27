@@ -120,12 +120,13 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	));
 
 	mPipelineStateLib = new D3D12PipelineStateLibrary(this);
+	mShaderLib = new D3D12ShaderLibrary;
 
 	//Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
 	//AssertHResultOk(swapChain1.As(&swapChain3));
 	mSwapChain = reinterpret_cast<IDXGISwapChain3*>(swapChain1);
 
-	mCommandAllocatorPool = new D3D12Device::CommandAllocatorPool(
+	mCommandAllocatorPool = new CommandAllocatorPool(
 		[&]()
 		{
 			ID3D12CommandAllocator* newAllocator = nullptr;
@@ -136,6 +137,29 @@ D3D12Device::D3D12Device(HWND windowHandle)
 		[](ID3D12CommandAllocator* a) { a->Release(); });
 
 	mFence = new D3D12Fence(mCommandQueue);
+
+	for (i32 i = 0; i < mRuntimeDescHeaps.size(); ++i)
+	{
+		mRuntimeDescHeaps[i] = new RuntimeDescriptorHeap(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
+	}
+
+	for (i32 i = 0; i < mDescAllocator.size(); ++i)
+	{
+		mDescAllocator[i] = new D3D12DescriptorAllocator(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
+	}
+
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC nullSrvDesc = {};
+	{
+		nullSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		nullSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		nullSrvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		nullSrvDesc.Texture2D.MipLevels = 1;
+		nullSrvDesc.Texture2D.MostDetailedMip = 0;
+		nullSrvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	}
+	mNullSrvCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
+	D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
 }
 
 void D3D12Device::Present()
@@ -152,6 +176,11 @@ void D3D12Device::Present()
 ID3D12Device* D3D12Device::GetDevice() const
 {
 	return mDevice;
+}
+
+CommandAllocatorPool* D3D12Device::GetCommandAllocatorPool() const
+{
+	return mCommandAllocatorPool;
 }
 
 RuntimeDescriptorHeap* D3D12Device::GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const

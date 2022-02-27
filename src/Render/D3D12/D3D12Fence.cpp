@@ -42,3 +42,8 @@ void D3D12Fence::IncreaseCpuFence()
 {
 	++mCpuFenceValue;
 }
+
+u64 D3D12Fence::GetPlannedValue() const
+{
+	return mGpuQueueFenceStatus.mPlannedValue;
+}
