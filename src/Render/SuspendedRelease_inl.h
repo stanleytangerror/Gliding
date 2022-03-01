@@ -23,7 +23,7 @@ T* SuspendedReleasePool<T>::AllocItem()
 	}
 	else
 	{
-		T* result = AllocItem();
+		T* result = mAllocFun();
 		return result;
 	}
 }

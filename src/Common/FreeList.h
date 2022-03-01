@@ -14,7 +14,7 @@ public:
 	FreeList(i32 size)
 		: mSize(size)
 	{
-		mAvailableIndices.reserve(mSize);
+		mAvailableIndices.resize(mSize);
 		for (i32 i = 0; i < mSize; ++i)
 		{
 			mAvailableIndices[i] = i;
