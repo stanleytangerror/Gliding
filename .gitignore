@@ -37,6 +37,7 @@
 
 # intermediate folder
 Intermediate/
+temp/
 
 # output folder
 bin/
