@@ -27,7 +27,8 @@ void SwapChainBufferResource::Transition(ID3D12GraphicsCommandList* commandList,
 {
 	if (mResStates != destState)
 	{
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mResource, mResStates, destState));
+		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(mResource, mResStates, destState);
+		commandList->ResourceBarrier(1, &barrier);
 		mResStates = destState;
 	}
 }
