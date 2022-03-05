@@ -12,7 +12,7 @@ class RTV;
 class SwapChainBufferResource : public ID3D12Res
 {
 public:
-	SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res);
+	SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name);
 
 	ID3D12Resource* GetD3D12Resource() const override { return mResource; }
 	Vec3i				GetSize() const override { return { m_width, m_height, 0 }; }
@@ -36,8 +36,11 @@ public:
 	SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount);
 	SwapChainBufferResource* GetBuffer() const;
 
+	void Present();
+
 protected:
 	D3D12Device* const						mDevice = nullptr;
+	IDXGISwapChain3*						mSwapChain = nullptr;
 	const int32_t							mFrameCount;
 	i32										mCurrentBackBufferIndex = 0;
 	std::vector<SwapChainBufferResource*>	mRenderTargets;

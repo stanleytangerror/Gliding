@@ -3,8 +3,10 @@
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12DescriptorHeap.h"
 
-GraphicsContext::GraphicsContext(D3D12Device* device)
+GraphicsContext::GraphicsContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence)
 	: mDevice(device)
+	, mQueue(q)
+	, mFence(fence)
 {
 	mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
 	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCurrentCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
@@ -18,14 +20,14 @@ GraphicsContext::GraphicsContext(D3D12Device* device)
 	Reset();
 }
 
-void GraphicsContext::Execute(ID3D12CommandQueue* q, D3D12Fence* fence)
+void GraphicsContext::Execute()
 {
 	AssertHResultOk(mCommandList->Close());
 	
 	ID3D12CommandList* ppCommandLists[] = { mCommandList };
-	q->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	mQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	mDevice->GetCommandAllocatorPool()->ReleaseItem(fence->GetPlannedValue(), mCurrentCommandAllocator);
+	mDevice->GetCommandAllocatorPool()->ReleaseItem(mFence->GetPlannedValue(), mCurrentCommandAllocator);
 }
 
 void GraphicsContext::Reset()
@@ -64,8 +66,10 @@ void GraphicsContext::Transition(ID3D12Resource* resource, const D3D12_RESOURCE_
 /////////////////////////////////////////////////////////////////////
 
 
-ComputeContext::ComputeContext(D3D12Device* device)
+ComputeContext::ComputeContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence)
 	: mDevice(device)
+	, mQueue(q)
+	, mFence(fence)
 {
 	mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
 	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCurrentCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
@@ -77,14 +81,14 @@ ComputeContext::ComputeContext(D3D12Device* device)
 	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
 }
 
-void ComputeContext::Execute(ID3D12CommandQueue* q, D3D12Fence* fence)
+void ComputeContext::Execute()
 {
 	AssertHResultOk(mCommandList->Close());
 
 	ID3D12CommandList* ppCommandLists[] = { mCommandList };
-	q->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	mQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-	mDevice->GetCommandAllocatorPool()->ReleaseItem(fence->GetPlannedValue(), mCurrentCommandAllocator);
+	mDevice->GetCommandAllocatorPool()->ReleaseItem(mFence->GetPlannedValue(), mCurrentCommandAllocator);
 }
 
 void ComputeContext::Reset()

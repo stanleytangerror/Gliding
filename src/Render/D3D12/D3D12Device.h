@@ -43,10 +43,8 @@ public:
 
 private:
 	ID3D12Device* mDevice = nullptr;
-	IDXGISwapChain3* mSwapChain = nullptr;
 
 	SwapChainBuffers* mBackBuffers = nullptr;
-
 
 	ID3D12CommandQueue* mCommandQueue = nullptr;
 

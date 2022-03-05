@@ -1,9 +1,11 @@
 #pragma once
 
 #include "D3D12/D3D12Headers.h"
+#include "D3D12/D3D12CommandContext.h"
 #include "RenderModule.h"
 
 class RenderModule;
+class GraphicsContext;
 
 class ScreenRenderer
 {
@@ -11,7 +13,7 @@ public:
 	ScreenRenderer(RenderModule* renderModule);
 
 	void Initial();
-	void Render();
+	void Render(GraphicsContext* context);
 
 private:
 	RenderModule* mRenderModule = nullptr;

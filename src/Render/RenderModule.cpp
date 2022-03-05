@@ -8,12 +8,16 @@ RenderModule::RenderModule(HWND window)
 	, mDevice(new D3D12Device(window))
 {
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
+	mScreenRenderer->Initial();
 }
 
 void RenderModule::TickFrame()
 {
+	GraphicsContext* context = mDevice->GetGraphicContextPool()->AllocItem();
+	
+	mScreenRenderer->Render(context);
 
-	mScreenRenderer->Render();
+	context->Execute();
 
 	mDevice->Present();
 }

@@ -10,9 +10,9 @@ class D3D12ConstantBuffer;
 class GraphicsContext
 {
 public:
-	GraphicsContext(D3D12Device* device);
+	GraphicsContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence);
 
-	void		Execute(ID3D12CommandQueue* q, D3D12Fence* fence);
+	void		Execute();
 	void		Reset();
 
 	ID3D12GraphicsCommandList*	GetCommandList() const { return mCommandList; }
@@ -25,6 +25,8 @@ public:
 
 private:
 	D3D12Device*				mDevice = nullptr;
+	ID3D12CommandQueue*			mQueue = nullptr;
+	D3D12Fence*					mFence = nullptr;
 	ID3D12GraphicsCommandList* mCommandList = nullptr;
 	ID3D12CommandAllocator* mCurrentCommandAllocator = nullptr;
 	RuntimeDescriptorHeap* mRuntimeHeap = nullptr;
@@ -34,9 +36,9 @@ private:
 class ComputeContext
 {
 public:
-	ComputeContext(D3D12Device* device);
+	ComputeContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence);
 
-	void		Execute(ID3D12CommandQueue* q, D3D12Fence* fence);
+	void		Execute();
 	void		Reset();
 
 	ID3D12GraphicsCommandList* GetCommandList() const { return mCommandList; }
@@ -48,6 +50,8 @@ public:
 
 private:
 	D3D12Device*				mDevice = nullptr;
+	ID3D12CommandQueue*			mQueue = nullptr;
+	D3D12Fence*					mFence = nullptr;
 	ID3D12GraphicsCommandList* mCommandList = nullptr;
 	ID3D12CommandAllocator* mCurrentCommandAllocator = nullptr;
 	RuntimeDescriptorHeap* mRuntimeHeap = nullptr;

@@ -7,6 +7,11 @@ template <typename T, i32 Row>
 struct Vec
 {
 	std::array<T, Row> m;
+
+	T x() const { return m[0]; }
+	T y() const { return m[1]; }
+	T z() const { return m[2]; }
+	T w() const { return m[3]; }
 };
 
 using Vec2f = Vec<float, 2>;

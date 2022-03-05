@@ -100,32 +100,8 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	AssertHResultOk(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
 
-	// Describe and create the swap chain.
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.BufferCount = FrameCount;
-	swapChainDesc.Width = Width;
-	swapChainDesc.Height = Height;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.SampleDesc.Count = 1;
-
-	IDXGISwapChain1* swapChain1 = nullptr;
-	AssertHResultOk(factory->CreateSwapChainForHwnd(
-		mCommandQueue,		// Swap chain needs the queue so that it can force a flush on it.
-		windowHandle,
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		&swapChain1
-	));
-
 	mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 	mShaderLib = new D3D12ShaderLibrary;
-
-	//Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
-	//AssertHResultOk(swapChain1.As(&swapChain3));
-	mSwapChain = reinterpret_cast<IDXGISwapChain3*>(swapChain1);
 
 	mCommandAllocatorPool = new CommandAllocatorPool(
 		[&]()
@@ -162,19 +138,37 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
 
 	mGraphicContextPool = new GraphicsContextPool(
-		[&]() { return new GraphicsContext(this); },
+		[&]() { return new GraphicsContext(this, mCommandQueue, mFence); },
 		[](GraphicsContext* ctx) {},
 		[](GraphicsContext* ctx) {}
 	);
 
-	mBackBuffers = new SwapChainBuffers(this, mSwapChain, FrameCount);
+	// Describe and create the swap chain.
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+	swapChainDesc.BufferCount = FrameCount;
+	swapChainDesc.Width = Width;
+	swapChainDesc.Height = Height;
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc.SampleDesc.Count = 1;
+
+	IDXGISwapChain1* swapChain1 = nullptr;
+	AssertHResultOk(factory->CreateSwapChainForHwnd(
+		mCommandQueue,		// Swap chain needs the queue so that it can force a flush on it.
+		windowHandle,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&swapChain1
+	));
+
+	mBackBuffers = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), FrameCount);
 }
 
 void D3D12Device::Present()
 {
-	//mCommandQueue->ExecuteCommandLists()
-
-	AssertHResultOk(mSwapChain->Present(1, 0));
+	mBackBuffers->Present();
 
 	mFence->PlanGpuQueueWork();
 	mFence->CpuWaitForGpuQueue();

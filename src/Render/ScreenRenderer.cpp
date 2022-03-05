@@ -48,7 +48,7 @@ void ScreenRenderer::Initial()
 	mIbv.Format = DXGI_FORMAT_R16_UINT;
 }
 
-void ScreenRenderer::Render()
+void ScreenRenderer::Render(GraphicsContext* context)
 {
 	//// generate ldr screen tex
 	//pass.Write(mLdrScreenTex);
@@ -57,7 +57,7 @@ void ScreenRenderer::Render()
 	//pass.Dispatch();
 
 	//// draw ldr screen tex to swapchain
-	GraphicsPass ldrScreenPass(mRenderModule->GetDevice()->GetGraphicContextPool()->AllocItem());
+	GraphicsPass ldrScreenPass(context);
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	ldrScreenPass.mRootSignatureDesc.mEntry = "GraphicsRS";
@@ -70,16 +70,22 @@ void ScreenRenderer::Render()
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = false;
 		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { mInputDescs.data(), u32(mInputDescs.size()) };
 	}
 
-	ldrScreenPass.mRts[0] = mRenderModule->GetDevice()->GetBackBuffer()->GetBuffer()->GetRtv();
-
+	SwapChainBufferResource* rtRes = mRenderModule->GetDevice()->GetBackBuffer()->GetBuffer();
+	ldrScreenPass.mRts[0] = rtRes->GetRtv();
+	ldrScreenPass.mViewPort = { 0, 0, float(rtRes->GetSize().x()), float(rtRes->GetSize().y()) };
+	ldrScreenPass.mScissorRect = { 0, 0, rtRes->GetSize().x(), rtRes->GetSize().y() };
+	
 	ldrScreenPass.mVbvs.clear();
 	ldrScreenPass.mVbvs.push_back(mVbv);
 	ldrScreenPass.mIbv = mIbv;
 	ldrScreenPass.mIndexCount = mIbv.SizeInBytes / sizeof(u16);
 
 	ldrScreenPass.Draw();
+
+	mRenderModule->GetDevice()->GetBackBuffer()->GetBuffer()->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
 
 	//pass.Read(mLdrScreenTex);
 	//pass.Write(swapchain);

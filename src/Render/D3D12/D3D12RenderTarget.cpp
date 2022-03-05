@@ -1,14 +1,14 @@
 #include "RenderPch.h"
 #include "D3D12RenderTarget.h"
 
-SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res)
+SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name)
 	: mResource(res)
 {
 	const auto& desc = mResource->GetDesc();
 	m_width = desc.Width;
 	m_height = desc.Height;
 
-	NAME_RAW_D3D12_OBJECT(mResource, L"SwapChainBuffers");
+	NAME_RAW_D3D12_OBJECT(mResource, name);
 
 	mResStates = D3D12_RESOURCE_STATE_COMMON;
 
@@ -34,6 +34,7 @@ void SwapChainBufferResource::Transition(ID3D12GraphicsCommandList* commandList,
 
 SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount)
 	: mDevice(device)
+	, mSwapChain(swapChain)
 	, mFrameCount(frameCount)
 	, mRenderTargets(frameCount)
 {
@@ -42,11 +43,17 @@ SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapCha
 		ID3D12Resource* rt = nullptr;
 		AssertHResultOk(swapChain->GetBuffer(n, IID_PPV_ARGS(&rt)));
 
-		mRenderTargets[n] = new SwapChainBufferResource(device, rt);
+		mRenderTargets[n] = new SwapChainBufferResource(device, rt, (std::string("SwapChain_") + std::to_string(n)).c_str());
 	}
 }
 
 SwapChainBufferResource* SwapChainBuffers::GetBuffer() const
 {
 	return mRenderTargets[mCurrentBackBufferIndex];
+}
+
+void SwapChainBuffers::Present()
+{
+	AssertHResultOk(mSwapChain->Present(1, 0));
+	mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
 }
