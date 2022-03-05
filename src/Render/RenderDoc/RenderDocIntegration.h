@@ -20,6 +20,7 @@ private:
 	using RenderDocApi = RENDERDOC_API_1_0_0;
 	enum CaptureState { eInactive, eWaitForNextFrame, eCapturingThisFrame };
 	static const char*	DllName;
+	static const char*	CaptureFolderPath;
 
 	RenderDocApi* mApi = nullptr;
 	CaptureState				mCaptureState = eInactive;

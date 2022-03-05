@@ -3,6 +3,8 @@
 
 const char* RenderDocIntegration::DllName = "renderdoc.dll";
 
+const char* RenderDocIntegration::CaptureFolderPath = "temp/capture";
+
 RenderDocIntegration::RenderDocIntegration()
 {
 	if (const HMODULE mod = LoadLibraryEx(DllName, nullptr, 0))
@@ -13,6 +15,7 @@ RenderDocIntegration::RenderDocIntegration()
 			if (getApi(eRENDERDOC_API_Version_1_0_0, (void**)& rdoc) == 1)
 			{
 				mApi = rdoc;
+				mApi->SetCaptureFilePathTemplate(CaptureFolderPath);
 			}
 		}
 	}
@@ -68,6 +71,11 @@ void RenderDocIntegration::OnEndFrame(D3D12Device* device, HWND windowHandle)
 			{
 				Index++;
 				DEBUG_PRINT("RenderDoc capture No.%d to %s", Index, LogFile);
+
+				if (!mApi->IsTargetControlConnected())
+				{
+					mApi->LaunchReplayUI(1, nullptr);
+				}
 			}
 		}
 		mCaptureState = eInactive;
