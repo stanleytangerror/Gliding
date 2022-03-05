@@ -131,7 +131,7 @@ D3D12Device::D3D12Device(HWND windowHandle)
 		[&]()
 		{
 			ID3D12CommandAllocator* newAllocator = nullptr;
-			Assert(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&newAllocator)));
+			AssertHResultOk(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&newAllocator)));
 			return newAllocator;
 		}, 
 		[](ID3D12CommandAllocator* a) { a->Reset(); },

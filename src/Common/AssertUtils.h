@@ -11,7 +11,4 @@ constexpr void Assert(const bool val)
 #endif
 }
 
-constexpr void AssertHResultOk(const long val)
-{
-	Assert(val == 0);
-}
+GD_COMMON_API constexpr void AssertHResultOk(const long val);

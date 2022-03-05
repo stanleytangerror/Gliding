@@ -79,11 +79,13 @@ void RuntimeDescriptorHeap::Push(const int32_t handleCount, const D3D12_CPU_DESC
 	if (!mCurrentWorkingBlock)
 	{
 		mCurrentWorkingBlock = mPool.AllocItem();
+		mCurrentWorkingIndex = 0;
 	}
-	else if (mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount > mCurrentWorkingBlock->GetNumDescriptos())
+	else if (mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
 	{
 		mPool.ReleaseItem(fenceValue, mCurrentWorkingBlock);
 		mCurrentWorkingBlock = mPool.AllocItem();
+		mCurrentWorkingIndex = 0;
 	}
 
 	for (i32 i = 0; i < handleCount; ++i)

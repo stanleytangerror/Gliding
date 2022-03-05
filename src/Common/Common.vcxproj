@@ -20,6 +20,7 @@
     <ClInclude Include="StringUtils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssertUtils.cpp" />
     <ClCompile Include="CommonPch.cpp" />
     <ClCompile Include="StringUtils.cpp" />
   </ItemGroup>

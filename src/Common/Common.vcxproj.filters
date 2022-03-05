@@ -35,5 +35,8 @@
     <ClCompile Include="CommonPch.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="AssertUtils.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

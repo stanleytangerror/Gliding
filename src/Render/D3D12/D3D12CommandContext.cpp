@@ -14,6 +14,8 @@ GraphicsContext::GraphicsContext(D3D12Device* device)
 	mRuntimeHeap = mDevice->GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
+
+	Reset();
 }
 
 void GraphicsContext::Execute(ID3D12CommandQueue* q, D3D12Fence* fence)
