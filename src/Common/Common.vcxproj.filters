@@ -13,10 +13,27 @@
     <ClInclude Include="AssertUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="StringUtils.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonMacros.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonPch.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
       <UniqueIdentifier>{0d615b55-989c-495f-ba86-588c7eaf6e65}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="StringUtils.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonPch.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -115,5 +115,8 @@
     <ClCompile Include="D3D12\D3D12ConstantBuffer.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="D3D12\D3D12RenderTarget.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

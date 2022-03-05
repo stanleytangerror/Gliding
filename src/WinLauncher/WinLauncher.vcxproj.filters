@@ -12,10 +12,12 @@
     <ClCompile Include="Application.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="WinLauncherPch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="WinLauncherPch.h" />
   </ItemGroup>
 </Project>

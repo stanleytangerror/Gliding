@@ -74,19 +74,19 @@ void GraphicsPass::Draw()
 	// transitions
 	for (const auto& p : mSrvParams)
 	{
-		IResource* res = p.second->GetResource();
+		ID3D12Res* res = p.second->GetResource();
 		res->Transition(mContext->GetCommandList(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	for (const auto& p : mRts)
 	{
-		IResource* res = p.second->GetResource();
+		ID3D12Res* res = p.second->GetResource();
 		res->Transition(mContext->GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	//if (mDs)
 	//{
-	//	IResource* res = mDs->GetResource();
+	//	ID3D12Res* res = mDs->GetResource();
 	//	res->Transition(graphicContext->GetCommandList(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	//}
 

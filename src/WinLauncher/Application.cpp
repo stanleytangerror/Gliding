@@ -1,5 +1,5 @@
+#include "WinLauncherPch.h"
 #include "Application.h"
-
 
 Application::Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow):
 	mWidth(width),

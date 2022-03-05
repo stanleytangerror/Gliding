@@ -2,6 +2,7 @@
 #include "D3D12Device.h"
 #include "Common/AssertUtils.h"
 #include "D3D12/D3D12Utils.h"
+#include "D3D12/D3D12CommandContext.h"
 
 namespace
 {
@@ -148,7 +149,6 @@ D3D12Device::D3D12Device(HWND windowHandle)
 		mDescAllocator[i] = new D3D12DescriptorAllocator(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
 	}
 
-
 	D3D12_SHADER_RESOURCE_VIEW_DESC nullSrvDesc = {};
 	{
 		nullSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -160,6 +160,14 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	}
 	mNullSrvCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 	D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
+
+	mGraphicContextPool = new GraphicsContextPool(
+		[&]() { return new GraphicsContext(this); },
+		[](GraphicsContext* ctx) {},
+		[](GraphicsContext* ctx) {}
+	);
+
+	mBackBuffers = new SwapChainBuffers(this, mSwapChain, FrameCount);
 }
 
 void D3D12Device::Present()

@@ -117,13 +117,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12CommandContext.cpp" />
-    <ClCompile Include="D3D12\D3D12ConstantBuffer.cpp" />
+    <ClCompile Include="D3D12\D3D12ConstantBuffer.cpp">
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
+    </ClCompile>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp" />
     <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="D3D12\D3D12Device.cpp" />
     <ClCompile Include="D3D12\D3D12Fence.cpp" />
     <ClCompile Include="D3D12\D3D12PipelinePass.cpp" />
     <ClCompile Include="D3D12\D3D12PipelineState.cpp" />
+    <ClCompile Include="D3D12\D3D12RenderTarget.cpp" />
     <ClCompile Include="D3D12\D3D12Resource.cpp" />
     <ClCompile Include="D3D12\D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12\D3D12Shader.cpp" />
@@ -134,6 +138,11 @@
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.vcxproj">
+      <Project>{3de1d1e4-5c2a-4a60-bf90-c4ca19948bac}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

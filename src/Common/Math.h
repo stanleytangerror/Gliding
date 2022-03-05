@@ -9,6 +9,7 @@ struct Vec
 	std::array<T, Row> m;
 };
 
+using Vec2f = Vec<float, 2>;
 using Vec3f = Vec<float, 3>;
 using Vec3i = Vec<i32, 3>;
 

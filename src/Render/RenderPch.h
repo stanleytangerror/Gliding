@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common/CommonMacros.h"
 #include "RenderMacros.h"
 
 // headers from common
@@ -7,6 +8,7 @@
 #include "Common/AssertUtils.h"
 #include "Common/Math.h"
 #include "Common/FreeList.h"
+#include "Common/StringUtils.h"
 
 // std headers
 #include <vector>

@@ -2,12 +2,12 @@
 #include "D3D12ResourceView.h"
 #include "D3D12Resource.h"
 
-SRV::SRV(D3D12Device* device, IResource* res)
+SRV::SRV(D3D12Device* device, ID3D12Res* res)
 	: SRV(device, res, res->GetD3D12Resource()->GetDesc().Format)
 {
 }
 
-SRV::SRV(D3D12Device* device, IResource* res, DXGI_FORMAT format)
+SRV::SRV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format)
 	: mResource(res)
 	, mFormat(format)
 {
@@ -23,7 +23,7 @@ SRV::SRV(D3D12Device* device, IResource* res, DXGI_FORMAT format)
 	device->GetDevice()->CreateShaderResourceView(mResource->GetD3D12Resource(), &srvDesc, mDescriptionHandle.Get());
 }
 
-SRV::SRV(D3D12Device* device, IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+SRV::SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
 {
@@ -31,7 +31,9 @@ SRV::SRV(D3D12Device* device, IResource* res, const D3D12_SHADER_RESOURCE_VIEW_D
 	device->GetDevice()->CreateShaderResourceView(mResource->GetD3D12Resource(), &desc, mDescriptionHandle.Get());
 }
 
-UAV::UAV(D3D12Device* device, IResource* res)
+//////////////////////////////////////////////////////////////////////////
+
+UAV::UAV(D3D12Device* device, ID3D12Res* res)
 	: mResource(res)
 {
 	const D3D12_RESOURCE_DESC& resdesc = mResource->GetD3D12Resource()->GetDesc();
@@ -45,4 +47,22 @@ UAV::UAV(D3D12Device* device, IResource* res)
 
 	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
 	device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+RTV::RTV(D3D12Device* device, ID3D12Res* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+	: mResource(res)
+	, mDesc(desc)
+{
+	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	mRtv = rtvDescAllocator->AllocCpuDesc();
+	device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
+}
+
+void RTV::Clear(ID3D12GraphicsCommandList* commandList, const FLOAT color[4])
+{
+	GetResource()->Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList->ClearRenderTargetView(GetHandle(), color, 0, nullptr);
 }

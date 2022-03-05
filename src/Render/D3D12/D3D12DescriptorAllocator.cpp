@@ -12,7 +12,7 @@ D3D12DescriptorBlock::D3D12DescriptorBlock(ID3D12Device* device, const D3D12_DES
 	, mAllocator(numDescriptors)
 {
 	AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&mDescriptorHeap)));
-	NAME_RAW_D3D12_OBJECT(mDescriptorHeap, L"D3D12DescriptorBlock");
+	mDescriptorHeap->SetName(L"D3D12DescriptorBlock");
 
 	mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 }

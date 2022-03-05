@@ -7,7 +7,7 @@ RenderModule::RenderModule(HWND window)
 	: mWindow(window)
 	, mDevice(new D3D12Device(window))
 {
-
+	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
 }
 
 void RenderModule::TickFrame()

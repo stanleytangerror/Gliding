@@ -10,3 +10,5 @@
 #include "windows.h"
 #include <wrl/client.h>
 #include <dxgi1_4.h>
+
+#include "D3D12/D3D12Utils.h"

@@ -1,3 +1,4 @@
+#include "WinLauncherPch.h"
 #include "windows.h"
 #include <string>
 #include "Application.h"

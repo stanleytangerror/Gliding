@@ -11,7 +11,7 @@ DescriptorHeapBlock::DescriptorHeapBlock(ID3D12Device* device, const D3D12_DESCR
 	, m_DescriptorSize(device->GetDescriptorHandleIncrementSize(type))
 {
 	AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
-	NAME_RAW_D3D12_OBJECT(m_DescriptorHeap, L"RuntimeDescriptorHeap");
+	m_DescriptorHeap->SetName(L"RuntimeDescriptorHeap");
 
 	m_CpuBase = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	m_GpuBase = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();

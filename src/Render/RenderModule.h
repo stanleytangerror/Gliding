@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RenderMacros.h"
 #include "windows.h"
 
 class D3D12Device;
@@ -12,6 +11,8 @@ public:
 	RenderModule(HWND window);
 
 	void TickFrame();
+
+	D3D12Device* GetDevice() const { return mDevice; }
 
 protected:
 	HWND		mWindow = {};
