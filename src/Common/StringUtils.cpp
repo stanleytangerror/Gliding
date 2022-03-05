@@ -1,6 +1,7 @@
 #include "CommonPch.h"
 #include "StringUtils.h"
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstdarg>
 
 std::wstring Utils::ToWString(const std::string& str)
 {
@@ -13,3 +14,14 @@ std::wstring Utils::ToWString(const char* str)
 {
 	return ToWString(std::string(str));
 }
+
+std::string Utils::FormatString(const char* format, ...)
+{
+	constexpr int BufSize = 2048;
+	char buffer[BufSize + 1] = {};
+	va_list ap;
+	va_start(ap, format);
+	vsprintf_s(buffer, BufSize, format, ap);
+	return std::string(buffer);
+}
+

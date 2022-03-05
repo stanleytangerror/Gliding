@@ -61,7 +61,7 @@
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -70,6 +70,9 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(SolutionDir)Dependencies\RenderDoc-1.16\renderdoc.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -81,7 +84,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -91,6 +94,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(SolutionDir)Dependencies\RenderDoc-1.16\renderdoc.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="D3D12\D3D12CommandContext.h" />
@@ -107,6 +113,7 @@
     <ClInclude Include="D3D12\D3D12ResourceView.h" />
     <ClInclude Include="D3D12\D3D12Shader.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
+    <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderMacros.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
@@ -135,6 +142,7 @@
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
     </ClCompile>
+    <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
