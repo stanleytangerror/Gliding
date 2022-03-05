@@ -12,16 +12,16 @@ public:
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE		GetCpuBaseWithOffset(i32 offset) const;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuBaseWithOffset(i32 offset) const;
-	ID3D12DescriptorHeap*				GetDescriptorHeap() const { return m_DescriptorHeap; }
+	ID3D12DescriptorHeap*				GetDescriptorHeap() const { return mDescriptorHeap; }
 	i32									GetNumDescriptos() const { return mDescriptorNum; }
 
 protected:
 	const D3D12_DESCRIPTOR_HEAP_DESC	mDesc;
-	ID3D12DescriptorHeap*				m_DescriptorHeap = nullptr; // ownership
-	const i32							m_DescriptorSize = 0;
+	ID3D12DescriptorHeap*				mDescriptorHeap = nullptr; // ownership
+	const i32							mDescriptorSize = 0;
 	const i32							mDescriptorNum = 0;
-	D3D12_CPU_DESCRIPTOR_HANDLE			m_CpuBase = {};
-	D3D12_GPU_DESCRIPTOR_HANDLE			m_GpuBase = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE			mCpuBase = {};
+	D3D12_GPU_DESCRIPTOR_HANDLE			mGpuBase = {};
 };
 
 class RuntimeDescriptorHeap

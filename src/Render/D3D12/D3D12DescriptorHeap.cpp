@@ -6,32 +6,32 @@
 
 DescriptorHeapBlock::DescriptorHeapBlock(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool shaderVisible, const i32 numDescriptors)
 	: mDesc{ type, UINT(numDescriptors), shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 }
-	, m_DescriptorHeap(nullptr)
+	, mDescriptorHeap(nullptr)
 	, mDescriptorNum(numDescriptors)
-	, m_DescriptorSize(device->GetDescriptorHandleIncrementSize(type))
+	, mDescriptorSize(device->GetDescriptorHandleIncrementSize(type))
 {
-	AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
-	m_DescriptorHeap->SetName(L"RuntimeDescriptorHeap");
+	AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&mDescriptorHeap)));
+	mDescriptorHeap->SetName(L"RuntimeDescriptorHeap");
 
-	m_CpuBase = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	m_GpuBase = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	mGpuBase = mDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 }
 
 
 DescriptorHeapBlock::~DescriptorHeapBlock()
 {
-	m_DescriptorHeap->Release();
-	m_DescriptorHeap = nullptr;
-	m_CpuBase = {};
-	m_GpuBase = {};
+	mDescriptorHeap->Release();
+	mDescriptorHeap = nullptr;
+	mCpuBase = {};
+	mGpuBase = {};
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetCpuBaseWithOffset(i32 offset) const
 {
 	if (0 <= offset && offset < mDescriptorNum)
 	{
-		CD3DX12_CPU_DESCRIPTOR_HANDLE result(m_CpuBase);
-		result.Offset(m_DescriptorSize * offset);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE result(mCpuBase);
+		result.Offset(mDescriptorSize * offset);
 		return result;
 	}
 	else
@@ -44,8 +44,8 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetGpuBaseWithOffset(i32 offs
 {
 	if (0 <= offset && offset < mDescriptorNum)
 	{
-		CD3DX12_GPU_DESCRIPTOR_HANDLE result(m_GpuBase);
-		result.Offset(m_DescriptorSize * offset);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE result(mGpuBase);
+		result.Offset(mDescriptorSize * offset);
 		return result;
 	}
 	else

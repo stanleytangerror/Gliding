@@ -5,8 +5,8 @@ SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Reso
 	: mResource(res)
 {
 	const auto& desc = mResource->GetDesc();
-	m_width = desc.Width;
-	m_height = desc.Height;
+	mWidth = desc.Width;
+	mHeight = desc.Height;
 
 	NAME_RAW_D3D12_OBJECT(mResource, name);
 
