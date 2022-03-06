@@ -42,7 +42,6 @@
     <ClInclude Include="D3D12\D3D12Utils.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -76,6 +75,15 @@
     <ClInclude Include="RenderDoc\RenderDocIntegration.h">
       <Filter>Source\RenderDoc</Filter>
     </ClInclude>
+    <ClInclude Include="RenderModule.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Geometry.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\D3D12Geometry_inl.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -96,7 +104,6 @@
     <ClCompile Include="D3D12\D3D12Utils.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -126,6 +133,12 @@
     </ClCompile>
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp">
       <Filter>Source\RenderDoc</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderModule.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Geometry.cpp">
+      <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

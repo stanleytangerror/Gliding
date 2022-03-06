@@ -105,6 +105,8 @@
     <ClInclude Include="D3D12\D3D12DescriptorHeap.h" />
     <ClInclude Include="D3D12\D3D12Device.h" />
     <ClInclude Include="D3D12\D3D12Fence.h" />
+    <ClInclude Include="D3D12\D3D12Geometry.h" />
+    <ClInclude Include="D3D12\D3D12Geometry_inl.h" />
     <ClInclude Include="D3D12\D3D12Headers.h" />
     <ClInclude Include="D3D12\D3D12PipelinePass.h" />
     <ClInclude Include="D3D12\D3D12PipelineState.h" />
@@ -132,6 +134,7 @@
     <ClCompile Include="D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="D3D12\D3D12Device.cpp" />
     <ClCompile Include="D3D12\D3D12Fence.cpp" />
+    <ClCompile Include="D3D12\D3D12Geometry.cpp" />
     <ClCompile Include="D3D12\D3D12PipelinePass.cpp" />
     <ClCompile Include="D3D12\D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12\D3D12RenderTarget.cpp" />

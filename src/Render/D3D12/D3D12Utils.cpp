@@ -83,7 +83,7 @@ ID3DBlob* D3D12Utils::CompileBlob(const void* date, const i32 dataSize, const ch
 	return result;
 }
 
-ID3D12Resource* D3D12Utils::CreateUploadBuffer(ID3D12Device* device, u32 size, const char* name)
+ID3D12Resource* D3D12Utils::CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name)
 {
 	CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_UPLOAD);
 	CD3DX12_RESOURCE_DESC bufDesc = CD3DX12_RESOURCE_DESC::Buffer(size);
