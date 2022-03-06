@@ -22,7 +22,10 @@ void RenderModule::TickFrame(Timer* timer)
 	mScreenRenderer->TickFrame(timer);
 
 	GraphicsContext* context = mDevice->GetGraphicContextPool()->AllocItem();
-	mScreenRenderer->Render(context);
+	{
+		mScreenRenderer->Render(context);
+		mDevice->GetBackBuffer()->GetBuffer()->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
+	}
 	context->Execute();
 
 	mDevice->Present();

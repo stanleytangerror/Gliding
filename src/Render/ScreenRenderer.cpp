@@ -86,8 +86,6 @@ void ScreenRenderer::Render(GraphicsContext* context)
 
 	ldrScreenPass.Draw();
 
-	mRenderModule->GetDevice()->GetBackBuffer()->GetBuffer()->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
-
 	//pass.Read(mLdrScreenTex);
 	//pass.Write(swapchain);
 	//pass.SetComputeShader(cs);
