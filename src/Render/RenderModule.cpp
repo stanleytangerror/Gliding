@@ -15,9 +15,11 @@ RenderModule::RenderModule(HWND window)
 	mScreenRenderer->Initial();
 }
 
-void RenderModule::TickFrame()
+void RenderModule::TickFrame(Timer* timer)
 {
 	mRenderDoc->OnStartFrame(mDevice, mWindow);
+
+	mScreenRenderer->TickFrame(timer);
 
 	GraphicsContext* context = mDevice->GetGraphicContextPool()->AllocItem();
 	mScreenRenderer->Render(context);

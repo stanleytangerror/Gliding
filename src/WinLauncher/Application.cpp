@@ -1,10 +1,11 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
 
-Application::Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow):
-	mWidth(width),
-	mHeight(height),
-	mTitle(name)
+Application::Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
+	: mWidth(width)
+	, mHeight(height)
+	, mTitle(name)
+	, mTimer(std::make_unique<Timer>())
 {
 	// Initialize the window class.
 	WNDCLASSEX windowClass = { 0 };
@@ -63,8 +64,10 @@ void Application::RunLogic()
 {
 	while (true)
 	{
+		mTimer->OnStartNewFrame();
+		
 		std::this_thread::sleep_for(std::chrono::milliseconds(25));
-		mRenderModule->TickFrame();
+		mRenderModule->TickFrame(mTimer.get());
 	}
 }
 

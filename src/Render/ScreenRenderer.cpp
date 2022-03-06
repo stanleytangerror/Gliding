@@ -2,6 +2,7 @@
 #include "ScreenRenderer.h"
 #include "D3D12/D3D12Device.h"
 #include "D3D12/D3D12PipelinePass.h"
+#include <chrono>
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
@@ -48,15 +49,13 @@ void ScreenRenderer::Initial()
 	mIbv.Format = DXGI_FORMAT_R16_UINT;
 }
 
+void ScreenRenderer::TickFrame(Timer* timer)
+{
+	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
+}
+
 void ScreenRenderer::Render(GraphicsContext* context)
 {
-	//// generate ldr screen tex
-	//pass.Write(mLdrScreenTex);
-	//pass.SetComputeShader(cs);
-	//pass.SetConstBuffer();
-	//pass.Dispatch();
-
-	//// draw ldr screen tex to swapchain
 	GraphicsPass ldrScreenPass(context);
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -82,6 +81,8 @@ void ScreenRenderer::Render(GraphicsContext* context)
 	ldrScreenPass.mVbvs.push_back(mVbv);
 	ldrScreenPass.mIbv = mIbv;
 	ldrScreenPass.mIndexCount = mIbv.SizeInBytes / sizeof(u16);
+
+	ldrScreenPass.AddCbVar("time", mElapsedTime);
 
 	ldrScreenPass.Draw();
 

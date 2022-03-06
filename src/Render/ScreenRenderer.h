@@ -13,10 +13,13 @@ public:
 	ScreenRenderer(RenderModule* renderModule);
 
 	void Initial();
+	void TickFrame(Timer* timer);
 	void Render(GraphicsContext* context);
 
 private:
 	RenderModule* mRenderModule = nullptr;
+
+	f32	mElapsedTime = 0.f;
 
 	ID3D12Resource* mVb = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW mVbv = {};

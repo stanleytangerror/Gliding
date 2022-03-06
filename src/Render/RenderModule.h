@@ -11,12 +11,13 @@ class GD_RENDER_API RenderModule
 public:
 	RenderModule(HWND window);
 
-	void TickFrame();
+	void TickFrame(Timer* timer);
 
 	D3D12Device* GetDevice() const { return mDevice; }
 
 protected:
 	HWND		mWindow = {};
+
 	D3D12Device* mDevice = nullptr;
 	RenderDocIntegration* mRenderDoc = nullptr;
 	std::unique_ptr<ScreenRenderer>	mScreenRenderer;

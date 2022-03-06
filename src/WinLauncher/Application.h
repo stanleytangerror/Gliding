@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Common/CommonTypes.h"
+#include "Render/RenderModule.h"
 #include <xstring>
 #include <thread>
 #include <wtypes.h>
-#include "Render/RenderModule.h"
+#include <memory>
+
+class Timer;
 
 class Application
 {
@@ -29,6 +32,7 @@ protected:
 	const std::string mTitle;
 	HWND				mWindowHandle = {};
 
+	std::unique_ptr<Timer>	mTimer;
 	RenderModule* mRenderModule = nullptr;
 
 	std::thread*		mLogicThread = nullptr;
