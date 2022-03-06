@@ -3,6 +3,7 @@
 #include "Common/CommonTypes.h"
 #include <queue>
 #include <functional>
+#include <unordered_set>
 
 template <class T>
 class SuspendedReleasePool
@@ -19,7 +20,11 @@ public:
 
 	T* AllocItem();
 	void ReleaseItem(u64 releasingTime, T*& object);
+	void ReleaseAllActiveItems(u64 releasingTime);
+
 	void UpdateTime(u64 time);
+
+	const std::unordered_set<T*>& GetAliveItems() const { return mAliveItems; }
 
 protected:
 	static const u64 msInfiniteTime = u64(-1);
@@ -44,9 +49,20 @@ protected:
 	FReset		mResetFun;
 	FDealloc	mDeallocFun;
 
-	std::vector<T*>	mPool;
+	std::vector<T*>	mAvailablePool;
 	std::priority_queue<SuspendedInfo, std::vector< SuspendedInfo>, std::greater<SuspendedInfo>> mSuspendQueue;
+	std::unordered_set<T*> mAliveItems;
 	u64	mCurrentTime = 0;
 };
+
+template <class T>
+void SuspendedReleasePool<T>::ReleaseAllActiveItems(u64 releasingTime)
+{
+	std::unordered_set<T*> copiedActiveItems = mAliveItems;
+	for (T* item : mAliveItems)
+	{
+		ReleaseItem(releasingTime, item);
+	}
+}
 
 #include "SuspendedRelease_inl.h"

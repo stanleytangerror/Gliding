@@ -3,50 +3,56 @@
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12DescriptorHeap.h"
 
-GraphicsContext::GraphicsContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence)
+D3D12CommandContext::D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpuQueue)
 	: mDevice(device)
-	, mQueue(q)
-	, mFence(fence)
+	, mGpuQueue(gpuQueue)
+	, mThisCpuThreadId(std::this_thread::get_id())
 {
-	mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
-	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCurrentCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
+	const D3D12_COMMAND_LIST_TYPE type = D3D12GpuQueue::GetD3D12CommandListType(mGpuQueue->GetType());
 
-	mCommandList->Close();
-
-	mRuntimeHeap = mDevice->GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	AssertHResultOk(mDevice->GetDevice()->CreateCommandAllocator(type, IID_PPV_ARGS(&mCommandAllocator)));
+	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, type, mCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
 
 	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
 
-	Reset();
-}
-
-void GraphicsContext::Execute()
-{
-	AssertHResultOk(mCommandList->Close());
-	
-	ID3D12CommandList* ppCommandLists[] = { mCommandList };
-	mQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	mDevice->GetCommandAllocatorPool()->ReleaseItem(mFence->GetPlannedValue(), mCurrentCommandAllocator);
-}
-
-void GraphicsContext::Reset()
-{
-	if (!mCurrentCommandAllocator)
+	for (i32 i = 0; i < mRuntimeDescHeaps.size(); ++i)
 	{
-		mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
+		mRuntimeDescHeaps[i] = new RuntimeDescriptorHeap(mDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
 	}
-
-	AssertHResultOk(mCommandList->Reset(mCurrentCommandAllocator, nullptr));
 }
 
-u64 GraphicsContext::GetPlannedFenceValue() const
+void D3D12CommandContext::Finalize()
 {
-	return mDevice->GetFence()->GetPlannedValue();
+	AssertInThread(mThisCpuThreadId);
+
+	AssertHResultOk(mCommandList->Close());
 }
 
-void GraphicsContext::Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState)
+void D3D12CommandContext::Reset()
 {
+	AssertInThread(mThisCpuThreadId);
+	
+	AssertHResultOk(mCommandList->Reset(mCommandAllocator, nullptr));
+	AssertHResultOk(mCommandAllocator->Reset());
+
+	mConstantBuffer->Reset();
+	for (const auto& heap : mRuntimeDescHeaps)
+	{
+		heap->Reset();
+	}
+}
+
+u64 D3D12CommandContext::GetPlannedFenceValue() const
+{
+	AssertInThread(mThisCpuThreadId);
+	
+	return mGpuQueue->GetGpuPlannedValue();
+}
+
+void D3D12CommandContext::Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState)
+{
+	AssertInThread(mThisCpuThreadId);
+	
 	if (srcState != destState)
 	{
 		D3D12_RESOURCE_BARRIER BarrierDesc = {};
@@ -63,64 +69,14 @@ void GraphicsContext::Transition(ID3D12Resource* resource, const D3D12_RESOURCE_
 	}
 }
 
-/////////////////////////////////////////////////////////////////////
-
-
-ComputeContext::ComputeContext(D3D12Device* device, ID3D12CommandQueue* q, D3D12Fence* fence)
-	: mDevice(device)
-	, mQueue(q)
-	, mFence(fence)
+GraphicsContext::GraphicsContext(D3D12Device* device, D3D12GpuQueue* gpuQueue)
+	: D3D12CommandContext(device, gpuQueue)
 {
-	mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
-	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCurrentCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
 
-	mCommandList->Close();
-
-	mRuntimeHeap = mDevice->GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
 }
 
-void ComputeContext::Execute()
+ComputeContext::ComputeContext(D3D12Device* device, D3D12GpuQueue* gpuQueue)
+	: D3D12CommandContext(device, gpuQueue)
 {
-	AssertHResultOk(mCommandList->Close());
 
-	ID3D12CommandList* ppCommandLists[] = { mCommandList };
-	mQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-	mDevice->GetCommandAllocatorPool()->ReleaseItem(mFence->GetPlannedValue(), mCurrentCommandAllocator);
 }
-
-void ComputeContext::Reset()
-{
-	if (!mCurrentCommandAllocator)
-	{
-		mCurrentCommandAllocator = mDevice->GetCommandAllocatorPool()->AllocItem();
-	}
-
-	AssertHResultOk(mCommandList->Reset(mCurrentCommandAllocator, nullptr));
-}
-
-u64 ComputeContext::GetPlannedFenceValue() const
-{
-	return mDevice->GetFence()->GetPlannedValue();
-}
-
-//void ComputeContext::Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState)
-//{
-//	if (srcState != destState)
-//	{
-//		D3D12_RESOURCE_BARRIER BarrierDesc = {};
-//		{
-//			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-//			BarrierDesc.Transition.pResource = resource;
-//			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-//			BarrierDesc.Transition.StateBefore = srcState;
-//			BarrierDesc.Transition.StateAfter = destState;
-//			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-//		}
-//
-//		mCommandList->ResourceBarrier(1, &BarrierDesc);
-//	}
-//}
-

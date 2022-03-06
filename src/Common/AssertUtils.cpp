@@ -21,3 +21,8 @@ constexpr void AssertHResultOk(const long val)
 
 	Assert(val == S_OK);
 }
+
+GD_COMMON_API constexpr void AssertInThread(const std::thread::id& targetThread)
+{
+	Assert(targetThread == std::this_thread::get_id());
+}

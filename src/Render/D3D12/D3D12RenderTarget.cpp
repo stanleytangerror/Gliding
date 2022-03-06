@@ -3,6 +3,7 @@
 
 SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name)
 	: mResource(res)
+	, mName(name)
 {
 	const auto& desc = mResource->GetDesc();
 	mWidth = desc.Width;
@@ -33,6 +34,11 @@ void SwapChainBufferResource::Transition(ID3D12GraphicsCommandList* commandList,
 	}
 }
 
+std::string SwapChainBufferResource::GetName() const
+{
+	return mName;
+}
+
 SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount)
 	: mDevice(device)
 	, mSwapChain(swapChain)
@@ -44,7 +50,7 @@ SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapCha
 		ID3D12Resource* rt = nullptr;
 		AssertHResultOk(swapChain->GetBuffer(n, IID_PPV_ARGS(&rt)));
 
-		mRenderTargets[n] = new SwapChainBufferResource(device, rt, (std::string("SwapChain_") + std::to_string(n)).c_str());
+		mRenderTargets[n] = new SwapChainBufferResource(device, rt, Utils::FormatString("BackBuffer_%d", n).c_str());
 	}
 }
 
@@ -55,6 +61,8 @@ SwapChainBufferResource* SwapChainBuffers::GetBuffer() const
 
 void SwapChainBuffers::Present()
 {
+	DEBUG_PRINT("Current Back Buffer Index %d", mSwapChain->GetCurrentBackBufferIndex());
+
 	AssertHResultOk(mSwapChain->Present(1, 0));
 	mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
 }

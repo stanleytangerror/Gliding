@@ -4,26 +4,31 @@ template <class T>
 SuspendedReleasePool<T>::~SuspendedReleasePool()
 {
 	Assert(mSuspendQueue.empty());
+	Assert(mAliveItems.empty());
 	
-	for (const auto& obj : mPool)
+	for (const auto& obj : mAvailablePool)
 	{
 		mDeallocFun(obj);
 	}
-	mPool.clear();
+	mAvailablePool.clear();
 }
 
 template <class T>
 T* SuspendedReleasePool<T>::AllocItem()
 {
-	if (!mPool.empty())
+	if (!mAvailablePool.empty())
 	{
-		T* result = mPool.back();
-		mPool.pop_back();
+		T* result = mAvailablePool.back();
+		Assert(mAliveItems.find(result) == mAliveItems.end());
+
+		mAvailablePool.pop_back();
+		mAliveItems.insert(result);
 		return result;
 	}
 	else
 	{
 		T* result = mAllocFun();
+		mAliveItems.insert(result);
 		return result;
 	}
 }
@@ -31,6 +36,7 @@ T* SuspendedReleasePool<T>::AllocItem()
 template <class T>
 void SuspendedReleasePool<T>::ReleaseItem(u64 releasingTime, T*& object)
 {
+	Assert(mAliveItems.find(object) != mAliveItems.end());
 	mSuspendQueue.emplace(releasingTime, object);
 	object = nullptr;
 }
@@ -47,6 +53,6 @@ void SuspendedReleasePool<T>::UpdateTime(u64 time)
 		mSuspendQueue.pop();
 
 		mResetFun(obj);
-		mPool.push_back(obj);
+		mAvailablePool.push_back(obj);
 	}
 }

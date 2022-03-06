@@ -11,4 +11,9 @@
 #include <wrl/client.h>
 #include <dxgi1_4.h>
 
+enum D3D12GpuQueueType : u8
+{
+	Graphic, Compute, Copy, Count
+};
+
 #include "D3D12/D3D12Utils.h"

@@ -3,10 +3,12 @@
 #include "D3D12/D3D12Headers.h"
 #include "D3D12/D3D12CommandContext.h"
 #include "D3D12/D3D12Geometry.h"
+#include "D3D12/D3D12ResourceView.h"
 #include "RenderModule.h"
 
 class RenderModule;
 class GraphicsContext;
+class IRenderTargetView;
 
 class GD_RENDER_API ScreenRenderer
 {
@@ -15,7 +17,7 @@ public:
 
 	void Initial();
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context);
+	void Render(GraphicsContext* context, IRenderTargetView* target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

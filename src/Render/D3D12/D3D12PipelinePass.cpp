@@ -27,7 +27,7 @@ void ComputePass::Dispatch()
 	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
 	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-	RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap();
+	RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	commandList->SetComputeRootSignature(mRootSignature);
 	commandList->SetPipelineState(mPso->Get());
@@ -57,7 +57,7 @@ void ComputePass::Dispatch()
 	commandList->SetComputeRootDescriptorTable(0, srvUavHeap->GetGpuHandle(0));
 	commandList->SetComputeRootDescriptorTable(1, srvUavHeap->GetGpuHandle(DescriptorTableSize));
 
-	srvUavHeap->Retire(srvUavHandles.size());
+	//srvUavHeap->Retire(srvUavHandles.size());
 	commandList->Dispatch(mThreadCounts[0], mThreadCounts[1], mThreadCounts[2]);
 }
 
@@ -71,6 +71,8 @@ GraphicsPass::GraphicsPass(GraphicsContext* context)
 
 void GraphicsPass::Draw()
 {
+	DEBUG_PRINT("GraphicsPass::Draw");
+	
 	// transitions
 	for (const auto& p : mSrvParams)
 	{
@@ -111,7 +113,9 @@ void GraphicsPass::Draw()
 	for (const auto& p : mRts)
 	{
 		desc.RTVFormats[p.first] = p.second->GetFormat();
+		DEBUG_PRINT("RT[%d]: %s", p.first, p.second->GetResource()->GetName().c_str());
 	}
+
 	//if (mDs)
 	//{
 	//	desc.DSVFormat = mDs->GetFormat();
@@ -121,7 +125,7 @@ void GraphicsPass::Draw()
 
 	// resource bindings
 	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-	RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap();
+	RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	commandList->SetGraphicsRootSignature(mRootSignature);
 	commandList->SetPipelineState(mPso->Get());
@@ -168,7 +172,7 @@ void GraphicsPass::Draw()
 	ID3D12DescriptorHeap* ppHeaps[] = { srvHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 	commandList->SetGraphicsRootDescriptorTable(0, srvHeap->GetGpuHandle(0));
-	srvHeap->Retire(srvHandles.size());
+	//srvHeap->Retire(srvHandles.size());
 
 	// cbs
 	auto BindCb = [this, commandList](ShaderPiece* shader, UINT rootParamIndex)

@@ -72,7 +72,7 @@ RuntimeDescriptorHeap::~RuntimeDescriptorHeap()
 
 }
 
-void RuntimeDescriptorHeap::Push(const int32_t handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue)
+void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue)
 {
 	if (handleCount <= 0) { Assert(false); }
 
@@ -93,10 +93,7 @@ void RuntimeDescriptorHeap::Push(const int32_t handleCount, const D3D12_CPU_DESC
 		D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = mCurrentWorkingBlock->GetCpuBaseWithOffset(mCurrentWorkingIndex + i);
 		mDevice->CopyDescriptorsSimple(1, dstHandle, cpuDescHandles[i], mDescriptorType);
 	}
-}
 
-void RuntimeDescriptorHeap::Retire(const int32_t handleCount)
-{
 	mCurrentWorkingIndex += handleCount;
 }
 

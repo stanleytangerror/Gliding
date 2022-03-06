@@ -2,6 +2,7 @@
 #include "ScreenRenderer.h"
 #include "D3D12/D3D12Device.h"
 #include "D3D12/D3D12PipelinePass.h"
+#include "D3D12/D3D12RenderTarget.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
@@ -19,7 +20,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GraphicsContext* context)
+void ScreenRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 {
 	GraphicsPass ldrScreenPass(context);
 
@@ -37,10 +38,10 @@ void ScreenRenderer::Render(GraphicsContext* context)
 		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
 	}
 
-	SwapChainBufferResource* rtRes = mRenderModule->GetDevice()->GetBackBuffer()->GetBuffer();
-	ldrScreenPass.mRts[0] = rtRes->GetRtv();
-	ldrScreenPass.mViewPort = { 0, 0, float(rtRes->GetSize().x()), float(rtRes->GetSize().y()) };
-	ldrScreenPass.mScissorRect = { 0, 0, rtRes->GetSize().x(), rtRes->GetSize().y() };
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	ldrScreenPass.mRts[0] = target;
+	ldrScreenPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
+	ldrScreenPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	
 	ldrScreenPass.mVbvs.clear();
 	ldrScreenPass.mVbvs.push_back(mQuad->mVbv);

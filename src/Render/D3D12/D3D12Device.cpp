@@ -1,8 +1,8 @@
 #include "RenderPch.h"
 #include "D3D12Device.h"
-#include "Common/AssertUtils.h"
 #include "D3D12/D3D12Utils.h"
 #include "D3D12/D3D12CommandContext.h"
+#include "D3D12/D3D12RenderTarget.h"
 
 namespace
 {
@@ -94,31 +94,13 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	}
 #endif
 
-	// Describe and create the command queue.
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	AssertHResultOk(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
+	for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
+	{
+		mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i));
+	}
 
 	mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 	mShaderLib = new D3D12ShaderLibrary;
-
-	mCommandAllocatorPool = new CommandAllocatorPool(
-		[&]()
-		{
-			ID3D12CommandAllocator* newAllocator = nullptr;
-			AssertHResultOk(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&newAllocator)));
-			return newAllocator;
-		}, 
-		[](ID3D12CommandAllocator* a) { a->Reset(); },
-		[](ID3D12CommandAllocator* a) { a->Release(); });
-
-	mFence = new D3D12Fence(mCommandQueue);
-
-	for (i32 i = 0; i < mRuntimeDescHeaps.size(); ++i)
-	{
-		mRuntimeDescHeaps[i] = new RuntimeDescriptorHeap(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
-	}
 
 	for (i32 i = 0; i < mDescAllocator.size(); ++i)
 	{
@@ -137,12 +119,6 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	mNullSrvCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 	D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
 
-	mGraphicContextPool = new GraphicsContextPool(
-		[&]() { return new GraphicsContext(this, mCommandQueue, mFence); },
-		[](GraphicsContext* ctx) {},
-		[](GraphicsContext* ctx) {}
-	);
-
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = FrameCount;
@@ -155,7 +131,7 @@ D3D12Device::D3D12Device(HWND windowHandle)
 
 	IDXGISwapChain1* swapChain1 = nullptr;
 	AssertHResultOk(factory->CreateSwapChainForHwnd(
-		mCommandQueue,		// Swap chain needs the queue so that it can force a flush on it.
+		mGpuQueues[D3D12GpuQueueType::Graphic]->GetCommandQueue(),
 		windowHandle,
 		&swapChainDesc,
 		nullptr,
@@ -168,27 +144,17 @@ D3D12Device::D3D12Device(HWND windowHandle)
 
 void D3D12Device::Present()
 {
+	for (D3D12GpuQueue* q : mGpuQueues)
+	{
+		q->Execute();
+	}
+	
 	mBackBuffers->Present();
-
-	mFence->PlanGpuQueueWork();
-	mFence->CpuWaitForGpuQueue();
-	mFence->IncreaseCpuFence();
 }
 
 ID3D12Device* D3D12Device::GetDevice() const
 {
 	return mDevice;
-}
-
-CommandAllocatorPool* D3D12Device::GetCommandAllocatorPool() const
-{
-	return mCommandAllocatorPool;
-}
-
-RuntimeDescriptorHeap* D3D12Device::GetRuntimeDescHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const
-{
-	Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
-	return mRuntimeDescHeaps[type];
 }
 
 D3D12DescriptorAllocator* D3D12Device::GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const

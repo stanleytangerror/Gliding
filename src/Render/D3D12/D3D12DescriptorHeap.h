@@ -30,13 +30,13 @@ public:
 	RuntimeDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	virtual								~RuntimeDescriptorHeap();
 
-	void								Push(const int32_t handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue);
-	void								Retire(const int32_t handleCount);
+	void								Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue);
 
 	ID3D12DescriptorHeap*				GetCurrentDescriptorHeap() const { return mCurrentWorkingBlock ? mCurrentWorkingBlock->GetDescriptorHeap() : nullptr; }
 	CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuHandle(const int32_t offset) const;
 
 	void								UpdateCompletedFenceValue(u64 val);
+	void								Reset() {/* TODO */}
 
 protected:
 	static const i32					msNumDescriptorsPerBlock = 32;

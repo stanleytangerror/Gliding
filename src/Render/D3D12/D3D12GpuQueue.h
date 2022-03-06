@@ -1,0 +1,42 @@
+#pragma once
+
+#include "SuspendedRelease.h"
+#include "D3D12/D3D12Headers.h"
+#include "D3D12/D3D12CommandContext.h"
+
+class D3D12CommandContext;
+class GraphicsContext;
+class ComputeContext;
+class D3D12Device;
+
+class D3D12GpuQueue
+{
+public:
+	D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type);
+
+	GraphicsContext*		AllocGraphicContext();
+	ComputeContext*			AllocComputeContext();
+
+	u64						GetGpuPlannedValue() const { return mGpuPlannedValue; }
+	u64						GetGpuCompletedValue() const { return mGpuCompletedValue; }
+	D3D12GpuQueueType		GetType() const { return mType; }
+	ID3D12CommandQueue*		GetCommandQueue() const { return mCommandQueue; }
+
+	void					Execute();
+
+	static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
+
+protected:
+	D3D12GpuQueueType const	mType = D3D12GpuQueueType::Graphic;
+	D3D12Device* const		mDevice = nullptr;
+
+	ID3D12CommandQueue*		mCommandQueue = nullptr;
+	ID3D12Fence*			mFence = nullptr;
+
+	u64						mGpuPlannedValue = 0;
+	u64						mGpuCompletedValue = 0;
+
+	SuspendedReleasePool<GraphicsContext>*	mGraphicContextPool = nullptr;
+	SuspendedReleasePool<ComputeContext>*	mComputeContextPool = nullptr;
+};
+

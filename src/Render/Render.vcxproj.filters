@@ -48,9 +48,6 @@
     <ClInclude Include="RenderMacros.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12\D3D12Fence.h">
-      <Filter>Source\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="D3D12\D3D12PipelineState.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
@@ -84,6 +81,9 @@
     <ClInclude Include="D3D12\D3D12Geometry_inl.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\D3D12GpuQueue.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -106,9 +106,6 @@
     </ClCompile>
     <ClCompile Include="RenderPch.cpp">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12\D3D12Fence.cpp">
-      <Filter>Source\D3D12</Filter>
     </ClCompile>
     <ClCompile Include="D3D12\D3D12PipelineState.cpp">
       <Filter>Source\D3D12</Filter>
@@ -138,6 +135,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="D3D12\D3D12Geometry.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12GpuQueue.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>

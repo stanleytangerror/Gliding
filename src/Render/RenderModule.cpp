@@ -3,11 +3,12 @@
 #include "D3D12/D3D12Device.h"
 #include "ScreenRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
+#include "D3D12/D3D12RenderTarget.h"
 
 RenderModule::RenderModule(HWND window)
 	: mWindow(window)
 {
-	mRenderDoc = new RenderDocIntegration();
+	//mRenderDoc = new RenderDocIntegration();
 
 	mDevice = new D3D12Device(window);
 
@@ -17,18 +18,25 @@ RenderModule::RenderModule(HWND window)
 
 void RenderModule::TickFrame(Timer* timer)
 {
-	mRenderDoc->OnStartFrame(mDevice, mWindow);
+	if (mRenderDoc)
+	{
+		mRenderDoc->OnStartFrame(mDevice, mWindow);
+	}
 
 	mScreenRenderer->TickFrame(timer);
 
-	GraphicsContext* context = mDevice->GetGraphicContextPool()->AllocItem();
+	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
-		mScreenRenderer->Render(context);
-		mDevice->GetBackBuffer()->GetBuffer()->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
+		SwapChainBufferResource* rtRes = mDevice->GetBackBuffer()->GetBuffer();
+		mScreenRenderer->Render(context, rtRes->GetRtv());
+		rtRes->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
 	}
-	context->Execute();
+	context->Finalize();
 
 	mDevice->Present();
 
-	mRenderDoc->OnEndFrame(mDevice, mWindow);
+	if (mRenderDoc)
+	{
+		mRenderDoc->OnEndFrame(mDevice, mWindow);
+	}
 }
