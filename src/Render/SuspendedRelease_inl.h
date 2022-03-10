@@ -37,6 +37,7 @@ template <class T>
 void SuspendedReleasePool<T>::ReleaseItem(u64 releasingTime, T*& object)
 {
 	Assert(mAliveItems.find(object) != mAliveItems.end());
+	mAliveItems.erase(mAliveItems.find(object));
 	mSuspendQueue.emplace(releasingTime, object);
 	object = nullptr;
 }
@@ -54,5 +55,15 @@ void SuspendedReleasePool<T>::UpdateTime(u64 time)
 
 		mResetFun(obj);
 		mAvailablePool.push_back(obj);
+	}
+}
+
+template <class T>
+void SuspendedReleasePool<T>::ReleaseAllActiveItems(u64 releasingTime)
+{
+	std::unordered_set<T*> copiedItems = mAliveItems;
+	for (T* item : copiedItems)
+	{
+		ReleaseItem(releasingTime, item);
 	}
 }

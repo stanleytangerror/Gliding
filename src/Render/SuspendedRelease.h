@@ -55,14 +55,4 @@ protected:
 	u64	mCurrentTime = 0;
 };
 
-template <class T>
-void SuspendedReleasePool<T>::ReleaseAllActiveItems(u64 releasingTime)
-{
-	std::unordered_set<T*> copiedActiveItems = mAliveItems;
-	for (T* item : mAliveItems)
-	{
-		ReleaseItem(releasingTime, item);
-	}
-}
-
 #include "SuspendedRelease_inl.h"
