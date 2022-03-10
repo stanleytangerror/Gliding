@@ -8,7 +8,7 @@
 RenderModule::RenderModule(HWND window)
 	: mWindow(window)
 {
-	mRenderDoc = new RenderDocIntegration();
+	//mRenderDoc = new RenderDocIntegration();
 
 	mDevice = new D3D12Device(window);
 

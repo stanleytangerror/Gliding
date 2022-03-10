@@ -16,21 +16,22 @@ SuspendedReleasePool<T>::~SuspendedReleasePool()
 template <class T>
 T* SuspendedReleasePool<T>::AllocItem()
 {
+	T* result = nullptr;
 	if (!mAvailablePool.empty())
 	{
-		T* result = mAvailablePool.back();
+		result = mAvailablePool.back();
 		Assert(mAliveItems.find(result) == mAliveItems.end());
 
 		mAvailablePool.pop_back();
-		mAliveItems.insert(result);
-		return result;
 	}
 	else
 	{
-		T* result = mAllocFun();
-		mAliveItems.insert(result);
-		return result;
+		result = mAllocFun();
 	}
+
+	mAliveItems.insert(result);
+
+	return result;
 }
 
 template <class T>

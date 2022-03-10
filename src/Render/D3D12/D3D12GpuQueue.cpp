@@ -16,13 +16,16 @@ D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type)
 
 	mGraphicContextPool = new SuspendedReleasePool<GraphicsContext>(
 		[&]() { return new GraphicsContext(mDevice, this); },
-		[](GraphicsContext* ctx) {},
+		[](GraphicsContext* ctx) { ctx->Reset(); },
 		[](GraphicsContext* ctx) {});
 
 	mComputeContextPool = new SuspendedReleasePool<ComputeContext>(
 		[&]() { return new ComputeContext(mDevice, this); },
 		[](ComputeContext* ctx) {},
 		[](ComputeContext* ctx) {});
+
+	mCpuEventHandle = CreateEvent(nullptr, false, false, nullptr);
+	Assert(mCpuEventHandle != INVALID_HANDLE_VALUE);
 }
 
 GraphicsContext* D3D12GpuQueue::AllocGraphicContext()
@@ -49,11 +52,23 @@ void D3D12GpuQueue::Execute()
 	}
 
 	mCommandQueue->ExecuteCommandLists(u32(cmdLists.size()), cmdLists.data());
+	mCommandQueue->Signal(mFence, mGpuPlannedValue);
 
 	mGraphicContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
 	mComputeContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
 
 	mGpuPlannedValue += 1;
+}
+
+void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
+{
+	Assert(mGpuCompletedValue <= value && value <= mGpuPlannedValue);
+
+	mFence->SetEventOnCompletion(value, mCpuEventHandle);
+	WaitForSingleObject(mCpuEventHandle, INFINITE);
+
+	mGpuCompletedValue = value;
+	mGraphicContextPool->UpdateTime(mGpuCompletedValue);
 }
 
 D3D12_COMMAND_LIST_TYPE D3D12GpuQueue::GetD3D12CommandListType(D3D12GpuQueueType type)

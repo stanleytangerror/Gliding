@@ -24,6 +24,8 @@ public:
 
 	void					Execute();
 
+	void					CpuWaitForThisQueue(u64 value);
+
 	static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
 
 protected:
@@ -35,6 +37,8 @@ protected:
 
 	u64						mGpuPlannedValue = 0;
 	u64						mGpuCompletedValue = 0;
+
+	HANDLE					mCpuEventHandle = {};
 
 	SuspendedReleasePool<GraphicsContext>*	mGraphicContextPool = nullptr;
 	SuspendedReleasePool<ComputeContext>*	mComputeContextPool = nullptr;

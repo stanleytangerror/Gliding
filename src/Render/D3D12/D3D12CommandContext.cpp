@@ -32,8 +32,8 @@ void D3D12CommandContext::Reset()
 {
 	AssertInThread(mThisCpuThreadId);
 	
-	AssertHResultOk(mCommandList->Reset(mCommandAllocator, nullptr));
 	AssertHResultOk(mCommandAllocator->Reset());
+	AssertHResultOk(mCommandList->Reset(mCommandAllocator, nullptr));
 
 	mConstantBuffer->Reset();
 	for (const auto& heap : mRuntimeDescHeaps)

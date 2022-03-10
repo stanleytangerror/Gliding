@@ -150,6 +150,11 @@ void D3D12Device::Present()
 	}
 	
 	mBackBuffers->Present();
+
+	for (D3D12GpuQueue* q : mGpuQueues)
+	{
+		q->CpuWaitForThisQueue(q->GetGpuPlannedValue() > 1 ? q->GetGpuPlannedValue() - 1 : 0);
+	}
 }
 
 ID3D12Device* D3D12Device::GetDevice() const
