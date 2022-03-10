@@ -1,4 +1,5 @@
-#include "Common/AssertUtils.h"
+#pragma once
+#include "SuspendedRelease.h"
 
 template <class T>
 SuspendedReleasePool<T>::~SuspendedReleasePool()

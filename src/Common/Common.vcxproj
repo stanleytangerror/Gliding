@@ -17,6 +17,8 @@
     <ClInclude Include="CommonTypes.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="Math.h" />
+    <ClInclude Include="Pool.h" />
+    <ClInclude Include="Pool_inl.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="Timer.h" />
   </ItemGroup>

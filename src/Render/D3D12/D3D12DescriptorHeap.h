@@ -1,7 +1,6 @@
 #pragma once
 
-#include "SuspendedRelease.h"
-#include "Common/CommonTypes.h"
+#include "Common/Pool.h"
 #include "D3D12/D3D12Headers.h"
 
 class DescriptorHeapBlock
@@ -30,20 +29,19 @@ public:
 	RuntimeDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	virtual								~RuntimeDescriptorHeap();
 
-	void								Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue);
+	void								Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles);
 
 	ID3D12DescriptorHeap*				GetCurrentDescriptorHeap() const { return mCurrentWorkingBlock ? mCurrentWorkingBlock->GetDescriptorHeap() : nullptr; }
 	CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuHandle(const int32_t offset) const;
 
-	void								UpdateCompletedFenceValue(u64 val);
-	void								Reset() {/* TODO */}
+	void								Reset();
 
 protected:
 	static const i32					msNumDescriptorsPerBlock = 32;
 	ID3D12Device*						mDevice = nullptr;
 
 	const D3D12_DESCRIPTOR_HEAP_TYPE	mDescriptorType = {};
-	SuspendedReleasePool<DescriptorHeapBlock> mPool;
+	Pool<DescriptorHeapBlock>			mPool;
 
 	DescriptorHeapBlock*				mCurrentWorkingBlock = nullptr;
 	i32									mCurrentWorkingIndex = 0;

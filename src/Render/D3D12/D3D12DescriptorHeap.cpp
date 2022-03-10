@@ -72,7 +72,7 @@ RuntimeDescriptorHeap::~RuntimeDescriptorHeap()
 
 }
 
-void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles, const u64 fenceValue)
+void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles)
 {
 	if (handleCount <= 0) { Assert(false); }
 
@@ -83,7 +83,7 @@ void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPT
 	}
 	else if (mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
 	{
-		mPool.ReleaseItem(fenceValue, mCurrentWorkingBlock);
+		mPool.ReleaseItem(mCurrentWorkingBlock);
 		mCurrentWorkingBlock = mPool.AllocItem();
 		mCurrentWorkingIndex = 0;
 	}
@@ -102,7 +102,9 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::GetGpuHandle(const int32_t 
 	return mCurrentWorkingBlock ? mCurrentWorkingBlock->GetGpuBaseWithOffset(offset) : CD3DX12_GPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT());
 }
 
-void RuntimeDescriptorHeap::UpdateCompletedFenceValue(u64 val)
+void RuntimeDescriptorHeap::Reset()
 {
-	mPool.UpdateTime(val);
+	mPool.ReleaseAllActiveItems();
+	mCurrentWorkingBlock = nullptr;
+	mCurrentWorkingIndex = 0;
 }

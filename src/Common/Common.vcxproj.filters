@@ -25,6 +25,12 @@
     <ClInclude Include="Timer.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Pool.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Pool_inl.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

@@ -50,7 +50,7 @@ void ComputePass::Dispatch()
 			}
 		}
 	}
-	srvUavHeap->Push(srvUavHandles.size(), srvUavHandles.data(), mContext->GetPlannedFenceValue());
+	srvUavHeap->Push(srvUavHandles.size(), srvUavHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
@@ -66,7 +66,7 @@ void ComputePass::Dispatch()
 GraphicsPass::GraphicsPass(GraphicsContext* context)
 	: mContext(context)
 {
-	mPso = new GraphicsPipelineState;
+	mPso = std::make_unique<GraphicsPipelineState>();
 }
 
 void GraphicsPass::Draw()
@@ -167,7 +167,7 @@ void GraphicsPass::Draw()
 			srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
 		}
 	}
-	srvHeap->Push(srvHandles.size(), srvHandles.data(), mContext->GetPlannedFenceValue());
+	srvHeap->Push(srvHandles.size(), srvHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);

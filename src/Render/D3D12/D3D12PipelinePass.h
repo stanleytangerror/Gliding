@@ -79,7 +79,7 @@ protected:
 	std::map<std::string, IShaderResourceView*>	mSrvParams;
 
 	ID3D12RootSignature* mRootSignature = nullptr;
-	GraphicsPipelineState* mPso = nullptr;
+	std::unique_ptr<GraphicsPipelineState> mPso;
 };
 
 template <typename T>
