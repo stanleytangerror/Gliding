@@ -72,21 +72,23 @@ RuntimeDescriptorHeap::~RuntimeDescriptorHeap()
 
 }
 
-void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles)
+CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles)
 {
-	if (handleCount <= 0) { Assert(false); }
+	Assert(0 <= handleCount && handleCount < msNumDescriptorsPerBlock);
 
 	if (!mCurrentWorkingBlock)
 	{
 		mCurrentWorkingBlock = mPool.AllocItem();
 		mCurrentWorkingIndex = 0;
 	}
-	else if (mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
+	else if (mCurrentWorkingBlock && mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
 	{
 		mPool.ReleaseItem(mCurrentWorkingBlock);
 		mCurrentWorkingBlock = mPool.AllocItem();
 		mCurrentWorkingIndex = 0;
 	}
+
+	const CD3DX12_GPU_DESCRIPTOR_HANDLE gpuDescBaseAddr = mCurrentWorkingBlock->GetGpuBaseWithOffset(mCurrentWorkingIndex);
 
 	for (i32 i = 0; i < handleCount; ++i)
 	{
@@ -95,11 +97,7 @@ void RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPT
 	}
 
 	mCurrentWorkingIndex += handleCount;
-}
-
-CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::GetGpuHandle(const int32_t offset) const
-{
-	return mCurrentWorkingBlock ? mCurrentWorkingBlock->GetGpuBaseWithOffset(offset) : CD3DX12_GPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT());
+	return gpuDescBaseAddr;
 }
 
 void RuntimeDescriptorHeap::Reset()

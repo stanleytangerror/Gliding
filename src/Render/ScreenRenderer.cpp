@@ -40,9 +40,12 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input
 		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
 	}
 
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	
+	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
 	ldrScreenPass.AddSrv("SceneHdr", input);
 
-	const Vec3i& targetSize = target->GetResource()->GetSize();
 	ldrScreenPass.mRts[0] = target;
 	ldrScreenPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
 	ldrScreenPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };

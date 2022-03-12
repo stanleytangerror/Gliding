@@ -13,9 +13,13 @@ struct PSOutput
 	float4 color : COLOR;
 };
 
+Texture2D InputTex0;
+Texture2D InputTex1;
+SamplerState SamplerLinear;
+
 cbuffer Param : register(b0)
 {
-	float time;
+	float4 RtSize;
 }
 
 PSInput VSMain(VSInput vsin)
@@ -31,7 +35,11 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	output.color = float4(sin(time) * 0.5 + 0.5, 0, 0, 1);
+	float2 uv = RtSize.zw * input.position.xy;
+	const float3 color0 = InputTex0.Sample(SamplerLinear, uv).xyz;
+	const float3 color1 = InputTex1.Sample(SamplerLinear, uv).xyz;
+	
+	output.color = float4(color0 * color1, 1);
 
 	return output;
 }

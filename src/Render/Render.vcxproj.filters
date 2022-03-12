@@ -90,6 +90,9 @@
     <ClInclude Include="WorldRenderer.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\D3D12Texture.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -151,6 +154,9 @@
     </ClCompile>
     <ClCompile Include="WorldRenderer.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12Texture.cpp">
+      <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

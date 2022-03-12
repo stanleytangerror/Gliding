@@ -50,12 +50,12 @@ void ComputePass::Dispatch()
 			}
 		}
 	}
-	srvUavHeap->Push(srvUavHandles.size(), srvUavHandles.data());
+	
+	const auto& gpuDescBase = srvUavHeap->Push(srvUavHandles.size(), srvUavHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	commandList->SetComputeRootDescriptorTable(0, srvUavHeap->GetGpuHandle(0));
-	commandList->SetComputeRootDescriptorTable(1, srvUavHeap->GetGpuHandle(DescriptorTableSize));
+	commandList->SetComputeRootDescriptorTable(0, gpuDescBase);
 
 	//srvUavHeap->Retire(srvUavHandles.size());
 	commandList->Dispatch(mThreadCounts[0], mThreadCounts[1], mThreadCounts[2]);
@@ -167,12 +167,11 @@ void GraphicsPass::Draw()
 			srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
 		}
 	}
-	srvHeap->Push(srvHandles.size(), srvHandles.data());
+	const auto& gpuDescBaseAddr = srvHeap->Push(srvHandles.size(), srvHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	commandList->SetGraphicsRootDescriptorTable(0, srvHeap->GetGpuHandle(0));
-	//srvHeap->Retire(srvHandles.size());
+	commandList->SetGraphicsRootDescriptorTable(0, gpuDescBaseAddr);
 
 	// cbs
 	auto BindCb = [this, commandList](ShaderPiece* shader, UINT rootParamIndex)

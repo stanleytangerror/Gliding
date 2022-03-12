@@ -15,7 +15,7 @@ struct PSOutput
 
 cbuffer Param : register(b0)
 {
-	// float time;
+	float4 RtSize;
 }
 
 Texture2D SceneHdr;
@@ -34,7 +34,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	output.color = SceneHdr.Sample(SamplerLinear, input.position.xy);
+	float2 uv = RtSize.zw * input.position.xy;
+	output.color = SceneHdr.Sample(SamplerLinear, uv);
 
 	return output;
 }
