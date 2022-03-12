@@ -1,20 +1,23 @@
 #include "RenderPch.h"
 #include "RenderModule.h"
-#include "D3D12/D3D12Device.h"
 #include "ScreenRenderer.h"
+#include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
+#include "D3D12/D3D12Device.h"
 #include "D3D12/D3D12RenderTarget.h"
 #include "D3D12/D3D12SwapChain.h"
 
 RenderModule::RenderModule(HWND window)
 	: mWindow(window)
 {
-	//mRenderDoc = new RenderDocIntegration();
+	mRenderDoc = new RenderDocIntegration();
 
 	mDevice = new D3D12Device(window);
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mScreenRenderer->Initial();
+	mWorldRenderer = std::make_unique<WorldRenderer>(this);
+
+	mSceneHdrRt = new D3D12RenderTarget(mDevice, mDevice->GetBackBuffer()->GetBuffer()->GetSize(), DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
 }
 
 void RenderModule::TickFrame(Timer* timer)
@@ -25,12 +28,15 @@ void RenderModule::TickFrame(Timer* timer)
 	}
 
 	mScreenRenderer->TickFrame(timer);
+	mWorldRenderer->TickFrame(timer);
 
 	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
-		SwapChainBufferResource* rtRes = mDevice->GetBackBuffer()->GetBuffer();
-		mScreenRenderer->Render(context, rtRes->GetRtv());
-		rtRes->Transition(context->GetCommandList(), D3D12_RESOURCE_STATE_PRESENT);
+		SwapChainBufferResource* backBuffer = mDevice->GetBackBuffer()->GetBuffer();
+		
+		mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
+		mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
+		backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
 	}
 	context->Finalize();
 

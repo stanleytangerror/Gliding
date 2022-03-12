@@ -15,11 +15,8 @@ struct PSOutput
 
 cbuffer Param : register(b0)
 {
-	// float time;
+	float time;
 }
-
-Texture2D SceneHdr;
-SamplerState SamplerLinear;
 
 PSInput VSMain(VSInput vsin)
 {
@@ -34,7 +31,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	output.color = SceneHdr.Sample(SamplerLinear, input.position.xy);
+	output.color = float4(sin(time) * 0.5 + 0.5, 0, 0, 1);
 
 	return output;
 }

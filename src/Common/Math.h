@@ -17,6 +17,7 @@ struct Vec
 using Vec2f = Vec<float, 2>;
 using Vec3f = Vec<float, 3>;
 using Vec3i = Vec<i32, 3>;
+using Vec4f = Vec<float, 4>;
 
 template <typename T, i32 Row, i32 Col>
 struct Mat

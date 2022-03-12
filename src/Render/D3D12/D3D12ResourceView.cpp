@@ -61,8 +61,8 @@ RTV::RTV(D3D12Device* device, ID3D12Res* res, const D3D12_RENDER_TARGET_VIEW_DES
 	device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
 }
 
-void RTV::Clear(ID3D12GraphicsCommandList* commandList, const FLOAT color[4])
+void RTV::Clear(D3D12CommandContext* context, const FLOAT color[4])
 {
-	GetResource()->Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	commandList->ClearRenderTargetView(GetHandle(), color, 0, nullptr);
+	GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	context->GetCommandList()->ClearRenderTargetView(GetHandle(), color, 0, nullptr);
 }

@@ -1,28 +1,28 @@
 #include "RenderPch.h"
 #include "ScreenRenderer.h"
+#include "RenderModule.h"
+#include "D3D12/D3D12Headers.h"
 #include "D3D12/D3D12Device.h"
 #include "D3D12/D3D12PipelinePass.h"
 #include "D3D12/D3D12RenderTarget.h"
 #include "D3D12/D3D12ResourceView.h"
 #include "D3D12/D3D12Resource.h"
+#include "D3D12/D3D12CommandContext.h"
+#include "D3D12/D3D12Geometry.h"
+#include "D3D12/D3D12ResourceView.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
-{
-
-}
-
-void ScreenRenderer::Initial()
 {
 	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
 }
 
 void ScreenRenderer::TickFrame(Timer* timer)
 {
-	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
+	
 }
 
-void ScreenRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
+void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input, IRenderTargetView* target)
 {
 	GraphicsPass ldrScreenPass(context);
 
@@ -40,6 +40,8 @@ void ScreenRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
 	}
 
+	ldrScreenPass.AddSrv("SceneHdr", input);
+
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	ldrScreenPass.mRts[0] = target;
 	ldrScreenPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
@@ -49,8 +51,6 @@ void ScreenRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	ldrScreenPass.mVbvs.push_back(mQuad->mVbv);
 	ldrScreenPass.mIbv = mQuad->mIbv;
 	ldrScreenPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
-
-	ldrScreenPass.AddCbVar("time", mElapsedTime);
 
 	ldrScreenPass.Draw();
 }

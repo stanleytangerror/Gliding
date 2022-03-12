@@ -71,7 +71,7 @@ public:
 	CD3DX12_CPU_DESCRIPTOR_HANDLE	GetHandle() const override { return mRtv.Get(); }
 	DXGI_FORMAT						GetFormat() const override { return mDesc.Format; }
 	ID3D12Res* GetResource() const override { return mResource; }
-	void							Clear(ID3D12GraphicsCommandList* commandList, const FLOAT color[4]);
+	void							Clear(D3D12CommandContext* context, const FLOAT color[4]);
 
 protected:
 	ID3D12Res* mResource = nullptr;

@@ -24,12 +24,11 @@ SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Reso
 	mRtv = new RTV(device, this, rtvDesc);
 }
 
-void SwapChainBufferResource::Transition(ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_STATES& destState)
+void SwapChainBufferResource::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
 {
 	if (mResStates != destState)
 	{
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(mResource, mResStates, destState);
-		commandList->ResourceBarrier(1, &barrier);
+		context->Transition(mResource, mResStates, destState);
 		mResStates = destState;
 	}
 }

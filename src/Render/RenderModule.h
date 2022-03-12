@@ -1,10 +1,14 @@
 #pragma once
 
 #include "windows.h"
+#include "WorldRenderer.h"
+#include "ScreenRenderer.h"
 
-class D3D12Device;
 class ScreenRenderer;
 class RenderDocIntegration;
+class WorldRenderer;
+class D3D12RenderTarget;
+class D3D12Device;
 
 class GD_RENDER_API RenderModule
 {
@@ -20,6 +24,10 @@ protected:
 
 	D3D12Device* mDevice = nullptr;
 	RenderDocIntegration* mRenderDoc = nullptr;
+
 	std::unique_ptr<ScreenRenderer>	mScreenRenderer;
+	std::unique_ptr<WorldRenderer>	mWorldRenderer;
+
+	D3D12RenderTarget*				mSceneHdrRt = nullptr;
 };
 

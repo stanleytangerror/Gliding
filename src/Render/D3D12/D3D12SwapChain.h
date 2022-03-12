@@ -15,11 +15,11 @@ public:
 	SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name);
 
 	ID3D12Resource* GetD3D12Resource() const override { return mResource; }
-	Vec3i				GetSize() const override { return { mWidth, mHeight, 0 }; }
+	Vec3i				GetSize() const override { return { mWidth, mHeight, 1 }; }
 	std::string			GetName() const override;
 
 	RTV* GetRtv() const { return mRtv; }
-	void Transition(ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_STATES& destState) override;
+	void Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 
 protected:
 	ID3D12Resource* const	mResource = nullptr;
