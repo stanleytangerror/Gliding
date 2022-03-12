@@ -3,6 +3,7 @@
 #include "D3D12/D3D12Utils.h"
 #include "D3D12/D3D12CommandContext.h"
 #include "D3D12/D3D12RenderTarget.h"
+#include "D3D12/D3D12SwapChain.h"
 
 namespace
 {

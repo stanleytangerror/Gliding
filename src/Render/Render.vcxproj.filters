@@ -84,6 +84,9 @@
     <ClInclude Include="D3D12\D3D12GpuQueue.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\D3D12SwapChain.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -138,6 +141,9 @@
       <Filter>Source\D3D12</Filter>
     </ClCompile>
     <ClCompile Include="D3D12\D3D12GpuQueue.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\D3D12SwapChain.cpp">
       <Filter>Source\D3D12</Filter>
     </ClCompile>
   </ItemGroup>

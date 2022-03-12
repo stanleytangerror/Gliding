@@ -3,6 +3,8 @@
 #include "D3D12/D3D12Device.h"
 #include "D3D12/D3D12PipelinePass.h"
 #include "D3D12/D3D12RenderTarget.h"
+#include "D3D12/D3D12ResourceView.h"
+#include "D3D12/D3D12Resource.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)

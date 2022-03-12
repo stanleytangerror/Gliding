@@ -4,6 +4,7 @@
 #include "ScreenRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "D3D12/D3D12RenderTarget.h"
+#include "D3D12/D3D12SwapChain.h"
 
 RenderModule::RenderModule(HWND window)
 	: mWindow(window)

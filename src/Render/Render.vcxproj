@@ -114,6 +114,7 @@
     <ClInclude Include="D3D12\D3D12Resource.h" />
     <ClInclude Include="D3D12\D3D12ResourceView.h" />
     <ClInclude Include="D3D12\D3D12Shader.h" />
+    <ClInclude Include="D3D12\D3D12SwapChain.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderMacros.h" />
@@ -147,6 +148,7 @@
     <ClCompile Include="D3D12\D3D12Resource.cpp" />
     <ClCompile Include="D3D12\D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12\D3D12Shader.cpp" />
+    <ClCompile Include="D3D12\D3D12SwapChain.cpp" />
     <ClCompile Include="D3D12\D3D12Utils.cpp">
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
