@@ -16,7 +16,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 
 	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
-	mTex = new D3D12Texture(device, R"(res/Texture/bluecloud_dn.dds)");
+	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\sky0.dds)");
 	
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
@@ -33,9 +33,9 @@ void WorldRenderer::TickFrame(Timer* timer)
 
 void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 {
-	if (!mTex->IsD3DResourceReady())
+	if (!mPanoramicSkyTex->IsD3DResourceReady())
 	{
-		mTex->Initial(context);
+		mPanoramicSkyTex->Initial(context);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -59,6 +59,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 			desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+			desc.RasterizerState.FrontCounterClockwise = true;
 			desc.DepthStencilState.DepthEnable = true;
 			desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 			desc.DepthStencilState.StencilEnable = false;
@@ -124,6 +125,8 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
 		lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
 		lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
+
+		lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
 
 		lightingPass.Draw();
 	}

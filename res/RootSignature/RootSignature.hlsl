@@ -26,9 +26,9 @@
 ", "\
 "StaticSampler(s1, "\
 "    filter = FILTER_MIN_MAG_MIP_POINT, "\
-"    addressU = TEXTURE_ADDRESS_CLAMP, "\
-"    addressV = TEXTURE_ADDRESS_CLAMP, "\
-"    addressW = TEXTURE_ADDRESS_CLAMP, "\
+"    addressU = TEXTURE_ADDRESS_WRAP, "\
+"    addressV = TEXTURE_ADDRESS_WRAP, "\
+"    addressW = TEXTURE_ADDRESS_WRAP, "\
 "    mipLODBias = 0, "\
 "    maxAnisotropy = 0, "\
 "    comparisonFunc = COMPARISON_NEVER, "\
