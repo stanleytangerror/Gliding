@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CommonTypes.h"
-#include <array>
 
 template <typename T, i32 Row>
 struct Vec
@@ -12,6 +11,9 @@ struct Vec
 	T y() const { return m[1]; }
 	T z() const { return m[2]; }
 	T w() const { return m[3]; }
+
+	Vec<T, Row>	GetNormalized() const;
+	T			GetLength() const;
 };
 
 using Vec2f = Vec<float, 2>;
@@ -33,3 +35,14 @@ constexpr T Align(T Val, u64 Alignment)
 {
 	return (T)(((u64)Val + Alignment - 1) & ~(Alignment - 1));
 }
+
+namespace Math
+{
+	template <typename T>
+	inline T Sqrt(T v) {}
+
+	template <typename T>
+	constexpr T Pi() { return T(3.14159265358979323846); }
+}
+
+#include "Math_inl.h"

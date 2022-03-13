@@ -13,6 +13,7 @@ public:
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& mInputDescs);
 
 	static D3D12Geometry* GenerateQuad(D3D12Device* device);
+	static D3D12Geometry* GenerateSphere(D3D12Device* device, i32 stacks, i32 slices);
 
 public:
 	ID3D12Resource* mVb = nullptr;
@@ -23,5 +24,17 @@ public:
 
 	std::vector < D3D12_INPUT_ELEMENT_DESC > mInputDescs;
 };
+
+namespace GeometryUtils
+{
+	struct VertexPosNormUv
+	{
+		Vec3f mPos;
+		Vec3f mNorm;
+		Vec2f mUv;
+
+		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
+	};
+}
 
 #include "D3D12/D3D12Geometry_inl.h"

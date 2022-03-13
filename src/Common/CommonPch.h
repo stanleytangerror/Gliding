@@ -3,6 +3,7 @@
 #include "CommonMacros.h"
 
 // std headers
+#include <cmath>
 #include <vector>
 #include <map>
 #include <set>
