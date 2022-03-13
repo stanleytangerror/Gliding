@@ -40,8 +40,9 @@ PSInput VSMain(VSInput vsin)
 	PSInput result;
 
 	float3 pos = vsin.position;
+    // pos = float3(0, 0, 0);
 
-	result.position = mul(mul(mul(float4(pos, 1), worldMat), viewMat), projMat);
+	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(pos, 1))));
 	result.normal = vsin.normal;
 	// result.tangent = vsin.tangent;
 

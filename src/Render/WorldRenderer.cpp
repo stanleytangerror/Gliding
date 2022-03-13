@@ -75,6 +75,10 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		gbufferPass.AddCbVar("time", mElapsedTime);
 		gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+		
+		gbufferPass.AddCbVar("worldMat", Math::ComputeModelMatrix(mPosition, {}, {}));
+		gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix({}, mDir, mUp, mRight));
+		gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 
 		gbufferPass.Draw();
 	}
@@ -110,7 +114,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		lightingPass.AddCbVar("time", mElapsedTime);
 		lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-		lightingPass.AddSrv("InputTex0", mTex->GetSrv());
+		lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
+		lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
+		lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
 
 		lightingPass.Draw();
 	}

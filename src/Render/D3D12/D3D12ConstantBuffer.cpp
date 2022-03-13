@@ -6,7 +6,7 @@ namespace
 	template <typename T>
 	constexpr T GpuVaAlign(T Val)
 	{
-		return Align(Val, 256);
+		return Math::Align(Val, 256);
 	}
 }
 
@@ -27,7 +27,7 @@ D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
 		IID_PPV_ARGS(&mGpuResource));
 
 	mGpuBaseVirtualAddr = mGpuResource->GetGPUVirtualAddress();
-	assert(mGpuBaseVirtualAddr == Align(mGpuBaseVirtualAddr, 256));
+	assert(mGpuBaseVirtualAddr == GpuVaAlign(mGpuBaseVirtualAddr));
 
 	mGpuResource->Map(0, nullptr, &mCpuBaseVirtualAddr);
 }

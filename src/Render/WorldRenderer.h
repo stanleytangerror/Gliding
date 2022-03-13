@@ -24,4 +24,11 @@ private:
 	D3D12Geometry* mSphere = nullptr;
 	D3D12Texture* mTex = nullptr;
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
+
+	Math::PerspectiveProjection	mCameraProj;
+	Vec3f mPosition = { 0.f, 10.f, 0.f };
+
+	Vec3f mDir = { 0.f, 1.f, 0.f };
+	Vec3f mUp = { 0.f, 0.f, 1.f };
+	Vec3f mRight = { 1.f, 0.f, 0.f };
 };

@@ -99,7 +99,7 @@ inline void GraphicsPass::AddCbVar(const std::string& name, const Vec3f& var)
 {
 	Assert(mCbParams.find(name) == mCbParams.end());
 
-	const int size = sizeof(float) * 3;
+	const int size = sizeof(Vec3f) * 3;
 
 	std::vector<byte>& buf = mCbParams[name];
 	buf.resize(size);
