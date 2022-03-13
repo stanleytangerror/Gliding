@@ -70,7 +70,7 @@ public:
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE	GetHandle() const override { return mRtv.Get(); }
 	DXGI_FORMAT						GetFormat() const override { return mDesc.Format; }
-	ID3D12Res* GetResource() const override { return mResource; }
+	ID3D12Res*						GetResource() const override { return mResource; }
 	void							Clear(D3D12CommandContext* context, const FLOAT color[4]);
 
 protected:
@@ -80,3 +80,17 @@ protected:
 	CpuDescItem				mRtv;
 };
 
+class DSV
+{
+public:
+	DSV(D3D12Device* device, ID3D12Res* res);
+
+	ID3D12Res*						GetResource() const { return mResource; }
+	DXGI_FORMAT						GetFormat() const { return mFormat; }
+	CD3DX12_CPU_DESCRIPTOR_HANDLE	GetHandle() const { return mHandle.Get(); }
+
+protected:
+	ID3D12Res*						mResource = nullptr;
+	CpuDescItem						mHandle;
+	DXGI_FORMAT						mFormat = DXGI_FORMAT_UNKNOWN;
+};

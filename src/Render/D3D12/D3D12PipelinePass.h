@@ -63,7 +63,7 @@ public:
 public:
 	GraphicsContext* const					mContext = nullptr;
 	std::map<int, IRenderTargetView*>		mRts;
-	//class DSV* mDs = nullptr;
+	DSV*									mDs = nullptr;
 
 	std::vector<D3D12_VERTEX_BUFFER_VIEW>	mVbvs;
 	D3D12_INDEX_BUFFER_VIEW					mIbv = {};

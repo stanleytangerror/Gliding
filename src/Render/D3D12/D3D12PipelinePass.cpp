@@ -86,11 +86,11 @@ void GraphicsPass::Draw()
 		res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
-	//if (mDs)
-	//{
-	//	ID3D12Res* res = mDs->GetResource();
-	//	res->Transition(graphicContext->GetCommandList(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	//}
+	if (mDs)
+	{
+		ID3D12Res* res = mDs->GetResource();
+		res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	}
 
 	// root signatures
 	ID3DBlob* rsBlob = D3D12Utils::LoadRs(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);

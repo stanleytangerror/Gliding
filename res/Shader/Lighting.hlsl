@@ -37,7 +37,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	PSOutput output;
 
 	float2 uv = RtSize.zw * input.position.xy;
-	const float3 color0 = GBuffer0.Sample(SamplerLinear, uv).xyz;
+	const float3 color0 = GBuffer1.Sample(SamplerLinear, uv).xyz;
 	
 	output.color = float4(color0, 1);
 

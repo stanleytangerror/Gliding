@@ -50,11 +50,11 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i3
 
 			indices.push_back(Idx(i - 1, j));
 			indices.push_back(Idx(i, j));
-			indices.push_back(Idx(i, j + 1));
+			indices.push_back(Idx(i, (j + 1) % slices));
 
 			indices.push_back(Idx(i - 1, j));
-			indices.push_back(Idx(i, j + 1));
-			indices.push_back(Idx(i -1, j + 1));
+			indices.push_back(Idx(i, (j + 1) % slices));
+			indices.push_back(Idx(i -1, (j + 1) % slices));
 		}
 	}
 

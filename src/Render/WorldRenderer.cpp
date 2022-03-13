@@ -12,15 +12,18 @@
 WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	mSphere = D3D12Geometry::GenerateSphere(mRenderModule->GetDevice(), 20, 40);
-	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
-	mTex = new D3D12Texture(mRenderModule->GetDevice(), R"(res/Texture/bluecloud_dn.dds)");
+	D3D12Device* device = mRenderModule->GetDevice();
+
+	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
+	mQuad = D3D12Geometry::GenerateQuad(device);
+	mTex = new D3D12Texture(device, R"(res/Texture/bluecloud_dn.dds)");
 	
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
-		mGBufferRts[i] = new D3D12RenderTarget(renderModule->GetDevice(), { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
+		mGBufferRts[i] = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
+	mDepthRt = new D3DDepthStencil(device, size, DXGI_FORMAT_D24_UNORM_S8_UINT, "SceneDepthRt");
 }
 
 void WorldRenderer::TickFrame(Timer* timer)
@@ -55,8 +58,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = gbufferPass.PsoDesc();
 		{
 			desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-			desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-			desc.DepthStencilState.DepthEnable = false;
+			desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+			desc.DepthStencilState.DepthEnable = true;
+			desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 			desc.DepthStencilState.StencilEnable = false;
 			desc.InputLayout = { mSphere->mInputDescs.data(), u32(mSphere->mInputDescs.size()) };
 		}
@@ -65,6 +69,8 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			gbufferPass.mRts[i] = mGBufferRts[i]->GetRtv();
 		}
+		gbufferPass.mDs = mDepthRt->GetDsv();
+
 		const Vec3i& targetSize = mGBufferRts[0]->GetSize();
 		gbufferPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
 		gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };

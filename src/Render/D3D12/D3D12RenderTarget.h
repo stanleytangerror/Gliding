@@ -37,3 +37,30 @@ protected:
 	UAV*						mUav = nullptr;
 	SRV*						mSrv = nullptr;
 };
+
+
+class D3DDepthStencil : public ID3D12Res
+{
+	// https://docs.microsoft.com/en-us/windows/desktop/direct3d11/d3d10-graphics-programming-guide-depth-stencil
+public:
+	D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, const char* name);
+
+	void								Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
+	DSV*								GetDsv() const { return mDsv; }
+	SRV*								GetSrv() const { return mSrv; }
+	DXGI_FORMAT							GetFormat() const { return mFormat; }
+	D3D12_RESOURCE_STATES				GetResStates() const { return mState; }
+	ID3D12Resource*						GetD3D12Resource() const override { return mResource; }
+	Vec3i								GetSize() const override { return mSize; }
+
+	void								Clear(D3D12CommandContext* context, float depth, UINT stencil);
+
+protected:
+	D3D12Device*				mDevice = nullptr;
+	ID3D12Resource*				mResource = nullptr;
+	Vec3i						mSize = {};
+	SRV*						mSrv = nullptr;
+	DSV*						mDsv = nullptr;
+	DXGI_FORMAT					mFormat;
+	D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
+};

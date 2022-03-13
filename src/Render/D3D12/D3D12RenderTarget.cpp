@@ -103,3 +103,58 @@ void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
 	using F4 = const FLOAT[4];
 	context->GetCommandList()->ClearRenderTargetView(GetRtv()->GetHandle(), *(F4*)&color, 0, nullptr);
 }
+
+//////////////////////////////////////////////
+
+D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, const char* name)
+	: mDevice(device)
+	, mSize{ size.x(), size.y(), 1 }
+	, mFormat(format)
+	, mState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
+{
+	// Describe and create a Texture2D.
+	D3D12_RESOURCE_DESC textureDesc = {};
+	{
+		textureDesc.MipLevels = 1;
+		textureDesc.Format = mFormat;
+		textureDesc.Width = mSize.x();
+		textureDesc.Height = mSize.y();
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		textureDesc.DepthOrArraySize = 1;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	}
+
+	// create gpu resource default as copy dest
+	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&textureDesc,
+		mState,
+		nullptr,
+		IID_PPV_ARGS(&mResource)));
+
+	NAME_RAW_D3D12_OBJECT(mResource, name);
+
+	mSrv = new SRV(mDevice, this, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+
+	mDsv = new DSV(mDevice, this);
+}
+
+void D3DDepthStencil::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
+{
+	if (mState != destState)
+	{
+		context->Transition(mResource, mState, destState);
+		mState = destState;
+	}
+}
+
+void D3DDepthStencil::Clear(D3D12CommandContext* context, float depth, UINT stencil)
+{
+	Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	context->GetCommandList()->ClearDepthStencilView(GetDsv()->GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
+}

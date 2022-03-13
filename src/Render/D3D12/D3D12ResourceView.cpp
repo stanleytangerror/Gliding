@@ -66,3 +66,25 @@ void RTV::Clear(D3D12CommandContext* context, const FLOAT color[4])
 	GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	context->GetCommandList()->ClearRenderTargetView(GetHandle(), color, 0, nullptr);
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+DSV::DSV(D3D12Device* device, ID3D12Res* res)
+	: mResource(res)
+{
+	const D3D12_RESOURCE_DESC& resdesc = mResource->GetD3D12Resource()->GetDesc();
+
+	mFormat = resdesc.Format;
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+	{
+		desc.Format = resdesc.Format;
+		desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_DSV_FLAG_NONE;
+		desc.Texture2D.MipSlice = 0;
+	}
+
+	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	mHandle = rtvDescAllocator->AllocCpuDesc();
+	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
+}
