@@ -16,9 +16,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
 	mTex = new D3D12Texture(mRenderModule->GetDevice(), R"(res/Texture/bluecloud_dn.dds)");
 	
+	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
-		mGBufferRts[i] = new D3D12RenderTarget(renderModule->GetDevice(), { 256, 256, 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
+		mGBufferRts[i] = new D3D12RenderTarget(renderModule->GetDevice(), { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
 }
 

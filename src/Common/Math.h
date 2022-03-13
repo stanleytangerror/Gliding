@@ -36,6 +36,7 @@ struct Quat
 	T			w() const { return m[3]; }
 };
 
+using Vec2i = Vec2<i32>;
 using Vec2f = Vec2<f32>;
 using Vec3f = Vec3<f32>;
 using Vec3i = Vec3<i32>;

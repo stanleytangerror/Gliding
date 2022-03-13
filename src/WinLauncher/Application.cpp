@@ -41,7 +41,7 @@ Application::Application(u32 width, u32 height, std::string name, HINSTANCE hIns
 
 void Application::Initial()
 {
-	mRenderModule = new RenderModule(mWindowHandle);
+	mRenderModule = new RenderModule(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
 
 	mLogicThread = new std::thread([this]() { this->RunLogic(); });
 }

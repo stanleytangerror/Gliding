@@ -7,12 +7,14 @@
 #include "D3D12/D3D12RenderTarget.h"
 #include "D3D12/D3D12SwapChain.h"
 
-RenderModule::RenderModule(HWND window)
-	: mWindow(window)
+RenderModule::RenderModule(WindowInfo windowInfo)
+	: mWindowInfo(windowInfo)
 {
 	mRenderDoc = new RenderDocIntegration();
 
-	mDevice = new D3D12Device(window);
+	mDevice = new D3D12Device(mWindowInfo.mWindow);
+	const auto& backBuffer = mDevice->GetBackBuffer()->GetBuffer();
+	mBackBufferSize = { backBuffer->GetWidth(), backBuffer->GetHeight() };
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
 	mWorldRenderer = std::make_unique<WorldRenderer>(this);
@@ -24,7 +26,7 @@ void RenderModule::TickFrame(Timer* timer)
 {
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mDevice, mWindow);
+		mRenderDoc->OnStartFrame(mDevice, mWindowInfo.mWindow);
 	}
 
 	mScreenRenderer->TickFrame(timer);
@@ -44,6 +46,6 @@ void RenderModule::TickFrame(Timer* timer)
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mDevice, mWindow);
+		mRenderDoc->OnEndFrame(mDevice, mWindowInfo.mWindow);
 	}
 }

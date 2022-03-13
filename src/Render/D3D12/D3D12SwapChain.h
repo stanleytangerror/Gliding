@@ -16,6 +16,8 @@ public:
 
 	ID3D12Resource* GetD3D12Resource() const override { return mResource; }
 	Vec3i				GetSize() const override { return { mWidth, mHeight, 1 }; }
+	i32					GetWidth() const { return mWidth; }
+	i32					GetHeight() const { return mHeight; }
 	std::string			GetName() const override;
 
 	RTV* GetRtv() const { return mRtv; }
