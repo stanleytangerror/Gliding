@@ -2,39 +2,12 @@
 
 #include "CommonTypes.h"
 #include <array>
+#include <Eigen\Eigen>
 
-template <typename T, i32 Row>
-struct Vec
-{
-	std::array<T, Row> m = {};
-
-	T			x() const { return m[0]; }
-	T			y() const { return m[1]; }
-	T			z() const { return m[2]; }
-	T			w() const { return m[3]; }
-
-	T			operator[](i32 i) const { return m[i]; }
-	T&			operator[](i32 i) { return m[i]; }
-	Vec<T, Row>	operator-() const;
-
-	Vec<T, Row>	GetNormalized() const;
-	T			GetLength() const;
-};
-
-template <typename T> using Vec2 = Vec<T, 2>;
-template <typename T> using Vec3 = Vec<T, 3>;
-template <typename T> using Vec4 = Vec<T, 4>;
-
-template <typename T>
-struct Quat
-{
-	std::array<T, 4> m = {};
-
-	T			x() const { return m[0]; }
-	T			y() const { return m[1]; }
-	T			z() const { return m[2]; }
-	T			w() const { return m[3]; }
-};
+template <typename T> using Vec2 = Eigen::Vector2<T>;
+template <typename T> using Vec3 = Eigen::Vector3<T>;
+template <typename T> using Vec4 = Eigen::Vector4<T>;
+template <typename T> using Quat = Eigen::Quaternion<T>;
 
 using Vec2i = Vec2<i32>;
 using Vec2f = Vec2<f32>;
@@ -42,28 +15,9 @@ using Vec3f = Vec3<f32>;
 using Vec3i = Vec3<i32>;
 using Vec4f = Vec4<f32>;
 
-template <typename T, i32 Row, i32 Col>
-struct Mat
-{
-	std::array<Vec<T, Row>, Col> mColumns = {};
-
-	void	SetRow(i32 r, const Vec<T, Col>& v);
-	void	SetCol(i32 c, const Vec<T, Row>& v);
-
-	template <i32 SubCol>
-	void	SetRow(i32 r, const Vec<T, SubCol>& v);
-	
-	template <i32 SubRow>
-	void	SetCol(i32 c, const Vec<T, SubRow>& v);
-
-	T		Get(i32 r, i32 c) const { return mColumns[c][r]; }
-	T&		Get(i32 r, i32 c) { return mColumns[c][r]; }
-
-	static Mat<T, Row, Col> GetIdentity();
-};
-
-template <typename T> using Mat33 = Mat<T, 3, 3>;
-template <typename T> using Mat44 = Mat<T, 4, 4>;
+// use column-major storage, independent of computation logic
+template <typename T> using Mat33 = Eigen::Matrix<T, 3, 3, Eigen::ColMajor>;
+template <typename T> using Mat44 = Eigen::Matrix<T, 4, 4, Eigen::ColMajor>;
 
 using Mat33f = Mat33<f32>;
 using Mat44f = Mat44<f32>;

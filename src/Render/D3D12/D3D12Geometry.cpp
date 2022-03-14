@@ -38,7 +38,7 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i3
 
 	for (auto& v : vertices)
 	{
-		v.mNorm = v.mPos.GetNormalized();
+		v.mNorm = v.mPos.normalized();
 	}
 
 	// ccw

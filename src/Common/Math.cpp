@@ -10,10 +10,10 @@ Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix()
 
 	Mat44f projMat;
 	{
-		projMat.SetRow(0, { w, 0, 0, 0 });
-		projMat.SetRow(1, { 0, h, 0, 0 });
-		projMat.SetRow(2, { 0, 0, Q, -Q * mNear });
-		projMat.SetRow(3, { 0, 0, 1, 0 });
+		projMat.row(0) << w, 0, 0, 0;
+		projMat.row(1) << 0, h, 0, 0;
+		projMat.row(2) << 0, 0, Q, -Q * mNear;
+		projMat.row(3) << 0, 0, 1, 0;
 	}
 
 	return projMat;
@@ -27,10 +27,10 @@ Mat44f Math::OrthographicProjection::ComputeProjectionMatrix()
 
 	Mat44f projMat;
 	{
-		projMat.SetRow(0, { w, 0, 0, 0 });
-		projMat.SetRow(1, { 0, h, 0, 0 });
-		projMat.SetRow(2, { 0, 0, Q, -Q * mNear });
-		projMat.SetRow(3, { 0, 0, 0, 1 });
+		projMat.row(0) << w, 0, 0, 0;
+		projMat.row(1) << 0, h, 0, 0;
+		projMat.row(2) << 0, 0, Q, -Q * mNear;
+		projMat.row(3) << 0, 0, 0, 1;
 	}
 
 	return projMat;
