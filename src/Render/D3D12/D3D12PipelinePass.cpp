@@ -116,10 +116,10 @@ void GraphicsPass::Draw()
 		DEBUG_PRINT("RT[%d]: %s", p.first, p.second->GetResource()->GetName().c_str());
 	}
 
-	//if (mDs)
-	//{
-	//	desc.DSVFormat = mDs->GetFormat();
-	//}
+	if (mDs)
+	{
+		desc.DSVFormat = mDs->GetFormat();
+	}
 
 	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
