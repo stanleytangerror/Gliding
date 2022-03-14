@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning( disable : 4819 ) // The file contains a character that cannot be represented in the current code page
+
 #include "Common/CommonMacros.h"
 #include "Render/RenderMacros.h"
 
