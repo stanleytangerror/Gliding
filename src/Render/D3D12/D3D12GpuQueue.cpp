@@ -56,8 +56,6 @@ void D3D12GpuQueue::Execute()
 
 	mGraphicContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
 	mComputeContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
-
-	mGpuPlannedValue += 1;
 }
 
 void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
@@ -69,6 +67,11 @@ void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
 
 	mGpuCompletedValue = value;
 	mGraphicContextPool->UpdateTime(mGpuCompletedValue);
+}
+
+void D3D12GpuQueue::IncreaseGpuPlannedValue(u64 value)
+{
+	mGpuPlannedValue += value;
 }
 
 D3D12_COMMAND_LIST_TYPE D3D12GpuQueue::GetD3D12CommandListType(D3D12GpuQueueType type)

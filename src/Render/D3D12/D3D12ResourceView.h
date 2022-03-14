@@ -83,7 +83,7 @@ protected:
 class DSV
 {
 public:
-	DSV(D3D12Device* device, ID3D12Res* res);
+	DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format);
 
 	ID3D12Res*						GetResource() const { return mResource; }
 	DXGI_FORMAT						GetFormat() const { return mFormat; }

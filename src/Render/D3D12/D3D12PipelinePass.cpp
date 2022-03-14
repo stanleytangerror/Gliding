@@ -224,8 +224,15 @@ void GraphicsPass::Draw()
 		rtvHandles[index] = rt->GetHandle();
 	}
 
-	//commandList->OMSetRenderTargets(mRts.size(), rtvHandles, FALSE, mDs ? &(mDs->GetHandle()) : nullptr);
-	commandList->OMSetRenderTargets(mRts.size(), rtvHandles, false, nullptr);
+	if (mDs)
+	{
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = mDs->GetHandle();
+		commandList->OMSetRenderTargets(mRts.size(), rtvHandles, false, &dsHandle);
+	}
+	else
+	{
+		commandList->OMSetRenderTargets(mRts.size(), rtvHandles, false, nullptr);
+	}
 	commandList->OMSetStencilRef(mStencilRef);
 
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

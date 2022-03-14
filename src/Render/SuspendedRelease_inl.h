@@ -54,9 +54,9 @@ void SuspendedReleasePool<T>::UpdateTime(u64 time)
 	{
 		T* obj = mSuspendQueue.top().mObj;
 		mSuspendQueue.pop();
+		mAvailablePool.push_back(obj);
 
 		mResetFun(obj);
-		mAvailablePool.push_back(obj);
 	}
 }
 

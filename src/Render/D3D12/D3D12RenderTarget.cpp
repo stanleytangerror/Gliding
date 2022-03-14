@@ -106,7 +106,7 @@ void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
 
 //////////////////////////////////////////////
 
-D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, const char* name)
+D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, DXGI_FORMAT dsvFormat, DXGI_FORMAT srvFormat, const char* name)
 	: mDevice(device)
 	, mSize{ size.x(), size.y(), 1 }
 	, mFormat(format)
@@ -138,9 +138,9 @@ D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT fo
 
 	NAME_RAW_D3D12_OBJECT(mResource, name);
 
-	mSrv = new SRV(mDevice, this, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+	mSrv = new SRV(mDevice, this, srvFormat);
 
-	mDsv = new DSV(mDevice, this);
+	mDsv = new DSV(mDevice, this, dsvFormat);
 }
 
 void D3DDepthStencil::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
