@@ -27,7 +27,7 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i3
 		f32 phi = Math::Pi<f32>() * v;
 		for (int j = 0; j < slices; j++)
 		{
-			f32 u = f32(j) / f32(stacks);
+			f32 u = f32(j) / f32(slices);
 			f32 theta = 2.0 * Math::Pi<f32>() * u;
 			f32 x = std::sin(phi) * std::cos(theta);
 			f32 y = std::sin(phi) * std::sin(theta);
@@ -48,13 +48,19 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i3
 		{
 			auto Idx = [&](i32 stackIdx, i32 sliceIdx) { return stackIdx * slices + sliceIdx; };
 
-			indices.push_back(Idx(i - 1, j));
-			indices.push_back(Idx(i, j));
-			indices.push_back(Idx(i, (j + 1) % slices));
+			if (i != stacks)
+			{
+				indices.push_back(Idx(i - 1, j));
+				indices.push_back(Idx(i, j));
+				indices.push_back(Idx(i, (j + 1) % slices));
+			}
 
-			indices.push_back(Idx(i - 1, j));
-			indices.push_back(Idx(i, (j + 1) % slices));
-			indices.push_back(Idx(i -1, (j + 1) % slices));
+			if (i != 1)
+			{
+				indices.push_back(Idx(i - 1, j));
+				indices.push_back(Idx(i, (j + 1) % slices));
+				indices.push_back(Idx(i - 1, (j + 1) % slices));
+			}
 		}
 	}
 
