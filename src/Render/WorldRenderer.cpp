@@ -14,7 +14,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 {
 	D3D12Device* device = mRenderModule->GetDevice();
 
-	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
+	mSphere = D3D12Geometry::GenerateSphere(device, 3, 6);
 	mQuad = D3D12Geometry::GenerateQuad(device);
 	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\sky0.dds)");
 	
@@ -23,16 +23,27 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	{
 		mGBufferRts[i] = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
-	mDepthRt = new D3DDepthStencil(device, size, 
-		DXGI_FORMAT_R24G8_TYPELESS, 
-		DXGI_FORMAT_D24_UNORM_S8_UINT,
-		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+	mDepthRt = new D3DDepthStencil(device, size,
+		DXGI_FORMAT_R32_TYPELESS,
+		DXGI_FORMAT_D32_FLOAT,
+		DXGI_FORMAT_R32_FLOAT,
 		"SceneDepthRt");
+	//mDepthRt = new D3DDepthStencil(device, size,
+	//	DXGI_FORMAT_R24G8_TYPELESS,
+	//	DXGI_FORMAT_D24_UNORM_S8_UINT,
+	//	DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+	//	"SceneDepthRt");
+
+	mObjTrans = Translationf({ 0.f, 10.f, 0.f });
 }
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
 	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
+
+	f32 rotAngle = 90.f * timer->GetLastFrameDeltaTime();
+	Transformf rot = Transformf(Rotationf(Math::DegreeToRadian(rotAngle), Vec3f{ 0.f, 0.f, 1.f }));
+	mObjTrans = rot * mObjTrans;
 }
 
 void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
@@ -88,7 +99,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		gbufferPass.AddCbVar("time", mElapsedTime);
 		gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 		
-		gbufferPass.AddCbVar("worldMat", Math::ComputeModelMatrix(mPosition, {}, {}));
+		gbufferPass.AddCbVar("worldMat", mObjTrans.matrix());
 		gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix({}, mDir, mUp, mRight));
 		gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 

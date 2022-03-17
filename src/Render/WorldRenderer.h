@@ -19,7 +19,7 @@ public:
 private:
 	RenderModule* mRenderModule = nullptr;
 
-	f32	mElapsedTime = 0.f;
+	f32 mElapsedTime = 0.f;
 
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
@@ -29,7 +29,8 @@ private:
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
 
 	Math::PerspectiveProjection	mCameraProj;
-	Vec3f mPosition = { 0.f, 10.f, 0.f };
+	
+	Transformf mObjTrans = Transformf::Identity();
 
 	Vec3f mDir = { 0.f, 1.f, 0.f };
 	Vec3f mUp = { 0.f, 0.f, 1.f };

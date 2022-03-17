@@ -16,11 +16,20 @@ using Vec3i = Vec3<i32>;
 using Vec4f = Vec4<f32>;
 
 // use column-major storage, independent of computation logic
-template <typename T> using Mat33 = Eigen::Matrix<T, 3, 3, Eigen::ColMajor>;
-template <typename T> using Mat44 = Eigen::Matrix<T, 4, 4, Eigen::ColMajor>;
+template <typename T, i32 Rols, i32 Cols> using Mat = Eigen::Matrix<T, Rols, Cols, Eigen::ColMajor>;
+template <typename T> using Mat33 = Mat<T, 3, 3>;
+template <typename T> using Mat44 = Mat<T, 4, 4>;
 
 using Mat33f = Mat33<f32>;
 using Mat44f = Mat44<f32>;
+
+template <typename T> using Transform = Eigen::Transform<T, 3, Eigen::Isometry, Eigen::ColMajor>;
+template <typename T> using Translation = Eigen::Translation<T, 3>;
+template <typename T> using Rotation = Eigen::AngleAxis<T>;
+
+using Transformf = Transform<f32>;
+using Translationf = Translation<f32>;
+using Rotationf = Rotation<f32>;
 
 namespace Math
 {
@@ -72,9 +81,9 @@ namespace Math
 
 	template <typename T>
 	inline Mat44<T> ComputeViewMatrix(const Vec3<T>& pos, const Vec3<T>& dir, const Vec3<T>& up, const Vec3<T>& right);
-	
-	template <typename T>
-	inline Mat44<T> ComputeModelMatrix(const Vec3<T>& pos, const Quat<T>& rot, const Vec3<T>& scale);
+
+	template <typename T, i32 Rols, i32 Cols>
+	inline std::string ToString(const Mat<T, Rols, Cols>& mat);
 }
 
 #include "Math_inl.h"
