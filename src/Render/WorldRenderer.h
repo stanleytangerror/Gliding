@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/TransformHierarchy.h"
+
 class RenderModule;
 class D3D12Geometry;
 class IRenderTargetView;
@@ -17,6 +19,9 @@ public:
 	void Render(GraphicsContext* context, IRenderTargetView* target);
 
 private:
+	void RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, const Transformf& transform) const;
+
+private:
 	RenderModule* mRenderModule = nullptr;
 
 	f32 mElapsedTime = 0.f;
@@ -32,7 +37,10 @@ private:
 	
 	Transformf mObjTrans = Transformf::Identity();
 
+	Vec3f mCamPos = { 0.f, -15.f, 0.f };
 	Vec3f mDir = { 0.f, 1.f, 0.f };
 	Vec3f mUp = { 0.f, 0.f, 1.f };
 	Vec3f mRight = { 1.f, 0.f, 0.f };
+
+	TransformNode<D3D12Geometry*> mGismo;
 };

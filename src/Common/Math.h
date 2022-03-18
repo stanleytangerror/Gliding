@@ -26,10 +26,14 @@ using Mat44f = Mat44<f32>;
 template <typename T> using Transform = Eigen::Transform<T, 3, Eigen::Isometry, Eigen::ColMajor>;
 template <typename T> using Translation = Eigen::Translation<T, 3>;
 template <typename T> using Rotation = Eigen::AngleAxis<T>;
+template <typename T> using UniScaling = Eigen::UniformScaling<T>;
+template <typename T> using Scaling = Eigen::DiagonalMatrix<T, 3>;
 
 using Transformf = Transform<f32>;
 using Translationf = Translation<f32>;
 using Rotationf = Rotation<f32>;
+using UniScalingf = UniScaling<f32>;
+using Scalingf = Scaling<f32>;
 
 namespace Math
 {
@@ -58,7 +62,7 @@ namespace Math
 		f32		mNear = 1.f;
 		f32		mFar = 1000.f;
 
-		Mat44f	ComputeProjectionMatrix();
+		Mat44f	ComputeProjectionMatrix() const;
 	};
 
 	struct GD_COMMON_API OrthographicProjection
@@ -68,7 +72,7 @@ namespace Math
 		f32		mNear = 1.f;
 		f32		mFar = 1000.f;
 
-		Mat44f	ComputeProjectionMatrix();
+		Mat44f	ComputeProjectionMatrix() const;
 	};
 
 	struct ViewMatrix

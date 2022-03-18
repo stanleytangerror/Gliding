@@ -22,6 +22,7 @@
     <ClInclude Include="Pool_inl.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="Timer.h" />
+    <ClInclude Include="TransformHierarchy.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssertUtils.cpp" />

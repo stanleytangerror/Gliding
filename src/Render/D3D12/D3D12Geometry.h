@@ -14,6 +14,7 @@ public:
 
 	static D3D12Geometry* GenerateQuad(D3D12Device* device);
 	static D3D12Geometry* GenerateSphere(D3D12Device* device, i32 stacks, i32 slices);
+	static D3D12Geometry* GenerateCube(D3D12Device* device, i32 stacks, i32 slices);
 
 public:
 	ID3D12Resource* mVb = nullptr;

@@ -1,7 +1,7 @@
 #include "CommonPch.h"
 #include "Math.h"
 
-Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix()
+Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 {
 	const float fovw = mFovh * mAspectRatio;
 	const float w = 1.f / std::tan(fovw * 0.5f);
@@ -19,7 +19,7 @@ Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix()
 	return projMat;
 }
 
-Mat44f Math::OrthographicProjection::ComputeProjectionMatrix()
+Mat44f Math::OrthographicProjection::ComputeProjectionMatrix() const
 {
 	const float w = 1.f / (mViewWidth * 0.5f);
 	const float h = 1.f / (mViewHeight * 0.5f);

@@ -34,6 +34,9 @@
     <ClInclude Include="Math_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="TransformHierarchy.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
