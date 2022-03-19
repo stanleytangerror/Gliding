@@ -161,3 +161,16 @@ std::pair<ID3D12Resource*, ID3D12Resource*> D3D12Utils::CreateD3DResFromDDSImage
 	return { result, textureUploadHeap };
 }
 
+D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareState& state)
+{
+	if (state == Math::ValueCompareState_Equal) return D3D12_COMPARISON_FUNC_EQUAL;
+	if (state == Math::ValueCompareState_Less) return D3D12_COMPARISON_FUNC_LESS;
+	if (state == Math::ValueCompareState_Greater) return D3D12_COMPARISON_FUNC_GREATER;
+	if (state == (Math::ValueCompareState_Equal | Math::ValueCompareState_Less)) return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	if (state == (Math::ValueCompareState_Equal | Math::ValueCompareState_Greater)) return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+	if (state == (Math::ValueCompareState_Less | Math::ValueCompareState_Greater)) return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+
+	Assert(false);
+	return D3D12_COMPARISON_FUNC_ALWAYS;
+}
+

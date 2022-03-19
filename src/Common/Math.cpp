@@ -19,6 +19,21 @@ Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 	return projMat;
 }
 
+f32 Math::PerspectiveProjection::GetFarPlaneDepth() const
+{
+	return 1.f;
+}
+
+f32 Math::PerspectiveProjection::GetNearPlaneDepth() const
+{
+	return 0.f;
+}
+
+Math::ValueCompareState Math::PerspectiveProjection::GetNearerDepthCompare() const
+{
+	return ValueCompareState(ValueCompareState_Less | ValueCompareState_Equal);
+}
+
 Mat44f Math::OrthographicProjection::ComputeProjectionMatrix() const
 {
 	const float w = 1.f / (mViewWidth * 0.5f);

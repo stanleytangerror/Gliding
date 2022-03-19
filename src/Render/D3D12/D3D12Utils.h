@@ -24,6 +24,8 @@ namespace D3D12Utils
 
 	std::unique_ptr<DirectX::ScratchImage> LoadDDSImageFromFile(const char* filePath);
 	std::pair<ID3D12Resource*, ID3D12Resource*> CreateD3DResFromDDSImage(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DirectX::ScratchImage& image);
+
+	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 }
 
 #define NAME_RAW_D3D12_OBJECT(x, name)	{if (name) { D3D12Utils::SetRawD3D12ResourceName((x), (name)); }}

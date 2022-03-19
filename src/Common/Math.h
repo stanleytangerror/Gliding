@@ -55,6 +55,17 @@ namespace Math
 	template <typename T>
 	constexpr float RadianToDegree(const T rad) { return rad * 180.f / Pi<T>(); }
 
+	enum ValueCompareState
+	{
+		/* other state like not_equal is composed with or logic, e.g.,
+		* greater or equal == greater_equal
+		* greater or less == not_equal
+		*/
+		ValueCompareState_Equal = 0x0,
+		ValueCompareState_Greater = 0x1,
+		ValueCompareState_Less = 0x2
+	};
+
 	struct GD_COMMON_API PerspectiveProjection
 	{
 		f32		mFovh = Math::DegreeToRadian(45.f);
@@ -63,6 +74,9 @@ namespace Math
 		f32		mFar = 1000.f;
 
 		Mat44f	ComputeProjectionMatrix() const;
+		f32		GetFarPlaneDepth() const;
+		f32		GetNearPlaneDepth() const;
+		ValueCompareState	GetNearerDepthCompare() const;
 	};
 
 	struct GD_COMMON_API OrthographicProjection

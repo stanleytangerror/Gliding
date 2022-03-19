@@ -67,7 +67,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
 		}
-		mDepthRt->Clear(context, 0.f, 0);
+		mDepthRt->Clear(context, mCameraProj.GetFarPlaneDepth(), 0);
 	}
 
 	mGismo.ForEach([&](const TransformNode<D3D12Geometry*>& node) 
@@ -135,7 +135,7 @@ void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geom
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		desc.DepthStencilState.StencilEnable = false;
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
