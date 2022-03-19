@@ -35,7 +35,7 @@ protected:
 	std::unique_ptr<Timer>	mTimer;
 	std::unique_ptr<RenderModule> mRenderModule;
 
-	std::thread*		mLogicThread = nullptr;
+	std::unique_ptr<std::thread>	mLogicThread;
 
 	enum class AppLifeCycle { Initial, Running, Destroying };
 	std::atomic<AppLifeCycle> mAppLifeCycle = AppLifeCycle::Initial;

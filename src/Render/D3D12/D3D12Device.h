@@ -5,6 +5,7 @@
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12PipelineState.h"
 #include "D3D12Shader.h"
+#include "D3D12ResourceManager.h"
 
 class D3D12PipelineStateLibrary;
 class D3D12ShaderLibrary;

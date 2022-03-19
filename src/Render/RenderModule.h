@@ -23,18 +23,18 @@ public:
 
 	void TickFrame(Timer* timer);
 
-	D3D12Device* GetDevice() const { return mDevice; }
+	D3D12Device*		GetDevice() const { return mDevice; }
 
 	WindowInfo			GetWindowInfo() const { return mWindowInfo; }
 	Vec2i				GetBackBufferSize() const { return mBackBufferSize; }
 
-	void				Finalize();
+	void				Destroy();
 
 protected:
 	WindowInfo			mWindowInfo = {};
 	Vec2i				mBackBufferSize = {};
 
-	D3D12Device* mDevice = nullptr;
+	D3D12Device*		mDevice = nullptr;
 	RenderDocIntegration* mRenderDoc = nullptr;
 
 	std::unique_ptr<ScreenRenderer>	mScreenRenderer;

@@ -5,6 +5,7 @@
 #include "D3D12/D3D12Device.h"
 
 class D3D12Device;
+class RenderDocApi;
 
 class RenderDocIntegration
 {

@@ -44,7 +44,7 @@ void Application::Initial()
 	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
 
 	mAppLifeCycle = AppLifeCycle::Running;
-	mLogicThread = new std::thread([this]() { this->RunLogic(); });
+	mLogicThread = std::make_unique<std::thread>([this]() { this->RunLogic(); });
 }
 
 void Application::Destroy()
@@ -53,7 +53,7 @@ void Application::Destroy()
 	
 	mLogicThread->join();
 
-	mRenderModule->Finalize();
+	mRenderModule->Destroy();
 }
 
 void Application::Run()
