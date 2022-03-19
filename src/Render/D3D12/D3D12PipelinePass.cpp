@@ -71,8 +71,6 @@ GraphicsPass::GraphicsPass(GraphicsContext* context)
 
 void GraphicsPass::Draw()
 {
-	DEBUG_PRINT("GraphicsPass::Draw");
-	
 	// transitions
 	for (const auto& p : mSrvParams)
 	{
@@ -113,7 +111,6 @@ void GraphicsPass::Draw()
 	for (const auto& p : mRts)
 	{
 		desc.RTVFormats[p.first] = p.second->GetFormat();
-		DEBUG_PRINT("RT[%d]: %s", p.first, p.second->GetResource()->GetName().c_str());
 	}
 
 	if (mDs)
@@ -213,6 +210,7 @@ void GraphicsPass::Draw()
 	BindCb(vs, 1);
 	BindCb(ps, 2);
 
+	Assert(mViewPort.MinDepth < mViewPort.MaxDepth);
 	commandList->RSSetViewports(1, &mViewPort);
 	commandList->RSSetScissorRects(1, &mScissorRect);
 

@@ -47,7 +47,7 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input
 	ldrScreenPass.AddSrv("SceneHdr", input);
 
 	ldrScreenPass.mRts[0] = target;
-	ldrScreenPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
+	ldrScreenPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	ldrScreenPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	
 	ldrScreenPass.mVbvs.clear();

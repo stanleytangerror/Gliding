@@ -34,7 +34,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	//	DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 	//	"SceneDepthRt");
 
-	mObjTrans = Translationf({ 0.f, 10.f, 0.f });
+	mObjTrans = Translationf({ 0.f, 5.f, 0.f });
 
 	mGismo.mContent = nullptr;
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)) });
@@ -101,7 +101,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		const Vec3i& targetSize = target->GetResource()->GetSize();
 		lightingPass.mRts[0] = target;
-		lightingPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
+		lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 		lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 
 		lightingPass.mVbvs.clear();
@@ -147,7 +147,7 @@ void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geom
 	gbufferPass.mDs = mDepthRt->GetDsv();
 
 	const Vec3i& targetSize = mGBufferRts[0]->GetSize();
-	gbufferPass.mViewPort = { 0, 0, float(targetSize.x()), float(targetSize.y()) };
+	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 
 	gbufferPass.mVbvs.clear();
