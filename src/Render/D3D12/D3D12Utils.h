@@ -13,7 +13,6 @@ namespace D3D12Utils
 	ID3DBlob* LoadCs(const char* filePath);
 
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, u32 flags);
-	ID3DBlob* CompileBlob(const void* date, const i32 dataSize, const char* entryName, const char* target, u32 flags);
 
 	ID3D12Resource* CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name = nullptr);
 
@@ -26,6 +25,18 @@ namespace D3D12Utils
 	std::pair<ID3D12Resource*, ID3D12Resource*> CreateD3DResFromDDSImage(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DirectX::ScratchImage& image);
 
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
+
+	class ShaderInclude : public ID3DInclude
+	{
+	public:
+		ShaderInclude(const char* root);
+
+		HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes);
+		HRESULT Close(LPCVOID pData);
+	protected:
+		std::string const	mRoot;
+		std::string	mContent;
+	};
 }
 
 #define NAME_RAW_D3D12_OBJECT(x, name)	{if (name) { D3D12Utils::SetRawD3D12ResourceName((x), (name)); }}

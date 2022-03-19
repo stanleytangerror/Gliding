@@ -9,6 +9,8 @@ namespace Utils
 	GD_COMMON_API std::wstring ToWString(const char* str);
 
 	GD_COMMON_API std::string FormatString(const char* format, ...);
+
+	GD_COMMON_API std::string GetDirFromPath(const char* path);
 }
 
 #define DEBUG_PRINT(msg, ...)	(OutputDebugString(Utils::FormatString(msg "\n", ##__VA_ARGS__ ).c_str()));

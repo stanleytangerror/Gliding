@@ -55,11 +55,8 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 	buf << input.rdbuf();
 	
 	const std::string& content = buf.str();
-	return CompileBlob(content.c_str(), content.size(), entryName, target, flags);
-}
+	std::unique_ptr< ShaderInclude> include = std::make_unique<ShaderInclude>(Utils::GetDirFromPath(filePath).c_str());
 
-ID3DBlob* D3D12Utils::CompileBlob(const void* date, const i32 dataSize, const char* entryName, const char* target, u32 flags)
-{
 	ID3DBlob* result = nullptr;
 	ID3DBlob* error = nullptr;
 
@@ -67,8 +64,7 @@ ID3DBlob* D3D12Utils::CompileBlob(const void* date, const i32 dataSize, const ch
 	flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_SKIP_VALIDATION;
 #endif
 
-	std::string content;
-	const HRESULT hr = D3DCompile(date, dataSize, nullptr, nullptr, nullptr, entryName, target, flags, 0, &result, &error);
+	const HRESULT hr = D3DCompile(content.c_str(), content.size(), nullptr, nullptr, include.get(), entryName, target, flags, 0, &result, &error);
 	if (hr)
 	{
 		char errorStr[1024] = {};
@@ -172,5 +168,37 @@ D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareSta
 
 	Assert(false);
 	return D3D12_COMPARISON_FUNC_ALWAYS;
+}
+
+D3D12Utils::ShaderInclude::ShaderInclude(const char* root)
+	: mRoot(std::string(root) + "/")
+{
+
+}
+
+HRESULT D3D12Utils::ShaderInclude::Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes)
+{
+	const std::string& filePath = mRoot + pFileName;
+	std::ifstream input(filePath.c_str());
+	if (!input.is_open())
+	{
+		Assert(false);
+		return E_FAIL;
+	}
+
+	std::ostringstream buf;
+	buf << input.rdbuf();
+
+	mContent = buf.str();
+	*ppData = mContent.data();
+	*pBytes = mContent.size();
+
+	return S_OK;
+}
+
+HRESULT D3D12Utils::ShaderInclude::Close(LPCVOID pData)
+{
+	mContent.clear();
+	return S_OK;
 }
 

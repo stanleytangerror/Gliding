@@ -1,4 +1,4 @@
-#define PI (3.1415927)
+#include "Panorama.h"
 
 struct VSInput
 {
@@ -27,15 +27,6 @@ cbuffer Param : register(b0)
 	float4 RtSize;
 }
 
-float3 SamplePanoramicSky(Texture2D panoramicSkyTex, float3 dir)
-{
-	float theta = atan2(dir.x, dir.y);
-	float phi = acos(dir.z);
-
-	float2 uv = float2(theta / 2.0 / PI, phi / PI);
-	return panoramicSkyTex.SampleLevel(SamplerLinearWrap, uv, 0).xyz;
-}
-
 PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
@@ -52,7 +43,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float2 uv = RtSize.zw * input.position.xy;
 	const float3 normal = GBuffer1.Sample(SamplerLinearClamp, uv).xyz * 2.0 - 1.0;
 
-	const float3 skyLight = SamplePanoramicSky(PanoramicSky, normal);
+	const float3 skyLight = SamplePanoramicSky(PanoramicSky, SamplerLinearWrap, normal);
 
 	output.color = float4(skyLight, 1);
 

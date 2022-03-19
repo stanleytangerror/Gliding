@@ -25,3 +25,12 @@ std::string Utils::FormatString(const char* format, ...)
 	return std::string(buffer);
 }
 
+GD_COMMON_API std::string Utils::GetDirFromPath(const char* path)
+{
+	const std::string& pathStr = path;
+	size_t pos = pathStr.find_last_of("\\/");
+	return (std::string::npos == pos)
+		? ""
+		: pathStr.substr(0, pos);
+}
+
