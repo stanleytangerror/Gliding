@@ -21,7 +21,7 @@ GraphicsPipelineState::GraphicsPipelineState()
 		format = DXGI_FORMAT_UNKNOWN;
 	}
 
-	mDesc.DSVFormat = DXGI_FORMAT_D16_UNORM;
+	mDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	mDesc.SampleDesc.Count = 1;
 }
 
