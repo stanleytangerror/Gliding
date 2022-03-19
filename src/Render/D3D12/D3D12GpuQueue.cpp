@@ -12,7 +12,7 @@ D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type)
 	}
 	AssertHResultOk(mDevice->GetDevice()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
 
-	AssertHResultOk(mDevice->GetDevice()->CreateFence(mGpuPlannedValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
+	AssertHResultOk(mDevice->GetDevice()->CreateFence(mGpuCompletedValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
 
 	mGraphicContextPool = new SuspendedReleasePool<GraphicsContext>(
 		[&]() { return new GraphicsContext(mDevice, this); },
@@ -62,10 +62,17 @@ void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
 {
 	Assert(mGpuCompletedValue <= value && value <= mGpuPlannedValue);
 
-	mFence->SetEventOnCompletion(value, mCpuEventHandle);
-	WaitForSingleObject(mCpuEventHandle, INFINITE);
+	if (mFence->GetCompletedValue() < value)
+	{
+		DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", mFence->GetCompletedValue(), value);
+		mFence->SetEventOnCompletion(value, mCpuEventHandle);
+		WaitForSingleObject(mCpuEventHandle, INFINITE);
+	}
+	Assert(value <= mFence->GetCompletedValue());
 
-	mGpuCompletedValue = value;
+	mGpuCompletedValue = mFence->GetCompletedValue();
+	DEBUG_PRINT("GpuQueue complete value %d, planned value %d", mGpuCompletedValue, mGpuPlannedValue);
+
 	mGraphicContextPool->UpdateTime(mGpuCompletedValue);
 }
 

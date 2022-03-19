@@ -13,6 +13,9 @@ D3D12CommandContext::D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpu
 	AssertHResultOk(mDevice->GetDevice()->CreateCommandAllocator(type, IID_PPV_ARGS(&mCommandAllocator)));
 	AssertHResultOk(mDevice->GetDevice()->CreateCommandList(0, type, mCommandAllocator, nullptr, IID_PPV_ARGS(&mCommandList)));
 
+	mCommandAllocator->SetName(Utils::ToWString(Utils::FormatString("CommandAllocator_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
+	mCommandList->SetName(Utils::ToWString(Utils::FormatString("CommandList_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
+
 	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
 
 	for (i32 i = 0; i < mRuntimeDescHeaps.size(); ++i)
@@ -34,6 +37,9 @@ void D3D12CommandContext::Reset()
 	
 	AssertHResultOk(mCommandAllocator->Reset());
 	AssertHResultOk(mCommandList->Reset(mCommandAllocator, nullptr));
+
+	mCommandAllocator->SetName(Utils::ToWString(Utils::FormatString("CommandAllocator_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
+	mCommandList->SetName(Utils::ToWString(Utils::FormatString("CommandList_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
 
 	mConstantBuffer->Reset();
 	for (const auto& heap : mRuntimeDescHeaps)
