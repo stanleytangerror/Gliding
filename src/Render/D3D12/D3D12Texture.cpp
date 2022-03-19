@@ -5,10 +5,6 @@ D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath)
 	: mDevice(device)
 	, mFilePath(filePath)
 {
-	mImage = D3D12Utils::LoadDDSImageFromFile(filePath);
-
-	const auto& metadata = mImage->GetMetadata();
-	mSize = { i32(metadata.width), i32(metadata.height), i32(metadata.depth) };
 }
 
 D3D12Texture::~D3D12Texture()
@@ -18,6 +14,10 @@ D3D12Texture::~D3D12Texture()
 
 void D3D12Texture::Initial(D3D12CommandContext* context)
 {
+	std::unique_ptr<DirectX::ScratchImage>	mImage = D3D12Utils::LoadDDSImageFromFile(mFilePath.c_str());
+	const auto& metadata = mImage->GetMetadata();
+	mSize = { i32(metadata.width), i32(metadata.height), i32(metadata.depth) };
+
 	const auto& result = D3D12Utils::CreateD3DResFromDDSImage(mDevice->GetDevice(), context->GetCommandList(), *mImage);
 	mD3D12Resource = result.first;
 	ID3D12Resource* tempRes = result.second;

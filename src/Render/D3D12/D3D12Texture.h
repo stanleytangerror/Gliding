@@ -25,7 +25,6 @@ public:
 
 protected:
 	D3D12Device* const		mDevice = nullptr;
-	std::unique_ptr<DirectX::ScratchImage>	mImage;
 	std::string				mFilePath;
 	ID3D12Resource*			mD3D12Resource = nullptr;
 	D3D12_RESOURCE_STATES	mResStates = D3D12_RESOURCE_STATE_COPY_DEST;
