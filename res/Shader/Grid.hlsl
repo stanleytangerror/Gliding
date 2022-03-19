@@ -25,7 +25,7 @@ PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
 
-	result.position = float4(vsin.position, 0, 0);
+	result.position = float4(vsin.position, 0.5, 1);
 
 	return result;
 }
