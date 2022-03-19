@@ -26,6 +26,7 @@ public:
 
 	void					CpuWaitForThisQueue(u64 value);
 	void					IncreaseGpuPlannedValue(u64 value);
+	bool					IsGpuValueFinished(u64 value);
 
 	static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
 

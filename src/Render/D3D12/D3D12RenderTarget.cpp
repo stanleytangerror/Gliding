@@ -39,6 +39,11 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 	mUav = new UAV(mDevice, this);
 }
 
+D3D12RenderTarget::~D3D12RenderTarget()
+{
+	mDevice->ReleaseD3D12Resource(mResource);
+}
+
 void D3D12RenderTarget::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
 {
 	if (mState != destState)
@@ -141,6 +146,11 @@ D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT fo
 	mSrv = new SRV(mDevice, this, srvFormat);
 
 	mDsv = new DSV(mDevice, this, dsvFormat);
+}
+
+D3DDepthStencil::~D3DDepthStencil()
+{
+	mDevice->ReleaseD3D12Resource(mResource);
 }
 
 void D3DDepthStencil::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)

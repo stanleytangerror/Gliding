@@ -81,6 +81,11 @@ void D3D12GpuQueue::IncreaseGpuPlannedValue(u64 value)
 	mGpuPlannedValue += value;
 }
 
+bool D3D12GpuQueue::IsGpuValueFinished(u64 value)
+{
+	return mGpuCompletedValue >= value;
+}
+
 D3D12_COMMAND_LIST_TYPE D3D12GpuQueue::GetD3D12CommandListType(D3D12GpuQueueType type)
 {
 	return 	

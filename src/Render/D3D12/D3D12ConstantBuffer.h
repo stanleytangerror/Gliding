@@ -18,6 +18,8 @@ public:
 	D3D12_GPU_VIRTUAL_ADDRESS		GetWorkGpuVa() const;
 
 private:
+	D3D12Device* const				mDevice = nullptr;
+
 	// ring buffer
 	int								mWorkingSize = 0;
 	int								mTailOffset = 0; // always align 256

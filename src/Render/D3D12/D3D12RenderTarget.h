@@ -7,6 +7,7 @@ class D3D12RenderTarget : public ID3D12Res
 {
 public:
 	D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name);
+	virtual ~D3D12RenderTarget();
 
 	void		Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 
@@ -44,6 +45,7 @@ class D3DDepthStencil : public ID3D12Res
 	// https://docs.microsoft.com/en-us/windows/desktop/direct3d11/d3d10-graphics-programming-guide-depth-stencil
 public:
 	D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, DXGI_FORMAT dsvFormat, DXGI_FORMAT srvFormat, const char* name);
+	virtual ~D3DDepthStencil();
 
 	void								Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
 	DSV*								GetDsv() const { return mDsv; }

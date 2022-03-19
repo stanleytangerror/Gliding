@@ -4,6 +4,7 @@
 #include "D3D12/D3D12CommandContext.h"
 #include "D3D12/D3D12RenderTarget.h"
 #include "D3D12/D3D12SwapChain.h"
+#include "D3D12/D3D12ResourceManager.h"
 
 namespace
 {
@@ -96,6 +97,8 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	}
 #endif
 
+	mResMgr = new D3D12ResourceManager(this);
+
 	for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 	{
 		mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i));
@@ -162,6 +165,8 @@ void D3D12Device::Present()
 	{
 		q->IncreaseGpuPlannedValue(1);
 	}
+
+	mResMgr->Update();
 }
 
 ID3D12Device* D3D12Device::GetDevice() const
@@ -173,4 +178,10 @@ D3D12DescriptorAllocator* D3D12Device::GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TY
 {
 	Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
 	return mDescAllocator[type];
+}
+
+void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
+{
+	mResMgr->ReleaseResource(res);
+	res = nullptr;
 }

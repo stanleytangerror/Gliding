@@ -11,6 +11,7 @@ class D3D12ShaderLibrary;
 class D3D12DescriptorAllocator;
 class SwapChainBuffers;
 class D3D12GpuQueue;
+class D3D12ResourceManager;
 enum D3D12GpuQueueType : u8;
 
 class D3D12Device
@@ -31,12 +32,15 @@ public:
 
 	D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
 
+	void	ReleaseD3D12Resource(ID3D12Resource*& res);
+
 private:
 	ID3D12Device* mDevice = nullptr;
 
 	SwapChainBuffers* mBackBuffers = nullptr;
 
 	std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
+	D3D12ResourceManager*			mResMgr = nullptr;
 
 	D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
 	D3D12ShaderLibrary* mShaderLib = nullptr;

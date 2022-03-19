@@ -1,6 +1,18 @@
 #include "RenderPch.h"
 #include "D3D12/D3D12Geometry.h"
 
+D3D12Geometry::D3D12Geometry(D3D12Device* device)
+	: mDevice(device)
+{
+
+}
+
+D3D12Geometry::~D3D12Geometry()
+{
+	mDevice->ReleaseD3D12Resource(mVb);
+	mDevice->ReleaseD3D12Resource(mIb);
+}
+
 D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
 {
 	return D3D12Geometry::GenerateGeometry<Vec2f>(device,

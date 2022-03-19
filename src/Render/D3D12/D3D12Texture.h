@@ -9,6 +9,7 @@ class D3D12Texture : public ID3D12Res
 {
 public:
 	D3D12Texture(D3D12Device* device, const char* filePath);
+	virtual ~D3D12Texture();
 
 	void							Initial(D3D12CommandContext* context);
 
@@ -27,7 +28,6 @@ protected:
 	std::unique_ptr<DirectX::ScratchImage>	mImage;
 	std::string				mFilePath;
 	ID3D12Resource*			mD3D12Resource = nullptr;
-	ID3D12Resource*			mIntermediateResource = nullptr;
 	D3D12_RESOURCE_STATES	mResStates = D3D12_RESOURCE_STATE_COPY_DEST;
 	Vec3i					mSize = {};
 

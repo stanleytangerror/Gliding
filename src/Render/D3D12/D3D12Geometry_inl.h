@@ -8,7 +8,7 @@ D3D12Geometry* D3D12Geometry::GenerateGeometry(D3D12Device* device,
 	const std::vector<u16>& indices,
 	const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
 {
-	D3D12Geometry* result = new D3D12Geometry;
+	D3D12Geometry* result = new D3D12Geometry(device);
 
 	result->mVb = D3D12Utils::CreateUploadBuffer(device->GetDevice(), vertices.size() * sizeof(TVertex));
 	result->mIb = D3D12Utils::CreateUploadBuffer(device->GetDevice(), indices.size() * sizeof(u16));

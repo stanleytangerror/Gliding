@@ -11,6 +11,7 @@ namespace
 }
 
 D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
+	: mDevice(device)
 {
 	const int ConstBuffSize = 32 * 1024;
 
@@ -34,7 +35,7 @@ D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
 
 D3D12ConstantBuffer::~D3D12ConstantBuffer()
 {
-	mGpuResource->Release();
+	mDevice->ReleaseD3D12Resource(mGpuResource);
 }
 
 void D3D12ConstantBuffer::Submit(const void* data, int size)
