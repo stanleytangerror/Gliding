@@ -28,6 +28,8 @@ public:
 	WindowInfo			GetWindowInfo() const { return mWindowInfo; }
 	Vec2i				GetBackBufferSize() const { return mBackBufferSize; }
 
+	void				Finalize();
+
 protected:
 	WindowInfo			mWindowInfo = {};
 	Vec2i				mBackBufferSize = {};

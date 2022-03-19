@@ -16,12 +16,18 @@ D3D12CommandContext::D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpu
 	mCommandAllocator->SetName(Utils::ToWString(Utils::FormatString("CommandAllocator_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
 	mCommandList->SetName(Utils::ToWString(Utils::FormatString("CommandList_%d", mGpuQueue->GetGpuPlannedValue())).c_str());
 
-	mConstantBuffer = new D3D12ConstantBuffer(mDevice);
+	mConstantBuffer = std::make_unique<D3D12ConstantBuffer>(mDevice);
 
 	for (i32 i = 0; i < mRuntimeDescHeaps.size(); ++i)
 	{
-		mRuntimeDescHeaps[i] = new RuntimeDescriptorHeap(mDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
+		mRuntimeDescHeaps[i] = std::make_unique<RuntimeDescriptorHeap>(mDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
 	}
+}
+
+D3D12CommandContext::~D3D12CommandContext()
+{
+	mCommandList->Release();
+	mCommandAllocator->Release();
 }
 
 void D3D12CommandContext::Finalize()

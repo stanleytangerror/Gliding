@@ -41,9 +41,19 @@ Application::Application(u32 width, u32 height, std::string name, HINSTANCE hIns
 
 void Application::Initial()
 {
-	mRenderModule = new RenderModule(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
+	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
 
+	mAppLifeCycle = AppLifeCycle::Running;
 	mLogicThread = new std::thread([this]() { this->RunLogic(); });
+}
+
+void Application::Destroy()
+{
+	mAppLifeCycle = AppLifeCycle::Destroying;
+	
+	mLogicThread->join();
+
+	mRenderModule->Finalize();
 }
 
 void Application::Run()
@@ -58,11 +68,13 @@ void Application::Run()
 			DispatchMessage(&msg);
 		}
 	}
+
+	Destroy();
 }
 
 void Application::RunLogic()
 {
-	while (true)
+	while (mAppLifeCycle == AppLifeCycle::Running)
 	{
 		mTimer->OnStartNewFrame();
 		

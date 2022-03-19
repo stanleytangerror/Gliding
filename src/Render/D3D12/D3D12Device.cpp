@@ -97,7 +97,7 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	}
 #endif
 
-	mResMgr = new D3D12ResourceManager(this);
+	mResMgr = std::make_unique<D3D12ResourceManager>(this);
 
 	for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 	{
@@ -147,6 +147,14 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	mBackBuffers = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), FrameCount);
 }
 
+void D3D12Device::StartFrame()
+{
+	for (D3D12GpuQueue* q : mGpuQueues)
+	{
+		q->IncreaseGpuPlannedValue(1);
+	}
+}
+
 void D3D12Device::Present()
 {
 	for (D3D12GpuQueue* q : mGpuQueues)
@@ -161,9 +169,14 @@ void D3D12Device::Present()
 		q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 1 ? q->GetGpuPlannedValue() - 1 : 0);
 	}
 
+	mResMgr->Update();
+}
+
+void D3D12Device::Destroy()
+{
 	for (D3D12GpuQueue* q : mGpuQueues)
 	{
-		q->IncreaseGpuPlannedValue(1);
+		q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
 	}
 
 	mResMgr->Update();

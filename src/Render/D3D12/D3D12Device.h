@@ -19,7 +19,9 @@ class D3D12Device
 public:
 	D3D12Device(HWND windowHandle);
 
+	void	StartFrame();
 	void	Present();
+	void	Destroy();
 
 	ID3D12Device* GetDevice() const;
 
@@ -40,7 +42,7 @@ private:
 	SwapChainBuffers* mBackBuffers = nullptr;
 
 	std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
-	D3D12ResourceManager*			mResMgr = nullptr;
+	std::unique_ptr<D3D12ResourceManager>			mResMgr;
 
 	D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
 	D3D12ShaderLibrary* mShaderLib = nullptr;

@@ -15,6 +15,7 @@ public:
 	Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 
 	void			Initial();
+	void			Destroy();
 
 	void			Run();
 	void			RunLogic();
@@ -32,7 +33,10 @@ protected:
 	HWND				mWindowHandle = {};
 
 	std::unique_ptr<Timer>	mTimer;
-	RenderModule* mRenderModule = nullptr;
+	std::unique_ptr<RenderModule> mRenderModule;
 
 	std::thread*		mLogicThread = nullptr;
+
+	enum class AppLifeCycle { Initial, Running, Destroying };
+	std::atomic<AppLifeCycle> mAppLifeCycle = AppLifeCycle::Initial;
 };

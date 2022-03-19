@@ -15,13 +15,14 @@ class D3D12CommandContext
 {
 public:
 	D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpuQueue);
+	virtual ~D3D12CommandContext();
 
 	void		Finalize();
 	void		Reset();
 
 	ID3D12GraphicsCommandList* GetCommandList() const { return mCommandList; }
-	RuntimeDescriptorHeap* GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const { return mRuntimeDescHeaps[type]; }
-	D3D12ConstantBuffer* GetConstantBuffer() const { return mConstantBuffer; }
+	RuntimeDescriptorHeap* GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const { return mRuntimeDescHeaps[type].get(); }
+	D3D12ConstantBuffer* GetConstantBuffer() const { return mConstantBuffer.get(); }
 	D3D12Device* GetDevice() const { return mDevice; }
 	u64							GetPlannedFenceValue() const;
 
@@ -35,8 +36,8 @@ protected:
 	ID3D12GraphicsCommandList* mCommandList = nullptr;
 	ID3D12CommandAllocator* mCommandAllocator = nullptr;
 
-	D3D12ConstantBuffer* mConstantBuffer = nullptr;
-	std::array<RuntimeDescriptorHeap*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mRuntimeDescHeaps = {};
+	std::unique_ptr<D3D12ConstantBuffer> mConstantBuffer;
+	std::array< std::unique_ptr<RuntimeDescriptorHeap>, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mRuntimeDescHeaps;
 };
 
 class GraphicsContext : public D3D12CommandContext

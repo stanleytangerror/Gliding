@@ -29,6 +29,8 @@ void RenderModule::TickFrame(Timer* timer)
 		mRenderDoc->OnStartFrame(mDevice, mWindowInfo.mWindow);
 	}
 
+	mDevice->StartFrame();
+
 	mScreenRenderer->TickFrame(timer);
 	mWorldRenderer->TickFrame(timer);
 
@@ -48,4 +50,9 @@ void RenderModule::TickFrame(Timer* timer)
 	{
 		mRenderDoc->OnEndFrame(mDevice, mWindowInfo.mWindow);
 	}
+}
+
+void RenderModule::Finalize()
+{
+	mDevice->Destroy();
 }
