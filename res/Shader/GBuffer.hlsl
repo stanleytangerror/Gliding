@@ -43,7 +43,7 @@ PSInput VSMain(VSInput vsin)
     // pos = float3(0, 0, 0);
 
 	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(pos, 1))));
-	result.normal = vsin.normal;
+	result.normal = vsin.normal * 0.5 + 0.5;
 	// result.tangent = vsin.tangent;
 
 	// x: tangent, y: binormal, z: normal
@@ -67,7 +67,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	// const float2 normXy = NormalTex.Sample(SamplerLinear, input.uv).xy * 2 - 1;
 	// float3 normal = float3(normXy, sqrt(1 - dot(normXy, normXy)));
 	// normal = normalize(mul(normal, tbn));
-	float3 normal = normalize(mul(input.normal, (float3x3)worldMat));
+	float3 normal = normalize(mul((float3x3)worldMat, normalize(input.normal * 2 - 1)));
 
 	// const float4 spec = SpecularTex.Sample(SamplerLinear, input.uv);
     const float4 spec = float4(0.5, 0.5, 0.5, 1.0);

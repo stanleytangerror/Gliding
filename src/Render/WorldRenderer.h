@@ -9,6 +9,7 @@ class GraphicsContext;
 class D3D12Texture;
 class D3D12RenderTarget;
 class D3DDepthStencil;
+class DSV;
 
 class GD_RENDER_API WorldRenderer
 {
@@ -20,6 +21,7 @@ public:
 
 private:
 	void RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, const Transformf& transform) const;
+	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
 
 private:
 	RenderModule* mRenderModule = nullptr;

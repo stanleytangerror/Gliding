@@ -14,7 +14,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 {
 	D3D12Device* device = mRenderModule->GetDevice();
 
-	mSphere = D3D12Geometry::GenerateSphere(device, 3, 6);
+	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
 	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\sky0.dds)");
 	
@@ -119,6 +119,8 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		lightingPass.Draw();
 	}
+
+	RenderSky(context, target, mDepthRt->GetDsv());
 }
 
 void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, const Transformf& transform) const
@@ -162,4 +164,48 @@ void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geom
 	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 
 	gbufferPass.Draw();
+}
+
+void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
+{
+	GraphicsPass pass(context);
+
+	D3D12Geometry* geometry = mSphere;
+	const Transformf& transform = Transformf(UniScalingf(1000.f));
+
+	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
+	pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = true;
+		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
+	}
+
+	pass.mRts[0] = target;
+	pass.mDs = depth;
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+
+	pass.mVbvs.clear();
+	pass.mVbvs.push_back(geometry->mVbv);
+	pass.mIbv = geometry->mIbv;
+	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+
+	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+	pass.AddCbVar("worldMat", transform.matrix());
+	pass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
+	pass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
+
+	pass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
+
+	pass.Draw();
 }
