@@ -9,6 +9,7 @@ class D3D12ResourceManager
 {
 public:
 	D3D12ResourceManager(D3D12Device* device);
+	virtual ~D3D12ResourceManager();
 
 	void	ReleaseResource(ID3D12Resource* res);
 	void	Update();

@@ -15,6 +15,7 @@ class GD_RENDER_API WorldRenderer
 {
 public:
 	WorldRenderer(RenderModule* renderModule);
+	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
 	void Render(GraphicsContext* context, IRenderTargetView* target);

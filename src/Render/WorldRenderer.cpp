@@ -42,6 +42,19 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)) });
 }
 
+WorldRenderer::~WorldRenderer()
+{
+	Utils::SafeDelete(mQuad);
+	Utils::SafeDelete(mSphere);
+	Utils::SafeDelete(mPanoramicSkyTex);
+	Utils::SafeDelete(mDepthRt);
+	for (auto& rt : mGBufferRts)
+	{
+		Utils::SafeDelete(rt);
+	}
+
+}
+
 void WorldRenderer::TickFrame(Timer* timer)
 {
 	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();

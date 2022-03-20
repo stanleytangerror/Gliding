@@ -28,6 +28,20 @@ D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type)
 	Assert(mCpuEventHandle != INVALID_HANDLE_VALUE);
 }
 
+D3D12GpuQueue::~D3D12GpuQueue()
+{
+	mGraphicContextPool->UpdateTime(mGpuCompletedValue);
+	mComputeContextPool->UpdateTime(mGpuCompletedValue);
+
+	Utils::SafeDelete(mGraphicContextPool);
+	Utils::SafeDelete(mComputeContextPool);
+
+	CloseHandle(mCpuEventHandle);
+
+	Utils::SafeRelease(mFence);
+	Utils::SafeRelease(mCommandQueue);
+}
+
 GraphicsContext* D3D12GpuQueue::AllocGraphicContext()
 {
 	return mGraphicContextPool->AllocItem();

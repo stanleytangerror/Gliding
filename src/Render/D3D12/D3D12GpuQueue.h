@@ -13,6 +13,7 @@ class D3D12GpuQueue
 {
 public:
 	D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type);
+	virtual ~D3D12GpuQueue();
 
 	GraphicsContext*		AllocGraphicContext();
 	ComputeContext*			AllocComputeContext();

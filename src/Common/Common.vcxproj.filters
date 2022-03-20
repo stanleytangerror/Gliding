@@ -37,6 +37,9 @@
     <ClInclude Include="TransformHierarchy.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="CommonUtils.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

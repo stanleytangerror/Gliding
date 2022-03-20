@@ -8,6 +8,11 @@ D3D12ResourceManager::D3D12ResourceManager(D3D12Device* device)
 
 }
 
+D3D12ResourceManager::~D3D12ResourceManager()
+{
+	Assert(mReleaseQueue.empty());
+}
+
 void D3D12ResourceManager::ReleaseResource(ID3D12Resource* res)
 {
 	ReleaseItem item;

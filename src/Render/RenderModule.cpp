@@ -54,10 +54,10 @@ void RenderModule::TickFrame(Timer* timer)
 
 void RenderModule::Destroy()
 {
-	mScreenRenderer.release();
-	mWorldRenderer.release();
-	delete mSceneHdrRt;
+	mScreenRenderer = nullptr;
+	mWorldRenderer = nullptr;
+	Utils::SafeDelete(mSceneHdrRt);
 
 	mDevice->Destroy();
-	delete mDevice;
+	Utils::SafeDelete(mDevice);
 }

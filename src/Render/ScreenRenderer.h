@@ -10,6 +10,7 @@ class GD_RENDER_API ScreenRenderer
 {
 public:
 	ScreenRenderer(RenderModule* renderModule);
+	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
 	void Render(GraphicsContext* context, IShaderResourceView* input, IRenderTargetView* target);

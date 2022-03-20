@@ -7,6 +7,7 @@
 
 // headers from common
 #include "Common/CommonTypes.h"
+#include "Common/CommonUtils.h"
 #include "Common/AssertUtils.h"
 #include "Common/Math.h"
 #include "Common/FreeList.h"

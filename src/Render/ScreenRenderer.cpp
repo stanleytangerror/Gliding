@@ -17,6 +17,11 @@ ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
 }
 
+ScreenRenderer::~ScreenRenderer()
+{
+	Utils::SafeDelete(mQuad);
+}
+
 void ScreenRenderer::TickFrame(Timer* timer)
 {
 	

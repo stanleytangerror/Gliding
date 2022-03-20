@@ -174,12 +174,27 @@ void D3D12Device::Present()
 
 void D3D12Device::Destroy()
 {
-	for (D3D12GpuQueue* q : mGpuQueues)
+	for (D3D12GpuQueue*& q : mGpuQueues)
 	{
 		q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
+		Utils::SafeDelete(q);
 	}
 
+	Utils::SafeDelete(mBackBuffers);
+
 	mResMgr->Update();
+	mResMgr = nullptr;
+
+	//for (D3D12DescriptorAllocator*& alloc : mDescAllocator)
+	//{
+	//	delete alloc;
+	//	alloc = nullptr;
+	//}
+
+	Utils::SafeDelete(mPipelineStateLib);
+	Utils::SafeDelete(mShaderLib);
+
+	Utils::SafeRelease(mDevice);
 }
 
 ID3D12Device* D3D12Device::GetDevice() const

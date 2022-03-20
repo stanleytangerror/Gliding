@@ -15,6 +15,7 @@
     <ClInclude Include="CommonMacros.h" />
     <ClInclude Include="CommonPch.h" />
     <ClInclude Include="CommonTypes.h" />
+    <ClInclude Include="CommonUtils.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Math_inl.h" />
