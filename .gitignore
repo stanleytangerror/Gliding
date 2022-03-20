@@ -24,10 +24,10 @@
 *.lai
 *.la
 *.a
-*.lib
+#*.lib
 
 # Executables
-*.exe
+#*.exe
 *.out
 *.app
 
@@ -40,5 +40,5 @@ Intermediate/
 temp/
 
 # output folder
-bin/
+#bin/
 build/
