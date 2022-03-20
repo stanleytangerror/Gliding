@@ -84,8 +84,10 @@ namespace AssimpLoadUtils
 					{
 					case 2:
 						data.push_back(ToVec2f(mesh->mTextureCoords[channel][i]));
+						break;
 					case 3:
 						data.push_back(ToVec3f(mesh->mTextureCoords[channel][i]));
+						break;
 					default:
 						Assert(false);
 						break;

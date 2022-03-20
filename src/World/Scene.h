@@ -1,15 +1,17 @@
 #pragma once
 
-struct TextureRawData
+struct GD_WORLD_API TextureRawData
 {
 
 };
 
-union VertexAttriRawData
+union GD_WORLD_API VertexAttriRawData
 {
 	VertexAttriRawData() { memset(this, 0, sizeof(*this)); }
 	VertexAttriRawData(const VertexAttriRawData& other) { memcpy(this, &other, sizeof(*this)); }
 	VertexAttriRawData(VertexAttriRawData&& other) { memcpy(this, &other, sizeof(*this)); }
+	VertexAttriRawData& operator=(const VertexAttriRawData& other) { memcpy(this, &other, sizeof(*this)); return *this; }
+	VertexAttriRawData& operator=(VertexAttriRawData&& other) { memcpy(this, &other, sizeof(*this)); return *this; }
 
 	Vec2i mVec2i;
 	Vec2f mVec2f;
@@ -18,7 +20,7 @@ union VertexAttriRawData
 	Vec4f mVec4f;
 };
 
-struct VertexAttriMeta
+struct GD_WORLD_API VertexAttriMeta
 {
 	enum Semantic : u8 { Position, Normal, Tangent, BiTangent, TexCoord };
 
@@ -48,16 +50,16 @@ struct VertexAttriMeta
 	};
 };
 
-struct MeshRawData
+struct GD_WORLD_API MeshRawData
 {
 	std::unordered_map<VertexAttriMeta, std::vector<VertexAttriRawData>, VertexAttriMeta::Hash, VertexAttriMeta::Equal> mVertexData;
 	std::vector<Vec3i> mFaces;
 };
 
-struct SceneRawData
+struct GD_WORLD_API SceneRawData
 {
-	std::vector<std::unique_ptr<MeshRawData>> mModels;
-	std::vector< std::unique_ptr<TextureRawData>> mTextures;
+	std::vector<MeshRawData*> mModels;
+	std::vector<TextureRawData*> mTextures;
 
 	static SceneRawData* LoadScene(const char* path);
 };

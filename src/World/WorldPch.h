@@ -1,5 +1,6 @@
 #pragma once
 
+#include "World/WorldMacros.h"
 #include "Common/CommonMacros.h"
 
 // headers from common

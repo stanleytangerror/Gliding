@@ -1,11 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Scene.h" />
-    <ClInclude Include="WorldPch.h" />
+    <ClInclude Include="Scene.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldPch.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldMacros.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="WorldPch.cpp" />
+    <ClCompile Include="Scene.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldPch.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{da470b5c-3c65-47cc-a8e3-ac889db1a014}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

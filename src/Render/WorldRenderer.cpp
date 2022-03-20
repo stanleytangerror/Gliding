@@ -8,6 +8,7 @@
 #include "D3D12/D3D12Resource.h"
 #include "D3D12/D3D12Geometry.h"
 #include "D3D12/D3D12Texture.h"
+#include "World/Scene.h"
 
 WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
@@ -40,6 +41,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)) });
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)) });
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)) });
+
+	SceneRawData::LoadScene(R"(res/Scene/sphere.obj)");
 }
 
 WorldRenderer::~WorldRenderer()
