@@ -30,8 +30,8 @@ protected:
 
 public:
 	std::string const		mName;
-	int32_t					mWidth = 0;
-	int32_t					mHeight = 0;
+	i32						mWidth = 0;
+	i32						mHeight = 0;
 };
 
 class SwapChainBuffers

@@ -51,7 +51,7 @@ void ComputePass::Dispatch()
 		}
 	}
 	
-	const auto& gpuDescBase = srvUavHeap->Push(srvUavHandles.size(), srvUavHandles.data());
+	const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(srvUavHandles.size()), srvUavHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
@@ -107,7 +107,7 @@ void GraphicsPass::Draw()
 
 	// rts
 	auto& desc = mPso->Descriptor();
-	desc.NumRenderTargets = mRts.size();
+	desc.NumRenderTargets = static_cast<u32>(mRts.size());
 	for (const auto& p : mRts)
 	{
 		desc.RTVFormats[p.first] = p.second->GetFormat();
@@ -164,7 +164,7 @@ void GraphicsPass::Draw()
 			srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
 		}
 	}
-	const auto& gpuDescBaseAddr = srvHeap->Push(srvHandles.size(), srvHandles.data());
+	const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
 
 	ID3D12DescriptorHeap* ppHeaps[] = { srvHeap->GetCurrentDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
@@ -201,7 +201,7 @@ void GraphicsPass::Draw()
 				}
 			}
 
-			cb->Submit(cbuf.data(), cbuf.size());
+			cb->Submit(cbuf.data(), static_cast<i32>(cbuf.size()));
 		}
 		commandList->SetGraphicsRootConstantBufferView(rootParamIndex, cb->GetWorkGpuVa());
 		cb->Retire();
@@ -225,17 +225,17 @@ void GraphicsPass::Draw()
 	if (mDs)
 	{
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = mDs->GetHandle();
-		commandList->OMSetRenderTargets(mRts.size(), rtvHandles, false, &dsHandle);
+		commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, &dsHandle);
 	}
 	else
 	{
-		commandList->OMSetRenderTargets(mRts.size(), rtvHandles, false, nullptr);
+		commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, nullptr);
 	}
 	commandList->OMSetStencilRef(mStencilRef);
 
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList->IASetVertexBuffers(0, mVbvs.size(), mVbvs.data());
+	commandList->IASetVertexBuffers(0, static_cast<u32>(mVbvs.size()), mVbvs.data());
 	commandList->IASetIndexBuffer(&mIbv);
 
 	commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, 0, 0, 0);

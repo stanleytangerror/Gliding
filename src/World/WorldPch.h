@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma warning( disable : 4819 ) // The file contains a character that cannot be represented in the current code page
+#pragma warning( disable : 4251 ) // needs to have dll-interface (declare dllexport for each instantiated template, painful)
+
 #include "World/WorldMacros.h"
 #include "Common/CommonMacros.h"
 

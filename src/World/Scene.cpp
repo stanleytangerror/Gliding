@@ -36,7 +36,7 @@ namespace AssimpLoadUtils
 			VertexAttriMeta meta = { VertexAttriMeta::Position, 0, sizeof(Vec3f) };
 
 			std::vector<VertexAttriRawData>& positions = result->mVertexData[meta];
-			for (i32 i = 0; i < mesh->mNumVertices; i++)
+			for (i32 i = 0; i < static_cast<i32>(mesh->mNumVertices); i++)
 			{
 				positions.push_back(ToVec3f(mesh->mVertices[i]));
 			}
@@ -47,7 +47,7 @@ namespace AssimpLoadUtils
 			VertexAttriMeta meta = { VertexAttriMeta::Normal, 0, sizeof(Vec3f) };
 
 			std::vector<VertexAttriRawData>& normals = result->mVertexData[meta];
-			for (i32 i = 0; i < mesh->mNumVertices; i++)
+			for (i32 i = 0; i < static_cast<i32>(mesh->mNumVertices); i++)
 			{
 				normals.push_back(ToVec3f(mesh->mNormals[i]));
 			}
@@ -61,24 +61,24 @@ namespace AssimpLoadUtils
 			std::vector<VertexAttriRawData>& tangents = result->mVertexData[metaTan];
 			std::vector<VertexAttriRawData>& biTangents = result->mVertexData[metaBiTan];
 
-			for (i32 i = 0; i < mesh->mNumVertices; i++)
+			for (i32 i = 0; i < static_cast<i32>(mesh->mNumVertices); i++)
 			{
 				tangents.push_back(ToVec3f(mesh->mTangents[i]));
 				biTangents.push_back(ToVec3f(mesh->mBitangents[i]));
 			}
 		}
 
-		for (i32 channel = 0; channel < i32(mesh->GetNumUVChannels()); ++channel)
+		for (i32 channel = 0; channel < static_cast<i32>(mesh->GetNumUVChannels()); ++channel)
 		{
 			if (mesh->HasTextureCoords(channel))
 			{
 				i32 vecWidth = mesh->mNumUVComponents[channel];
 				Assert(vecWidth <= 4);
 
-				VertexAttriMeta meta = { VertexAttriMeta::TexCoord, channel, sizeof(f32) * vecWidth };
+				VertexAttriMeta meta = { VertexAttriMeta::TexCoord, channel, static_cast<i32>(sizeof(f32) * vecWidth) };
 
 				std::vector<VertexAttriRawData>& data = result->mVertexData[meta];
-				for (i32 i = 0; i < mesh->mNumVertices; i++)
+				for (i32 i = 0; i < static_cast<i32>(mesh->mNumVertices); i++)
 				{
 					switch (vecWidth)
 					{
@@ -98,11 +98,11 @@ namespace AssimpLoadUtils
 		}
 
 		result->mFaces.resize(mesh->mNumFaces);
-		for (i32 i = 0; i < mesh->mNumFaces; i++)
+		for (i32 i = 0; i < static_cast<i32>(mesh->mNumFaces); i++)
 		{
 			aiFace face = mesh->mFaces[i];
 
-			for (i32 j = 0; j < face.mNumIndices; j++)
+			for (i32 j = 0; j < static_cast<i32>(face.mNumIndices); j++)
 			{
 				result->mFaces[i][j] = face.mIndices[j];
 			}
@@ -131,13 +131,13 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	if (!pScene) { return nullptr; }
 
-	for (int i = 0; i < pScene->mNumMeshes; ++i)
+	for (int i = 0; i < static_cast<i32>(pScene->mNumMeshes); ++i)
 	{
 		aiMesh* mesh = pScene->mMeshes[i];
 		scene->mModels.emplace_back(AssimpLoadUtils::LoadMesh(mesh));
 	}
 
-	for (int i = 0; i < pScene->mNumTextures; ++i)
+	for (int i = 0; i < static_cast<i32>(pScene->mNumTextures); ++i)
 	{
 		aiTexture* texture = pScene->mTextures[i];
 		scene->mTextures.emplace_back(AssimpLoadUtils::LoadTexture(texture));

@@ -65,7 +65,7 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 	reflection->GetDesc(&shaderDesc);
 
 	u32 byteOffset = 0;
-	for (i32 i = 0; i < shaderDesc.InputParameters; ++i)
+	for (i32 i = 0; i < static_cast<i32>(shaderDesc.InputParameters); ++i)
 	{
 		D3D12_SIGNATURE_PARAMETER_DESC paramDesc = {};
 		reflection->GetInputParameterDesc(i, &paramDesc);
@@ -90,7 +90,7 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 		mInputLayout.push_back(elementDesc);
 	}
 
-	for (i32 i = 0; i < shaderDesc.BoundResources; ++i)
+	for (i32 i = 0; i < static_cast<i32>(shaderDesc.BoundResources); ++i)
 	{
 		D3D12_SHADER_INPUT_BIND_DESC bindDesc = {};
 		reflection->GetResourceBindingDesc(i, &bindDesc);
@@ -140,7 +140,7 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 	}
 
 	// retrieve const buffer variables
-	for (i32 i = 0; i < shaderDesc.ConstantBuffers; ++i)
+	for (i32 i = 0; i < static_cast<i32>(shaderDesc.ConstantBuffers); ++i)
 	{
 		ID3D12ShaderReflectionConstantBuffer* cb = reflection->GetConstantBufferByIndex(i);
 		D3D12_SHADER_BUFFER_DESC cbDesc;
@@ -155,7 +155,7 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 				param.mVarNum = cbDesc.Variables;
 			}
 
-			for (i32 j = 0; j < cbDesc.Variables; ++j)
+			for (i32 j = 0; j < static_cast<i32>(cbDesc.Variables); ++j)
 			{
 				ID3D12ShaderReflectionVariable* variable = cb->GetVariableByIndex(j);
 				D3D12_SHADER_VARIABLE_DESC varDesc;

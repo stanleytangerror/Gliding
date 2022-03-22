@@ -40,7 +40,7 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i3
 		for (int j = 0; j < slices; j++)
 		{
 			f32 u = f32(j) / f32(slices);
-			f32 theta = 2.0 * Math::Pi<f32>() * u;
+			f32 theta = 2.f * Math::Pi<f32>() * u;
 			f32 x = std::sin(phi) * std::cos(theta);
 			f32 y = std::sin(phi) * std::sin(theta);
 			f32 z = std::cos(phi);

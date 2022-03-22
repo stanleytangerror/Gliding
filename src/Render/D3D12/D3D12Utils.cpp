@@ -191,7 +191,7 @@ HRESULT D3D12Utils::ShaderInclude::Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFi
 
 	mContent = buf.str();
 	*ppData = mContent.data();
-	*pBytes = mContent.size();
+	*pBytes = static_cast<u32>(mContent.size());
 
 	return S_OK;
 }
