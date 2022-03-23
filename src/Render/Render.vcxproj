@@ -67,6 +67,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -89,6 +90,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\DirectXTex-feb2022;$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

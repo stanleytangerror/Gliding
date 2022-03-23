@@ -3,6 +3,8 @@
 #include "D3D12/D3D12Headers.h"
 #include "D3D12/D3D12Device.h"
 
+struct MeshRawData;
+
 class D3D12Geometry
 {
 public:
@@ -25,10 +27,18 @@ public:
 	static D3D12Geometry* GenerateGeometry(D3D12Device* device,
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
-		const std::vector<D3D12_INPUT_ELEMENT_DESC>& mInputDescs);
+		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
 
 	static D3D12Geometry* GenerateQuad(D3D12Device* device);
 	static D3D12Geometry* GenerateSphere(D3D12Device* device, i32 stacks, i32 slices);
+
+	static D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData);
+
+private:
+	static D3D12Geometry* GenerateGeometry(D3D12Device* device,
+		const std::vector<byte>& vertices, i32 vertexStride,
+		const std::vector<u16>& indices,
+		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
 };
 
 namespace GeometryUtils

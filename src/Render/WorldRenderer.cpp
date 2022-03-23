@@ -42,20 +42,21 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)) });
 	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)) });
 
-	SceneRawData::LoadScene(R"(res/Scene/sphere.obj)");
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(res/Scene/sphere.obj)");
+	mSphereMesh = D3D12Geometry::GenerateGeometryFromMeshRawData(device, sceneRawData->mModels.front());
 }
 
 WorldRenderer::~WorldRenderer()
 {
 	Utils::SafeDelete(mQuad);
 	Utils::SafeDelete(mSphere);
+	Utils::SafeDelete(mSphereMesh);
 	Utils::SafeDelete(mPanoramicSkyTex);
 	Utils::SafeDelete(mDepthRt);
 	for (auto& rt : mGBufferRts)
 	{
 		Utils::SafeDelete(rt);
 	}
-
 }
 
 void WorldRenderer::TickFrame(Timer* timer)
@@ -94,7 +95,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			}
 		});
 
-	RenderGeometry(context, mSphere, mObjTrans);
+	RenderGeometry(context, mSphereMesh, mObjTrans);
 
 	//////////////////////////////////////////////////////////////////////////
 

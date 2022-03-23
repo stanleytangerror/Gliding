@@ -31,6 +31,7 @@ private:
 
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
+	D3D12Geometry* mSphereMesh = nullptr;
 	D3D12Texture* mPanoramicSkyTex = nullptr;
 
 	D3DDepthStencil* mDepthRt = nullptr;

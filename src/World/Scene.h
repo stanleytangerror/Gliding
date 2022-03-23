@@ -22,37 +22,31 @@ union GD_WORLD_API VertexAttriRawData
 
 struct GD_WORLD_API VertexAttriMeta
 {
-	enum Semantic : u8 { Position, Normal, Tangent, BiTangent, TexCoord };
+	enum Semantic : u8 { Position, Normal, Tangent, BiTangent, TexCoord, Color, Semantic_Count };
 
 	Semantic	mType;
-	i32			mChannelIndex;
-	i32			mStrideInBytes;
+	u32			mChannelIndex;
+	u32			mStrideInBytes;
 
-	class Hash
-	{
-	public:
-		std::size_t operator()(VertexAttriMeta const& o) const
-		{
-			std::size_t h1 = std::hash<Semantic>()(o.mType);
-			std::size_t h2 = std::hash<i32>()(o.mChannelIndex);
-			std::size_t h3 = std::hash<i32>()(o.mStrideInBytes);
-			return h1 ^ (h2 << 1) ^ (h3 << 2);
-		}
-	};
-
-	class Equal
+	class Less
 	{
 	public:
 		bool operator()(VertexAttriMeta const& o0, VertexAttriMeta const& o1) const
 		{
-			return memcmp(&o0, &o1, sizeof(o0));
+			return 
+				o0.mType < o1.mType ? true :
+				o0.mType > o1.mType ? false :
+				o0.mChannelIndex < o1.mChannelIndex ? true :
+				o0.mChannelIndex > o1.mChannelIndex ? false :
+				o0.mStrideInBytes < o1.mStrideInBytes;
 		}
 	};
 };
 
 struct GD_WORLD_API MeshRawData
 {
-	std::unordered_map<VertexAttriMeta, std::vector<VertexAttriRawData>, VertexAttriMeta::Hash, VertexAttriMeta::Equal> mVertexData;
+	i32	mVertexCount = 0;
+	std::map<VertexAttriMeta, std::vector<VertexAttriRawData>, VertexAttriMeta::Less> mVertexData;
 	std::vector<Vec3i> mFaces;
 };
 

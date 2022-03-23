@@ -29,7 +29,20 @@ namespace AssimpLoadUtils
 			return res;
 		};
 
+		auto ToVec4f = [](const aiColor4D& v)
+		{
+			VertexAttriRawData res;
+			res.mVec4f.x() = v.r;
+			res.mVec4f.y() = v.g;
+			res.mVec4f.z() = v.b;
+			res.mVec4f.w() = v.a;
+			return res;
+		};
+
+
 		MeshRawData* result = new MeshRawData;
+
+		result->mVertexCount = mesh->mNumVertices;
 
 		if (mesh->HasPositions())
 		{
@@ -93,6 +106,20 @@ namespace AssimpLoadUtils
 						break;
 					}
 
+				}
+			}
+		}
+
+		for (i32 channel = 0; channel < static_cast<i32>(mesh->GetNumColorChannels()); ++channel)
+		{
+			if (mesh->HasVertexColors(channel))
+			{
+				VertexAttriMeta meta = { VertexAttriMeta::Color, channel, sizeof(Vec4f) };
+
+				std::vector<VertexAttriRawData>& data = result->mVertexData[meta];
+				for (i32 i = 0; i < static_cast<i32>(mesh->mNumVertices); i++)
+				{
+					data.push_back(ToVec4f(mesh->mColors[channel][i]));
 				}
 			}
 		}
