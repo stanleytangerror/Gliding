@@ -180,7 +180,7 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 	{
 		if (MeshRawData* mesh = AssimpLoadUtils::LoadMesh(pScene->mMeshes[i]))
 		{
-			scene->mModels.emplace_back(mesh);
+			scene->mMeshes.emplace_back(mesh);
 		}
 	}
 

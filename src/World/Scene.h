@@ -67,7 +67,7 @@ struct GD_WORLD_API MeshRawData
 
 struct GD_WORLD_API SceneRawData
 {
-	std::vector<MeshRawData*> mModels;
+	std::vector<MeshRawData*> mMeshes;
 	std::vector<TextureRawData*> mTextures;
 	std::vector<MaterialRawData*> mMaterials;
 

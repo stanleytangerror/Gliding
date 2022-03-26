@@ -43,7 +43,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 
 	mTestModel.mRelTransform = Translationf({ 0.f, 5.f, 0.f });
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\all_shapes\vehicles\helicopter\helicopter.obj)");
-	for (MeshRawData* mesh : sceneRawData->mModels)
+	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
 		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
 		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
