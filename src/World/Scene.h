@@ -95,6 +95,8 @@ struct GD_WORLD_API MeshRawData
 	std::vector<Vec3i> mFaces;
 
 	u32	mMaterialIndex = 0;
+
+	Transformf mTransform = Transformf::Identity();
 };
 
 struct GD_WORLD_API SceneRawData

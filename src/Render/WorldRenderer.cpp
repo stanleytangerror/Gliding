@@ -34,7 +34,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
-	mTestModel.mRelTransform = Translationf({ 0.f, 5.f, 0.f });
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)");
 	std::map<std::string, D3D12Texture*> textures;
 	for (const auto& p : sceneRawData->mTextures)
@@ -49,14 +48,19 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
-		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
+		const Transformf& trans = mesh->mTransform;
+
 		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
+
+		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
 		if (!mat->mTexturePaths.empty() && sceneRawData->mTextures.find(mat->mTexturePaths.front()) != sceneRawData->mTextures.end())
 		{
 			D3D12Texture* tex = textures[mat->mTexturePaths.front()];
+
 			mTestModel.PushChild({ 
 				std::unique_ptr<D3D12Geometry>(geo),
-				std::shared_ptr<D3D12Texture>(tex) });
+				std::shared_ptr<D3D12Texture>(tex) }, 
+				trans);
 		}
 	}
 }

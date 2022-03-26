@@ -38,7 +38,7 @@ private:
 
 	Math::PerspectiveProjection	mCameraProj;
 	
-	Vec3f mCamPos = { 0.f, -10.f, 0.f };
+	Vec3f mCamPos = { 0.f, -50.f, 0.f };
 	Vec3f mDir = { 0.f, 1.f, 0.f };
 	Vec3f mUp = { 0.f, 0.f, 1.f };
 	Vec3f mRight = { 1.f, 0.f, 0.f };

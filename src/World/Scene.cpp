@@ -207,6 +207,33 @@ namespace AssimpLoadUtils
 
 		return result;
 	}
+
+	void CalcMeshTransforms(aiNode* node, const aiMatrix4x4& parentTrans, std::map<u32, aiMatrix4x4>& transforms)
+	{
+		if (!node) { return; }
+
+		const aiMatrix4x4& absTrans = parentTrans * node->mTransformation;
+
+		for (i32 i = 0; i < node->mNumMeshes; ++i)
+		{
+			transforms[node->mMeshes[i]] = absTrans;
+		}
+
+		for (i32 i = 0; i < node->mNumChildren; ++i)
+		{
+			CalcMeshTransforms(node->mChildren[i], absTrans, transforms);
+		}
+	}
+
+	Transformf FromAssimpTransformMatrix(const aiMatrix4x4& transform)
+	{
+		// in memory, aiMatrix4x4 is rol major, Mat44 is col major
+		aiMatrix4x4 trans = transform;
+		trans.Transpose();
+
+		const Mat44f mat = *(Mat44f*)&(trans);
+		return Transformf(mat);
+	}
 }
 
 SceneRawData* SceneRawData::LoadScene(const char* path)
@@ -235,10 +262,14 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	if (!pScene) { return nullptr; }
 
+	std::map<u32, aiMatrix4x4> transforms;
+	AssimpLoadUtils::CalcMeshTransforms(pScene->mRootNode, aiMatrix4x4(), transforms);
+
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMeshes); ++i)
 	{
 		if (MeshRawData* mesh = AssimpLoadUtils::LoadMesh(pScene->mMeshes[i]))
 		{
+			mesh->mTransform = AssimpLoadUtils::FromAssimpTransformMatrix(transforms[i]);
 			scene->mMeshes.emplace_back(mesh);
 		}
 	}
