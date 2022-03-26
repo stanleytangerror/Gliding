@@ -91,8 +91,8 @@ void GraphicsPass::Draw()
 	}
 
 	// root signatures
-	ID3DBlob* rsBlob = D3D12Utils::LoadRs(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
-	AssertHResultOk(mContext->GetDevice()->GetDevice()->CreateRootSignature(0, rsBlob->GetBufferPointer(), rsBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature)));
+	D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+	mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
 
 	mPso->SetRootSignature(mRootSignature);
 
