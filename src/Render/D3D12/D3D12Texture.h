@@ -9,6 +9,7 @@ class D3D12Texture : public ID3D12Res
 {
 public:
 	D3D12Texture(D3D12Device* device, const char* filePath);
+	D3D12Texture(D3D12Device* device, const char* filePath, const std::vector<b8>& content);
 	virtual ~D3D12Texture();
 
 	void							Initial(D3D12CommandContext* context);
@@ -24,6 +25,8 @@ public:
 	void							Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 
 protected:
+	std::vector<b8>	mContent;
+
 	D3D12Device* const		mDevice = nullptr;
 	std::string				mFilePath;
 	ID3D12Resource*			mD3D12Resource = nullptr;

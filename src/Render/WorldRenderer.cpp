@@ -42,7 +42,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
 		if (!mat->mTextures.empty())
 		{
-			D3D12Texture* tex = new D3D12Texture(device, mat->mTextures.front().c_str());
+			TextureRawData* texRawData = mat->mTextures.front();
+			D3D12Texture* tex = new D3D12Texture(device, texRawData->mPath.c_str(), texRawData->mRawData);
 			mTestModel.PushChild({ 
 				std::unique_ptr<D3D12Geometry>(geo),
 				std::unique_ptr<D3D12Texture>(tex) });

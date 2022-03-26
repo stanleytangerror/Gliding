@@ -23,7 +23,8 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
 	ID3D12Resource* CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath);
-
+	ID3D12Resource* CreateTextureFromImageMemory(D3D12CommandContext* context, const char* filePath, const std::vector<b8>& content);
+	
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
 	class ShaderInclude : public ID3DInclude

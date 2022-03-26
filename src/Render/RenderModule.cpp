@@ -10,7 +10,7 @@
 RenderModule::RenderModule(WindowInfo windowInfo)
 	: mWindowInfo(windowInfo)
 {
-	mRenderDoc = new RenderDocIntegration;
+	//mRenderDoc = new RenderDocIntegration;
 
 	mDevice = new D3D12Device(mWindowInfo.mWindow);
 	const auto& backBuffer = mDevice->GetBackBuffer()->GetBuffer();

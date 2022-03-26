@@ -143,6 +143,15 @@ namespace AssimpLoadUtils
 		return result;
 	}
 
+	TextureRawData* LoadTexture(const char* path)
+	{
+		return new TextureRawData
+		{
+			path,
+			Utils::LoadFileContent(path)
+		};
+	}
+
 	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material)
 	{
 		MaterialRawData* result = new MaterialRawData;
@@ -156,7 +165,10 @@ namespace AssimpLoadUtils
 				aiString relPath;
 				if (AI_SUCCESS == material->GetTexture(aiTextureType(texType), idx, &relPath))
 				{
-					result->mTextures.push_back(Utils::ToString(folder / relPath.C_Str()).c_str());
+					if (TextureRawData* texture = LoadTexture(Utils::ToString(folder / relPath.C_Str()).c_str()))
+					{
+						result->mTextures.emplace_back(texture);
+					}
 				}
 			}
 		}

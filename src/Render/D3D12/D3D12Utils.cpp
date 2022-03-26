@@ -128,12 +128,29 @@ namespace
 		AssertHResultOk(DirectX::LoadFromDDSFile(Utils::ToWString(filePath).c_str(), DirectX::DDS_FLAGS_NONE, &metadata, *image));
 		return image;
 	}
+	
+	std::unique_ptr<DirectX::ScratchImage> LoadDDSImageFromMemory(const b8* data, u64 size)
+	{
+		// https://github.com/microsoft/DirectXTex/wiki/DDS-I-O-Functions
+		DirectX::TexMetadata metadata;
+		auto image = std::make_unique<DirectX::ScratchImage>();
+		AssertHResultOk(DirectX::LoadFromDDSMemory(data, size, DirectX::DDS_FLAGS_NONE, &metadata, *image));
+		return image;
+	}
 
 	std::unique_ptr<DirectX::ScratchImage> LoadSpecificFormatImageFromFile_PngBmpGifTiffJpeg(const char* filePath)
 	{
 		DirectX::TexMetadata metadata;
 		auto image = std::make_unique<DirectX::ScratchImage>();
 		AssertHResultOk(DirectX::LoadFromWICFile(Utils::ToWString(filePath).c_str(), DirectX::WIC_FLAGS_NONE, &metadata, *image));
+		return image;
+	}
+
+	std::unique_ptr<DirectX::ScratchImage> LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(const b8* data, u64 size)
+	{
+		DirectX::TexMetadata metadata;
+		auto image = std::make_unique<DirectX::ScratchImage>();
+		AssertHResultOk(DirectX::LoadFromWICMemory(data, size, DirectX::WIC_FLAGS_NONE, &metadata, *image));
 		return image;
 	}
 
@@ -184,6 +201,35 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageFile(D3D12CommandContext* cont
 	else if (ext == ".png" || ext == ".bmp" || ext == ".gif" || ext == ".tiff" || ext == ".jpeg" || ext == ".jpg")
 	{
 		image = LoadSpecificFormatImageFromFile_PngBmpGifTiffJpeg(filePath);
+	}
+
+	if (image->GetImageCount() != 0)
+	{
+		const auto& result = CreateD3DResFromScratchImage(context, *image);
+		ID3D12Resource* resource = result.first;
+		ID3D12Resource* tempRes = result.second;
+		NAME_RAW_D3D12_OBJECT(resource, filePath);
+		NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
+		context->GetDevice()->ReleaseD3D12Resource(tempRes);
+
+		return resource;
+	}
+
+	Assert(false);
+	return nullptr;
+}
+
+ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* context, const char* filePath, const std::vector<b8>& content)
+{
+	std::filesystem::path ext = std::filesystem::path(filePath).extension();
+	std::unique_ptr<DirectX::ScratchImage> image;
+	if (ext == ".dds")
+	{
+		image = LoadDDSImageFromMemory(content.data(), content.size());
+	}
+	else if (ext == ".png" || ext == ".bmp" || ext == ".gif" || ext == ".tiff" || ext == ".jpeg" || ext == ".jpg")
+	{
+		image = LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size());
 	}
 
 	if (image->GetImageCount() != 0)

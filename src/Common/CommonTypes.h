@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 
 using i8 = int8_t;
 using u8 = uint8_t;
@@ -13,3 +14,9 @@ using u64 = uint64_t;
 
 using f32 = float;
 using f64 = double;
+
+#if __cpp_lib_byte
+using b8 = std::byte;
+#else
+using b8 = unsigned char;
+#endif

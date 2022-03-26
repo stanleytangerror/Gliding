@@ -1,5 +1,6 @@
 #include "CommonPch.h"
 #include "StringUtils.h"
+#include "AssertUtils.h"
 #include <cstdlib>
 #include <cstdarg>
 #include <windows.h>
@@ -50,5 +51,28 @@ GD_COMMON_API std::string Utils::GetDirFromPath(const char* path)
 GD_COMMON_API void Utils::PrintDebugString(const char* path)
 {
 	OutputDebugString(Utils::ToWString(path).c_str());
+}
+
+GD_COMMON_API std::vector<b8> Utils::LoadFileContent(const char* path)
+{
+	std::ifstream is(path, std::ifstream::binary);
+	if (is)
+	{
+		// get length of file:
+		is.seekg(0, is.end);
+		i64 length = is.tellg();
+		is.seekg(0, is.beg);
+
+		std::vector<b8> result(length);
+		// read data as a block:
+		is.read(reinterpret_cast<char*>(result.data()), length);
+
+		Assert(is.operator bool());
+		is.close();
+
+		return result;
+	}
+
+	return {};
 }
 

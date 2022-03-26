@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <xstring>
+#include "CommonTypes.h"
 
 namespace Utils
 {
@@ -15,6 +14,8 @@ namespace Utils
 	GD_COMMON_API std::string GetDirFromPath(const char* path);
 
 	GD_COMMON_API void PrintDebugString(const char* path);
+
+	GD_COMMON_API std::vector<b8>	LoadFileContent(const char* path);
 }
 
 #define DEBUG_PRINT(msg, ...)	(Utils::PrintDebugString(Utils::FormatString(msg "\n", ##__VA_ARGS__ ).c_str()));

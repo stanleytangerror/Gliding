@@ -2,7 +2,8 @@
 
 struct GD_WORLD_API TextureRawData
 {
-
+	std::string mPath;
+	std::vector<b8>	mRawData;
 };
 
 struct GD_WORLD_API MatParamMeta
@@ -15,7 +16,7 @@ struct GD_WORLD_API MatParamMeta
 struct GD_WORLD_API MaterialRawData
 {
 	std::string mName;
-	std::vector<std::string> mTextures;
+	std::vector<TextureRawData*> mTextures;
 };
 
 union GD_WORLD_API VertexAttriRawData
