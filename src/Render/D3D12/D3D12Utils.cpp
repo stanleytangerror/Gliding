@@ -1,5 +1,7 @@
 #include "RenderPch.h"
 #include "D3D12Utils.h"
+#include "D3D12CommandContext.h"
+#include <DirectXTex/DirectXTex.h>
 
 void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter)
 {
@@ -116,45 +118,88 @@ void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring
 	SetRawD3D12ResourceName(res, name.c_str());
 }
 
-std::unique_ptr<DirectX::ScratchImage> D3D12Utils::LoadDDSImageFromFile(const char* filePath)
+namespace
 {
-	// https://github.com/microsoft/DirectXTex/wiki/DDS-I-O-Functions
-	DirectX::TexMetadata metadata;
-	auto image = std::make_unique<DirectX::ScratchImage>();
-	AssertHResultOk(DirectX::LoadFromDDSFile(Utils::ToWString(filePath).c_str(), DirectX::DDS_FLAGS_NONE, &metadata, *image));
-	return image;
+	std::unique_ptr<DirectX::ScratchImage> LoadDDSImageFromFile(const char* filePath)
+	{
+		// https://github.com/microsoft/DirectXTex/wiki/DDS-I-O-Functions
+		DirectX::TexMetadata metadata;
+		auto image = std::make_unique<DirectX::ScratchImage>();
+		AssertHResultOk(DirectX::LoadFromDDSFile(Utils::ToWString(filePath).c_str(), DirectX::DDS_FLAGS_NONE, &metadata, *image));
+		return image;
+	}
+
+	std::unique_ptr<DirectX::ScratchImage> LoadSpecificFormatImageFromFile_PngBmpGifTiffJpeg(const char* filePath)
+	{
+		DirectX::TexMetadata metadata;
+		auto image = std::make_unique<DirectX::ScratchImage>();
+		AssertHResultOk(DirectX::LoadFromWICFile(Utils::ToWString(filePath).c_str(), DirectX::WIC_FLAGS_NONE, &metadata, *image));
+		return image;
+	}
+
+	std::pair<ID3D12Resource*, ID3D12Resource*> CreateD3DResFromScratchImage(D3D12CommandContext* context, const DirectX::ScratchImage& image)
+	{
+		ID3D12Device* device = context->GetDevice()->GetDevice();
+		ID3D12GraphicsCommandList* commandList = context->GetCommandList();
+
+		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
+		ID3D12Resource* result = nullptr;
+		AssertHResultOk(DirectX::CreateTexture(device, image.GetMetadata(), &result));
+
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+		AssertHResultOk(DirectX::PrepareUpload(device, image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
+
+		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(result, 0, static_cast<unsigned int>(subresources.size()));
+
+		ID3D12Resource* textureUploadHeap = nullptr;
+		const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		const CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		AssertHResultOk(device->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&resDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&textureUploadHeap)));
+		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
+
+		UpdateSubresources(commandList,
+			result, textureUploadHeap,
+			0, 0, static_cast<unsigned int>(subresources.size()),
+			subresources.data());
+
+		return { result, textureUploadHeap };
+	}
 }
 
-std::pair<ID3D12Resource*, ID3D12Resource*> D3D12Utils::CreateD3DResFromDDSImage(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DirectX::ScratchImage& image)
+ID3D12Resource* D3D12Utils::CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath)
 {
-	// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
-	ID3D12Resource* result = nullptr;
-	AssertHResultOk(DirectX::CreateTexture(device, image.GetMetadata(), &result));
+	std::filesystem::path ext = std::filesystem::path(filePath).extension();
+	std::unique_ptr<DirectX::ScratchImage> image;
+	if (ext == ".dds")
+	{
+		image = LoadDDSImageFromFile(filePath);
+	}
+	else if (ext == ".png" || ext == ".bmp" || ext == ".gif" || ext == ".tiff" || ext == ".jpeg" || ext == ".jpg")
+	{
+		image = LoadSpecificFormatImageFromFile_PngBmpGifTiffJpeg(filePath);
+	}
 
-	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-	AssertHResultOk(DirectX::PrepareUpload(device, image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
+	if (image->GetImageCount() != 0)
+	{
+		const auto& result = CreateD3DResFromScratchImage(context, *image);
+		ID3D12Resource* resource = result.first;
+		ID3D12Resource* tempRes = result.second;
+		NAME_RAW_D3D12_OBJECT(resource, filePath);
+		NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
+		context->GetDevice()->ReleaseD3D12Resource(tempRes);
 
-	// upload is implemented by application developer. Here's one solution using <d3dx12.h>
-	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(result, 0, static_cast<unsigned int>(subresources.size()));
+		return resource;
+	}
 
-	ID3D12Resource* textureUploadHeap = nullptr;
-	const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	const CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-	AssertHResultOk(device->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&resDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&textureUploadHeap)));
-	// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
-
-	UpdateSubresources(commandList,
-		result, textureUploadHeap,
-		0, 0, static_cast<unsigned int>(subresources.size()),
-		subresources.data());
-
-	return { result, textureUploadHeap };
+	Assert(false);
+	return nullptr;
 }
 
 D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareState& state)

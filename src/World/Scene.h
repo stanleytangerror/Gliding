@@ -5,6 +5,19 @@ struct GD_WORLD_API TextureRawData
 
 };
 
+struct GD_WORLD_API MatParamMeta
+{
+	std::string	mName;
+	u32			mIndex = 0;
+	
+};
+
+struct GD_WORLD_API MaterialRawData
+{
+	std::string mName;
+	std::vector<std::string> mTextures;
+};
+
 union GD_WORLD_API VertexAttriRawData
 {
 	VertexAttriRawData() { memset(this, 0, sizeof(*this)); }
@@ -48,12 +61,15 @@ struct GD_WORLD_API MeshRawData
 	i32	mVertexCount = 0;
 	std::map<VertexAttriMeta, std::vector<VertexAttriRawData>, VertexAttriMeta::Less> mVertexData;
 	std::vector<Vec3i> mFaces;
+
+	u32	mMaterialIndex = 0;
 };
 
 struct GD_WORLD_API SceneRawData
 {
 	std::vector<MeshRawData*> mModels;
 	std::vector<TextureRawData*> mTextures;
+	std::vector<MaterialRawData*> mMaterials;
 
 	static SceneRawData* LoadScene(const char* path);
 };

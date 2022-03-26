@@ -35,22 +35,32 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	//	DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 	//	"SceneDepthRt");
 
-	mObjTrans = Translationf({ 0.f, 5.f, 0.f });
+	//mObjTrans = Translationf({ 0.f, 5.f, 0.f });
 
-	mGismo.mContent = nullptr;
-	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)) });
-	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)) });
-	mGismo.mChildren.push_back(TransformNode<D3D12Geometry*>{ mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)) });
+	mGismo.PushChild(mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)));
+	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
+	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(res/Scene/sphere.obj)");
-	mSphereMesh = D3D12Geometry::GenerateGeometryFromMeshRawData(device, sceneRawData->mModels.front());
+	mTestModel.mRelTransform = Translationf({ 0.f, 5.f, 0.f });
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\all_shapes\vehicles\helicopter\helicopter.obj)");
+	for (MeshRawData* mesh : sceneRawData->mModels)
+	{
+		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
+		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
+		if (!mat->mTextures.empty())
+		{
+			D3D12Texture* tex = new D3D12Texture(device, mat->mTextures.front().c_str());
+			mTestModel.PushChild({ 
+				std::unique_ptr<D3D12Geometry>(geo),
+				std::unique_ptr<D3D12Texture>(tex) });
+		}
+	}
 }
 
 WorldRenderer::~WorldRenderer()
 {
 	Utils::SafeDelete(mQuad);
 	Utils::SafeDelete(mSphere);
-	Utils::SafeDelete(mSphereMesh);
 	Utils::SafeDelete(mPanoramicSkyTex);
 	Utils::SafeDelete(mDepthRt);
 	for (auto& rt : mGBufferRts)
@@ -65,7 +75,8 @@ void WorldRenderer::TickFrame(Timer* timer)
 
 	f32 rotAngle = 90.f * timer->GetLastFrameDeltaTime();
 	Transformf rot = Transformf(Rotationf(Math::DegreeToRadian(rotAngle), Vec3f{ 0.f, 0.f, 1.f }));
-	mObjTrans = rot * mObjTrans;
+	mTestModel.mRelTransform = rot * mTestModel.mRelTransform;
+	mTestModel.CalcAbsTransform();
 
 	mGismo.CalcAbsTransform();
 }
@@ -76,6 +87,14 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	{
 		mPanoramicSkyTex->Initial(context);
 	}
+
+	mTestModel.ForEach([&](auto& node)
+		{
+			if (auto& tex = node.mContent.second)
+			{
+				tex->Initial(context);
+			}
+		});
 
 	//////////////////////////////////////////////////////////////////////////
 	
@@ -91,11 +110,17 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			if (node.mContent)
 			{
-				RenderGeometry(context, node.mContent, node.mAbsTransform);
+				RenderGeometry(context, node.mContent, nullptr, node.mAbsTransform);
 			}
 		});
 
-	RenderGeometry(context, mSphereMesh, mObjTrans);
+	mTestModel.ForEach([&](const auto& node)
+		{
+			if (D3D12Geometry* geo = node.mContent.first.get())
+			{
+				RenderGeometry(context, geo, node.mContent.second.get(), node.mAbsTransform);
+			}
+		});
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -140,7 +165,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	RenderSky(context, target, mDepthRt->GetDsv());
 }
 
-void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, const Transformf& transform) const
+void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const
 {
 	GraphicsPass gbufferPass(context);
 
@@ -179,6 +204,11 @@ void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geom
 	gbufferPass.AddCbVar("worldMat", transform.matrix());
 	gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
 	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
+
+	if (texture)
+	{
+		gbufferPass.AddSrv("baseTex", texture->GetSrv());
+	}
 
 	gbufferPass.Draw();
 }

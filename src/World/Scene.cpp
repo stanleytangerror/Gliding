@@ -10,7 +10,11 @@ namespace AssimpLoadUtils
 {
 	MeshRawData* LoadMesh(aiMesh* mesh)
 	{
-		Assert(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE);
+		if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
+		{
+			//Assert(false);
+			return nullptr;
+		}
 
 		auto ToVec2f = [](const aiVector3D& v)
 		{
@@ -43,6 +47,7 @@ namespace AssimpLoadUtils
 		MeshRawData* result = new MeshRawData;
 
 		result->mVertexCount = mesh->mNumVertices;
+		result->mMaterialIndex = mesh->mMaterialIndex;
 
 		if (mesh->HasPositions())
 		{
@@ -138,9 +143,25 @@ namespace AssimpLoadUtils
 		return result;
 	}
 
-	TextureRawData* LoadTexture(aiTexture* texture)
+	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material)
 	{
-		return nullptr;
+		MaterialRawData* result = new MaterialRawData;
+
+		result->mName = material->GetName().C_Str();
+
+		for (i32 texType = 0; texType < aiTextureType_UNKNOWN; ++texType)
+		{
+			for (i32 idx = 0; idx < material->GetTextureCount(aiTextureType(texType)); ++idx)
+			{
+				aiString relPath;
+				if (AI_SUCCESS == material->GetTexture(aiTextureType(texType), idx, &relPath))
+				{
+					result->mTextures.push_back(Utils::ToString(folder / relPath.C_Str()).c_str());
+				}
+			}
+		}
+
+		return result;
 	}
 }
 
@@ -150,24 +171,25 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	Assimp::Importer importer;
 
-	const aiScene* pScene = importer.ReadFile(path,
-		aiProcess_Triangulate |
-		aiProcess_ValidateDataStructure |
-		aiProcess_CalcTangentSpace /*|
-		aiProcess_ConvertToLeftHanded*/);
+	const aiScene* pScene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
+	const std::filesystem::path& fileFolder = std::filesystem::path(path).parent_path();
 
 	if (!pScene) { return nullptr; }
 
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMeshes); ++i)
 	{
-		aiMesh* mesh = pScene->mMeshes[i];
-		scene->mModels.emplace_back(AssimpLoadUtils::LoadMesh(mesh));
+		if (MeshRawData* mesh = AssimpLoadUtils::LoadMesh(pScene->mMeshes[i]))
+		{
+			scene->mModels.emplace_back(mesh);
+		}
 	}
 
-	for (int i = 0; i < static_cast<i32>(pScene->mNumTextures); ++i)
+	for (int i = 0; i < static_cast<i32>(pScene->mNumMaterials); ++i)
 	{
-		aiTexture* texture = pScene->mTextures[i];
-		scene->mTextures.emplace_back(AssimpLoadUtils::LoadTexture(texture));
+		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i]))
+		{
+			scene->mMaterials.emplace_back(mat);
+		}
 	}
 
 	return scene;

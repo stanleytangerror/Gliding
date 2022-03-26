@@ -44,7 +44,13 @@ void Application::Initial()
 	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
 
 	mAppLifeCycle = AppLifeCycle::Running;
-	mLogicThread = std::make_unique<std::thread>([this]() { this->RunLogic(); });
+	mLogicThread = std::make_unique<std::thread>([this]() 
+		{ 
+			// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
+			AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
+
+			this->RunLogic(); 
+		});
 }
 
 void Application::Destroy()

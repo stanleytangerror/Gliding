@@ -1,7 +1,8 @@
 #pragma once
 
 #include "D3D12Headers.h"
-#include <DirectXTex/DirectXTex.h>
+
+class D3D12CommandContext;
 
 namespace D3D12Utils
 {
@@ -21,8 +22,7 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
-	std::unique_ptr<DirectX::ScratchImage> LoadDDSImageFromFile(const char* filePath);
-	std::pair<ID3D12Resource*, ID3D12Resource*> CreateD3DResFromDDSImage(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DirectX::ScratchImage& image);
+	ID3D12Resource* CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath);
 
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 

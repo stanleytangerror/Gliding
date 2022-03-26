@@ -21,7 +21,7 @@ public:
 	void Render(GraphicsContext* context, IRenderTargetView* target);
 
 private:
-	void RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, const Transformf& transform) const;
+	void RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const;
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
 
 private:
@@ -31,7 +31,6 @@ private:
 
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
-	D3D12Geometry* mSphereMesh = nullptr;
 	D3D12Texture* mPanoramicSkyTex = nullptr;
 
 	D3DDepthStencil* mDepthRt = nullptr;
@@ -47,4 +46,8 @@ private:
 	Vec3f mRight = { 1.f, 0.f, 0.f };
 
 	TransformNode<D3D12Geometry*> mGismo;
+
+	TransformNode<std::pair<
+		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<D3D12Texture>>> mTestModel;
 };

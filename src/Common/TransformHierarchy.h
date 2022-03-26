@@ -6,7 +6,7 @@
 template <typename T>
 struct TransformNode
 {
-	T								mContent;
+	T								mContent = {};
 
 	Transformf						mRelTransform = Transformf::Identity();
 	Transformf						mAbsTransform = Transformf::Identity();
@@ -25,6 +25,24 @@ struct TransformNode
 	//		child.CalcAbsTransform(mAbsTransform);
 	//	}
 	//}
+
+	void PushChild(const T& content, const Transformf& relTransform = Transformf::Identity())
+	{
+		mChildren.push_back({});
+		auto& node = mChildren.back();
+		node.mContent = content;
+		node.mParent = this;
+		node.mRelTransform = relTransform;
+	}
+
+	void PushChild(T&& content, const Transformf& relTransform = Transformf::Identity())
+	{
+		mChildren.push_back({});
+		auto& node = mChildren.back();
+		node.mContent = std::forward<T>(content);
+		node.mParent = this;
+		node.mRelTransform = relTransform;
+	}
 
 	void CalcAbsTransform()
 	{
