@@ -25,17 +25,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		mGBufferRts[i] = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
 	mDepthRt = new D3DDepthStencil(device, size,
-		DXGI_FORMAT_R32_TYPELESS,
-		DXGI_FORMAT_D32_FLOAT,
-		DXGI_FORMAT_R32_FLOAT,
+		DXGI_FORMAT_R24G8_TYPELESS,
+		DXGI_FORMAT_D24_UNORM_S8_UINT,
+		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
-	//mDepthRt = new D3DDepthStencil(device, size,
-	//	DXGI_FORMAT_R24G8_TYPELESS,
-	//	DXGI_FORMAT_D24_UNORM_S8_UINT,
-	//	DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
-	//	"SceneDepthRt");
-
-	//mObjTrans = Translationf({ 0.f, 5.f, 0.f });
 
 	mGismo.PushChild(mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)));
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
