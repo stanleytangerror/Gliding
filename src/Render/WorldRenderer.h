@@ -47,5 +47,5 @@ private:
 
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
-		std::unique_ptr<D3D12Texture>>> mTestModel;
+		std::shared_ptr<D3D12Texture>>> mTestModel;
 };

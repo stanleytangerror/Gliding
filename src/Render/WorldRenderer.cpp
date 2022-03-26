@@ -35,18 +35,28 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
 	mTestModel.mRelTransform = Translationf({ 0.f, 5.f, 0.f });
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\all_shapes\vehicles\helicopter\helicopter.obj)");
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\2000_followers_d\scene.gltf)");
+	std::map<std::string, D3D12Texture*> textures;
+	for (const auto& p : sceneRawData->mTextures)
+	{
+		const std::string& texPath = p.first;
+		const TextureRawData* texRawData = p.second;
+
+		if (texRawData)
+		{
+			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
+		}
+	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
 		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
 		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
-		if (!mat->mTextures.empty())
+		if (!mat->mTexturePaths.empty() && sceneRawData->mTextures.find(mat->mTexturePaths.front()) != sceneRawData->mTextures.end())
 		{
-			TextureRawData* texRawData = mat->mTextures.front();
-			D3D12Texture* tex = new D3D12Texture(device, texRawData->mPath.c_str(), texRawData->mRawData);
+			D3D12Texture* tex = textures[mat->mTexturePaths.front()];
 			mTestModel.PushChild({ 
 				std::unique_ptr<D3D12Geometry>(geo),
-				std::unique_ptr<D3D12Texture>(tex) });
+				std::shared_ptr<D3D12Texture>(tex) });
 		}
 	}
 }
@@ -86,7 +96,10 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			if (auto& tex = node.mContent.second)
 			{
-				tex->Initial(context);
+				if (!tex->IsD3DResourceReady())
+				{
+					tex->Initial(context);
+				}
 			}
 		});
 

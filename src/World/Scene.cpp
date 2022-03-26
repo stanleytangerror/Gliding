@@ -152,7 +152,7 @@ namespace AssimpLoadUtils
 		};
 	}
 
-	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material)
+	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::map<std::string, TextureRawData*>& textures)
 	{
 		MaterialRawData* result = new MaterialRawData;
 
@@ -165,9 +165,15 @@ namespace AssimpLoadUtils
 				aiString relPath;
 				if (AI_SUCCESS == material->GetTexture(aiTextureType(texType), idx, &relPath))
 				{
-					if (TextureRawData* texture = LoadTexture(Utils::ToString(folder / relPath.C_Str()).c_str()))
+					const auto& texturePath = Utils::ToString(folder / relPath.C_Str());
+					result->mTexturePaths.push_back(texturePath);
+
+					if (textures.find(texturePath) == textures.end())
 					{
-						result->mTextures.emplace_back(texture);
+						if (TextureRawData* textureRawData = LoadTexture(texturePath.c_str()))
+						{
+							textures[texturePath] = textureRawData;
+						}
 					}
 				}
 			}
@@ -198,7 +204,7 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMaterials); ++i)
 	{
-		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i]))
+		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], scene->mTextures))
 		{
 			scene->mMaterials.emplace_back(mat);
 		}

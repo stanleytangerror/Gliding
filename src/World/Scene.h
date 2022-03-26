@@ -16,7 +16,7 @@ struct GD_WORLD_API MatParamMeta
 struct GD_WORLD_API MaterialRawData
 {
 	std::string mName;
-	std::vector<TextureRawData*> mTextures;
+	std::vector<std::string> mTexturePaths;
 };
 
 union GD_WORLD_API VertexAttriRawData
@@ -69,7 +69,7 @@ struct GD_WORLD_API MeshRawData
 struct GD_WORLD_API SceneRawData
 {
 	std::vector<MeshRawData*> mMeshes;
-	std::vector<TextureRawData*> mTextures;
+	std::map<std::string, TextureRawData*> mTextures;
 	std::vector<MaterialRawData*> mMaterials;
 
 	static SceneRawData* LoadScene(const char* path);
