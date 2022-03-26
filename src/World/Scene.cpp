@@ -212,7 +212,7 @@ namespace AssimpLoadUtils
 	{
 		if (!node) { return; }
 
-		const aiMatrix4x4& absTrans = parentTrans * node->mTransformation;
+		const aiMatrix4x4& absTrans = node->mTransformation * parentTrans;
 
 		for (i32 i = 0; i < node->mNumMeshes; ++i)
 		{
