@@ -13,10 +13,41 @@ struct GD_WORLD_API MatParamMeta
 	
 };
 
+enum GD_WORLD_API TextureUsage
+{
+	TextureUsage_Invalid,
+	TextureUsage_Diffuse,
+	TextureUsage_Specular,
+	TextureUsage_Ambient,
+	TextureUsage_Emissive,
+	TextureUsage_Height,
+	TextureUsage_Normal,
+	TextureUsage_Shininess,
+	TextureUsage_Opacity,
+	TextureUsage_Displacement,
+	TextureUsage_LightMap,
+	TextureUsage_Reflection,
+	
+	TextureUsage_BaseColor,
+	TextureUsage_NormalCamera,
+	TextureUsage_EmissiveColor,
+	TextureUsage_Metalness,
+	TextureUsage_DiffuseRoughness,
+	TextureUsage_AmbientOcclusion,
+	TextureUsage_Sheen,
+	TextureUsage_ClearCoat,
+	TextureUsage_Transmission,
+
+	TextureUsage_Custom,
+	
+	TextureUsage_Count,
+};
+
 struct GD_WORLD_API MaterialRawData
 {
 	std::string mName;
 	std::vector<std::string> mTexturePaths;
+	std::array<std::vector<std::string>, TextureUsage_Count> mTexturesWithUsage;
 };
 
 union GD_WORLD_API VertexAttriRawData

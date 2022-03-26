@@ -35,7 +35,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
 	mTestModel.mRelTransform = Translationf({ 0.f, 5.f, 0.f });
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\2000_followers_d\scene.gltf)");
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)");
 	std::map<std::string, D3D12Texture*> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{

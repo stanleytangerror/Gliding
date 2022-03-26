@@ -8,6 +8,36 @@
 
 namespace AssimpLoadUtils
 {
+	constexpr TextureUsage FromAssimpTextureUsage(const aiTextureType type)
+	{
+		switch (type)
+		{
+		case aiTextureType_NONE				: return TextureUsage_Count;
+		case aiTextureType_DIFFUSE 			: return TextureUsage_Diffuse;
+		case aiTextureType_SPECULAR			: return TextureUsage_Specular;
+		case aiTextureType_AMBIENT 			: return TextureUsage_Ambient;
+		case aiTextureType_EMISSIVE			: return TextureUsage_Emissive;
+		case aiTextureType_HEIGHT			: return TextureUsage_Height;
+		case aiTextureType_NORMALS 			: return TextureUsage_Normal;
+		case aiTextureType_SHININESS		: return TextureUsage_Shininess;
+		case aiTextureType_OPACITY			: return TextureUsage_Opacity;
+		case aiTextureType_DISPLACEMENT		: return TextureUsage_Displacement;
+		case aiTextureType_LIGHTMAP			: return TextureUsage_LightMap;
+		case aiTextureType_REFLECTION		: return TextureUsage_Reflection;
+		case aiTextureType_BASE_COLOR		: return TextureUsage_BaseColor;
+		case aiTextureType_NORMAL_CAMERA 	: return TextureUsage_NormalCamera;
+		case aiTextureType_EMISSION_COLOR	: return TextureUsage_EmissiveColor;
+		case aiTextureType_METALNESS		: return TextureUsage_Metalness;
+		case aiTextureType_DIFFUSE_ROUGHNESS: return TextureUsage_DiffuseRoughness;
+		case aiTextureType_AMBIENT_OCCLUSION: return TextureUsage_AmbientOcclusion;
+		case aiTextureType_SHEEN			: return TextureUsage_Sheen;
+		case aiTextureType_CLEARCOAT		: return TextureUsage_ClearCoat;
+		case aiTextureType_TRANSMISSION		: return TextureUsage_Transmission;
+		case aiTextureType_UNKNOWN			: return TextureUsage_Custom;
+		default								: Assert(false); return TextureUsage_Invalid;
+		}
+	}
+
 	MeshRawData* LoadMesh(aiMesh* mesh)
 	{
 		if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
@@ -152,29 +182,25 @@ namespace AssimpLoadUtils
 		};
 	}
 
-	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::map<std::string, TextureRawData*>& textures)
+	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::vector<std::string>& textures)
 	{
 		MaterialRawData* result = new MaterialRawData;
 
 		result->mName = material->GetName().C_Str();
 
-		for (i32 texType = 0; texType < aiTextureType_UNKNOWN; ++texType)
+		for (i32 t = 0; t < aiTextureType_UNKNOWN; ++t)
 		{
-			for (i32 idx = 0; idx < material->GetTextureCount(aiTextureType(texType)); ++idx)
+			const aiTextureType texType = aiTextureType(t);
+			for (i32 idx = 0; idx < material->GetTextureCount(texType); ++idx)
 			{
 				aiString relPath;
-				if (AI_SUCCESS == material->GetTexture(aiTextureType(texType), idx, &relPath))
+				if (AI_SUCCESS == material->GetTexture(texType, idx, &relPath))
 				{
 					const auto& texturePath = Utils::ToString(folder / relPath.C_Str());
+					
+					textures.push_back(texturePath);
 					result->mTexturePaths.push_back(texturePath);
-
-					if (textures.find(texturePath) == textures.end())
-					{
-						if (TextureRawData* textureRawData = LoadTexture(texturePath.c_str()))
-						{
-							textures[texturePath] = textureRawData;
-						}
-					}
+					result->mTexturesWithUsage[FromAssimpTextureUsage(texType)].push_back(texturePath);
 				}
 			}
 		}
@@ -189,7 +215,22 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	Assimp::Importer importer;
 
-	const aiScene* pScene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
+	//const aiScene* pScene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
+	const aiScene* pScene = importer.ReadFile(path, 
+		aiProcess_CalcTangentSpace |
+		//aiProcess_GenSmoothNormals |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_LimitBoneWeights |
+		aiProcess_RemoveRedundantMaterials |
+		//aiProcess_SplitLargeMeshes |
+		aiProcess_Triangulate |
+		aiProcess_GenUVCoords |
+		aiProcess_SortByPType |
+		aiProcess_FindDegenerates |
+		aiProcess_FindInvalidData
+		);
+
 	const std::filesystem::path& fileFolder = std::filesystem::path(path).parent_path();
 
 	if (!pScene) { return nullptr; }
@@ -202,11 +243,20 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 		}
 	}
 
+	std::vector<std::string> texturePaths;
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMaterials); ++i)
 	{
-		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], scene->mTextures))
+		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], texturePaths))
 		{
 			scene->mMaterials.emplace_back(mat);
+		}
+	}
+
+	for (const std::string& texPath : texturePaths)
+	{
+		if (TextureRawData* textureRawData = AssimpLoadUtils::LoadTexture(texPath.c_str()))
+		{
+			scene->mTextures[texPath] = textureRawData;
 		}
 	}
 
