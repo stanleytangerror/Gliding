@@ -208,31 +208,33 @@ namespace AssimpLoadUtils
 		return result;
 	}
 
-	void CalcMeshTransforms(aiNode* node, const aiMatrix4x4& parentTrans, std::map<u32, aiMatrix4x4>& transforms)
+	Mat44f FromAssimpMatrix(const aiMatrix4x4& aiMat44)
+	{
+		// in memory, aiMatrix4x4 is rol major, Mat44 is col major
+		aiMatrix4x4 m = aiMat44;
+		m.Transpose();
+
+		const Mat44f result = *(Mat44f*)&(m);
+		return result;
+	}
+
+	void CalcMeshTransforms(aiNode* node, const Mat44f& parentTrans, std::map<u32, Mat44f>& transforms)
 	{
 		if (!node) { return; }
 
-		const aiMatrix4x4& absTrans = node->mTransformation * parentTrans;
+		const Mat44f& absTrans = parentTrans * FromAssimpMatrix(node->mTransformation);
 
 		for (i32 i = 0; i < node->mNumMeshes; ++i)
 		{
-			transforms[node->mMeshes[i]] = absTrans;
+			u32 meshIdx = node->mMeshes[i];
+			Assert(transforms.find(meshIdx) == transforms.end());
+			transforms[meshIdx] = absTrans;
 		}
 
 		for (i32 i = 0; i < node->mNumChildren; ++i)
 		{
 			CalcMeshTransforms(node->mChildren[i], absTrans, transforms);
 		}
-	}
-
-	Transformf FromAssimpTransformMatrix(const aiMatrix4x4& transform)
-	{
-		// in memory, aiMatrix4x4 is rol major, Mat44 is col major
-		aiMatrix4x4 trans = transform;
-		trans.Transpose();
-
-		const Mat44f mat = *(Mat44f*)&(trans);
-		return Transformf(mat);
 	}
 }
 
@@ -262,14 +264,15 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 
 	if (!pScene) { return nullptr; }
 
-	std::map<u32, aiMatrix4x4> transforms;
-	AssimpLoadUtils::CalcMeshTransforms(pScene->mRootNode, aiMatrix4x4(), transforms);
+	std::map<u32, Mat44f> transforms;
+	AssimpLoadUtils::CalcMeshTransforms(pScene->mRootNode, Mat44f::Identity(), transforms);
 
-	for (int i = 0; i < static_cast<i32>(pScene->mNumMeshes); ++i)
+	for (u32 meshIdx = 0; meshIdx < pScene->mNumMeshes; ++meshIdx)
 	{
-		if (MeshRawData* mesh = AssimpLoadUtils::LoadMesh(pScene->mMeshes[i]))
+		if (MeshRawData* mesh = AssimpLoadUtils::LoadMesh(pScene->mMeshes[meshIdx]))
 		{
-			mesh->mTransform = AssimpLoadUtils::FromAssimpTransformMatrix(transforms[i]);
+			Assert(transforms.find(meshIdx) != transforms.end());
+			mesh->mTransform = transforms[meshIdx];
 			scene->mMeshes.emplace_back(mesh);
 		}
 	}
