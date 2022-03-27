@@ -124,6 +124,7 @@
     <ClInclude Include="D3D12\D3D12Utils.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderMacros.h" />
+    <ClInclude Include="RenderMaterial.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
     <ClInclude Include="ScreenRenderer.h" />
@@ -163,6 +164,7 @@
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
     </ClCompile>
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
+    <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />

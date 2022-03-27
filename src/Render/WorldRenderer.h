@@ -10,6 +10,7 @@ class D3D12Texture;
 class D3D12RenderTarget;
 class D3DDepthStencil;
 class DSV;
+struct RenderMaterial;
 
 class GD_RENDER_API WorldRenderer
 {
@@ -23,6 +24,7 @@ public:
 private:
 	void RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const;
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
+	void RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const;
 
 private:
 	RenderModule* mRenderModule = nullptr;
@@ -38,7 +40,7 @@ private:
 
 	Math::PerspectiveProjection	mCameraProj;
 	
-	Vec3f mCamPos = { 0.f, -50.f, 0.f };
+	Vec3f mCamPos = { 0.f, -200.f, 0.f };
 	Vec3f mDir = { 0.f, 1.f, 0.f };
 	Vec3f mUp = { 0.f, 0.f, 1.f };
 	Vec3f mRight = { 1.f, 0.f, 0.f };
@@ -47,5 +49,5 @@ private:
 
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
-		std::shared_ptr<D3D12Texture>>> mTestModel;
+		std::shared_ptr<RenderMaterial>>> mTestModel;
 };

@@ -96,6 +96,9 @@
     <ClInclude Include="D3D12\D3D12ResourceManager.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="RenderMaterial.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -163,6 +166,9 @@
     </ClCompile>
     <ClCompile Include="D3D12\D3D12ResourceManager.cpp">
       <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderMaterial.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

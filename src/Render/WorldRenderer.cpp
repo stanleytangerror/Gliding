@@ -9,6 +9,7 @@
 #include "D3D12/D3D12Geometry.h"
 #include "D3D12/D3D12Texture.h"
 #include "World/Scene.h"
+#include "RenderMaterial.h"
 
 WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
@@ -34,7 +35,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)");
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\picnic_tables\scene.gltf)");
 	std::map<std::string, D3D12Texture*> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
@@ -46,22 +47,21 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
 		}
 	}
+	std::vector<std::shared_ptr<RenderMaterial>> materials;
+	for (const auto& mat : sceneRawData->mMaterials)
+	{
+		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, textures));
+	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
+		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
+		const auto& mat = materials[mesh->mMaterialIndex];
 		const Transformf& trans = mesh->mTransform;
 
-		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
-
-		MaterialRawData* mat = sceneRawData->mMaterials[mesh->mMaterialIndex];
-		if (!mat->mTexturePaths.empty() && sceneRawData->mTextures.find(mat->mTexturePaths.front()) != sceneRawData->mTextures.end())
-		{
-			D3D12Texture* tex = textures[mat->mTexturePaths.front()];
-
-			mTestModel.PushChild({ 
-				std::unique_ptr<D3D12Geometry>(geo),
-				std::shared_ptr<D3D12Texture>(tex) }, 
-				trans);
-		}
+		mTestModel.PushChild({
+			std::unique_ptr<D3D12Geometry>(geo),
+			mat },
+			trans);
 	}
 }
 
@@ -98,12 +98,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	mTestModel.ForEach([&](auto& node)
 		{
-			if (auto& tex = node.mContent.second)
+			if (auto& mat = node.mContent.second)
 			{
-				if (!tex->IsD3DResourceReady())
-				{
-					tex->Initial(context);
-				}
+				mat->UpdateGpuResources(context);
 			}
 		});
 
@@ -127,9 +124,12 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	mTestModel.ForEach([&](const auto& node)
 		{
-			if (D3D12Geometry* geo = node.mContent.first.get())
+			D3D12Geometry* geo = node.mContent.first.get();
+			RenderMaterial* mat = node.mContent.second.get();
+
+			if (geo && mat && mat->IsGpuResourceReady())
 			{
-				RenderGeometry(context, geo, node.mContent.second.get(), node.mAbsTransform);
+				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform);
 			}
 		});
 
@@ -267,3 +267,64 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 
 	pass.Draw();
 }
+
+void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const
+{
+	GraphicsPass gbufferPass(context);
+
+	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
+	gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = gbufferPass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = true;
+		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
+	}
+
+	for (i32 i = 0; i < mGBufferRts.size(); ++i)
+	{
+		gbufferPass.mRts[i] = mGBufferRts[i]->GetRtv();
+	}
+	gbufferPass.mDs = mDepthRt->GetDsv();
+
+	const Vec3i& targetSize = mGBufferRts[0]->GetSize();
+	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+
+	gbufferPass.mVbvs.clear();
+	gbufferPass.mVbvs.push_back(geometry->mVbv);
+	gbufferPass.mIbv = geometry->mIbv;
+	gbufferPass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+
+	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+	gbufferPass.AddCbVar("worldMat", transform.matrix());
+	gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
+	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
+
+	const std::pair<TextureUsage, const char*> texSlots[] =
+	{
+		{ TextureUsage_Normal,			 "NormalTex" },
+		{ TextureUsage_Metalness,		 "MetalnessTex" },
+		{ TextureUsage_BaseColor,		 "BaseColorTex" },
+		{ TextureUsage_DiffuseRoughness, "DiffuseRoughnessTex" },
+	};
+
+	for (const auto& p : texSlots)
+	{
+		const auto& texs = material->mTextureParams[p.first];
+		if (!texs.empty())
+		{
+			gbufferPass.AddSrv(p.second, texs.front()->GetSrv());
+		}
+	}
+
+	gbufferPass.Draw();
+}
+
