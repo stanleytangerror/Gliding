@@ -20,9 +20,9 @@ struct PSInput
 
 struct PSOutput
 {
-	float4 diffuse : COLOR0;
-	float4 normal : COLOR1;
-	float4 specular : COLOR2;
+	float4 gBuffer0 : COLOR0;
+	float4 gBuffer1 : COLOR1;
+	float4 gBuffer2 : COLOR2;
 };
 
 SamplerState SamplerLinear : register(s0);
@@ -70,9 +70,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3 specColor = spec.xyz;
 	const float gloss = 1 - spec.w;
 
-	output.diffuse = float4(baseColor.xyz, 1.0);
-	output.normal = float4(normal * 0.5 + 0.5, 1.0);
-	output.specular = float4(specColor, gloss);
+	PBRStandard matData = (PBRStandard)0;
+	matData.worldNormal = normal;
+	matData.baseColor = baseColor;
+	matData.linearSmoothness = 1.0 - roughness;
+	matData.reflectance = 0;
+	matData.metalMask = metallic;
+
+	PackGbufferData(matData, output.gBuffer0, output.gBuffer1, output.gBuffer2);
 
 	return output;
 }
