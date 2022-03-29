@@ -33,8 +33,8 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	ldrScreenPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	ldrScreenPass.mVsFile = "res/Shader/Grid.hlsl";
-	ldrScreenPass.mPsFile = "res/Shader/Grid.hlsl";
+	ldrScreenPass.mVsFile = "res/Shader/ToneMapping.hlsl";
+	ldrScreenPass.mPsFile = "res/Shader/ToneMapping.hlsl";
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = ldrScreenPass.PsoDesc();
 	{
