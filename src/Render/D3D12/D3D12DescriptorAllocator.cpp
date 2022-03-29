@@ -40,7 +40,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorBlock::GetDesc(const DescHandleInde
 	if (0 <= index && index < mDescriptorNum)
 	{
 		CD3DX12_CPU_DESCRIPTOR_HANDLE result(mCpuBase);
-		result.Offset(mDescriptorSize * index);
+		result.Offset(index, mDescriptorSize);
 		return result;
 	}
 	else

@@ -31,7 +31,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetCpuBaseWithOffset(i32 offs
 	if (0 <= offset && offset < mDescriptorNum)
 	{
 		CD3DX12_CPU_DESCRIPTOR_HANDLE result(mCpuBase);
-		result.Offset(mDescriptorSize * offset);
+		result.Offset(offset, mDescriptorSize);
 		return result;
 	}
 	else
@@ -45,7 +45,7 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetGpuBaseWithOffset(i32 offs
 	if (0 <= offset && offset < mDescriptorNum)
 	{
 		CD3DX12_GPU_DESCRIPTOR_HANDLE result(mGpuBase);
-		result.Offset(mDescriptorSize * offset);
+		result.Offset(offset, mDescriptorSize);
 		return result;
 	}
 	else
@@ -76,14 +76,8 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::Push(const i32 handleCount,
 {
 	Assert(0 <= handleCount && handleCount < msNumDescriptorsPerBlock);
 
-	if (!mCurrentWorkingBlock)
+	if (!mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
 	{
-		mCurrentWorkingBlock = mPool.AllocItem();
-		mCurrentWorkingIndex = 0;
-	}
-	else if (mCurrentWorkingBlock && mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
-	{
-		mPool.ReleaseItem(mCurrentWorkingBlock);
 		mCurrentWorkingBlock = mPool.AllocItem();
 		mCurrentWorkingIndex = 0;
 	}
