@@ -95,18 +95,6 @@ void GraphicsPass::AddCbVar(const std::string& name, const T& var)
 }
 
 template <>
-inline void GraphicsPass::AddCbVar(const std::string& name, const Vec3f& var)
-{
-	Assert(mCbParams.find(name) == mCbParams.end());
-
-	const int size = sizeof(Vec3f) * 3;
-
-	std::vector<byte>& buf = mCbParams[name];
-	buf.resize(size);
-	memcpy_s(buf.data(), size, &var, size);
-}
-
-template <>
 inline void GraphicsPass::AddCbVar(const std::string& name, const Mat33f& var)
 {
 	Assert(mCbParams.find(name) == mCbParams.end());
