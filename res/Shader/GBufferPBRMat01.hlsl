@@ -66,10 +66,6 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
 	const float roughness = DiffuseRoughnessTex.Sample(SamplerLinear, input.uv).w;
 
-    const float4 spec = float4(0.5, 0.5, 0.5, 1.0);
-    float3 specColor = spec.xyz;
-	const float gloss = 1 - spec.w;
-
 	PBRStandard matData = (PBRStandard)0;
 	matData.worldNormal = normal;
 	matData.baseColor = baseColor;

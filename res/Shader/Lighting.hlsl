@@ -1,4 +1,5 @@
 #include "Panorama.h"
+#include "PBR.h"
 
 struct VSInput
 {
@@ -25,6 +26,9 @@ SamplerState SamplerLinearWrap;
 cbuffer Param : register(b0)
 {
 	float4 RtSize;
+	float3 CameraDir;
+	float3 LightDir;
+	float3 LightColor;
 }
 
 PSInput VSMain(VSInput vsin)
@@ -41,11 +45,19 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	PSOutput output;
 
 	float2 uv = RtSize.zw * input.position.xy;
-	const float3 normal = GBuffer1.Sample(SamplerLinearClamp, uv).xyz * 2.0 - 1.0;
 
-	const float3 skyLight = SamplePanoramicSky(PanoramicSky, SamplerLinearWrap, normal);
+	const float4 gBuffer0 = GBuffer0.Sample(SamplerLinearClamp, uv);
+	const float4 gBuffer1 = GBuffer1.Sample(SamplerLinearClamp, uv);
+	const float4 gBuffer2 = GBuffer2.Sample(SamplerLinearClamp, uv);
 
-	output.color = float4(skyLight, 1);
+	PBRStandard matData = UnpackGbufferData(gBuffer0, gBuffer1, gBuffer2);
+
+	float3 diffuseColor = matData.baseColor * (1.0 - matData.metalMask);
+	float3 specularColor = ComputeF0(matData.reflectance, matData.baseColor, matData.metalMask);
+
+	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, -CameraDir, LightDir, LightColor);
+
+	output.color = float4(directLighting.Diffuse + directLighting.Specular, 1);
 
 	return output;
 }

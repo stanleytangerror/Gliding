@@ -63,6 +63,9 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			mat },
 			trans);
 	}
+
+	mLight.mLightColor = Vec3f::Ones() * 1000.f;
+	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
 }
 
 WorldRenderer::~WorldRenderer()
@@ -170,10 +173,14 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
 
+		lightingPass.AddCbVar("CameraDir", mDir);
+		lightingPass.AddCbVar("LightDir", mLight.mLightDir);
+		lightingPass.AddCbVar("LightColor", mLight.mLightColor);
+
 		lightingPass.Draw();
 	}
 
-	RenderSky(context, target, mDepthRt->GetDsv());
+	//RenderSky(context, target, mDepthRt->GetDsv());
 }
 
 void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const

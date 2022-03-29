@@ -50,4 +50,10 @@ private:
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>> mTestModel;
+
+	struct DirectionalLight
+	{
+		Vec3f mLightColor = Vec3f::Zero();
+		Vec3f mLightDir = { 0.f, 0.f, 1.f };
+	}	mLight;
 };
