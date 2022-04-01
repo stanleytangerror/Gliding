@@ -29,7 +29,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 
 void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
 {
-	D3D12RenderTarget* exposureRt = new D3D12RenderTarget(context->GetDevice(), { 1, 1, 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+	auto exposureRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
 	CalcSceneExposure(context, sceneHdr, exposureRt->GetUav());
 	ToneMapping(context, sceneHdr, exposureRt->GetSrv(), screenRt);

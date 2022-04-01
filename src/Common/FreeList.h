@@ -25,6 +25,7 @@ public:
 	{
 		if (mAvailableIndices.empty())
 		{
+			Assert(false);
 			return InvalidIndex;
 		}
 		else
@@ -49,14 +50,14 @@ public:
 		return idx != InvalidIndex;
 	}
 
-	bool IsFull() const
+	bool AllFreed() const
 	{
 		return mAvailableIndices.size() == mSize;
 	}
 
-	bool IsEmpty() const
+	bool CanAlloc() const
 	{
-		return mAvailableIndices.empty();
+		return !mAvailableIndices.empty();
 	}
 
 protected:

@@ -90,7 +90,7 @@ void D3D12DescriptorAllocator::ReleaseCpuDesc(u64 fenceValue, const CpuDescItem&
 	for (auto it = mActiveBlocks.begin(); it != mActiveBlocks.end(); )
 	{
 		D3D12DescriptorBlock* block = *it;
-		if (block->IsEmpty())
+		if (block->AllFreed())
 		{
 			mBlockPool.ReleaseItem(fenceValue, block);
 			it = mActiveBlocks.erase(it);
@@ -106,21 +106,15 @@ CpuDescItem D3D12DescriptorAllocator::AllocCpuDesc()
 {
 	for (D3D12DescriptorBlock* block : mActiveBlocks)
 	{
-		if (!block->IsFull())
+		if (block->CanAlloc())
 		{
 			const auto& index = block->AllocCpuDesc();
 			return { block, index };
 		}
 	}
 
-	if (mActiveBlocks.empty())
-	{
-		D3D12DescriptorBlock* newBlock = mBlockPool.AllocItem();
-		mActiveBlocks.push_back(newBlock);
+	D3D12DescriptorBlock* newBlock = mBlockPool.AllocItem();
+	mActiveBlocks.push_back(newBlock);
 
-		return { newBlock, newBlock->AllocCpuDesc() };
-	}
-
-	Assert(false);
-	return {};
+	return { newBlock, newBlock->AllocCpuDesc() };
 }

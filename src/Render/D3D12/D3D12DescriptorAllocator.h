@@ -17,8 +17,8 @@ public:
 	DescHandleIndex						AllocCpuDesc();
 	void								ReleaseCpuDesc(u64 fenceValue, const DescHandleIndex& index);
 
-	bool								IsEmpty() const { return mAllocator.IsEmpty(); }
-	bool								IsFull() const { return mAllocator.IsFull(); }
+	bool								CanAlloc() const { return mAllocator.CanAlloc(); }
+	bool								AllFreed() const { return mAllocator.AllFreed(); }
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE		GetDesc(const DescHandleIndex& index) const;
 
