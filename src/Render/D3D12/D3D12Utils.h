@@ -27,6 +27,9 @@ namespace D3D12Utils
 	
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
+	template <typename T>
+	inline std::vector<byte> ToD3DConstBufferParamData(const T& var);
+
 	class ShaderInclude : public ID3DInclude
 	{
 	public:
@@ -41,4 +44,6 @@ namespace D3D12Utils
 }
 
 #define NAME_RAW_D3D12_OBJECT(x, name)	{if (name) { D3D12Utils::SetRawD3D12ResourceName((x), (name)); }}
+
+#include "D3D12Utils_inl.h"
 

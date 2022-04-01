@@ -5,13 +5,49 @@
 
 //////////////////////////////////////////////////////////////////////////
 
+template <typename T>
+inline void AddCbVar(std::map<std::string, std::vector<byte>>& cbParams, const std::string& name, const T& var)
+{
+	Assert(cbParams.find(name) == cbParams.end());
+
+	const int size = sizeof(T);
+
+	std::vector<byte>& buf = cbParams[name];
+	buf.resize(size);
+	memcpy_s(buf.data(), size, &var, size);
+}
+
+template <>
+inline void AddCbVar(std::map<std::string, std::vector<byte>>& cbParams, const std::string& name, const Mat33f& var)
+{
+	Assert(cbParams.find(name) == cbParams.end());
+
+	const int size = sizeof(float) * (4 + 4 + 3);
+
+	std::vector<byte>& buf = cbParams[name];
+	buf.resize(size);
+	memcpy_s(buf.data(), size, &var, size);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 class ComputePass
 {
 public:
-	ComputePass(ComputeContext* context);
+	ComputePass(GraphicsContext* context);
 
 	void Dispatch();
 
+	template <typename T>
+	void AddCbVar(const std::string& name, const T& var) 
+	{ 
+		Assert(mCbParams.find(name) == mCbParams.end());
+		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+	}
+
+	void AddSrv(const std::string& name, IShaderResourceView* srv);
+	void AddUav(const std::string& name, IUnorderedAccessView* uav);
+	
 public:
 	struct
 	{
@@ -22,16 +58,16 @@ public:
 	std::string mCsFile;
 
 public:
-	ComputeContext* const					mContext = nullptr;
-	std::map<int, IShaderResourceView*>		mTexParams;
-	std::map<int, IUnorderedAccessView*>	mUavParams;
-	std::map<int, Mat44f>		mCbParams;
+	GraphicsContext* const					mContext = nullptr;
+	std::map<std::string, IShaderResourceView*>		mSrvParams;
+	std::map<std::string, IUnorderedAccessView*>	mUavParams;
+	std::map<std::string, std::vector<byte>>		mCbParams;
 
-	std::array<i32, 3>						mThreadCounts = {};
+	std::array<u32, 3>								mThreadGroupCounts = {};
 
 protected:
 	ID3D12RootSignature* mRootSignature = nullptr;
-	ComputePipelineState* mPso = nullptr;
+	std::unique_ptr<ComputePipelineState>			mPso;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -46,7 +82,11 @@ public:
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& PsoDesc() { return mPso->Descriptor(); }
 
 	template <typename T>
-	void AddCbVar(const std::string& name, const T& var);
+	void AddCbVar(const std::string& name, const T& var)
+	{
+		Assert(mCbParams.find(name) == mCbParams.end());
+		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+	}
 
 	void AddSrv(const std::string& name, IShaderResourceView* srv);
 
@@ -82,26 +122,3 @@ protected:
 	std::unique_ptr<GraphicsPipelineState> mPso;
 };
 
-template <typename T>
-void GraphicsPass::AddCbVar(const std::string& name, const T& var)
-{
-	Assert(mCbParams.find(name) == mCbParams.end());
-
-	const int size = sizeof(T);
-
-	std::vector<byte>& buf = mCbParams[name];
-	buf.resize(size);
-	memcpy_s(buf.data(), size, &var, size);
-}
-
-template <>
-inline void GraphicsPass::AddCbVar(const std::string& name, const Mat33f& var)
-{
-	Assert(mCbParams.find(name) == mCbParams.end());
-
-	const int size = sizeof(float) * (4 + 4 + 3);
-
-	std::vector<byte>& buf = mCbParams[name];
-	buf.resize(size);
-	memcpy_s(buf.data(), size, &var, size);
-}

@@ -27,7 +27,33 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	
 }
 
-void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input, IRenderTargetView* target)
+void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
+{
+	D3D12RenderTarget* exposureRt = new D3D12RenderTarget(context->GetDevice(), { 1, 1, 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+
+	CalcSceneExposure(context, sceneHdr, exposureRt->GetUav());
+	ToneMapping(context, sceneHdr, exposureRt->GetSrv(), screenRt);
+}
+
+void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureTex)
+{
+	ComputePass calcExposurePass(context);
+
+	calcExposurePass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	calcExposurePass.mRootSignatureDesc.mEntry = "ComputeRS";
+	calcExposurePass.mCsFile = "res/Shader/Exposure.hlsl";
+
+	const Vec3i& size = sceneHdr->GetResource()->GetSize();
+	calcExposurePass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
+	calcExposurePass.AddSrv("SceneHdr", sceneHdr);
+	calcExposurePass.AddUav("SceneExposureTex", exposureTex);
+
+	calcExposurePass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
+
+	calcExposurePass.Dispatch();
+}
+
+void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target)
 {
 	GraphicsPass ldrScreenPass(context);
 
@@ -49,7 +75,8 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* input
 	
 	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
-	ldrScreenPass.AddSrv("SceneHdr", input);
+	ldrScreenPass.AddSrv("SceneHdr", sceneHdr);
+	ldrScreenPass.AddSrv("SceneExposureTex", exposure);
 
 	ldrScreenPass.mRts[0] = target;
 	ldrScreenPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));

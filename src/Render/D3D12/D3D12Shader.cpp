@@ -54,7 +54,11 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 	: mType(type)
 	, mFile(file)
 {
-	mShader = type == ShaderType::eVs ? D3D12Utils::LoadVs(file) : D3D12Utils::LoadPs(file);
+	mShader = 
+		type == ShaderType::eVs ? D3D12Utils::LoadVs(file) : 
+		type == ShaderType::ePs ? D3D12Utils::LoadPs(file) :
+		D3D12Utils::LoadCs(file);
+
 	Assert(mShader);
 
 	ID3D12ShaderReflection* reflection = nullptr;
@@ -132,6 +136,14 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 		case D3D_SIT_UAV_CONSUME_STRUCTURED:
 		case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
 		{
+			Assert(mUavBindings.find(bindDesc.Name) == mUavBindings.end());
+			InputUavParam param = {};
+			{
+				param.mName = bindDesc.Name;
+				param.mBindPoint = bindDesc.BindPoint;
+				param.mBindCount = bindDesc.BindCount;
+			}
+			mUavBindings[bindDesc.Name] = param;
 			break;
 		}
 		default:
@@ -195,12 +207,12 @@ ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file)
 	return mPsCache[file];
 }
 
-ID3DBlob* D3D12ShaderLibrary::CreateCs(const char* file)
+ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file)
 {
 	if (mCsCache.find(file) == mCsCache.end())
 	{
-		ID3DBlob* vs = D3D12Utils::LoadCs(file);
-		mCsCache[file] = vs;
+		ShaderPiece* cs = new ShaderPiece(file, ShaderType::eCs);
+		mCsCache[file] = cs;
 	}
 
 	return mCsCache[file];

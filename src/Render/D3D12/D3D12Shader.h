@@ -42,9 +42,16 @@ struct InputSrvParam
 	i32 mBindCount = 0;
 };
 
+struct InputUavParam
+{
+	std::string mName;
+	i32 mBindPoint = 0;
+	i32 mBindCount = 0;
+};
+
 enum class ShaderType
 {
-	eVs, ePs, eNum
+	eVs, ePs, eCs, eNum
 };
 
 class ShaderPiece
@@ -52,11 +59,12 @@ class ShaderPiece
 public:
 	ShaderPiece(const char* file, enum ShaderType type);
 
-	const enum ShaderType				GetType() const { return mType; }
-	ID3DBlob* GetShader() const { return mShader; }
-	std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputLayout() const { return mInputLayout; }
+	const enum ShaderType						GetType() const { return mType; }
+	ID3DBlob*									GetShader() const { return mShader; }
+	std::vector<D3D12_INPUT_ELEMENT_DESC>		GetInputLayout() const { return mInputLayout; }
 	std::map<std::string, InputCBufferParam>	GetCBufferBindings() const { return mCBufferBindings; }
 	std::map<std::string, InputSrvParam>		GetSrvBindings() const { return mSrvBindings; }
+	std::map<std::string, InputUavParam>		GetUavBindings() const { return mUavBindings; }
 
 protected:
 	const enum ShaderType					mType;
@@ -66,6 +74,7 @@ protected:
 
 	std::map<std::string, InputSrvParam>			mSrvBindings;
 	std::map<std::string, InputCBufferParam>		mCBufferBindings;
+	std::map<std::string, InputUavParam>			mUavBindings;
 
 	NameTable								mNameTable;
 };
@@ -75,10 +84,10 @@ class D3D12ShaderLibrary
 public:
 	ShaderPiece* CreateVs(const char* file);
 	ShaderPiece* CreatePs(const char* file);
-	ID3DBlob* CreateCs(const char* file);
+	ShaderPiece* CreateCs(const char* file);
 
 protected:
 	std::map<std::string, ShaderPiece*> mVsCache;
 	std::map<std::string, ShaderPiece*> mPsCache;
-	std::map<std::string, ID3DBlob*> mCsCache;
+	std::map<std::string, ShaderPiece*> mCsCache;
 };

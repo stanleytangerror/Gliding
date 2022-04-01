@@ -6,24 +6,100 @@
 
 namespace
 {
-	static const int32_t DescriptorTableSize = 16;
+	D3D12_GPU_VIRTUAL_ADDRESS BindConstBufferParams(const std::map<std::string, std::vector<byte>>& cbParams, D3D12CommandContext* context, ShaderPiece* shader)
+	{
+		D3D12ConstantBuffer* cb = context->GetConstantBuffer();
+		std::map<std::string, InputCBufferParam> cbufBindings;
+
+		for (const auto& p : shader->GetCBufferBindings())
+		{
+			if (cbufBindings.find(p.first) == cbufBindings.end())
+			{
+				cbufBindings[p.first] = p.second;
+			}
+		}
+		for (const auto& p : shader->GetCBufferBindings())
+		{
+			const InputCBufferParam& cbParam = p.second;
+			std::vector<byte> cbuf;
+			cbuf.resize(cbParam.mSize, 0);
+
+			for (const auto& q : cbParam.mVariables)
+			{
+				const std::string& varName = q.first;
+				const InputCBufferParam::CBufferVar& varDesc = q.second;
+				if (cbParams.find(varName) != cbParams.end())
+				{
+					const auto& varData = cbParams.find(varName)->second;
+					Assert(varDesc.mSize == varData.size());
+					memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varData.data(), varData.size());
+				}
+			}
+
+			cb->Submit(cbuf.data(), static_cast<i32>(cbuf.size()));
+		}
+		D3D12_GPU_VIRTUAL_ADDRESS gpuVa = cb->GetWorkGpuVa();
+		cb->Retire();
+		return gpuVa;
+	};
+
+	template <typename T, typename V>
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues)
+	{
+		int maxIdx = 0;
+		for (const auto& p : paramBindings)
+		{
+			const T& param = p.second;
+			maxIdx = std::max<int>(maxIdx, param.mBindPoint);
+		}
+
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles(maxIdx + 1, context->GetDevice()->GetNullSrvCpuDesc().Get());
+		for (const auto& p : paramBindings)
+		{
+			const std::string& name = p.first;
+			const T& param = p.second;
+
+			if (paramValues.find(name) != paramValues.end())
+			{
+				handles[param.mBindPoint] = paramValues.find(name)->second->GetHandle();
+			}
+		}
+		return handles;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-ComputePass::ComputePass(ComputeContext* context)
+ComputePass::ComputePass(GraphicsContext* context)
 	: mContext(context)
 {
-	mPso = new ComputePipelineState;
+	mPso = std::make_unique<ComputePipelineState>();
 }
 
 void ComputePass::Dispatch()
 {
-	ID3DBlob* rsBlob = D3D12Utils::LoadRs(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
-	AssertHResultOk(mContext->GetDevice()->GetDevice()->CreateRootSignature(0, rsBlob->GetBufferPointer(), rsBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature)));
+	for (const auto& p : mSrvParams)
+	{
+		ID3D12Res* res = p.second->GetResource();
+		res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	}
+
+	for (const auto& p : mUavParams)
+	{
+		ID3D12Res* res = p.second->GetResource();
+		res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	}
+
+	// root signatures
+	D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+	mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
 
 	mPso->SetRootSignature(mRootSignature);
-	mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(D3D12Utils::LoadCs(mCsFile.c_str())));
+
+	// shader
+	ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(mCsFile.c_str());
+	mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
+
 	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
 	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
@@ -32,33 +108,46 @@ void ComputePass::Dispatch()
 	commandList->SetComputeRootSignature(mRootSignature);
 	commandList->SetPipelineState(mPso->Get());
 
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvUavHandles(DescriptorTableSize + DescriptorTableSize, mContext->GetDevice()->GetNullSrvCpuDesc().Get());
+	// srv uav
 	{
-		for (const auto& p : mTexParams)
-		{
-			if (const IShaderResourceView * srv = p.second)
-			{
-				srvUavHandles[p.first] = srv->GetHandle();
-			}
-		}
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams);
 
-		for (const auto& p : mUavParams)
-		{
-			if (const IUnorderedAccessView * uav = p.second)
-			{
-				srvUavHandles[p.first + DescriptorTableSize] = uav->GetHandle();
-			}
-		}
+		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
+
+		ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
+		commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		commandList->SetComputeRootDescriptorTable(0, gpuDescBase);
 	}
 	
-	const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(srvUavHandles.size()), srvUavHandles.data());
+	{
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams);
 
-	ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
-	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	commandList->SetComputeRootDescriptorTable(0, gpuDescBase);
+		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(uavHandles.size()), uavHandles.data());
 
-	//srvUavHeap->Retire(srvUavHandles.size());
-	commandList->Dispatch(mThreadCounts[0], mThreadCounts[1], mThreadCounts[2]);
+		ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
+		commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		commandList->SetComputeRootDescriptorTable(1, gpuDescBase);
+	}
+
+	mContext->GetCommandList()->SetComputeRootConstantBufferView(2, BindConstBufferParams(mCbParams, mContext, cs));
+
+	commandList->Dispatch(mThreadGroupCounts[0], mThreadGroupCounts[1], mThreadGroupCounts[2]);
+}
+
+void ComputePass::AddSrv(const std::string& name, IShaderResourceView* srv)
+{
+	Assert(mSrvParams.find(name) == mSrvParams.end());
+	Assert(srv);
+
+	mSrvParams[name] = srv;
+}
+
+void ComputePass::AddUav(const std::string& name, IUnorderedAccessView* uav)
+{
+	Assert(mUavParams.find(name) == mUavParams.end());
+	Assert(uav);
+
+	mUavParams[name] = uav;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -96,6 +185,7 @@ void GraphicsPass::Draw()
 
 	mPso->SetRootSignature(mRootSignature);
 
+	// shader
 	ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(mVsFile.c_str());
 	ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(mPsFile.c_str());
 
@@ -171,44 +261,8 @@ void GraphicsPass::Draw()
 	commandList->SetGraphicsRootDescriptorTable(0, gpuDescBaseAddr);
 
 	// cbs
-	auto BindCb = [this, commandList](ShaderPiece* shader, UINT rootParamIndex)
-	{
-		D3D12ConstantBuffer* cb = mContext->GetConstantBuffer();
-		std::map<std::string, InputCBufferParam> cbufBindings;
-
-		for (const auto& p : shader->GetCBufferBindings())
-		{
-			if (cbufBindings.find(p.first) == cbufBindings.end())
-			{
-				cbufBindings[p.first] = p.second;
-			}
-		}
-		for (const auto& p : shader->GetCBufferBindings())
-		{
-			const InputCBufferParam& cbParam = p.second;
-			std::vector<byte> cbuf;
-			cbuf.resize(cbParam.mSize, 0);
-
-			for (const auto& q : cbParam.mVariables)
-			{
-				const std::string& varName = q.first;
-				const InputCBufferParam::CBufferVar& varDesc = q.second;
-				if (mCbParams.find(varName) != mCbParams.end())
-				{
-					const auto& varData = mCbParams[varName];
-					Assert(varDesc.mSize == varData.size());
-					memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varData.data(), varData.size());
-				}
-			}
-
-			cb->Submit(cbuf.data(), static_cast<i32>(cbuf.size()));
-		}
-		commandList->SetGraphicsRootConstantBufferView(rootParamIndex, cb->GetWorkGpuVa());
-		cb->Retire();
-	};
-
-	BindCb(vs, 1);
-	BindCb(ps, 2);
+	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, BindConstBufferParams(mCbParams, mContext, vs));
+	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(2, BindConstBufferParams(mCbParams, mContext, ps));
 
 	Assert(mViewPort.MinDepth < mViewPort.MaxDepth);
 	commandList->RSSetViewports(1, &mViewPort);

@@ -18,7 +18,7 @@ public:
 
 	RTV* GetRtv() const { return mRtv; }
 	SRV* GetSrv() const { return mSrv; }
-	UAV* GetHandle() const { return mUav; }
+	UAV* GetUav() const { return mUav; }
 
 	DXGI_FORMAT							GetFormat() const { return mFormat; }
 	D3D12_RESOURCE_STATES				GetResStates() const { return mState; }

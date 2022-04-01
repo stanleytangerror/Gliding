@@ -69,13 +69,16 @@
 "    visibility = SHADER_VISIBILITY_PIXEL "\
 "    ) "
 
-#define ComputeCopy \
+#define ComputeRS \
 "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
 " "\
 "DescriptorTable( "\
 "    SRV(t0, numDescriptors = 16, space = 0) "\
-"    ), "\
+"    ) "\
+", "\
 "DescriptorTable( "\
 "    UAV(u0, numDescriptors = 16, space = 0) "\
 "    ) "\
+", "\
+"CBV(b0, space = 0) "\
 " "
