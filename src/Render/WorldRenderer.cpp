@@ -95,6 +95,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 
 	mLight.mLightColor = Vec3f::Ones() * 1000.f;
 	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
+
+	mCameraTrans.mWorldTransform = Translationf(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 }
 
 WorldRenderer::~WorldRenderer()
@@ -114,8 +116,10 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
 
 	f32 rotAngle = 90.f * timer->GetLastFrameDeltaTime();
-	Transformf rot = Transformf(Rotationf(Math::DegreeToRadian(rotAngle), Vec3f{ 0.f, 0.f, 1.f }));
-	mTestModel.mRelTransform = rot * mTestModel.mRelTransform;
+	Transformf rot = Transformf(Rotationf(Math::DegreeToRadian(rotAngle), Math::Axis3DDir<f32>(Math::Axis3D_Zp)));
+	//mTestModel.mRelTransform = rot * mTestModel.mRelTransform;
+	mCameraTrans.mWorldTransform = rot * mCameraTrans.mWorldTransform;
+
 	mTestModel.CalcAbsTransform();
 
 	mGismo.CalcAbsTransform();
@@ -202,7 +206,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
 
-		lightingPass.AddCbVar("CameraDir", mDir);
+		lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
 		lightingPass.AddCbVar("LightDir", mLight.mLightDir);
 		lightingPass.AddCbVar("LightColor", mLight.mLightColor);
 
@@ -249,7 +253,7 @@ void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geom
 	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
+	gbufferPass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
 	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 
 	if (texture)
@@ -296,7 +300,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 	pass.AddCbVar("worldMat", transform.matrix());
-	pass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
+	pass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
 	pass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 
 	pass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
@@ -341,7 +345,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", Math::ComputeViewMatrix(mCamPos, mDir, mUp, mRight));
+	gbufferPass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
 	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
 
 	const std::pair<TextureUsage, const char*> texSlots[] =

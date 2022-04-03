@@ -85,7 +85,7 @@ namespace Math
 	};
 
 	template <typename T>
-	constexpr Vec3f Axis3DDir(const Axis3D& axis);
+	constexpr Vec3<T> Axis3DDir(const Axis3D& axis);
 
 	GD_COMMON_API Mat33f GetRotation(Math::Axis3D source, Math::Axis3D target, Chirality chirality);
 
@@ -112,16 +112,30 @@ namespace Math
 		Mat44f	ComputeProjectionMatrix() const;
 	};
 
-	struct ViewMatrix
+	template <typename T>
+	struct GD_COMMON_API CameraTransform
 	{
-		Vec3f	mPos = {};
-		Vec3f	mDir = {};
-		Vec3f	mRight = {};
-		Vec3f	mUp = {};
+		/* In camera view space (right-handed, +z up), camera axis:
+		 *		CamDir_v	+y,
+		 *		CamUp_v		+z,
+		 *		CamRight_v	+x
+		 */
+
+		Transform<T>	mWorldTransform = Transform<T>::Identity();
+
+		Vec3<T>	CamDirInViewSpace() const { return Axis3DDir<T>(Axis3D_Yp); }
+		Vec3<T>	CamUpInViewSpace() const { return Axis3DDir<T>(Axis3D_Zp); }
+		Vec3<T>	CamRightInViewSpace() const { return Axis3DDir<T>(Axis3D_Xp); }
+
+		Vec3<T>	CamDirInWorldSpace() const;
+		Vec3<T>	CamUpInWorldSpace() const;
+		Vec3<T>	CamRightInWorldSpace() const;
+		Vec3<T>	CamPosInWorldSpace() const;
+
+		Mat44<T> ComputeViewMatrix() const;
 	};
 
-	template <typename T>
-	inline Mat44<T> ComputeViewMatrix(const Vec3<T>& pos, const Vec3<T>& dir, const Vec3<T>& up, const Vec3<T>& right);
+	using CameraTransformf = CameraTransform<f32>;
 
 	template <typename T, i32 Rols, i32 Cols>
 	inline std::string ToString(const Mat<T, Rols, Cols>& mat);

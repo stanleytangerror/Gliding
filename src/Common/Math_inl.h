@@ -16,21 +16,44 @@ inline f32 Math::Sqrt(f32 v)
 }
 
 template <typename T>
-inline Mat44<T> Math::ComputeViewMatrix(const Vec3<T>& pos, const Vec3<T>& dir, const Vec3<T>& up, const Vec3<T>& right)
+Vec3<T> Math::CameraTransform<typename T>::CamDirInWorldSpace() const
 {
-	/* {	CamRight_w	CamUp_w CamDir_w CamPos_w	} * {	Pos_v	} = {	Pos_w	}
-	*			0			0		0			1				1				1
-	*/
+	return mWorldTransform.linear() * CamDirInViewSpace();
+}
+template <typename T>
+Vec3<T> Math::CameraTransform<typename T>::CamUpInWorldSpace() const
+{
+	return mWorldTransform.linear() * CamUpInViewSpace();
+}
+template <typename T>
+Vec3<T> Math::CameraTransform<typename T>::CamRightInWorldSpace() const
+{
+	return mWorldTransform.linear() * CamRightInViewSpace();
+}
+template <typename T>
+Vec3<T> Math::CameraTransform<typename T>::CamPosInWorldSpace() const
+{
+	return mWorldTransform * Vec3<T>::Zero();
+}
+
+template <typename T>
+Mat44<T> Math::CameraTransform<typename T>::ComputeViewMatrix() const
+{
+	/*					InvViewMatrix						*		Position_view	=	Position_world
+	 *	{	CamRight_w	CamUp_w	CamDir_w	CamPos_w	}	*	{		Pos_v	}	=	{	Pos_w	}
+	 *	{		0			0		0			1		}		{		1		}		{	1		}
+	 */
+
 	Mat44<T> InvR = Mat44<T>::Identity();
 	{
-		InvR.row(0).head(3) = right;
-		InvR.row(1).head(3) = up;
-		InvR.row(2).head(3) = dir;
+		InvR.row(0).head(3) = CamRightInWorldSpace();
+		InvR.row(1).head(3) = CamUpInWorldSpace();
+		InvR.row(2).head(3) = CamDirInWorldSpace();
 	}
 
 	Mat44<T> InvT = Mat44<T>::Identity();
 	{
-		InvT.col(3).head(3) = -pos;
+		InvT.col(3).head(3) = -CamPosInWorldSpace();
 	}
 
 	return InvR * InvT;
@@ -47,7 +70,7 @@ inline std::string Math::ToString(const Mat<T, Rols, Cols>& mat)
 }
 
 template <typename T>
-constexpr Vec3f Math::Axis3DDir(const Math::Axis3D& axis)
+constexpr Vec3<T> Math::Axis3DDir(const Math::Axis3D& axis)
 {
 	switch (axis)
 	{
