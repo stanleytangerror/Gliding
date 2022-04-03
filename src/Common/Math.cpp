@@ -3,9 +3,9 @@
 
 Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 {
-	const float fovw = mFovh * mAspectRatio;
-	const float w = 1.f / std::tan(fovw * 0.5f);
-	const float h = 1.f / std::tan(mFovh * 0.5f);
+	const float fovVertical = mFovHorizontal / mAspectRatio;
+	const float w = 1.f / std::tan(mFovHorizontal * 0.5f);
+	const float h = 1.f / std::tan(fovVertical * 0.5f);
 	const float Q = mFar / (mFar - mNear);
 
 	Mat44f projMat;
@@ -27,6 +27,16 @@ f32 Math::PerspectiveProjection::GetFarPlaneDepth() const
 f32 Math::PerspectiveProjection::GetNearPlaneDepth() const
 {
 	return 0.f;
+}
+
+f32 Math::PerspectiveProjection::GetFovHorizontal() const
+{
+	return mFovHorizontal;
+}
+
+f32 Math::PerspectiveProjection::GetFovVertical() const
+{
+	return mFovHorizontal / mAspectRatio;
 }
 
 Math::ValueCompareState Math::PerspectiveProjection::GetNearerDepthCompare() const

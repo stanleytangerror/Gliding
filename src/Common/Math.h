@@ -91,14 +91,16 @@ namespace Math
 
 	struct GD_COMMON_API PerspectiveProjection
 	{
-		f32		mFovh = Math::DegreeToRadian(45.f);
-		f32		mAspectRatio = 4.f / 3.f;
+		f32		mFovHorizontal = Math::DegreeToRadian(45.f);
+		f32		mAspectRatio = 16.f / 9.f;
 		f32		mNear = 1.f;
 		f32		mFar = 1000.f;
 
 		Mat44f	ComputeProjectionMatrix() const;
 		f32		GetFarPlaneDepth() const;
 		f32		GetNearPlaneDepth() const;
+		f32		GetFovHorizontal() const;
+		f32		GetFovVertical() const;
 		ValueCompareState	GetNearerDepthCompare() const;
 	};
 
@@ -133,6 +135,7 @@ namespace Math
 		Vec3<T>	CamPosInWorldSpace() const;
 
 		Mat44<T> ComputeViewMatrix() const;
+		Mat44<T> ComputeInvViewMatrix() const;
 	};
 
 	using CameraTransformf = CameraTransform<f32>;

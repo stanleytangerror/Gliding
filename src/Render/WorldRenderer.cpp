@@ -44,8 +44,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 
 	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
-	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
 	
+	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
+	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
@@ -115,10 +117,13 @@ void WorldRenderer::TickFrame(Timer* timer)
 {
 	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
 
-	f32 rotAngle = 90.f * timer->GetLastFrameDeltaTime();
-	Transformf rot = Transformf(Rotationf(Math::DegreeToRadian(rotAngle), Math::Axis3DDir<f32>(Math::Axis3D_Zp)));
-	//mTestModel.mRelTransform = rot * mTestModel.mRelTransform;
-	mCameraTrans.mWorldTransform = rot * mCameraTrans.mWorldTransform;
+	mTestModel.mRelTransform = 
+		Transformf(Rotationf(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp))) 
+		* mTestModel.mRelTransform;
+
+	mCameraTrans.mWorldTransform = 
+		Transformf(Rotationf(Math::DegreeToRadian(10.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+		* mCameraTrans.mWorldTransform;
 
 	mTestModel.CalcAbsTransform();
 
@@ -213,7 +218,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		lightingPass.Draw();
 	}
 
-	//RenderSky(context, target, mDepthRt->GetDsv());
+	RenderSky(context, target, mDepthRt->GetDsv());
 }
 
 void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const
@@ -268,7 +273,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 {
 	GraphicsPass pass(context);
 
-	D3D12Geometry* geometry = mSphere;
+	D3D12Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -298,12 +303,12 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-
-	pass.AddCbVar("worldMat", transform.matrix());
-	pass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
-	pass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
+	pass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.mAspectRatio, mCameraProj.GetFovVertical(), mCameraProj.GetFovHorizontal(), 0.f });
+	pass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
+	pass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 
 	pass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
+	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 
 	pass.Draw();
 }

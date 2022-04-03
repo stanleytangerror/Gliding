@@ -59,6 +59,25 @@ Mat44<T> Math::CameraTransform<typename T>::ComputeViewMatrix() const
 	return InvR * InvT;
 }
 
+template <typename T>
+Mat44<T> Math::CameraTransform<typename T>::ComputeInvViewMatrix() const
+{
+	/*					InvViewMatrix						*		Position_view	=	Position_world
+	 *	{	CamRight_w	CamUp_w	CamDir_w	CamPos_w	}	*	{		Pos_v	}	=	{	Pos_w	}
+	 *	{		0			0		0			1		}		{		1		}		{	1		}
+	 */
+
+	Mat44<T> invViewMat = Mat44<T>::Identity();
+	{
+		invViewMat.col(0).head(3) = CamRightInWorldSpace();
+		invViewMat.col(1).head(3) = CamUpInWorldSpace();
+		invViewMat.col(2).head(3) = CamDirInWorldSpace();
+		invViewMat.col(3).head(3) = CamPosInWorldSpace();
+	}
+
+	return invViewMat;
+}
+
 template <typename T, i32 Rols, i32 Cols>
 inline std::string Math::ToString(const Mat<T, Rols, Cols>& mat)
 {

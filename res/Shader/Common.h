@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #define PI (3.1415927)
+#define InvPI (1.0 / PI)
 
 float Pow4(float x)
 {

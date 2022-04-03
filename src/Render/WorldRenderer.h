@@ -5,6 +5,7 @@
 class RenderModule;
 class D3D12Geometry;
 class IRenderTargetView;
+class D3D12SamplerView;
 class GraphicsContext;
 class D3D12Texture;
 class D3D12RenderTarget;
@@ -34,6 +35,7 @@ private:
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
 	D3D12Texture* mPanoramicSkyTex = nullptr;
+	D3D12SamplerView* mPanoramicSkySampler = nullptr;
 
 	D3DDepthStencil* mDepthRt = nullptr;
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};

@@ -3,16 +3,12 @@
 
 struct VSInput
 {
-	float3 position : POSITION;
-	float3 normal : NORMAL;
-	// float3 tangent : TANGENT;
-	float2 uv : TEXCOORD;
+	float2 position : POSITION;
 };
 
 struct PSInput
 {
 	float4 position : SV_POSITION;
-	float3 worldPos : TEXCOORD;
 };
 
 struct PSOutput
@@ -21,24 +17,24 @@ struct PSOutput
 };
 
 Texture2D PanoramicSky;
-SamplerState SamplerLinearClamp;
-SamplerState SamplerLinearWrap;
+SamplerState PanoramicSkySampler;
 
-cbuffer Param : register(b0)
-{
-	float4x4 viewMat;
-	float4x4 projMat;
-	float4x4 worldMat;
-}
+float4 RtSize;
+
+float4 FrustumInfo;
+#define AspectRatio		(FrustumInfo.x)
+#define FovVertical		(FrustumInfo.y)
+#define FovHorizontal	(FrustumInfo.z)
+
+float3 CameraDir;
+
+float4x4 InvViewMat;
 
 PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
 
-	float3 pos = vsin.position;
-
-	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(pos, 1))));
-	result.worldPos = mul(worldMat, float4(pos, 1)).xyz;
+	result.position = float4(vsin.position, 0.5, 1);
 
 	return result;
 }
@@ -47,8 +43,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	const float3 skyLight = SamplePanoramicSky(PanoramicSky, SamplerLinearWrap, normalize(input.worldPos));
-	output.color = float4(skyLight, 1);
+	float2 screenRatio = input.position.xy * RtSize.zw;
+	float2 screenRatioFromCenter = (screenRatio * 2.0 - 1.0) * float2(1, -1);
+	float2 offsetRadius = float2(FovHorizontal, FovVertical) * screenRatioFromCenter;
+	float3 dirInViewSpace = normalize(float3(tan(offsetRadius), 1));
+	float3 dirInWorldSpace = mul(InvViewMat, float4(dirInViewSpace, 0));
+
+	const float3 skyLight = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, normalize(dirInWorldSpace));
+	output.color = float4(skyLight * 50.0, 1);
 
 	return output;
 }
