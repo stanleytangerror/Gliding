@@ -59,10 +59,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
 
-	mGismo.PushChild(mSphere, Transformf(Translationf(1.f, 0.f, 0.f)) * Transformf(Scalingf(1.f, 0.1f, 0.1f)));
-	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
-	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
-
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
@@ -115,19 +111,14 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	mElapsedTime = timer->GetCurrentFrameElapsedSeconds();
-
-	mTestModel.mRelTransform = 
-		Transformf(Rotationf(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp))) 
-		* mTestModel.mRelTransform;
-
 	mCameraTrans.mWorldTransform = 
 		Transformf(Rotationf(Math::DegreeToRadian(10.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
 		* mCameraTrans.mWorldTransform;
 
+	mTestModel.mRelTransform =
+		Transformf(Rotationf(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+		* mTestModel.mRelTransform;
 	mTestModel.CalcAbsTransform();
-
-	mGismo.CalcAbsTransform();
 }
 
 void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
@@ -154,14 +145,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		}
 		mDepthRt->Clear(context, mCameraProj.GetFarPlaneDepth(), 0);
 	}
-
-	mGismo.ForEach([&](const TransformNode<D3D12Geometry*>& node) 
-		{
-			if (node.mContent)
-			{
-				RenderGeometry(context, node.mContent, nullptr, node.mAbsTransform);
-			}
-		});
 
 	mTestModel.ForEach([&](const auto& node)
 		{
@@ -203,7 +186,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		lightingPass.mIbv = mQuad->mIbv;
 		lightingPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
 
-		lightingPass.AddCbVar("time", mElapsedTime);
 		lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 		lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
 		lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
@@ -219,54 +201,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	}
 
 	RenderSky(context, target, mDepthRt->GetDsv());
-}
-
-void WorldRenderer::RenderGeometry(GraphicsContext* context, D3D12Geometry* geometry, D3D12Texture* texture, const Transformf& transform) const
-{
-	GraphicsPass gbufferPass(context);
-
-	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	gbufferPass.mVsFile = "res/Shader/GBuffer.hlsl";
-	gbufferPass.mPsFile = "res/Shader/GBuffer.hlsl";
-
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = gbufferPass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
-	}
-
-	for (i32 i = 0; i < mGBufferRts.size(); ++i)
-	{
-		gbufferPass.mRts[i] = mGBufferRts[i]->GetRtv();
-	}
-	gbufferPass.mDs = mDepthRt->GetDsv();
-
-	const Vec3i& targetSize = mGBufferRts[0]->GetSize();
-	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
-	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-
-	gbufferPass.mVbvs.clear();
-	gbufferPass.mVbvs.push_back(geometry->mVbv);
-	gbufferPass.mIbv = geometry->mIbv;
-	gbufferPass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
-
-	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-
-	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
-	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
-
-	if (texture)
-	{
-		gbufferPass.AddSrv("baseTex", texture->GetSrv());
-	}
-
-	gbufferPass.Draw();
 }
 
 void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
