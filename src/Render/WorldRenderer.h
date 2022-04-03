@@ -54,4 +54,8 @@ private:
 		Vec3f mLightColor = Vec3f::Zero();
 		Vec3f mLightDir = { 0.f, 0.f, 1.f };
 	}	mLight;
+
+	const u8	mSceneMask = 0x7f;
+	const u8	mOpaqueObjMask = 0x1 << 0;
+	const u8	mSkyMask = 0x1 << 6;
 };

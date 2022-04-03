@@ -99,5 +99,6 @@ constexpr Vec3<T> Math::Axis3DDir(const Math::Axis3D& axis)
 	case Math::Axis3D_Yn: return Vec3<T>::UnitY() * (-1);
 	case Math::Axis3D_Zp: return Vec3<T>::UnitZ();
 	case Math::Axis3D_Zn: return Vec3<T>::UnitZ() * (-1);
+	default: Assert(false); return Vec3<T>::UnitZ();
 	}
 }

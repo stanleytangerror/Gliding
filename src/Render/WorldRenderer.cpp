@@ -285,9 +285,18 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	{
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		desc.DepthStencilState.StencilEnable = false;
+		desc.DepthStencilState.DepthEnable = false;
+		desc.DepthStencilState.StencilEnable = true;
+		desc.DepthStencilState.StencilReadMask = mSceneMask & (~mSkyMask);
+		desc.DepthStencilState.StencilWriteMask = mSkyMask;
+		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+		desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
 
@@ -296,6 +305,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mStencilRef = 0;
 
 	pass.mVbvs.clear();
 	pass.mVbvs.push_back(geometry->mVbv);
@@ -327,8 +337,18 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		desc.DepthStencilState.StencilEnable = false;
+		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(mCameraProj.GetNearerDepthCompare());
+		desc.DepthStencilState.StencilEnable = true;
+		desc.DepthStencilState.StencilReadMask = mSceneMask;
+		desc.DepthStencilState.StencilWriteMask = mOpaqueObjMask;
+		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
 
@@ -341,6 +361,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 	const Vec3i& targetSize = mGBufferRts[0]->GetSize();
 	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	gbufferPass.mStencilRef = mOpaqueObjMask;
 
 	gbufferPass.mVbvs.clear();
 	gbufferPass.mVbvs.push_back(geometry->mVbv);
