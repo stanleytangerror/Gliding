@@ -11,10 +11,10 @@ struct VSInput
 
 struct PSInput
 {
-	float4 position : SV_POSITION;
-	float3 tangent : TANGENT;
-	float3 normal : NORMAL;
-	float3 binormal : BINORMAL;
+	float4 worldPos : SV_POSITION;
+	float3 worldTangent : TANGENT;
+	float3 worldNormal : NORMAL;
+	float3 worldBinormal : BINORMAL;
 	float2 uv : TEXCOORD;
 };
 
@@ -36,13 +36,11 @@ PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
 
-	float3 pos = vsin.position;
-
-	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(pos, 1))));
-	result.normal = vsin.normal * 0.5 + 0.5;
+	result.worldPos = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
 	result.uv = vsin.uv;
-	result.binormal = vsin.binormal;
-	result.tangent = vsin.tangent;
+	result.worldNormal = mul((float3x3)worldMat, vsin.normal);
+	result.worldBinormal = mul((float3x3)worldMat, vsin.binormal);
+	result.worldTangent = mul((float3x3)worldMat, vsin.tangent);
 
 	return result;
 }
@@ -54,18 +52,16 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float4 baseColor = BaseColorTex.Sample(BaseColorTexSampler, input.uv).xyzw;
 	clip(baseColor.w - 0.5);
 
-	const float3x3 tbn = float3x3(input.tangent, input.binormal, input.normal);
+	const float3x3 tbn = float3x3(input.worldTangent, input.worldBinormal, input.worldNormal);
+	const float3 normalFromMap = normalize(NormalTex.Sample(NormalTexSampler, input.uv).xyz);
+	const float3 worldNormal = normalize(mul(normalFromMap, tbn));
 
-	const float2 normXy = NormalTex.Sample(NormalTexSampler, input.uv).xy * 2 - 1;
-	float3 normal = float3(normXy, sqrt(1 - dot(normXy, normXy)));
-	normal = normalize(mul(normal, tbn));
-
-	const float4 metallic = MetalnessTex.Sample(MetalnessTexSampler, input.uv).x;
-
-	const float roughness = DiffuseRoughnessTex.Sample(DiffuseRoughnessTexSampler, input.uv).w;
+	const float4 metallicRoughness = MetalnessTex.Sample(MetalnessTexSampler, input.uv);
+	const float metallic = metallicRoughness.x;
+	const float roughness = metallicRoughness.y;
 
 	PBRStandard matData = (PBRStandard)0;
-	matData.worldNormal = normal;
+	matData.worldNormal = worldNormal * 0.5 + 0.5;
 	matData.baseColor = baseColor;
 	matData.linearSmoothness = 1.0 - roughness;
 	matData.reflectance = 0;
