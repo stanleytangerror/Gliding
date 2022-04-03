@@ -55,6 +55,30 @@ namespace AssimpLoadUtils
 		return { mapType(type[0]), mapType(type[1]), TextureSamplerType_Wrap };
 	}
 
+	Mat33f GetSceneAlignTransform(
+		const Math::Axis3D sourceUpDir,
+		const Math::Chirality sourceChirality,
+		const Math::Axis3D targetUpDir,
+		const Math::Chirality targetChirality)
+	{
+		if (sourceUpDir == targetUpDir && sourceChirality == targetChirality)
+		{
+			return Mat33f::Identity();
+		}
+
+		const Mat33f rot = Math::GetRotation(sourceUpDir, targetUpDir, sourceChirality);
+		if (sourceChirality == targetChirality)
+		{
+			return rot;
+		}
+
+		const Math::Axis3D upAxis = Math::Axis3D((targetUpDir / 2) * 2);
+		const Math::Axis3D axisToInvert = Math::Axis3D((upAxis + 2) % 6);
+		const Mat33f invertChirality = Scalingf(-1 * axisToInvert);
+
+		return invertChirality * rot;
+	}
+
 	MeshRawData* LoadMesh(aiMesh* mesh)
 	{
 		if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
@@ -258,7 +282,11 @@ namespace AssimpLoadUtils
 	}
 }
 
-SceneRawData* SceneRawData::LoadScene(const char* path)
+SceneRawData* SceneRawData::LoadScene(const char* path, 
+	const Math::Axis3D sourceUpDir,
+	const Math::Chirality sourceChirality,
+	const Math::Axis3D targetUpDir,
+	const Math::Chirality targetChirality)
 {
 	SceneRawData* scene = new SceneRawData;
 
@@ -279,13 +307,14 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 		aiProcess_FindDegenerates |
 		aiProcess_FindInvalidData
 		);
+	if (!pScene) { return nullptr; }
 
 	const std::filesystem::path& fileFolder = std::filesystem::path(path).parent_path();
 
-	if (!pScene) { return nullptr; }
-
 	std::map<u32, Mat44f> transforms;
-	AssimpLoadUtils::CalcMeshTransforms(pScene->mRootNode, Mat44f::Identity(), transforms);
+	Mat44f alignTransform = Mat44f::Identity();
+	alignTransform.block(0, 0, 3, 3) = AssimpLoadUtils::GetSceneAlignTransform(sourceUpDir, sourceChirality, targetUpDir, targetChirality);
+	AssimpLoadUtils::CalcMeshTransforms(pScene->mRootNode, alignTransform, transforms);
 
 	for (u32 meshIdx = 0; meshIdx < pScene->mNumMeshes; ++meshIdx)
 	{

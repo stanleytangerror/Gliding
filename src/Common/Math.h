@@ -44,6 +44,9 @@ namespace Math
 	constexpr T Pi() { return T(3.14159265358979323846); }
 
 	template <typename T>
+	constexpr T HalfPi() { return Pi<T>() * 0.5; }
+
+	template <typename T>
 	constexpr T Align(T Val, u64 Alignment)
 	{
 		return (T)(((u64)Val + Alignment - 1) & ~(Alignment - 1));
@@ -65,6 +68,26 @@ namespace Math
 		ValueCompareState_Greater = 0x1,
 		ValueCompareState_Less = 0x2
 	};
+
+	enum class Chirality
+	{
+		LeftHanded, RightHanded
+	};
+
+	enum GD_COMMON_API Axis3D
+	{
+		Axis3D_Xp,
+		Axis3D_Xn,
+		Axis3D_Yp,
+		Axis3D_Yn,
+		Axis3D_Zp,
+		Axis3D_Zn
+	};
+
+	template <typename T>
+	constexpr Vec3f Axis3DDir(const Axis3D& axis);
+
+	GD_COMMON_API Mat33f GetRotation(Math::Axis3D source, Math::Axis3D target, Chirality chirality);
 
 	struct GD_COMMON_API PerspectiveProjection
 	{

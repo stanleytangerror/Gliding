@@ -50,3 +50,25 @@ Mat44f Math::OrthographicProjection::ComputeProjectionMatrix() const
 
 	return projMat;
 }
+
+Mat33f Math::GetRotation(Axis3D source, Axis3D target, Chirality chirality)
+{
+	if (source == target)
+	{
+		return Mat33f::Identity();
+	}
+
+	if (std::min(source, target) % 2 == 1 && std::abs(target - source) == 1)
+	{
+		Math::Axis3D invAxis = std::min(source, target);
+		return Scalingf(Math::Axis3DDir<f32>(invAxis) * (-1));
+	}
+
+	const Vec3f& v0 = Math::Axis3DDir<f32>(source);
+	const Vec3f& v1 = Math::Axis3DDir<f32>(target);
+
+	const Vec3f& rotAxis = v0.cross(v1); // v0/v1 always vertical
+	Assert(rotAxis.norm());
+	f32 ang = Math::HalfPi<f32>() * (chirality == Chirality::RightHanded ? 1.f : (-1.f));
+	return Rotationf{ ang, rotAxis }.toRotationMatrix();
+}

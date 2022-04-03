@@ -122,5 +122,9 @@ struct GD_WORLD_API SceneRawData
 	std::map<std::string, TextureRawData*> mTextures;
 	std::vector<MaterialRawData*> mMaterials;
 
-	static SceneRawData* LoadScene(const char* path);
+	static SceneRawData* LoadScene(const char* path, 
+		const Math::Axis3D sourceUpDir = Math::Axis3D_Zp,
+		const Math::Chirality sourceChirality = Math::Chirality::RightHanded,
+		const Math::Axis3D targetUpDir = Math::Axis3D_Zp,
+		const Math::Chirality targetChirality = Math::Chirality::RightHanded);
 };

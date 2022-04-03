@@ -46,3 +46,16 @@ inline std::string Math::ToString(const Mat<T, Rols, Cols>& mat)
 	return ss.str();
 }
 
+template <typename T>
+constexpr Vec3f Math::Axis3DDir(const Math::Axis3D& axis)
+{
+	switch (axis)
+	{
+	case Math::Axis3D_Xp: return Vec3<T>::UnitX();
+	case Math::Axis3D_Xn: return Vec3<T>::UnitX() * (-1);
+	case Math::Axis3D_Yp: return Vec3<T>::UnitY();
+	case Math::Axis3D_Yn: return Vec3<T>::UnitY() * (-1);
+	case Math::Axis3D_Zp: return Vec3<T>::UnitZ();
+	case Math::Axis3D_Zn: return Vec3<T>::UnitZ() * (-1);
+	}
+}

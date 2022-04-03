@@ -61,7 +61,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)");
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
@@ -91,7 +91,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			trans);
 	}
 
-	mTestModel.mRelTransform = UniScalingf(40.f);
+	//mTestModel.mRelTransform = UniScalingf(40.f);
 
 	mLight.mLightColor = Vec3f::Ones() * 1000.f;
 	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
