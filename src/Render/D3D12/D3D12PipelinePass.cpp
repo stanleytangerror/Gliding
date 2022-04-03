@@ -44,7 +44,7 @@ namespace
 	};
 
 	template <typename T, typename V>
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues)
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues, const CpuDescItem& nullDesc)
 	{
 		int maxIdx = 0;
 		for (const auto& p : paramBindings)
@@ -53,7 +53,7 @@ namespace
 			maxIdx = std::max<int>(maxIdx, param.mBindPoint);
 		}
 
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles(maxIdx + 1, context->GetDevice()->GetNullSrvCpuDesc().Get());
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles(maxIdx + 1, nullDesc.Get());
 		for (const auto& p : paramBindings)
 		{
 			const std::string& name = p.first;
@@ -103,30 +103,51 @@ void ComputePass::Dispatch()
 	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
 	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-	RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	commandList->SetComputeRootSignature(mRootSignature);
 	commandList->SetPipelineState(mPso->Get());
 
-	// srv uav
+	std::set<ID3D12DescriptorHeap*> heaps;
+	std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
+
+
+	// srv
 	{
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams);
+		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 
 		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
-		commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		commandList->SetComputeRootDescriptorTable(0, gpuDescBase);
+		heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
+		gpuBaseAddrs[0] = gpuDescBase;
 	}
 	
+	// uav
 	{
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams);
+		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 
 		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(uavHandles.size()), uavHandles.data());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { srvUavHeap->GetCurrentDescriptorHeap() };
-		commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		commandList->SetComputeRootDescriptorTable(1, gpuDescBase);
+		heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
+		gpuBaseAddrs[1] = gpuDescBase;
+	}
+
+	RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	{
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
+
+		const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+
+		heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+		gpuBaseAddrs[3] = gpuDescBase;
+	}
+
+	std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+	commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+	for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+	{
+		commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
 	}
 
 	mContext->GetCommandList()->SetComputeRootConstantBufferView(2, BindConstBufferParams(mCbParams, mContext, cs));
@@ -148,6 +169,14 @@ void ComputePass::AddUav(const std::string& name, IUnorderedAccessView* uav)
 	Assert(uav);
 
 	mUavParams[name] = uav;
+}
+
+void ComputePass::AddSampler(const std::string& name, D3D12SamplerView* sampler)
+{
+	Assert(mSamplerParams.find(name) == mSamplerParams.end());
+	Assert(sampler);
+
+	mSamplerParams[name] = sampler;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,53 +241,76 @@ void GraphicsPass::Draw()
 
 	// resource bindings
 	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-	RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	commandList->SetGraphicsRootSignature(mRootSignature);
 	commandList->SetPipelineState(mPso->Get());
 
+	std::set<ID3D12DescriptorHeap*> heaps;
+	std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
+
 	// srvs
-	std::map<std::string, InputSrvParam> srvBindings;
 	{
-		for (const auto& p : vs->GetSrvBindings())
+		RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		
+		std::map<std::string, InputSrvParam> srvBindings;
 		{
-			if (srvBindings.find(p.first) == srvBindings.end())
+			for (const auto& p : vs->GetSrvBindings())
 			{
-				srvBindings[p.first] = p.second;
+				if (srvBindings.find(p.first) == srvBindings.end())
+				{
+					srvBindings[p.first] = p.second;
+				}
+			}
+			for (const auto& p : ps->GetSrvBindings())
+			{
+				if (srvBindings.find(p.first) == srvBindings.end())
+				{
+					srvBindings[p.first] = p.second;
+				}
 			}
 		}
-		for (const auto& p : ps->GetSrvBindings())
+
+		int maxSrvIndex = 0;
+		for (const auto& p : srvBindings)
 		{
-			if (srvBindings.find(p.first) == srvBindings.end())
+			const InputSrvParam& srvParam = p.second;
+			maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
+		}
+
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
+		for (const auto& p : srvBindings)
+		{
+			const std::string& srvName = p.first;
+			const InputSrvParam& srvParam = p.second;
+
+			if (mSrvParams.find(srvName) != mSrvParams.end())
 			{
-				srvBindings[p.first] = p.second;
+				srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
 			}
 		}
+		const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
+
+		heaps.insert(srvHeap->GetCurrentDescriptorHeap());
+		gpuBaseAddrs[0] = gpuDescBaseAddr;
 	}
 
-	int maxSrvIndex = 0;
-	for (const auto& p : srvBindings)
 	{
-		const InputSrvParam& srvParam = p.second;
-		maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
+		RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		
+		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
+
+		const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+
+		heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+		gpuBaseAddrs[3] = gpuDescBase;
 	}
 
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvCpuDesc().Get());
-	for (const auto& p : srvBindings)
+	std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+	commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+	for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
 	{
-		const std::string& srvName = p.first;
-		const InputSrvParam& srvParam = p.second;
-
-		if (mSrvParams.find(srvName) != mSrvParams.end())
-		{
-			srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
-		}
+		commandList->SetGraphicsRootDescriptorTable(rsSlot, gpuBaseAddr);
 	}
-	const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
-
-	ID3D12DescriptorHeap* ppHeaps[] = { srvHeap->GetCurrentDescriptorHeap() };
-	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	commandList->SetGraphicsRootDescriptorTable(0, gpuDescBaseAddr);
 
 	// cbs
 	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, BindConstBufferParams(mCbParams, mContext, vs));
@@ -301,4 +353,12 @@ void GraphicsPass::AddSrv(const std::string& name, IShaderResourceView* srv)
 	Assert(srv);
 
 	mSrvParams[name] = srv;
+}
+
+void GraphicsPass::AddSampler(const std::string& name, D3D12SamplerView* sampler)
+{
+	Assert(mSamplerParams.find(name) == mSamplerParams.end());
+	Assert(sampler);
+
+	mSamplerParams[name] = sampler;
 }

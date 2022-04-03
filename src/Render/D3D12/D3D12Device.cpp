@@ -124,6 +124,15 @@ D3D12Device::D3D12Device(HWND windowHandle)
 	mNullSrvCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 	D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
 
+	D3D12_SAMPLER_DESC nullSamplerDesc = {};
+	{
+		nullSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		nullSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		nullSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	}
+	mNullSamplerCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER]->AllocCpuDesc();
+	D3D12Device::GetDevice()->CreateSampler(&nullSamplerDesc, mNullSamplerCpuDesc.Get());
+
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = FrameCount;

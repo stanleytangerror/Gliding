@@ -30,7 +30,8 @@ public:
 	D3D12DescriptorAllocator* GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 	D3D12ShaderLibrary* GetShaderLib() const { return mShaderLib; }
 	D3D12PipelineStateLibrary* GetPipelineStateLib() const { return mPipelineStateLib; }
-	CpuDescItem	GetNullSrvCpuDesc() const { return mNullSrvCpuDesc; }
+	CpuDescItem	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
+	CpuDescItem	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
 	SwapChainBuffers* GetBackBuffer() const { return mBackBuffers; }
 
 	D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
@@ -50,4 +51,5 @@ private:
 
 	std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
 	CpuDescItem	mNullSrvCpuDesc;
+	CpuDescItem	mNullSamplerCpuDesc;
 };

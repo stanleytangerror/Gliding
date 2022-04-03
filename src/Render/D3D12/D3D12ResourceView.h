@@ -94,3 +94,17 @@ protected:
 	CpuDescItem						mHandle;
 	DXGI_FORMAT						mFormat = DXGI_FORMAT_UNKNOWN;
 };
+
+class D3D12SamplerView
+{
+public:
+	D3D12SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode);
+	D3D12SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE	GetHandle() const { return mHandle.Get(); }
+	
+protected:
+	static D3D12_SAMPLER_DESC		GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode);
+
+	D3D12_SAMPLER_DESC				mDesc = {};
+	CpuDescItem						mHandle;
+};

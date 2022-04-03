@@ -85,3 +85,31 @@ DSV::DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format)
 	mHandle = rtvDescAllocator->AllocCpuDesc();
 	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+D3D12SamplerView::D3D12SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
+	: mDesc(desc)
+{
+	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	mHandle = samplerDescAllocator->AllocCpuDesc();
+	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
+}
+
+D3D12SamplerView::D3D12SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+	: mDesc(GetDesc(filterType, addrMode))
+{
+	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	mHandle = samplerDescAllocator->AllocCpuDesc();
+	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
+}
+
+D3D12_SAMPLER_DESC D3D12SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+{
+	D3D12_SAMPLER_DESC desc = {};
+	desc.Filter = filterType;
+	desc.AddressU = addrMode[0];
+	desc.AddressV = addrMode[1];
+	desc.AddressW = addrMode[2];
+	return desc;
+}

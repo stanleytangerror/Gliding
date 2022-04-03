@@ -47,6 +47,7 @@ public:
 
 	void AddSrv(const std::string& name, IShaderResourceView* srv);
 	void AddUav(const std::string& name, IUnorderedAccessView* uav);
+	void AddSampler(const std::string& name, D3D12SamplerView* sampler);
 	
 public:
 	struct
@@ -59,6 +60,8 @@ public:
 
 public:
 	GraphicsContext* const					mContext = nullptr;
+	
+	std::map<std::string, D3D12SamplerView*>		mSamplerParams;
 	std::map<std::string, IShaderResourceView*>		mSrvParams;
 	std::map<std::string, IUnorderedAccessView*>	mUavParams;
 	std::map<std::string, std::vector<byte>>		mCbParams;
@@ -89,6 +92,7 @@ public:
 	}
 
 	void AddSrv(const std::string& name, IShaderResourceView* srv);
+	void AddSampler(const std::string& name, D3D12SamplerView* sampler);
 
 public:
 	struct
@@ -117,6 +121,7 @@ public:
 protected:
 	std::map<std::string, std::vector<byte>>	mCbParams;
 	std::map<std::string, IShaderResourceView*>	mSrvParams;
+	std::map<std::string, D3D12SamplerView*>	mSamplerParams;
 
 	ID3D12RootSignature* mRootSignature = nullptr;
 	std::unique_ptr<GraphicsPipelineState> mPso;

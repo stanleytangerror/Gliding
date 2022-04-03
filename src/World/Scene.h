@@ -1,18 +1,5 @@
 #pragma once
 
-struct GD_WORLD_API TextureRawData
-{
-	std::string mPath;
-	std::vector<b8>	mRawData;
-};
-
-struct GD_WORLD_API MatParamMeta
-{
-	std::string	mName;
-	u32			mIndex = 0;
-	
-};
-
 enum GD_WORLD_API TextureUsage
 {
 	TextureUsage_Invalid,
@@ -43,11 +30,41 @@ enum GD_WORLD_API TextureUsage
 	TextureUsage_Count,
 };
 
+enum GD_WORLD_API SamplerAddrMode
+{
+	TextureSamplerType_Wrap,
+	TextureSamplerType_Clamp,
+	TextureSamplerType_Decal,
+	TextureSamplerType_Mirror,
+};
+
+using TextureSamplerType = std::array<SamplerAddrMode, 3>;
+
+struct GD_WORLD_API TextureRawData
+{
+	std::string			mPath;
+	std::vector<b8>		mRawData;
+	TextureSamplerType	mSamplerType = {};
+};
+
+struct GD_WORLD_API MatParamMeta
+{
+	std::string	mName;
+	u32			mIndex = 0;
+
+};
+
 struct GD_WORLD_API MaterialRawData
 {
+	struct TextureBasicInfo
+	{
+		std::string			mTexturePath;
+		TextureSamplerType	mSamplerType;
+	};
+
 	std::string mName;
-	std::vector<std::string> mTexturePaths;
-	std::array<std::vector<std::string>, TextureUsage_Count> mTexturesWithUsage;
+	std::vector<TextureBasicInfo> mTexturePaths;
+	std::array<std::vector<TextureBasicInfo>, TextureUsage_Count> mTexturesWithUsage;
 };
 
 union GD_WORLD_API VertexAttriRawData

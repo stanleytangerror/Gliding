@@ -11,6 +11,32 @@
 #include "World/Scene.h"
 #include "RenderMaterial.h"
 
+namespace
+{
+	D3D12_SAMPLER_DESC ToD3DSamplerDesc(const TextureSamplerType& type)
+	{
+		D3D12_SAMPLER_DESC result = {};
+
+		auto mapType = [](SamplerAddrMode mode)
+		{
+			switch (mode)
+			{
+			case TextureSamplerType_Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			case TextureSamplerType_Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+			case TextureSamplerType_Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			case TextureSamplerType_Decal:
+			default:  Assert(false); return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			}
+		};
+
+		result.AddressU = mapType(type[0]);
+		result.AddressV = mapType(type[1]);
+		result.AddressW = mapType(type[2]);
+
+		return result;
+	}
+}
+
 WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
@@ -35,8 +61,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 1.f, 0.f)) * Transformf(Scalingf(0.1f, 1.f, 0.1f)));
 	mGismo.PushChild(mSphere, Transformf(Translationf(0.f, 0.f, 1.f)) * Transformf(Scalingf(0.1f, 0.1f, 1.f)));
 
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\picnic_tables\scene.gltf)");
-	std::map<std::string, D3D12Texture*> textures;
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)");
+	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
 		const std::string& texPath = p.first;
@@ -44,8 +70,9 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 
 		if (texRawData)
 		{
-			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
+			textures[texPath].first = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
 		}
+		textures[texPath].second = new D3D12SamplerView(device, ToD3DSamplerDesc(texRawData->mSamplerType));
 	}
 	std::vector<std::shared_ptr<RenderMaterial>> materials;
 	for (const auto& mat : sceneRawData->mMaterials)
@@ -63,6 +90,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			mat },
 			trans);
 	}
+
+	mTestModel.mRelTransform = UniScalingf(40.f);
 
 	mLight.mLightColor = Vec3f::Ones() * 1000.f;
 	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
@@ -325,10 +354,14 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 
 	for (const auto& p : texSlots)
 	{
-		const auto& texs = material->mTextureParams[p.first];
+		const TextureUsage usage = p.first;
+		const char* paramName = p.second;
+
+		const auto& texs = material->mTextureParams[usage];
 		if (!texs.empty())
 		{
-			gbufferPass.AddSrv(p.second, texs.front()->GetSrv());
+			gbufferPass.AddSrv(paramName, texs.front()->GetSrv());
+			gbufferPass.AddSampler((std::string(paramName) + "Sampler").c_str(), material->mSamplerParams[usage].front());
 		}
 	}
 

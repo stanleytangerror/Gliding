@@ -38,6 +38,23 @@ namespace AssimpLoadUtils
 		}
 	}
 
+	constexpr TextureSamplerType FromAssimpTextureSamplerType(const std::array<aiTextureMapMode, 2>& type)
+	{
+		auto mapType = [](aiTextureMapMode type)
+		{
+			switch (type)
+			{
+			case aiTextureMapMode_Wrap: return TextureSamplerType_Wrap;
+			case aiTextureMapMode_Clamp: return TextureSamplerType_Clamp;
+			case aiTextureMapMode_Decal: return TextureSamplerType_Decal;
+			case aiTextureMapMode_Mirror: return TextureSamplerType_Mirror;
+			default: Assert(false); return TextureSamplerType_Wrap;
+			}
+		};
+
+		return { mapType(type[0]), mapType(type[1]), TextureSamplerType_Wrap };
+	}
+
 	MeshRawData* LoadMesh(aiMesh* mesh)
 	{
 		if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
@@ -173,16 +190,17 @@ namespace AssimpLoadUtils
 		return result;
 	}
 
-	TextureRawData* LoadTexture(const char* path)
+	TextureRawData* LoadTexture(const MaterialRawData::TextureBasicInfo& texInfo)
 	{
 		return new TextureRawData
 		{
-			path,
-			Utils::LoadFileContent(path)
+			texInfo.mTexturePath,
+			Utils::LoadFileContent(texInfo.mTexturePath.c_str()),
+			texInfo.mSamplerType
 		};
 	}
 
-	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::vector<std::string>& textures)
+	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::vector<MaterialRawData::TextureBasicInfo>& textureInfos)
 	{
 		MaterialRawData* result = new MaterialRawData;
 
@@ -194,13 +212,15 @@ namespace AssimpLoadUtils
 			for (i32 idx = 0; idx < material->GetTextureCount(texType); ++idx)
 			{
 				aiString relPath;
-				if (AI_SUCCESS == material->GetTexture(texType, idx, &relPath))
+				std::array<aiTextureMapMode, 2> mapmode = {};
+				if (AI_SUCCESS == material->GetTexture(texType, idx, &relPath, nullptr, nullptr, nullptr, nullptr, mapmode.data()))
 				{
 					const auto& texturePath = Utils::ToString(folder / relPath.C_Str());
 					
-					textures.push_back(texturePath);
-					result->mTexturePaths.push_back(texturePath);
-					result->mTexturesWithUsage[FromAssimpTextureUsage(texType)].push_back(texturePath);
+					const MaterialRawData::TextureBasicInfo& texInfo = { texturePath, FromAssimpTextureSamplerType(mapmode) };
+					textureInfos.push_back(texInfo);
+					result->mTexturePaths.push_back(texInfo);
+					result->mTexturesWithUsage[FromAssimpTextureUsage(texType)].push_back(texInfo);
 				}
 			}
 		}
@@ -277,20 +297,20 @@ SceneRawData* SceneRawData::LoadScene(const char* path)
 		}
 	}
 
-	std::vector<std::string> texturePaths;
+	std::vector<MaterialRawData::TextureBasicInfo> textureInfos;
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMaterials); ++i)
 	{
-		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], texturePaths))
+		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], textureInfos))
 		{
 			scene->mMaterials.emplace_back(mat);
 		}
 	}
 
-	for (const std::string& texPath : texturePaths)
+	for (const MaterialRawData::TextureBasicInfo& texInfo : textureInfos)
 	{
-		if (TextureRawData* textureRawData = AssimpLoadUtils::LoadTexture(texPath.c_str()))
+		if (TextureRawData* textureRawData = AssimpLoadUtils::LoadTexture(texInfo))
 		{
-			scene->mTextures[texPath] = textureRawData;
+			scene->mTextures[texInfo.mTexturePath] = textureRawData;
 		}
 	}
 

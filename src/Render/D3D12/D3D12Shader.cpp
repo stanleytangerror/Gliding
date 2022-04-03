@@ -114,6 +114,17 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 			mCBufferBindings[bindDesc.Name] = param;
 			break;
 		}
+		case D3D_SIT_SAMPLER:
+		{
+			InputSamplerParam param = {};
+			{
+				param.mName = bindDesc.Name;
+				param.mBindPoint = bindDesc.BindPoint;
+				param.mBindCount = bindDesc.BindCount;
+			}
+			mSamplerBindings[bindDesc.Name] = param;
+			break;
+		}
 		case D3D_SIT_TEXTURE:
 		case D3D_SIT_STRUCTURED:
 		case D3D_SIT_BYTEADDRESS:

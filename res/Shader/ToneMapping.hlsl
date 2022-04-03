@@ -49,7 +49,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float2 uv = RtSize.zw * input.position.xy;
 	float3 sceneHdrColor = SceneHdr.Sample(SamplerLinear, uv);
 
-	float3 sceneLdrColor = ACESFilm(sceneHdrColor);
+	float3 sceneLdrColor = ACESFilm(sceneHdrColor * 0.01);
 	output.color = float4(LinearToSrgb(sceneLdrColor), 1.0);
 
 	return output;

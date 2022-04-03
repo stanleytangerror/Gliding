@@ -25,8 +25,6 @@ struct PSOutput
 	float4 gBuffer2 : COLOR2;
 };
 
-SamplerState SamplerLinear : register(s0);
-
 cbuffer Param : register(b0)
 {
 	float4x4 viewMat;
@@ -53,18 +51,18 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	const float4 baseColor = BaseColorTex.Sample(SamplerLinear, input.uv).xyzw;
+	const float4 baseColor = BaseColorTex.Sample(BaseColorTexSampler, input.uv).xyzw;
 	clip(baseColor.w - 0.5);
 
 	const float3x3 tbn = float3x3(input.tangent, input.binormal, input.normal);
 
-	const float2 normXy = NormalTex.Sample(SamplerLinear, input.uv).xy * 2 - 1;
+	const float2 normXy = NormalTex.Sample(NormalTexSampler, input.uv).xy * 2 - 1;
 	float3 normal = float3(normXy, sqrt(1 - dot(normXy, normXy)));
 	normal = normalize(mul(normal, tbn));
 
-	const float4 metallic = MetalnessTex.Sample(SamplerLinear, input.uv).x;
+	const float4 metallic = MetalnessTex.Sample(MetalnessTexSampler, input.uv).x;
 
-	const float roughness = DiffuseRoughnessTex.Sample(SamplerLinear, input.uv).w;
+	const float roughness = DiffuseRoughnessTex.Sample(DiffuseRoughnessTexSampler, input.uv).w;
 
 	PBRStandard matData = (PBRStandard)0;
 	matData.worldNormal = normal;

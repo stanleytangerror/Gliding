@@ -3,13 +3,18 @@
 
 #include "Common.h"
 
-Texture2D DiffuseTex;
-Texture2D NormalTex;
-Texture2D MetalnessTex;
-Texture2D LightMapTex;
-Texture2D SpecularTex;
-Texture2D BaseColorTex;
-Texture2D DiffuseRoughnessTex;
+#define DeclareMaterialTexture(name) \
+Texture2D name##Tex;\
+SamplerState name##TexSampler;
+
+DeclareMaterialTexture(Diffuse);
+DeclareMaterialTexture(Normal);
+DeclareMaterialTexture(Metalness);
+DeclareMaterialTexture(LightMap);
+DeclareMaterialTexture(Specular);
+DeclareMaterialTexture(BaseColor);
+DeclareMaterialTexture(DiffuseRoughness);
+
 
 /* from Frostbite engine */
 struct PBRStandard

@@ -33,18 +33,22 @@ bool RenderMaterial::IsGpuResourceReady() const
 	return true;
 }
 
-RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(const MaterialRawData* rawData, const std::map<std::string, D3D12Texture*>& textures)
+RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
+	const MaterialRawData* rawData, 
+	const std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>>& textures)
 {
 	RenderMaterial* result = new RenderMaterial;
 
 	for (i32 texUsage = 0; texUsage < TextureUsage_Count; ++texUsage)
 	{
-		const auto& texPaths = rawData->mTexturesWithUsage[texUsage];
-		for (i32 texIdx = 0; texIdx < texPaths.size(); ++texIdx)
+		const auto& texInfos = rawData->mTexturesWithUsage[texUsage];
+		for (i32 texIdx = 0; texIdx < texInfos.size(); ++texIdx)
 		{
-			const auto& texPath = texPaths[texIdx];
-			Assert(textures.find(texPath) != textures.end());
-			result->mTextureParams[texUsage].push_back(textures.find(texPath)->second);
+			const MaterialRawData::TextureBasicInfo& texInfo = texInfos[texIdx];
+			Assert(textures.find(texInfo.mTexturePath) != textures.end());
+			const auto& p = textures.find(texInfo.mTexturePath)->second;
+			result->mTextureParams[texUsage].push_back(p.first);
+			result->mSamplerParams[texUsage].push_back(p.second);
 		}
 	}
 

@@ -35,6 +35,13 @@ struct InputCBufferParam
 	std::map<std::string, CBufferVar> mVariables;
 };
 
+struct InputSamplerParam
+{
+	std::string mName;
+	i32 mBindPoint = 0;
+	i32 mBindCount = 0;
+};
+
 struct InputSrvParam
 {
 	std::string mName;
@@ -65,6 +72,7 @@ public:
 	std::map<std::string, InputCBufferParam>	GetCBufferBindings() const { return mCBufferBindings; }
 	std::map<std::string, InputSrvParam>		GetSrvBindings() const { return mSrvBindings; }
 	std::map<std::string, InputUavParam>		GetUavBindings() const { return mUavBindings; }
+	std::map<std::string, InputSamplerParam>	GetSamplerBindings() const { return mSamplerBindings; }
 
 protected:
 	const enum ShaderType					mType;
@@ -75,7 +83,8 @@ protected:
 	std::map<std::string, InputSrvParam>			mSrvBindings;
 	std::map<std::string, InputCBufferParam>		mCBufferBindings;
 	std::map<std::string, InputUavParam>			mUavBindings;
-
+	std::map<std::string, InputSamplerParam>		mSamplerBindings;
+	
 	NameTable								mNameTable;
 };
 
