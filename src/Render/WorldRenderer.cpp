@@ -112,9 +112,9 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	mCameraTrans.mWorldTransform = 
-		Transformf(Rotationf(Math::DegreeToRadian(10.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
-		* mCameraTrans.mWorldTransform;
+	//mCameraTrans.mWorldTransform = 
+	//	Transformf(Rotationf(Math::DegreeToRadian(10.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+	//	* mCameraTrans.mWorldTransform;
 
 	mTestModel.mRelTransform =
 		Transformf(Rotationf(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
