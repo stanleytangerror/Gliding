@@ -55,7 +55,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float3 diffuseColor = matData.baseColor * (1.0 - matData.metalMask);
 	float3 specularColor = ComputeF0(matData.reflectance, matData.baseColor, matData.metalMask);
 
-	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, -CameraDir, LightDir, LightColor);
+	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, -CameraDir, -LightDir, LightColor);
 
 	output.color = float4(directLighting.Diffuse + directLighting.Specular, 1);
 

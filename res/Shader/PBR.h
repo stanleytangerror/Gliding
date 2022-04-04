@@ -68,6 +68,9 @@ void Init( inout BxDFContext Context,  float3  N,  float3  V,  float3  L )
 	float InvLenH = rsqrt( 2 + 2 * Context.VoL );
 	Context.NoH = saturate( ( Context.NoL + Context.NoV ) * InvLenH );
 	Context.VoH = saturate( InvLenH + InvLenH * Context.VoL );
+
+	Context.NoL = saturate(Context.NoL);
+	Context.VoL = saturate(Context.VoL);
 }
 
 float DielectricSpecularToF0(float Specular)
