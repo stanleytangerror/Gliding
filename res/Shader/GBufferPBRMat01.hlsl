@@ -64,8 +64,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float3 worldNormal = normalize(mul(tbn, normalFromMap));
 
 	const float4 metallicRoughness = MetalnessTex.Sample(MetalnessTexSampler, uv);
-	const float metallic = metallicRoughness.x;
 	const float roughness = metallicRoughness.y;
+	const float metallic = metallicRoughness.z;
 
 	PBRStandard matData = (PBRStandard)0;
 	matData.worldNormal = worldNormal * 0.5 + 0.5;
