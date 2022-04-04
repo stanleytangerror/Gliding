@@ -49,11 +49,13 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 
-	const float4 baseColor = BaseColorTex.Sample(BaseColorTexSampler, input.uv).xyzw;
+	float2 uv = input.uv;
+	uv.y = 1.0 - uv.y; // gl texture uv
+
+	const float4 baseColor = BaseColorTex.Sample(BaseColorTexSampler, uv).xyzw;
 	clip(baseColor.w - 0.5);
 
-	float3 normalFromMap = normalize(NormalTex.Sample(NormalTexSampler, input.uv).xyz * 2.0 - 1.0);
-	normalFromMap.y *= -1;
+	float3 normalFromMap = normalize(NormalTex.Sample(NormalTexSampler, uv).xyz * 2.0 - 1.0);
 	// float3x3 take 3 float3 as rows
 	const float3x3 tbn = transpose(float3x3(
 		normalize(input.worldTangent), 
@@ -61,7 +63,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 		normalize(input.worldNormal)));
 	const float3 worldNormal = normalize(mul(tbn, normalFromMap));
 
-	const float4 metallicRoughness = MetalnessTex.Sample(MetalnessTexSampler, input.uv);
+	const float4 metallicRoughness = MetalnessTex.Sample(MetalnessTexSampler, uv);
 	const float metallic = metallicRoughness.x;
 	const float roughness = metallicRoughness.y;
 
