@@ -47,6 +47,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	
 	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
@@ -59,7 +60,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
 
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
@@ -89,7 +90,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			trans);
 	}
 
-	//mTestModel.mRelTransform = UniScalingf(40.f);
+	mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -0.7f);
 
 	mLight.mLightColor = Vec3f::Ones() * 1000.f;
 	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
@@ -143,7 +144,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
 		}
-		mDepthRt->Clear(context, mCameraProj.GetFarPlaneDepth(), 0);
+		mDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
 	}
 
 	mTestModel.ForEach([&](const auto& node)
@@ -187,13 +188,20 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		lightingPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
 
 		lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+		lightingPass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
 		lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
 		lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
 		lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
+		lightingPass.AddSrv("SceneDepth", mDepthRt->GetSrv());
+		lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
+
+		lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 
 		lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
+		lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 
 		lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
+		lightingPass.AddCbVar("CameraPos", mCameraTrans.CamPosInWorldSpace()); 
 		lightingPass.AddCbVar("LightDir", mLight.mLightDir);
 		lightingPass.AddCbVar("LightColor", mLight.mLightColor);
 
@@ -247,7 +255,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-	pass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.mAspectRatio, mCameraProj.GetFovVertical(), mCameraProj.GetFovHorizontal(), 0.f });
+	pass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
 	pass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
 	pass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 

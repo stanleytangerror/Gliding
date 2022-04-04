@@ -19,24 +19,24 @@ Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 	return projMat;
 }
 
-f32 Math::PerspectiveProjection::GetFarPlaneDepth() const
+f32 Math::PerspectiveProjection::GetFarPlaneDeviceDepth() const
 {
 	return 1.f;
 }
 
-f32 Math::PerspectiveProjection::GetNearPlaneDepth() const
+f32 Math::PerspectiveProjection::GetNearPlaneDeviceDepth() const
 {
 	return 0.f;
 }
 
-f32 Math::PerspectiveProjection::GetFovHorizontal() const
+f32 Math::PerspectiveProjection::GetHalfFovHorizontal() const
 {
-	return mFovHorizontal;
+	return mFovHorizontal * 0.5f;
 }
 
-f32 Math::PerspectiveProjection::GetFovVertical() const
+f32 Math::PerspectiveProjection::GetHalfFovVertical() const
 {
-	return mFovHorizontal / mAspectRatio;
+	return GetHalfFovHorizontal() / mAspectRatio;
 }
 
 Math::ValueCompareState Math::PerspectiveProjection::GetNearerDepthCompare() const

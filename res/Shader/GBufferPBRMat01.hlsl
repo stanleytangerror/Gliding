@@ -38,9 +38,9 @@ PSInput VSMain(VSInput vsin)
 
 	result.worldPos = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
 	result.uv = vsin.uv;
-	result.worldNormal = mul((float3x3)worldMat, vsin.normal);
-	result.worldBinormal = mul((float3x3)worldMat, vsin.binormal);
-	result.worldTangent = mul((float3x3)worldMat, vsin.tangent);
+	result.worldNormal = normalize(mul((float3x3)worldMat, vsin.normal));
+	result.worldBinormal = normalize(mul((float3x3)worldMat, vsin.binormal));
+	result.worldTangent = normalize(mul((float3x3)worldMat, vsin.tangent));
 
 	return result;
 }
@@ -52,9 +52,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float4 baseColor = BaseColorTex.Sample(BaseColorTexSampler, input.uv).xyzw;
 	clip(baseColor.w - 0.5);
 
-	const float3x3 tbn = float3x3(input.worldTangent, input.worldBinormal, input.worldNormal);
-	const float3 normalFromMap = normalize(NormalTex.Sample(NormalTexSampler, input.uv).xyz);
-	const float3 worldNormal = normalize(mul(normalFromMap, tbn));
+	float3 normalFromMap = normalize(NormalTex.Sample(NormalTexSampler, input.uv).xyz * 2.0 - 1.0);
+	normalFromMap.y *= -1;
+	// float3x3 take 3 float3 as rows
+	const float3x3 tbn = transpose(float3x3(
+		normalize(input.worldTangent), 
+		normalize(input.worldBinormal), 
+		normalize(input.worldNormal)));
+	const float3 worldNormal = normalize(mul(tbn, normalFromMap));
 
 	const float4 metallicRoughness = MetalnessTex.Sample(MetalnessTexSampler, input.uv);
 	const float metallic = metallicRoughness.x;
@@ -64,7 +69,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	matData.worldNormal = worldNormal * 0.5 + 0.5;
 	matData.baseColor = baseColor;
 	matData.linearSmoothness = 1.0 - roughness;
-	matData.reflectance = 0;
+	matData.reflectance = 0.5;
 	matData.metalMask = metallic;
 
 	PackGbufferData(matData, output.gBuffer0, output.gBuffer1, output.gBuffer2);
