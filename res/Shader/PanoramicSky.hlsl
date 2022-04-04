@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "Panorama.h"
+#include "Camera.h"
 
 struct VSInput
 {
@@ -21,11 +22,6 @@ SamplerState PanoramicSkySampler;
 
 float4 RtSize;
 
-float4 FrustumInfo;
-#define AspectRatio		(FrustumInfo.x)
-#define FovVertical		(FrustumInfo.y)
-#define FovHorizontal	(FrustumInfo.z)
-
 float3 CameraDir;
 
 float4x4 InvViewMat;
@@ -45,7 +41,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
 	float2 screenRatio = input.position.xy * RtSize.zw;
 	float2 screenRatioFromCenter = (screenRatio * 2.0 - 1.0) * float2(1, -1);
-	float2 offsetRadius = float2(FovHorizontal, FovVertical) * screenRatioFromCenter;
+	float2 offsetRadius = HalfFov * screenRatioFromCenter;
 	float3 dirInViewSpace = normalize(float3(tan(offsetRadius), 1));
 	float3 dirInWorldSpace = mul(InvViewMat, float4(dirInViewSpace, 0));
 
