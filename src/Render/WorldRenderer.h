@@ -25,6 +25,7 @@ public:
 private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
 	void RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const;
+	void DeferredLighting(GraphicsContext* context, IRenderTargetView* target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

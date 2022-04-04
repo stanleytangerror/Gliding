@@ -59,7 +59,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
-
+	
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
@@ -113,7 +113,7 @@ WorldRenderer::~WorldRenderer()
 void WorldRenderer::TickFrame(Timer* timer)
 {
 	//mCameraTrans.mWorldTransform = 
-	//	Transformf(Rotationf(Math::DegreeToRadian(10.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+	//	Transformf(Rotationf(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
 	//	* mCameraTrans.mWorldTransform;
 
 	mTestModel.mRelTransform =
@@ -138,7 +138,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		});
 
 	//////////////////////////////////////////////////////////////////////////
-	
+
 	{
 		for (const auto& rt : mGBufferRts)
 		{
@@ -158,58 +158,59 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			}
 		});
 
-	//////////////////////////////////////////////////////////////////////////
-
-	{
-		GraphicsPass lightingPass(context);
-
-		lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-		lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-		lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
-		lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
-
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = lightingPass.PsoDesc();
-		{
-			desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-			desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-			desc.DepthStencilState.DepthEnable = false;
-			desc.DepthStencilState.StencilEnable = false;
-			desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
-		}
-
-		const Vec3i& targetSize = target->GetResource()->GetSize();
-		lightingPass.mRts[0] = target;
-		lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
-		lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-
-		lightingPass.mVbvs.clear();
-		lightingPass.mVbvs.push_back(mQuad->mVbv);
-		lightingPass.mIbv = mQuad->mIbv;
-		lightingPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
-
-		lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-		lightingPass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
-		lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
-		lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
-		lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
-		lightingPass.AddSrv("SceneDepth", mDepthRt->GetSrv());
-		lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
-
-		lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
-
-		lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
-		lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
-
-		lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
-		lightingPass.AddCbVar("CameraPos", mCameraTrans.CamPosInWorldSpace()); 
-		lightingPass.AddCbVar("LightDir", mLight.mLightDir);
-		lightingPass.AddCbVar("LightColor", mLight.mLightColor);
-
-		lightingPass.Draw();
-	}
-
+	DeferredLighting(context, target);
 	RenderSky(context, target, mDepthRt->GetDsv());
 }
+
+void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)
+{
+	GraphicsPass lightingPass(context);
+
+	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
+	lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = lightingPass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = false;
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
+	}
+
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	lightingPass.mRts[0] = target;
+	lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+
+	lightingPass.mVbvs.clear();
+	lightingPass.mVbvs.push_back(mQuad->mVbv);
+	lightingPass.mIbv = mQuad->mIbv;
+	lightingPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
+
+	lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+	lightingPass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
+	lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
+	lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
+	lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
+	lightingPass.AddSrv("SceneDepth", mDepthRt->GetSrv());
+	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
+
+	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
+
+	lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
+	lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+
+	lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
+	lightingPass.AddCbVar("CameraPos", mCameraTrans.CamPosInWorldSpace()); 
+	lightingPass.AddCbVar("LightDir", mLight.mLightDir);
+	lightingPass.AddCbVar("LightColor", mLight.mLightColor);
+
+	lightingPass.Draw();
+}
+
 
 void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
 {
