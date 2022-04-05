@@ -50,6 +50,14 @@ const char* NameTable::AllocName(const char* name)
 	return mem;
 }
 
+bool ShaderMacro::operator<(const ShaderMacro& other) const
+{
+	return
+		mName < other.mName ? true :
+		mName > other.mName ? false :
+		mDefinition < other.mDefinition;
+}
+
 ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vector<ShaderMacro>& macros)
 	: mType(type)
 	, mFile(file)
@@ -203,33 +211,45 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vect
 
 ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file, const std::vector<ShaderMacro>& macros)
 {
-	if (mVsCache.find(file) == mVsCache.end())
+	const Entry entry = { file, macros };
+	if (mVsCache.find(entry) == mVsCache.end())
 	{
 		ShaderPiece* vs = new ShaderPiece(file, ShaderType::eVs, macros);
-		mVsCache[file] = vs;
+		mVsCache[entry] = vs;
 	}
 
-	return mVsCache[file];
+	return mVsCache[entry];
 }
 
 ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file, const std::vector<ShaderMacro>& macros)
 {
-	if (mPsCache.find(file) == mPsCache.end())
+	const Entry entry = { file, macros };
+	if (mPsCache.find(entry) == mPsCache.end())
 	{
 		ShaderPiece* vs = new ShaderPiece(file, ShaderType::ePs, macros);
-		mPsCache[file] = vs;
+		mPsCache[entry] = vs;
 	}
 
-	return mPsCache[file];
+	return mPsCache[entry];
 }
 
 ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file, const std::vector<ShaderMacro>& macros)
 {
-	if (mCsCache.find(file) == mCsCache.end())
+	const Entry entry = { file, macros };
+	if (mCsCache.find(entry) == mCsCache.end())
 	{
 		ShaderPiece* cs = new ShaderPiece(file, ShaderType::eCs, macros);
-		mCsCache[file] = cs;
+		mCsCache[entry] = cs;
 	}
 
-	return mCsCache[file];
+	return mCsCache[entry];
 }
+
+bool D3D12ShaderLibrary::Entry::Less::operator()(Entry const& o0, Entry const& o1) const
+{
+	return
+		o0.mName < o1.mName ? true :
+		o0.mName > o1.mName ? false :
+		o0.mMacros < o1.mMacros;
+}
+

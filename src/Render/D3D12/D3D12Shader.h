@@ -65,6 +65,8 @@ struct ShaderMacro
 {
 	std::string mName;
 	std::string mDefinition;
+
+	bool operator<(const ShaderMacro& other) const;
 };
 
 class ShaderPiece
@@ -104,7 +106,19 @@ public:
 	ShaderPiece* CreateCs(const char* file, const std::vector<ShaderMacro>& macros);
 
 protected:
-	std::map<std::string, ShaderPiece*> mVsCache;
-	std::map<std::string, ShaderPiece*> mPsCache;
-	std::map<std::string, ShaderPiece*> mCsCache;
+	struct Entry
+	{
+		std::string mName;
+		std::vector<ShaderMacro> mMacros;
+
+		class Less
+		{
+		public:
+			bool operator()(Entry const& o0, Entry const& o1) const;
+		};
+	};
+
+	std::map<Entry, ShaderPiece*, Entry::Less> mVsCache;
+	std::map<Entry, ShaderPiece*, Entry::Less> mPsCache;
+	std::map<Entry, ShaderPiece*, Entry::Less> mCsCache;
 };
