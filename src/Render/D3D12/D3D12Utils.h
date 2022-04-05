@@ -8,12 +8,7 @@ namespace D3D12Utils
 {
 	void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter);
 	
-	ID3DBlob* LoadRs(const char* filePath, const char* entry);
-	ID3DBlob* LoadVs(const char* filePath);
-	ID3DBlob* LoadPs(const char* filePath);
-	ID3DBlob* LoadCs(const char* filePath);
-
-	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, u32 flags);
+	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
 
 	ID3D12Resource* CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name = nullptr);
 

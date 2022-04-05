@@ -30,27 +30,7 @@ void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppA
 	*ppAdapter = adapter.Detach();
 }
 
-ID3DBlob* D3D12Utils::LoadRs(const char* file, const char* entry)
-{
-	return CompileBlobFromFile(file, entry, "rootsig_1_0", 0);
-}
-
-ID3DBlob* D3D12Utils::LoadVs(const char* file)
-{
-	return CompileBlobFromFile(file, "VSMain", "vs_5_0", 0);
-}
-
-ID3DBlob* D3D12Utils::LoadCs(const char* file)
-{
-	return CompileBlobFromFile(file, "CSMain", "cs_5_0", 0);
-}
-
-ID3DBlob* D3D12Utils::LoadPs(const char* file)
-{
-	return CompileBlobFromFile(file, "PSMain", "ps_5_0", 0);
-}
-
-ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, u32 flags)
+ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros)
 {
 	std::ostringstream buf;
 	std::ifstream input(filePath);
@@ -62,11 +42,12 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 	ID3DBlob* result = nullptr;
 	ID3DBlob* error = nullptr;
 
+	u32 flags = 0;
 #if defined(_DEBUG)
 	flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_SKIP_VALIDATION;
 #endif
 
-	const HRESULT hr = D3DCompile(content.c_str(), content.size(), nullptr, nullptr, include.get(), entryName, target, flags, 0, &result, &error);
+	const HRESULT hr = D3DCompile(content.c_str(), content.size(), filePath, macros.data(), include.get(), entryName, target, flags, 0, &result, &error);
 	if (hr)
 	{
 		char errorStr[1024] = {};

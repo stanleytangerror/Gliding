@@ -142,7 +142,7 @@ ID3D12RootSignature* D3D12PipelineStateLibrary::CreateRootSignature(const char* 
 	FileEntryKey key = { file, entry };
 	if (mRsCache.find(key) == mRsCache.end())
 	{
-		ID3DBlob* signature = D3D12Utils::LoadRs(file, entry);
+		ID3DBlob* signature = D3D12Utils::CompileBlobFromFile(file, entry, "rootsig_1_0", {});
 		ID3D12RootSignature* rootSignature = nullptr;
 		AssertHResultOk(mDevice->GetDevice()->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature)));
 		Assert(rootSignature);

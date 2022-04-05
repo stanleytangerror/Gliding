@@ -9,5 +9,5 @@ namespace RenderUtils
 {
 	void CopyTexture(GraphicsContext* context, 
 		IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
-		IShaderResourceView* source, D3D12SamplerView* sourceSampler);
+		IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
 }

@@ -21,4 +21,7 @@ namespace Utils
 			ptr = nullptr;
 		}
 	}
+
+	template <typename T, std::size_t Size>
+	std::size_t GetArrayLength(T(&)[Size]) { return Size; }
 }

@@ -166,15 +166,26 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target)
 {
-	//enum class GBufferContentType { BaseColor, Normal, MetalMash, Roughness, Reflection, Count };
+	const std::pair<i32, const char*> gbufferSemantics[] =
+	{
+		{ 1, "float4(LinearToSrgb(color.xyz), 1)" },		// BaseColor,
+		{ 0, "float4(LinearToSrgb(color.xyz), 1)" },		// Normal,
+		{ 2, "float4(LinearToSrgb(color.yyy), 1)" },		// MetalMash,
+		{ 0, "float4(LinearToSrgb(1.0 - color.www), 1)" },	// Roughness,
+		{ 2, "float4(LinearToSrgb(color.zzz), 1)" },		// Reflection,
+	};
 	
 	const Vec3i& targetSize = target->GetResource()->GetSize();
-	const f32 width = f32(targetSize.x()) / mGBufferRts.size();
+	const f32 width = f32(targetSize.x()) / Utils::GetArrayLength(gbufferSemantics);
 	const f32 height = width / targetSize.x() * targetSize.y();
 
-	for (i32 i = 0; i < mGBufferRts.size(); ++i)
+	for (u32 i = 0; i < Utils::GetArrayLength(gbufferSemantics); ++i)
 	{
-		RenderUtils::CopyTexture(context, target, { i * width, 0.f }, { width, height }, mGBufferRts[i]->GetSrv(), mNoMipMapLinearSampler);
+		const auto& [idx, unary] = gbufferSemantics[i];
+
+		RenderUtils::CopyTexture(context, 
+			target, { i * width, 0.f }, { width, height }, 
+			mGBufferRts[idx]->GetSrv(), mNoMipMapLinearSampler, unary);
 	}
 }
 

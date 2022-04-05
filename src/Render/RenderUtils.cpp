@@ -6,7 +6,9 @@
 #include "D3D12/D3D12ResourceView.h"
 #include "D3D12/D3D12Resource.h"
 
-void RenderUtils::CopyTexture(GraphicsContext* context, IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, IShaderResourceView* source, D3D12SamplerView* sourceSampler)
+void RenderUtils::CopyTexture(GraphicsContext* context, 
+	IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
+	IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary)
 {
 	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
@@ -16,6 +18,7 @@ void RenderUtils::CopyTexture(GraphicsContext* context, IRenderTargetView* targe
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 	pass.mPsFile = "res/Shader/CopyTexture.hlsl";
+	pass.mShaderMacros.push_back(ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{

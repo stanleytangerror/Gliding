@@ -97,7 +97,7 @@ void ComputePass::Dispatch()
 	mPso->SetRootSignature(mRootSignature);
 
 	// shader
-	ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(mCsFile.c_str());
+	ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(mCsFile.c_str(), mShaderMacros);
 	mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
 
 	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
@@ -215,8 +215,8 @@ void GraphicsPass::Draw()
 	mPso->SetRootSignature(mRootSignature);
 
 	// shader
-	ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(mVsFile.c_str());
-	ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(mPsFile.c_str());
+	ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(mVsFile.c_str(), mShaderMacros);
+	ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(mPsFile.c_str(), mShaderMacros);
 
 	mPso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
 	mPso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));

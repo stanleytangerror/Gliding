@@ -57,6 +57,7 @@ public:
 	}					mRootSignatureDesc;
 
 	std::string mCsFile;
+	std::vector<ShaderMacro>	mShaderMacros;
 
 public:
 	GraphicsContext* const					mContext = nullptr;
@@ -103,6 +104,7 @@ public:
 
 	std::string mVsFile;
 	std::string mPsFile;
+	std::vector<ShaderMacro>	mShaderMacros;
 
 public:
 	GraphicsContext* const					mContext = nullptr;

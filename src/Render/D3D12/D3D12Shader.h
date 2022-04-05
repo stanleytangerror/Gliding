@@ -61,10 +61,16 @@ enum class ShaderType
 	eVs, ePs, eCs, eNum
 };
 
+struct ShaderMacro
+{
+	std::string mName;
+	std::string mDefinition;
+};
+
 class ShaderPiece
 {
 public:
-	ShaderPiece(const char* file, enum ShaderType type);
+	ShaderPiece(const char* file, enum ShaderType type, const std::vector<ShaderMacro>& macros);
 
 	const enum ShaderType						GetType() const { return mType; }
 	ID3DBlob*									GetShader() const { return mShader; }
@@ -77,6 +83,8 @@ public:
 protected:
 	const enum ShaderType					mType;
 	const std::string						mFile;
+	const std::vector<ShaderMacro>			mMacros;
+
 	ID3DBlob* mShader = nullptr;
 	std::vector<D3D12_INPUT_ELEMENT_DESC>	mInputLayout;
 
@@ -91,9 +99,9 @@ protected:
 class D3D12ShaderLibrary
 {
 public:
-	ShaderPiece* CreateVs(const char* file);
-	ShaderPiece* CreatePs(const char* file);
-	ShaderPiece* CreateCs(const char* file);
+	ShaderPiece* CreateVs(const char* file, const std::vector<ShaderMacro>& macros);
+	ShaderPiece* CreatePs(const char* file, const std::vector<ShaderMacro>& macros);
+	ShaderPiece* CreateCs(const char* file, const std::vector<ShaderMacro>& macros);
 
 protected:
 	std::map<std::string, ShaderPiece*> mVsCache;

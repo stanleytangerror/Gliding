@@ -33,7 +33,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 {
 	PSOutput output;
 	const float2 uv = RtSize.zw * input.position.xy;
-	const float3 color = SourceTex.Sample(SourceTexSampler, uv).xyz;
-    output.color = float4(color, 1);
+	const float4 color = SourceTex.Sample(SourceTexSampler, uv);
+    output.color = (SOURCE_PIXEL_UNARY);
 	return output;
 }

@@ -50,14 +50,19 @@ const char* NameTable::AllocName(const char* name)
 	return mem;
 }
 
-ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
+ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vector<ShaderMacro>& macros)
 	: mType(type)
 	, mFile(file)
+	, mMacros(macros)
 {
+	std::vector<D3D_SHADER_MACRO> d3dMacros(mMacros.size() + 1, D3D_SHADER_MACRO{}); // a terminator
+	std::transform(mMacros.begin(), mMacros.end(), d3dMacros.begin(),
+		[](const ShaderMacro& m) { return D3D_SHADER_MACRO{ m.mName.c_str(), m.mDefinition.c_str() }; });
+
 	mShader = 
-		type == ShaderType::eVs ? D3D12Utils::LoadVs(file) : 
-		type == ShaderType::ePs ? D3D12Utils::LoadPs(file) :
-		D3D12Utils::LoadCs(file);
+		type == ShaderType::eVs ? D3D12Utils::CompileBlobFromFile(file, "VSMain", "vs_5_0", d3dMacros) :
+		type == ShaderType::ePs ? D3D12Utils::CompileBlobFromFile(file, "PSMain", "ps_5_0", d3dMacros) :
+		D3D12Utils::CompileBlobFromFile(file, "CSMain", "cs_5_0", d3dMacros);
 
 	Assert(mShader);
 
@@ -196,33 +201,33 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type)
 	}
 }
 
-ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file)
+ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file, const std::vector<ShaderMacro>& macros)
 {
 	if (mVsCache.find(file) == mVsCache.end())
 	{
-		ShaderPiece* vs = new ShaderPiece(file, ShaderType::eVs);
+		ShaderPiece* vs = new ShaderPiece(file, ShaderType::eVs, macros);
 		mVsCache[file] = vs;
 	}
 
 	return mVsCache[file];
 }
 
-ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file)
+ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file, const std::vector<ShaderMacro>& macros)
 {
 	if (mPsCache.find(file) == mPsCache.end())
 	{
-		ShaderPiece* vs = new ShaderPiece(file, ShaderType::ePs);
+		ShaderPiece* vs = new ShaderPiece(file, ShaderType::ePs, macros);
 		mPsCache[file] = vs;
 	}
 
 	return mPsCache[file];
 }
 
-ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file)
+ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file, const std::vector<ShaderMacro>& macros)
 {
 	if (mCsCache.find(file) == mCsCache.end())
 	{
-		ShaderPiece* cs = new ShaderPiece(file, ShaderType::eCs);
+		ShaderPiece* cs = new ShaderPiece(file, ShaderType::eCs, macros);
 		mCsCache[file] = cs;
 	}
 
