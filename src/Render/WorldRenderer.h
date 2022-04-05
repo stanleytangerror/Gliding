@@ -22,6 +22,8 @@ public:
 	void TickFrame(Timer* timer);
 	void Render(GraphicsContext* context, IRenderTargetView* target);
 
+	void RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target);
+
 private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
 	void RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const;
@@ -35,6 +37,7 @@ private:
 	D3D12Texture* mPanoramicSkyTex = nullptr;
 	D3D12SamplerView* mPanoramicSkySampler = nullptr;
 	D3D12SamplerView* mLightingSceneSampler = nullptr;
+	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
 
 	D3DDepthStencil* mDepthRt = nullptr;
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};

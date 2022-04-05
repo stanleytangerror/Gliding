@@ -40,6 +40,8 @@ void RenderModule::TickFrame(Timer* timer)
 		
 		mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
 		mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
+		mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
+
 		backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
 	}
 	context->Finalize();

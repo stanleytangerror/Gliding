@@ -10,6 +10,7 @@
 #include "D3D12/D3D12Texture.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
+#include "RenderUtils.h"
 
 namespace
 {
@@ -48,7 +49,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-
+	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
@@ -160,6 +162,20 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	DeferredLighting(context, target);
 	RenderSky(context, target, mDepthRt->GetDsv());
+}
+
+void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target)
+{
+	//enum class GBufferContentType { BaseColor, Normal, MetalMash, Roughness, Reflection, Count };
+	
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const f32 width = f32(targetSize.x()) / mGBufferRts.size();
+	const f32 height = width / targetSize.x() * targetSize.y();
+
+	for (i32 i = 0; i < mGBufferRts.size(); ++i)
+	{
+		RenderUtils::CopyTexture(context, target, { i * width, 0.f }, { width, height }, mGBufferRts[i]->GetSrv(), mNoMipMapLinearSampler);
+	}
 }
 
 void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)

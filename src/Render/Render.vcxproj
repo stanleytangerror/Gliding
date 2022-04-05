@@ -128,6 +128,7 @@
     <ClInclude Include="RenderMaterial.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
+    <ClInclude Include="RenderUtils.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />
@@ -168,6 +169,7 @@
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
+    <ClCompile Include="RenderUtils.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="WorldRenderer.cpp" />
   </ItemGroup>
