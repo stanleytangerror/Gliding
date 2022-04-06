@@ -61,6 +61,21 @@ Mat44f Math::OrthographicProjection::ComputeProjectionMatrix() const
 	return projMat;
 }
 
+f32 Math::OrthographicProjection::GetFarPlaneDeviceDepth() const
+{
+	return 1.f;
+}
+
+f32 Math::OrthographicProjection::GetNearPlaneDeviceDepth() const
+{
+	return 0.f;
+}
+
+Math::ValueCompareState Math::OrthographicProjection::GetNearerDepthCompare() const
+{
+	return ValueCompareState(ValueCompareState_Less | ValueCompareState_Equal);
+}
+
 Mat33f Math::GetRotation(Axis3D source, Axis3D target, Chirality chirality)
 {
 	if (source == target)

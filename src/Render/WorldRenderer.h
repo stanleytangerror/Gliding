@@ -12,6 +12,7 @@ class D3D12RenderTarget;
 class D3DDepthStencil;
 class DSV;
 struct RenderMaterial;
+struct DirectionalLight;
 
 class GD_RENDER_API WorldRenderer
 {
@@ -34,6 +35,12 @@ private:
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj,
 		const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView);
 
+	static void RenderGeometryDepthWithMaterial(GraphicsContext* context,
+		D3D12Geometry* geometry, RenderMaterial* material,
+		const Transformf& transform,
+		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj,
+		DSV* depthView);
+
 private:
 	RenderModule* mRenderModule = nullptr;
 
@@ -44,7 +51,10 @@ private:
 	D3D12SamplerView* mLightingSceneSampler = nullptr;
 	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
 
-	D3DDepthStencil* mDepthRt = nullptr;
+	DirectionalLight* mSunLight = nullptr;
+	D3DDepthStencil* mLightViewDepthRt = nullptr;
+
+	D3DDepthStencil* mMainDepthRt = nullptr;
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
 
 	Math::PerspectiveProjection	mCameraProj;
@@ -53,10 +63,4 @@ private:
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>> mTestModel;
-
-	struct DirectionalLight
-	{
-		Vec3f mLightColor = Vec3f::Zero();
-		Vec3f mLightDir = { 0.f, 0.f, 1.f };
-	}	mLight;
 };

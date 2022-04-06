@@ -44,13 +44,22 @@ namespace Math
 	constexpr T Pi() { return T(3.14159265358979323846); }
 
 	template <typename T>
-	constexpr T HalfPi() { return Pi<T>() * 0.5; }
+	constexpr T HalfPi() { return Pi<T>() * T(0.5); }
+
+	template <typename T>
+	constexpr T Epsilon() { return T(1e-5); }
 
 	template <typename T>
 	constexpr T Align(T Val, u64 Alignment)
 	{
 		return (T)(((u64)Val + Alignment - 1) & ~(Alignment - 1));
 	}
+
+	template <typename T>
+	constexpr bool AlmostEqual(T a, T b) { return std::max(a, b) <= std::min(a, b) + Epsilon<T>(); }
+
+	template <typename T>
+	constexpr bool AlmostZero(T a) { return AlmostEqual<T>(a, T(0)); }
 
 	template <typename T>
 	constexpr float DegreeToRadian(const T deg) { return deg / 180.f * Pi<T>(); }
@@ -112,6 +121,9 @@ namespace Math
 		f32		mFar = 1000.f;
 
 		Mat44f	ComputeProjectionMatrix() const;
+		f32		GetFarPlaneDeviceDepth() const;
+		f32		GetNearPlaneDeviceDepth() const;
+		ValueCompareState	GetNearerDepthCompare() const;
 	};
 
 	template <typename T>
@@ -121,9 +133,20 @@ namespace Math
 		 *		CamDir_v	+y,
 		 *		CamUp_v		+z,
 		 *		CamRight_v	+x
+		 *
+		 * By default camera axis in world space (right-handed, +z up, default no world rotation):
+		 * (NOTE: it is coincidental that view space axis aligned the same with world space axis)
+		 *		CamDir_w	+y,
+		 *		CamUp_w		+z,
+		 *		CamRight_w	+x
 		 */
 
-		Transform<T>	mWorldTransform = Transform<T>::Identity();
+		/* WorldTransform = WorldTransform * WorldRotation (apply rotation first) */
+		Rotation<T>	mWorldRotation = Rotation<T>::Identity();
+		Translation<T>	mWorldTranslation = Translation<T>::Identity();
+
+		void AlignCamera(const Vec3<T>& dirWorld, const Vec3<T>& upWorld, const Vec3<T>& rightWorld);
+		void MoveCamera(const Vec3<T>& posWorld);
 
 		Vec3<T>	CamDirInViewSpace() const { return Axis3DDir<T>(Axis3D_Yp); }
 		Vec3<T>	CamUpInViewSpace() const { return Axis3DDir<T>(Axis3D_Zp); }

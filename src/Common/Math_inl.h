@@ -18,22 +18,22 @@ inline f32 Math::Sqrt(f32 v)
 template <typename T>
 Vec3<T> Math::CameraTransform<typename T>::CamDirInWorldSpace() const
 {
-	return mWorldTransform.linear() * CamDirInViewSpace();
+	return mWorldRotation * CamDirInViewSpace();
 }
 template <typename T>
 Vec3<T> Math::CameraTransform<typename T>::CamUpInWorldSpace() const
 {
-	return mWorldTransform.linear() * CamUpInViewSpace();
+	return mWorldRotation * CamUpInViewSpace();
 }
 template <typename T>
 Vec3<T> Math::CameraTransform<typename T>::CamRightInWorldSpace() const
 {
-	return mWorldTransform.linear() * CamRightInViewSpace();
+	return mWorldRotation * CamRightInViewSpace();
 }
 template <typename T>
 Vec3<T> Math::CameraTransform<typename T>::CamPosInWorldSpace() const
 {
-	return mWorldTransform * Vec3<T>::Zero();
+	return mWorldTranslation.vector();
 }
 
 template <typename T>
@@ -77,6 +77,43 @@ Mat44<T> Math::CameraTransform<typename T>::ComputeInvViewMatrix() const
 
 	return invViewMat;
 }
+
+template <typename T>
+void Math::CameraTransform<typename T>::AlignCamera(const Vec3<T>& dirWorld, const Vec3<T>& upWorld, const Vec3<T>& rightWorld)
+{
+	Assert(AlmostZero<T>(dirWorld.dot(upWorld)));
+	Assert(AlmostZero<T>(rightWorld.dot(upWorld)));
+	Assert(AlmostZero<T>(rightWorld.dot(dirWorld)));
+	
+	/* Rotation * CamRight_w_origin = CamRight_w_new
+	 * Rotation * CamDir_w_origin = CamDir_w_new
+	 * Rotation * CamUp_w_origin = CamUp_w_new
+	 */
+
+	Mat33<T> originAxis;
+	{
+		originAxis.col(0) = Axis3DDir<T>(Axis3D_Xp);
+		originAxis.col(1) = Axis3DDir<T>(Axis3D_Yp);
+		originAxis.col(2) = Axis3DDir<T>(Axis3D_Zp);
+	}
+
+	Mat33<T> targetAxis;
+	{
+		originAxis.col(0) = rightWorld;
+		originAxis.col(1) = dirWorld;
+		originAxis.col(2) = upWorld;
+	}
+
+	const Mat33<T>& rotMat = targetAxis * originAxis.transpose();
+	mWorldRotation = rotMat;
+}
+
+template <typename T>
+void Math::CameraTransform<typename T>::MoveCamera(const Vec3<T>& posWorld)
+{
+	mWorldTranslation = Translation<T>(posWorld);
+}
+
 
 template <typename T, i32 Rols, i32 Cols>
 inline std::string Math::ToString(const Mat<T, Rols, Cols>& mat)

@@ -105,6 +105,9 @@
     <ClInclude Include="RenderUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">

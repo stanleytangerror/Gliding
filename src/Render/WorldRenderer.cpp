@@ -11,6 +11,7 @@
 #include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "RenderUtils.h"
+#include "Light.h"
 
 namespace
 {
@@ -56,12 +57,30 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	{
 		mGBufferRts[i] = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
-	mDepthRt = new D3DDepthStencil(device, size,
+	mMainDepthRt = new D3DDepthStencil(device, size,
 		DXGI_FORMAT_R24G8_TYPELESS,
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
-	
+
+	mSunLight = new DirectionalLight;
+	{
+		mSunLight->mLightIntensity = 1000.f;
+		mSunLight->mWorldTransform.AlignCamera(
+			Vec3f{ 1.f, 0.f, -1.f }.normalized(),
+			Vec3f{ 1.f, 0.f, 1.f }.normalized(),
+			Vec3f{ 0.f, 1.f, 0.f }.normalized());
+		mSunLight->mWorldTransform.MoveCamera({ -200.f, 0.f, 200.f });
+		mSunLight->mLightViewProj.mViewHeight = 1000.f;
+		mSunLight->mLightViewProj.mViewWidth = 1000.f;
+	}
+
+	mLightViewDepthRt = new D3DDepthStencil(device, { 128, 128 },
+		DXGI_FORMAT_R24G8_TYPELESS,
+		DXGI_FORMAT_D24_UNORM_S8_UINT,
+		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+		"LightViewDepthRt");
+
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
@@ -96,10 +115,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	//mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -0.7f);
 	mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
 
-	mLight.mLightColor = Vec3f::Ones() * 1000.f;
-	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
-
-	mCameraTrans.mWorldTransform = Translationf(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
+	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 }
 
 WorldRenderer::~WorldRenderer()
@@ -107,7 +123,7 @@ WorldRenderer::~WorldRenderer()
 	Utils::SafeDelete(mQuad);
 	Utils::SafeDelete(mSphere);
 	Utils::SafeDelete(mPanoramicSkyTex);
-	Utils::SafeDelete(mDepthRt);
+	Utils::SafeDelete(mMainDepthRt);
 	for (auto& rt : mGBufferRts)
 	{
 		Utils::SafeDelete(rt);
@@ -143,13 +159,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	//////////////////////////////////////////////////////////////////////////
 
-	{
-		for (const auto& rt : mGBufferRts)
-		{
-			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
-		}
-		mDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
-	}
+	mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
 	mTestModel.ForEach([&](const auto& node)
 		{
@@ -158,12 +168,33 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 			if (geo && mat && mat->IsGpuResourceReady())
 			{
-				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mDepthRt->GetDsv());
+				RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthRt->GetDsv());
 			}
 		});
 
+	//////////////////////////////////////////////////////////////////////////
+
+	for (const auto& rt : mGBufferRts)
+	{
+		rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
+	}
+	mMainDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
+
+	mTestModel.ForEach([&](const auto& node)
+		{
+			D3D12Geometry* geo = node.mContent.first.get();
+			RenderMaterial* mat = node.mContent.second.get();
+
+			if (geo && mat && mat->IsGpuResourceReady())
+			{
+				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mMainDepthRt->GetDsv());
+			}
+		});
+
+	//////////////////////////////////////////////////////////////////////////
+	
 	DeferredLighting(context, target);
-	RenderSky(context, target, mDepthRt->GetDsv());
+	RenderSky(context, target, mMainDepthRt->GetDsv());
 }
 
 void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target)
@@ -224,7 +255,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
 	lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
 	lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
-	lightingPass.AddSrv("SceneDepth", mDepthRt->GetSrv());
+	lightingPass.AddSrv("SceneDepth", mMainDepthRt->GetSrv());
 	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
 
 	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
@@ -234,8 +265,8 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
 	lightingPass.AddCbVar("CameraPos", mCameraTrans.CamPosInWorldSpace()); 
-	lightingPass.AddCbVar("LightDir", mLight.mLightDir);
-	lightingPass.AddCbVar("LightColor", mLight.mLightColor);
+	lightingPass.AddCbVar("LightDir", mSunLight->mWorldTransform.CamDirInWorldSpace());
+	lightingPass.AddCbVar("LightColor", (mSunLight->mLightColor * mSunLight->mLightIntensity).eval());
 
 	lightingPass.Draw();
 }
@@ -372,4 +403,53 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	}
 
 	gbufferPass.Draw();
+}
+
+void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj, DSV* depthView)
+{
+	GraphicsPass pass(context);
+
+	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
+	pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = true;
+		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
+	}
+
+	pass.mDs = depthView;
+
+	const Vec3i& targetSize = depthView->GetResource()->GetSize();
+	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+
+	pass.mVbvs.clear();
+	pass.mVbvs.push_back(geometry->mVbv);
+	pass.mIbv = geometry->mIbv;
+	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+
+	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+	pass.AddCbVar("worldMat", transform.matrix());
+	pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
+	pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+
+	const char* paramName = "BaseColorTex";
+
+	const auto& texs = material->mTextureParams[TextureUsage_BaseColor];
+	if (!texs.empty())
+	{
+		pass.AddSrv(paramName, texs.front()->GetSrv());
+		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), material->mSamplerParams[TextureUsage_BaseColor].front());
+	}
+
+	pass.Draw();
 }
