@@ -62,7 +62,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
 	
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
+	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
@@ -92,7 +93,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			trans);
 	}
 
-	mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -0.7f);
+	//mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -0.7f);
+	mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
 
 	mLight.mLightColor = Vec3f::Ones() * 1000.f;
 	mLight.mLightDir = Vec3f(0.f, 1.f, -1.f).normalized();
@@ -156,7 +158,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 			if (geo && mat && mat->IsGpuResourceReady())
 			{
-				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform);
+				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mDepthRt->GetDsv());
 			}
 		});
 
@@ -257,8 +259,8 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = false;
 		desc.DepthStencilState.StencilEnable = true;
-		desc.DepthStencilState.StencilReadMask = mSceneMask & (~mSkyMask);
-		desc.DepthStencilState.StencilWriteMask = mSkyMask;
+		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky);
+		desc.DepthStencilState.StencilWriteMask = RenderUtils::WorldStencilMask_Sky;
 		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
@@ -293,7 +295,11 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	pass.Draw();
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const
+void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, 
+	D3D12Geometry* geometry, RenderMaterial* material, 
+	const Transformf& transform, 
+	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj, 
+	const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView)
 {
 	GraphicsPass gbufferPass(context);
 
@@ -307,10 +313,10 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(mCameraProj.GetNearerDepthCompare());
+		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
 		desc.DepthStencilState.StencilEnable = true;
-		desc.DepthStencilState.StencilReadMask = mSceneMask;
-		desc.DepthStencilState.StencilWriteMask = mOpaqueObjMask;
+		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_Scene;
+		desc.DepthStencilState.StencilWriteMask = RenderUtils::WorldStencilMask_OpaqueObject;
 		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
@@ -322,16 +328,16 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
 
-	for (i32 i = 0; i < mGBufferRts.size(); ++i)
+	for (i32 i = 0; i < gbufferRts.size(); ++i)
 	{
-		gbufferPass.mRts[i] = mGBufferRts[i]->GetRtv();
+		gbufferPass.mRts[i] = gbufferRts[i]->GetRtv();
 	}
-	gbufferPass.mDs = mDepthRt->GetDsv();
+	gbufferPass.mDs = depthView;
 
-	const Vec3i& targetSize = mGBufferRts[0]->GetSize();
+	const Vec3i& targetSize = gbufferRts[0]->GetSize();
 	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-	gbufferPass.mStencilRef = mOpaqueObjMask;
+	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	gbufferPass.mVbvs.clear();
 	gbufferPass.mVbvs.push_back(geometry->mVbv);
@@ -341,8 +347,8 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", mCameraTrans.ComputeViewMatrix());
-	gbufferPass.AddCbVar("projMat", mCameraProj.ComputeProjectionMatrix());
+	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
+	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
 	const std::pair<TextureUsage, const char*> texSlots[] =
 	{
@@ -367,4 +373,3 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, D3D12Ge
 
 	gbufferPass.Draw();
 }
-

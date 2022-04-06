@@ -26,8 +26,13 @@ public:
 
 private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
-	void RenderGeometryWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform) const;
 	void DeferredLighting(GraphicsContext* context, IRenderTargetView* target);
+
+	static void RenderGeometryWithMaterial(GraphicsContext* context, 
+		D3D12Geometry* geometry, RenderMaterial* material, 
+		const Transformf& transform, 
+		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj,
+		const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView);
 
 private:
 	RenderModule* mRenderModule = nullptr;
@@ -54,8 +59,4 @@ private:
 		Vec3f mLightColor = Vec3f::Zero();
 		Vec3f mLightDir = { 0.f, 0.f, 1.f };
 	}	mLight;
-
-	const u8	mSceneMask = 0x7f;
-	const u8	mOpaqueObjMask = 0x1 << 0;
-	const u8	mSkyMask = 0x1 << 6;
 };
