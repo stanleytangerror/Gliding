@@ -8,19 +8,35 @@ float4 FrustumInfo;
 #define ViewSpaceNear       (FrustumInfo.z)
 #define ViewSpaceFar        (FrustumInfo.w)
 
-float GetViewDepthFromDeviceZ(float deviceZ)
+float3 GetNDCSpacePos(float2 screenUv, float deviceZ)
 {
-	float Q = ViewSpaceFar / (ViewSpaceFar - ViewSpaceNear);
-	return ViewSpaceNear / (1.0 - deviceZ / Q);
+    return float3(screenUv * 2.0 - 1.0, deviceZ);
 }
 
-float3 GetViewSpacePosFromDeviceZ(float2 screenUv, float deviceZ)
+float GetClipDivideW(float deviceZ, float2 viewSpaceDepthRange)
 {
-	float viewSpaceDepth = GetViewDepthFromDeviceZ(deviceZ);
-    float2 screenOffsetFromCenter = screenUv * 2.0 - 1.0;
-    float3 unnormalizedDirInViewSpace = float3(tan(screenOffsetFromCenter * HalfFov), 1);
-    
-    return unnormalizedDirInViewSpace * viewSpaceDepth;
+    float N = viewSpaceDepthRange.x;
+    float F = viewSpaceDepthRange.y;
+	float Q = F / (F - N);
+	return N / (1.0 - deviceZ / Q);
+}
+
+float4 GetHomoSpacePos(float2 screenUv, float deviceZ, float2 viewSpaceDepthRange)
+{
+    float3 ndcPos = GetNDCSpacePos(screenUv, deviceZ);
+    float w = GetClipDivideW(deviceZ, viewSpaceDepthRange);
+    return float4(ndcPos, 1) * w;
+}
+
+float3 GetViewSpacePos(float2 screenUv, float deviceZ, float2 viewSpaceDepthRange, float4x4 invProjMat)
+{
+    return mul(invProjMat, GetHomoSpacePos(screenUv, deviceZ, viewSpaceDepthRange)).xyz;
+}
+
+float3 GetWorldSpacePos(float2 screenUv, float deviceZ, float2 viewSpaceDepthRange, float4x4 invProjMat, float4x4 invViewMat)
+{
+    float3 viewSpacePos = GetViewSpacePos(screenUv, deviceZ, viewSpaceDepthRange, invProjMat);
+    return mul(invViewMat, float4(viewSpacePos, 1)).xyz;
 }
 
 #endif

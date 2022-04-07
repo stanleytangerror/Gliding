@@ -259,6 +259,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
 
 	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
+	lightingPass.AddCbVar("InvProjMat", mCameraProj.ComputeInvProjectionMatrix());
 
 	lightingPass.AddSrv("PanoramicSky", mPanoramicSkyTex->GetSrv());
 	lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);

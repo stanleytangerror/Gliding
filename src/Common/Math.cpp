@@ -4,19 +4,37 @@
 Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 {
 	const float fovVertical = mFovHorizontal / mAspectRatio;
-	const float w = 1.f / std::tan(mFovHorizontal * 0.5f);
-	const float h = 1.f / std::tan(fovVertical * 0.5f);
+	const float invW = 1.f / std::tan(mFovHorizontal * 0.5f);
+	const float invH = 1.f / std::tan(fovVertical * 0.5f);
 	const float Q = mFar / (mFar - mNear);
 
 	Mat44f projMat;
 	{
-		projMat.row(0) << w, 0, 0, 0;
-		projMat.row(1) << 0, h, 0, 0;
+		projMat.row(0) << invW, 0, 0, 0;
+		projMat.row(1) << 0, invH, 0, 0;
 		projMat.row(2) << 0, 0, Q, -Q * mNear;
 		projMat.row(3) << 0, 0, 1, 0;
 	}
 
 	return projMat;
+}
+
+Mat44f Math::PerspectiveProjection::ComputeInvProjectionMatrix() const
+{
+	const float fovVertical = mFovHorizontal / mAspectRatio;
+	const float w = std::tan(mFovHorizontal * 0.5f);
+	const float h = std::tan(fovVertical * 0.5f);
+	const float Q = mFar / (mFar - mNear);
+
+	Mat44f invProjMat;
+	{
+		invProjMat.row(0) << w, 0, 0, 0;
+		invProjMat.row(1) << 0, h, 0, 0;
+		invProjMat.row(2) << 0, 0, 0, 1;
+		invProjMat.row(3) << 0, 0, 1.0 / (-Q * mNear), 1.0 / mNear;
+	}
+
+	return invProjMat;
 }
 
 f32 Math::PerspectiveProjection::GetFarPlaneDeviceDepth() const

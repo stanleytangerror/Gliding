@@ -32,6 +32,7 @@ float3 CameraPos;
 float3 LightDir;
 float3 LightColor;
 float4x4 InvViewMat;
+float4x4 InvProjMat;
 
 PSInput VSMain(VSInput vsin)
 {
@@ -50,8 +51,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float2 uv = RtSize.zw * input.position.xy;
 
 	const float deviceZ = SceneDepth.Sample(GBufferSampler, uv).x;
-	const float3 viewSpacePos = GetViewSpacePosFromDeviceZ(uv, deviceZ);
-	const float3 worldSpacePos = mul(InvViewMat, float4(viewSpacePos, 1)).xyz;
+	const float3 worldSpacePos = GetWorldSpacePos(uv, deviceZ, float2(ViewSpaceNear, ViewSpaceFar), 
+		InvProjMat, InvViewMat);
+
 	const float3 V = normalize(worldSpacePos - CameraPos);
 
 	const float4 gBuffer0 = GBuffer0.Sample(GBufferSampler, uv);

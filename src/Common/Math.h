@@ -106,6 +106,8 @@ namespace Math
 		f32		mFar = 1000.f;
 
 		Mat44f	ComputeProjectionMatrix() const;
+		Mat44f	ComputeInvProjectionMatrix() const;
+
 		f32		GetFarPlaneDeviceDepth() const;
 		f32		GetNearPlaneDeviceDepth() const;
 		f32		GetHalfFovHorizontal() const;
