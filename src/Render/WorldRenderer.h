@@ -5,6 +5,7 @@
 class RenderModule;
 class D3D12Geometry;
 class IRenderTargetView;
+class IShaderResourceView;
 class D3D12SamplerView;
 class GraphicsContext;
 class D3D12Texture;
@@ -41,6 +42,13 @@ private:
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj,
 		DSV* depthView);
 
+	static void RenderShadowMask(GraphicsContext* context,
+		IRenderTargetView* shadowMask,
+		IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
+		IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
+		const Math::OrthographicProjection& lightViewProj, const Math::CameraTransformf& lightViewTrans,
+		const Math::PerspectiveProjection& cameraProj, const Math::CameraTransformf& cameraTrans);
+
 private:
 	RenderModule* mRenderModule = nullptr;
 
@@ -50,6 +58,7 @@ private:
 	D3D12SamplerView* mPanoramicSkySampler = nullptr;
 	D3D12SamplerView* mLightingSceneSampler = nullptr;
 	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
+	D3D12SamplerView* mNoMipMapLinearDepthCmpSampler = nullptr;
 
 	DirectionalLight* mSunLight = nullptr;
 	D3DDepthStencil* mLightViewDepthRt = nullptr;

@@ -51,7 +51,19 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	
+
+	{
+		D3D12_SAMPLER_DESC samplerDesc = {};
+		{
+			samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		}
+		mNoMipMapLinearDepthCmpSampler = new D3D12SamplerView(device, samplerDesc);
+	}
+
 	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
@@ -159,6 +171,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	//////////////////////////////////////////////////////////////////////////
 
+	const Vec3i& rtSize = target->GetResource()->GetSize();
+	std::unique_ptr<D3D12RenderTarget> shadowMaskRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), rtSize, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
+
 	mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
 	mTestModel.ForEach([&](const auto& node)
@@ -171,6 +186,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 				RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthRt->GetDsv());
 			}
 		});
+
+	RenderShadowMask(context, shadowMaskRt->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
+		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -451,6 +469,62 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3
 		pass.AddSrv(paramName, texs.front()->GetSrv());
 		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), material->mSamplerParams[TextureUsage_BaseColor].front());
 	}
+
+	pass.Draw();
+}
+
+void WorldRenderer::RenderShadowMask(GraphicsContext* context, 
+	IRenderTargetView* shadowMask, 
+	IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
+	IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
+	const Math::OrthographicProjection& lightViewProj, const Math::CameraTransformf& lightViewTrans,
+	const Math::PerspectiveProjection& cameraProj, const Math::CameraTransformf& cameraTrans)
+{
+	static D3D12Geometry* geometry = D3D12Geometry::GenerateQuad(context->GetDevice());
+
+	GraphicsPass pass(context);
+
+	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
+	pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = false;
+		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
+	}
+
+	pass.mRts[0] = shadowMask;
+
+	const Vec3i& targetSize = shadowMask->GetResource()->GetSize();
+	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+
+	pass.mVbvs.clear();
+	pass.mVbvs.push_back(geometry->mVbv);
+	pass.mIbv = geometry->mIbv;
+	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+
+	pass.AddSrv("LightViewDepth", lightViewDepth);
+	pass.AddSampler("LightViewDepthSampler", lightViewDepthSampler);
+	pass.AddSrv("CameraViewDepth", cameraViewDepth);
+	pass.AddSampler("CameraViewDepthSampler", cameraViewDepthSampler);
+
+	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+	pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
+
+	pass.AddCbVar("CameraViewMat", cameraTrans.ComputeViewMatrix());
+	pass.AddCbVar("CameraInvViewMat", cameraTrans.ComputeInvViewMatrix());
+	pass.AddCbVar("CameraProjMat", cameraProj.ComputeProjectionMatrix());
+	pass.AddCbVar("CameraInvProjMat", cameraProj.ComputeInvProjectionMatrix());
+
+	pass.AddCbVar("LightViewMat", lightViewTrans.ComputeViewMatrix());
+	pass.AddCbVar("LightProjMat", lightViewProj.ComputeProjectionMatrix());
 
 	pass.Draw();
 }
