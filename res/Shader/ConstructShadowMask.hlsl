@@ -51,8 +51,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 		CameraInvProjMat, CameraInvViewMat);
 
     float4 lightViewHomoPos = mul(LightProjMat, mul(LightViewMat, float4(worldSpacePos, 1)));
-    float2 lightViewScreenUv = lightViewHomoPos.xy * 2 - 1;
-    float lightViewDeviceZ = lightViewHomoPos.z / lightViewHomoPos.w;
+    float3 ndcSpacePos = lightViewHomoPos.xyz / lightViewHomoPos.w;
+    float2 lightViewScreenUv = ndcSpacePos.xy * float2(0.5, -0.5) + 0.5;
+    float lightViewDeviceZ = ndcSpacePos.z;
 	float shadowMask = LightViewDepth.SampleCmp(LightViewDepthSampler, lightViewScreenUv, lightViewDeviceZ);
 
     output.color = float4(1, 1, 1, 1) * shadowMask;

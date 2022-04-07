@@ -11,11 +11,12 @@ struct VSInput
 
 struct PSInput
 {
-	float4 worldPos : SV_POSITION;
+	float4 position : SV_POSITION;
+	float3 worldPos : TEXCOORD1;
 	float3 worldTangent : TANGENT;
 	float3 worldNormal : NORMAL;
 	float3 worldBinormal : BINORMAL;
-	float2 uv : TEXCOORD;
+	float2 uv : TEXCOORD0;
 };
 
 struct PSOutput
@@ -36,7 +37,8 @@ PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
 
-	result.worldPos = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
+	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
+	result.worldPos = mul(worldMat, float4(vsin.position, 1)).xyz;
 	result.uv = vsin.uv;
 	result.worldNormal = normalize(mul((float3x3)worldMat, vsin.normal));
 	result.worldBinormal = normalize(mul((float3x3)worldMat, vsin.binormal));

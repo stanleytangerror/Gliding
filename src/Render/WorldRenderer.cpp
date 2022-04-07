@@ -83,11 +83,11 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			Vec3f{ 1.f, 0.f, 1.f }.normalized(),
 			Vec3f{ 0.f, 1.f, 0.f }.normalized());
 		mSunLight->mWorldTransform.MoveCamera({ -200.f, 0.f, 200.f });
-		mSunLight->mLightViewProj.mViewHeight = 1000.f;
-		mSunLight->mLightViewProj.mViewWidth = 1000.f;
+		mSunLight->mLightViewProj.mViewHeight = 600.f;
+		mSunLight->mLightViewProj.mViewWidth = 600.f;
 	}
 
-	mLightViewDepthRt = new D3DDepthStencil(device, { 128, 128 },
+	mLightViewDepthRt = new D3DDepthStencil(device, { 512, 512 },
 		DXGI_FORMAT_R24G8_TYPELESS,
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
@@ -187,9 +187,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			}
 		});
 
-	RenderShadowMask(context, shadowMaskRt->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
-		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
-
 	//////////////////////////////////////////////////////////////////////////
 
 	for (const auto& rt : mGBufferRts)
@@ -210,7 +207,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		});
 
 	//////////////////////////////////////////////////////////////////////////
-	
+
+	RenderShadowMask(context, shadowMaskRt->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
+		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
 	DeferredLighting(context, target);
 	RenderSky(context, target, mMainDepthRt->GetDsv());
 }

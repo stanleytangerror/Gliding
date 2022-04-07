@@ -10,7 +10,8 @@ float4 FrustumInfo;
 
 float3 GetNDCSpacePos(float2 screenUv, float deviceZ)
 {
-    return float3(screenUv * 2.0 - 1.0, deviceZ);
+    float2 ndcXy = (screenUv * 2.0 - 1.0) * float2(1, -1);
+    return float3(ndcXy, deviceZ);
 }
 
 float GetClipDivideW(float deviceZ, float2 viewSpaceDepthRange)
