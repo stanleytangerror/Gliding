@@ -23,6 +23,9 @@ Texture2D GBuffer2;
 Texture2D SceneDepth;
 SamplerState GBufferSampler;
 
+Texture2D ShadowMask;
+SamplerState ShadowMaskSampler;
+
 Texture2D PanoramicSky;
 SamplerState PanoramicSkySampler;
 
@@ -60,12 +63,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float4 gBuffer1 = GBuffer1.Sample(GBufferSampler, uv);
 	const float4 gBuffer2 = GBuffer2.Sample(GBufferSampler, uv);
 
+	const float shadowMask = ShadowMask.Sample(ShadowMaskSampler, uv).x;
+
 	PBRStandard matData = UnpackGbufferData(gBuffer0, gBuffer1, gBuffer2);
 
 	float3 diffuseColor = matData.baseColor * (1.0 - matData.metalMask);
 	float3 specularColor = ComputeF0(matData.reflectance, matData.baseColor, matData.metalMask);
 
-	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, V, -LightDir, LightColor);
+	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, V, -LightDir, LightColor, shadowMask);
 
 	output.color = float4(directLighting.Diffuse + directLighting.Specular, 1);
 

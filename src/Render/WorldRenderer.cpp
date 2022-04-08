@@ -284,6 +284,8 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
 	lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
 	lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
+	lightingPass.AddSrv("ShadowMask", mShadowMask->GetSrv());
+	lightingPass.AddSampler("ShadowMaskSampler", mLightingSceneSampler);
 	lightingPass.AddSrv("SceneDepth", mMainDepthRt->GetSrv());
 	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
 

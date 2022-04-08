@@ -133,15 +133,15 @@ struct FDirectLighting
 	float3 Transmission;
 };
 
-FDirectLighting DefaultLitBxDF(float3 diffuseColor, float3 specularColor, float roughness, float3 N, float3 V, float3 L, float3 lightColor)
+FDirectLighting DefaultLitBxDF(float3 diffuseColor, float3 specularColor, float roughness, float3 N, float3 V, float3 L, float3 lightColor, float shadow)
 {
 	BxDFContext Context;
 	Init( Context, N, V, L );
 	Context.NoV = saturate( abs( Context.NoV ) + 1e-5 );
 
 	FDirectLighting Lighting;
-	Lighting.Diffuse = (lightColor * Context.NoL) * Diffuse_Lambert(diffuseColor);
-	Lighting.Specular = (lightColor * Context.NoL) * SpecularGGX(roughness, specularColor, Context, Context.NoL);
+	Lighting.Diffuse = shadow * (lightColor * Context.NoL) * Diffuse_Lambert(diffuseColor);
+	Lighting.Specular = shadow * (lightColor * Context.NoL) * SpecularGGX(roughness, specularColor, Context, Context.NoL);
 	Lighting.Transmission = 0;
 
 	return Lighting;
