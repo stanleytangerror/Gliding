@@ -448,6 +448,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3
 	{
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.RasterizerState.DepthBias = 10000;
+		desc.RasterizerState.SlopeScaledDepthBias = 10;
 		desc.DepthStencilState.DepthEnable = true;
 		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
 		desc.DepthStencilState.StencilEnable = false;
