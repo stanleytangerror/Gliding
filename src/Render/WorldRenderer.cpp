@@ -75,6 +75,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
 
+	mShadowMask = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
+
 	mSunLight = new DirectionalLight;
 	{
 		mSunLight->mLightIntensity = 1000.f;
@@ -172,7 +174,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	//////////////////////////////////////////////////////////////////////////
 
 	const Vec3i& rtSize = target->GetResource()->GetSize();
-	std::unique_ptr<D3D12RenderTarget> shadowMaskRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), rtSize, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
 	mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
@@ -208,7 +209,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(context, shadowMaskRt->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
+	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
 		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
 	DeferredLighting(context, target);
 	RenderSky(context, target, mMainDepthRt->GetDsv());
@@ -237,6 +238,17 @@ void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTarge
 			target, { i * width, 0.f }, { width, height }, 
 			mGBufferRts[idx]->GetSrv(), mNoMipMapLinearSampler, unary);
 	}
+}
+
+void WorldRenderer::RenderShadowMaskChannels(GraphicsContext* context, IRenderTargetView* target)
+{
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const f32 width = f32(targetSize.x()) * 0.25f;
+	const f32 height = f32(targetSize.y()) * 0.25f;;
+
+	RenderUtils::CopyTexture(context,
+		target, { 0.f, targetSize.y() - height }, { width, height },
+		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
 void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)

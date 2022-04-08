@@ -25,6 +25,7 @@ public:
 	void Render(GraphicsContext* context, IRenderTargetView* target);
 
 	void RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target);
+	void RenderShadowMaskChannels(GraphicsContext* context, IRenderTargetView* target);
 
 private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
@@ -65,6 +66,7 @@ private:
 
 	D3DDepthStencil* mMainDepthRt = nullptr;
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
+	D3D12RenderTarget* mShadowMask = nullptr;
 
 	Math::PerspectiveProjection	mCameraProj;
 	Math::CameraTransformf mCameraTrans;
