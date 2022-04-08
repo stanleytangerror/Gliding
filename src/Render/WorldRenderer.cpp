@@ -131,6 +131,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
+	mCameraProj.mFovHorizontal = Math::DegreeToRadian(120.f);
 }
 
 WorldRenderer::~WorldRenderer()
@@ -147,9 +148,13 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	//mCameraTrans.mWorldTransform = 
-	//	Transformf(Rotationf(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
-	//	* mCameraTrans.mWorldTransform;
+	const f32 rad = Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime());
+	const Vec3f& camDir = Vec3f{ std::sin(rad), std::cos(rad), 0.f };
+	const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
+	const Vec3f& camRight = camUp.cross(camDir);
+
+	mCameraTrans.AlignCamera(camDir, camUp, camRight);
+	mCameraTrans.MoveCamera(-100.f * camDir);
 
 	mTestModel.mRelTransform =
 		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))

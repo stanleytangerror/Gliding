@@ -4,6 +4,10 @@
 Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 {
 	const float fovVertical = mFovHorizontal / mAspectRatio;
+
+	Assert(mFovHorizontal < Math::Pi<f32>() * 2.f);
+	Assert(fovVertical < Math::Pi<f32>() * 2.f);
+
 	const float invW = 1.f / std::tan(mFovHorizontal * 0.5f);
 	const float invH = 1.f / std::tan(fovVertical * 0.5f);
 	const float Q = mFar / (mFar - mNear);
@@ -22,6 +26,10 @@ Mat44f Math::PerspectiveProjection::ComputeProjectionMatrix() const
 Mat44f Math::PerspectiveProjection::ComputeInvProjectionMatrix() const
 {
 	const float fovVertical = mFovHorizontal / mAspectRatio;
+
+	Assert(mFovHorizontal < Math::Pi<f32>() * 2.f);
+	Assert(fovVertical < Math::Pi<f32>() * 2.f);
+
 	const float w = std::tan(mFovHorizontal * 0.5f);
 	const float h = std::tan(fovVertical * 0.5f);
 	const float Q = mFar / (mFar - mNear);
