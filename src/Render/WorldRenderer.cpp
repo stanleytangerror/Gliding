@@ -56,9 +56,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		D3D12_SAMPLER_DESC samplerDesc = {};
 		{
 			samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+			std::fill_n(samplerDesc.BorderColor, Utils::GetArrayLength(samplerDesc.BorderColor), mSunLight->mLightViewProj.GetFarPlaneDeviceDepth());
 			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		}
 		mNoMipMapLinearDepthCmpSampler = new D3D12SamplerView(device, samplerDesc);
@@ -85,8 +86,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			Vec3f{ 1.f, 0.f, 1.f }.normalized(),
 			Vec3f{ 0.f, -1.f, 0.f }.normalized());
 		mSunLight->mWorldTransform.MoveCamera({ -200.f, 0.f, 200.f });
-		mSunLight->mLightViewProj.mViewHeight = 600.f;
-		mSunLight->mLightViewProj.mViewWidth = 600.f;
+		mSunLight->mLightViewProj.mViewHeight = 200.f;
+		mSunLight->mLightViewProj.mViewWidth = 200.f;
 	}
 
 	mLightViewDepthRt = new D3DDepthStencil(device, { 512, 512 },
@@ -240,7 +241,7 @@ void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTarge
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannels(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, IRenderTargetView* target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
@@ -249,6 +250,16 @@ void WorldRenderer::RenderShadowMaskChannels(GraphicsContext* context, IRenderTa
 	RenderUtils::CopyTexture(context,
 		target, { 0.f, targetSize.y() - height }, { width, height },
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
+}
+
+void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, IRenderTargetView* target)
+{
+	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const f32 size = f32(targetSize.y()) * 0.25f;
+
+	RenderUtils::CopyTexture(context,
+		target, { 0.f, size }, { size, size },
+		mLightViewDepthRt->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
 void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)

@@ -25,7 +25,8 @@ public:
 	void Render(GraphicsContext* context, IRenderTargetView* target);
 
 	void RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target);
-	void RenderShadowMaskChannels(GraphicsContext* context, IRenderTargetView* target);
+	void RenderShadowMaskChannel(GraphicsContext* context, IRenderTargetView* target);
+	void RenderLightViewDepthChannel(GraphicsContext* context, IRenderTargetView* target);
 
 private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
