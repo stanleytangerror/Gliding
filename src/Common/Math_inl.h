@@ -99,9 +99,9 @@ void Math::CameraTransform<typename T>::AlignCamera(const Vec3<T>& dirWorld, con
 
 	Mat33<T> targetAxis;
 	{
-		originAxis.col(0) = rightWorld;
-		originAxis.col(1) = dirWorld;
-		originAxis.col(2) = upWorld;
+		targetAxis.col(0) = rightWorld;
+		targetAxis.col(1) = dirWorld;
+		targetAxis.col(2) = upWorld;
 	}
 
 	const Mat33<T>& rotMat = targetAxis * originAxis.transpose();

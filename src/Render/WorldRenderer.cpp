@@ -83,7 +83,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		mSunLight->mWorldTransform.AlignCamera(
 			Vec3f{ 1.f, 0.f, -1.f }.normalized(),
 			Vec3f{ 1.f, 0.f, 1.f }.normalized(),
-			Vec3f{ 0.f, 1.f, 0.f }.normalized());
+			Vec3f{ 0.f, -1.f, 0.f }.normalized());
 		mSunLight->mWorldTransform.MoveCamera({ -200.f, 0.f, 200.f });
 		mSunLight->mLightViewProj.mViewHeight = 600.f;
 		mSunLight->mLightViewProj.mViewWidth = 600.f;
