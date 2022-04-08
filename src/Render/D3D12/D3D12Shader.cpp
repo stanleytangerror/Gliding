@@ -42,14 +42,6 @@ namespace
 	}
 }
 
-const char* NameTable::AllocName(const char* name)
-{
-	char* mem = reinterpret_cast<char*>(malloc(strlen(name)));
-	std::strcpy(mem, name);
-	mTable.push_back(mem);
-	return mem;
-}
-
 bool ShaderMacro::operator<(const ShaderMacro& other) const
 {
 	return
@@ -86,7 +78,6 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vect
 	{
 		D3D12_SIGNATURE_PARAMETER_DESC paramDesc = {};
 		reflection->GetInputParameterDesc(i, &paramDesc);
-		paramDesc.SemanticName = mNameTable.AllocName(paramDesc.SemanticName);
 
 		if (paramDesc.SystemValueType == D3D_NAME_INSTANCE_ID)
 		{

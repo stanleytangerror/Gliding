@@ -8,15 +8,6 @@
 #include <string>
 #include <functional>
 
-class NameTable
-{
-public:
-	const char* AllocName(const char* name);
-
-protected:
-	std::vector<const char*> mTable;
-};
-
 struct InputCBufferParam
 {
 	struct CBufferVar
@@ -94,8 +85,6 @@ protected:
 	std::map<std::string, InputCBufferParam>		mCBufferBindings;
 	std::map<std::string, InputUavParam>			mUavBindings;
 	std::map<std::string, InputSamplerParam>		mSamplerBindings;
-	
-	NameTable								mNameTable;
 };
 
 class D3D12ShaderLibrary
