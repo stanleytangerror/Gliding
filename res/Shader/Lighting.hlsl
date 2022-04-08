@@ -57,7 +57,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float3 worldSpacePos = GetWorldSpacePos(uv, deviceZ, float2(ViewSpaceNear, ViewSpaceFar), 
 		InvProjMat, InvViewMat);
 
-	const float3 V = normalize(worldSpacePos - CameraPos);
+	const float3 V = normalize(CameraPos - worldSpacePos);
 
 	const float4 gBuffer0 = GBuffer0.Sample(GBufferSampler, uv);
 	const float4 gBuffer1 = GBuffer1.Sample(GBufferSampler, uv);

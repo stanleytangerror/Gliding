@@ -70,7 +70,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float metallic = metallicRoughness.z;
 
 	PBRStandard matData = (PBRStandard)0;
-	matData.worldNormal = worldNormal * 0.5 + 0.5;
+	matData.worldNormal = worldNormal;
 	matData.baseColor = baseColor;
 	matData.linearSmoothness = 1.0 - roughness;
 	matData.reflectance = 0.5;

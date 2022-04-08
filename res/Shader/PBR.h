@@ -32,7 +32,7 @@ struct PBRStandard
 
 void PackGbufferData(PBRStandard data, out float4 outGBuffer0, out float4 outGBuffer1, out float4 outGBuffer2)
 {
-	outGBuffer0 = float4(data.worldNormal, data.linearSmoothness);
+	outGBuffer0 = float4(data.worldNormal * 0.5 + 0.5, data.linearSmoothness);
 	outGBuffer1 = float4(data.baseColor, data.skyVisibility);
 	outGBuffer2 = float4(data.materialData, data.metalMask, data.reflectance, 0);
 }
@@ -40,7 +40,7 @@ void PackGbufferData(PBRStandard data, out float4 outGBuffer0, out float4 outGBu
 PBRStandard UnpackGbufferData(float4 gBuffer0, float4 gBuffer1, float4 gBuffer2)
 {
     PBRStandard outData = (PBRStandard)0;
-    outData.worldNormal = gBuffer0.xyz;
+    outData.worldNormal = gBuffer0.xyz * 2.0 - 1.0;
 	outData.linearSmoothness = gBuffer0.w;
 	outData.baseColor = gBuffer1.xyz;
     outData.skyVisibility = gBuffer1.w;
