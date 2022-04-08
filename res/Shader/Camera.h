@@ -8,6 +8,16 @@ float4 FrustumInfo;
 #define ViewSpaceNear       (FrustumInfo.z)
 #define ViewSpaceFar        (FrustumInfo.w)
 
+float3 GetNDCSpacePos(float4 homoSpacePos)
+{
+    return homoSpacePos.xyz / homoSpacePos.w;
+}
+
+float2 GetScreenSpacePos(float3 ndcSpacePos)
+{
+    return ndcSpacePos.xy * float2(0.5, -0.5) + 0.5;
+}
+
 float3 GetNDCSpacePos(float2 screenUv, float deviceZ)
 {
     float2 ndcXy = (screenUv * 2.0 - 1.0) * float2(1, -1);
