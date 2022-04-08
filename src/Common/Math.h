@@ -25,7 +25,8 @@ using Mat44f = Mat44<f32>;
 
 template <typename T> using Transform = Eigen::Transform<T, 3, Eigen::Isometry, Eigen::ColMajor>;
 template <typename T> using Translation = Eigen::Translation<T, 3>;
-template <typename T> using Rotation = Eigen::AngleAxis<T>;
+template <typename T> using Rotation = Eigen::Quaternion<T>;
+template <typename T> using AngleAxis = Eigen::AngleAxis<T>;
 template <typename T> using UniScaling = Eigen::UniformScaling<T>;
 template <typename T> using Scaling = Eigen::DiagonalMatrix<T, 3>;
 
@@ -66,6 +67,9 @@ namespace Math
 
 	template <typename T>
 	constexpr float RadianToDegree(const T rad) { return rad * 180.f / Pi<T>(); }
+
+	template <typename T>
+	inline Rotationf FromAngleAxis(T angleInRad, const Vec3<T>& axis) { return Rotation<T>(AngleAxis<T>(angleInRad, axis)); }
 
 	enum ValueCompareState
 	{

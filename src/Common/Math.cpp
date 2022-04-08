@@ -113,5 +113,5 @@ Mat33f Math::GetRotation(Axis3D source, Axis3D target, Chirality chirality)
 	const Vec3f& rotAxis = v0.cross(v1); // v0/v1 always vertical
 	Assert(rotAxis.norm());
 	f32 ang = Math::HalfPi<f32>() * (chirality == Chirality::RightHanded ? 1.f : (-1.f));
-	return Rotationf{ ang, rotAxis }.toRotationMatrix();
+	return Math::FromAngleAxis<f32>(ang, rotAxis).toRotationMatrix();
 }

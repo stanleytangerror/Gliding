@@ -151,7 +151,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	//	* mCameraTrans.mWorldTransform;
 
 	mTestModel.mRelTransform =
-		Transformf(Rotationf(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
 		* mTestModel.mRelTransform;
 	mTestModel.CalcAbsTransform();
 }
