@@ -38,7 +38,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
 	SetupEnvironment();
 
-	std::unique_ptr<Application> app = std::make_unique<Application>(960, 640, "TestApplication", hInstance, nCmdShow);
+	std::unique_ptr<Application> app = std::make_unique<Application>(960, 540, "TestApplication", hInstance, nCmdShow);
 	app->Initial();
 	app->Run();
 }

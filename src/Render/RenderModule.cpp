@@ -12,7 +12,7 @@ RenderModule::RenderModule(WindowInfo windowInfo)
 {
 	//mRenderDoc = new RenderDocIntegration;
 
-	mDevice = new D3D12Device(mWindowInfo.mWindow);
+	mDevice = new D3D12Device(mWindowInfo.mWindow, mWindowInfo.mSize);
 	const auto& backBuffer = mDevice->GetBackBuffer()->GetBuffer();
 	mBackBufferSize = { backBuffer->GetWidth(), backBuffer->GetHeight() };
 

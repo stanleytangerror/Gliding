@@ -18,7 +18,7 @@ enum D3D12GpuQueueType : u8;
 class D3D12Device
 {
 public:
-	D3D12Device(HWND windowHandle);
+	D3D12Device(HWND windowHandle, const Vec2i& initWindowSize);
 
 	void	StartFrame();
 	void	Present();
@@ -52,4 +52,6 @@ private:
 	std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
 	CpuDescItem	mNullSrvCpuDesc;
 	CpuDescItem	mNullSamplerCpuDesc;
+
+	static const u32 mSwapChainBufferCount = 2;
 };

@@ -17,7 +17,7 @@ Application::Application(u32 width, u32 height, std::string name, HINSTANCE hIns
 	windowClass.lpszClassName = "TestApplication";
 	RegisterClassEx(&windowClass);
 
-	RECT windowRect = { 0, 0, static_cast<LONG>(mWidth), static_cast<LONG>(mWidth) };
+	RECT windowRect = { 0, 0, static_cast<LONG>(mWidth), static_cast<LONG>(mHeight) };
 	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	// Create the window and store a handle to it.
