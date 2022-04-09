@@ -26,12 +26,9 @@ struct PSOutput
 	float4 gBuffer2 : COLOR2;
 };
 
-cbuffer Param : register(b0)
-{
-	float4x4 viewMat;
-	float4x4 projMat;
-	float4x4 worldMat;
-}
+float4x4 viewMat;
+float4x4 projMat;
+float4x4 worldMat;
 
 PSInput VSMain(VSInput vsin)
 {

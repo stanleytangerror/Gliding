@@ -30,7 +30,9 @@ ConstBufferBlock::~ConstBufferBlock()
 
 D3D12_GPU_VIRTUAL_ADDRESS ConstBufferBlock::Push(const void* data, i32 size)
 {
-	const i32 sizeOnGpu = Math::Align(size, msGpuAddrAlignment);
+	// Alloc at lease 1, if alloc 0 then nothing will be alloced. 
+	// If mWorkingSize == mSize, then return end() which is out of bounc
+	const i32 sizeOnGpu = Math::Align(std::max<i32>(1, size), msGpuAddrAlignment);
 	if (mWorkingSize + sizeOnGpu <= mSize)
 	{
 		memcpy(mCpuBaseVirtualAddr + mWorkingSize, data, size);

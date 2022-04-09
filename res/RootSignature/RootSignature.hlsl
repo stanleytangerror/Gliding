@@ -7,7 +7,6 @@
 "    ), "\
 " "\
 "CBV(b0, space = 0), "\
-"CBV(b1, space = 0), "\
 " "\
 "DescriptorTable(Sampler(s0, numDescriptors = 16)), "\
 " "

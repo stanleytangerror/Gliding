@@ -6,16 +6,14 @@
 
 namespace
 {
-	D3D12_GPU_VIRTUAL_ADDRESS BindConstBufferParams(const std::map<std::string, std::vector<byte>>& cbParams, D3D12CommandContext* context, ShaderPiece* shader)
+	i32 BindConstBufferParams(std::vector<byte>& cbuf, const std::map<std::string, std::vector<byte>>& cbParams, ShaderPiece* shader)
 	{
-		D3D12ConstantBuffer* cb = context->GetConstantBuffer();
-		
 		const std::map<std::string, InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
 		const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
 			[](i32 size, const auto& p) { const InputCBufferParam& cbParam = p.second; return size + cbParam.mSize; });
 
-		std::vector<byte> cbuf(cbSize, 0);
-		i32 offset = 0;
+		i32 offset = cbuf.size();
+		cbuf.insert(cbuf.end(), cbSize, 0);
 		for (const auto& p : shader->GetCBufferBindings())
 		{
 			const InputCBufferParam& cbParam = p.second;
@@ -34,7 +32,7 @@ namespace
 
 			offset += cbParam.mSize;
 		}
-		return cb->Push(cbuf.data(), cbuf.size());
+		return cbSize;
 	};
 
 	template <typename T, typename V>
@@ -144,7 +142,10 @@ void ComputePass::Dispatch()
 		commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
 	}
 
-	mContext->GetCommandList()->SetComputeRootConstantBufferView(2, BindConstBufferParams(mCbParams, mContext, cs));
+	std::vector<byte> cbufData;
+	BindConstBufferParams(cbufData, mCbParams, cs);
+	const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+	mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
 	commandList->Dispatch(mThreadGroupCounts[0], mThreadGroupCounts[1], mThreadGroupCounts[2]);
 }
@@ -296,7 +297,7 @@ void GraphicsPass::Draw()
 		const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
 
 		heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[3] = gpuDescBase;
+		gpuBaseAddrs[2] = gpuDescBase;
 	}
 
 	std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
@@ -307,8 +308,11 @@ void GraphicsPass::Draw()
 	}
 
 	// cbs
-	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, BindConstBufferParams(mCbParams, mContext, vs));
-	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(2, BindConstBufferParams(mCbParams, mContext, ps));
+	std::vector<byte> cbufData;
+	BindConstBufferParams(cbufData, mCbParams, vs);
+	BindConstBufferParams(cbufData, mCbParams, ps);
+	const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
 
 	Assert(mViewPort.MinDepth < mViewPort.MaxDepth);
 	commandList->RSSetViewports(1, &mViewPort);

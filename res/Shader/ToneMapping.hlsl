@@ -15,10 +15,7 @@ struct PSOutput
 	float4 color : COLOR;
 };
 
-cbuffer Param : register(b0)
-{
-	float4 RtSize;
-}
+float4 RtSize;
 
 Texture2D SceneHdr;
 SamplerState SamplerLinear;
