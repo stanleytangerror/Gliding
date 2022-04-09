@@ -41,7 +41,6 @@ namespace AssimpLoadUtils
 	MaterialParamSemantic FromAssimpMatParamKey(const aiString& key)
 	{
 		const std::string keyStr = key.C_Str();
-		DEBUG_PRINT("!!!!!!! %s", keyStr.c_str());
 
 		if (std::strncmp(keyStr.c_str(), "$clr.", 5) == 0)
 		{
