@@ -69,7 +69,7 @@ RuntimeDescriptorHeap::RuntimeDescriptorHeap(ID3D12Device* device, D3D12_DESCRIP
 
 RuntimeDescriptorHeap::~RuntimeDescriptorHeap()
 {
-
+	Reset();
 }
 
 CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::Push(const i32 handleCount, const D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescHandles)

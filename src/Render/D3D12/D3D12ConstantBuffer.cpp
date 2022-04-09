@@ -1,24 +1,12 @@
 #include "RenderPch.h"
 #include "D3D12ConstantBuffer.h"
 
-namespace
-{
-	template <typename T>
-	constexpr T GpuVaAlign(T Val)
-	{
-		return Math::Align(Val, 256);
-	}
-}
-
-D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
+ConstBufferBlock::ConstBufferBlock(D3D12Device* device, i32 size)
 	: mDevice(device)
+	, mSize(Math::Align(size, msGpuAddrAlignment))
 {
-	const int ConstBuffSize = 32 * 1024;
-
-	mGpuResourceSize = GpuVaAlign(ConstBuffSize);
-
 	CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC uploadBuffer = CD3DX12_RESOURCE_DESC::Buffer(mGpuResourceSize);
+	CD3DX12_RESOURCE_DESC uploadBuffer = CD3DX12_RESOURCE_DESC::Buffer(mSize);
 	device->GetDevice()->CreateCommittedResource(
 		&heapUpload,
 		D3D12_HEAP_FLAG_NONE,
@@ -28,60 +16,78 @@ D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
 		IID_PPV_ARGS(&mGpuResource));
 
 	mGpuBaseVirtualAddr = mGpuResource->GetGPUVirtualAddress();
-	assert(mGpuBaseVirtualAddr == GpuVaAlign(mGpuBaseVirtualAddr));
+	Assert(mGpuBaseVirtualAddr == Math::Align(mGpuBaseVirtualAddr, msGpuAddrAlignment));
 
-	mGpuResource->Map(0, nullptr, &mCpuBaseVirtualAddr);
+	void* mapCpuAddr = nullptr;
+	mGpuResource->Map(0, nullptr, &mapCpuAddr);
+	mCpuBaseVirtualAddr = reinterpret_cast<byte*>(mapCpuAddr);
 }
 
-D3D12ConstantBuffer::~D3D12ConstantBuffer()
+ConstBufferBlock::~ConstBufferBlock()
 {
 	mDevice->ReleaseD3D12Resource(mGpuResource);
 }
 
-void D3D12ConstantBuffer::Submit(const void* data, int size)
+D3D12_GPU_VIRTUAL_ADDRESS ConstBufferBlock::Push(const void* data, i32 size)
 {
-	if (0 == size)
+	const i32 sizeOnGpu = Math::Align(size, msGpuAddrAlignment);
+	if (mWorkingSize + sizeOnGpu <= mSize)
 	{
-		return;
+		memcpy(mCpuBaseVirtualAddr + mWorkingSize, data, size);
+		D3D12_GPU_VIRTUAL_ADDRESS result = mGpuBaseVirtualAddr + mWorkingSize;
+		mWorkingSize += sizeOnGpu;
+		return result;
 	}
-
-	const int alignedSize = GpuVaAlign(size);
-	if (mTailOffset + alignedSize >= mGpuResourceSize)
+	else
 	{
-		Reset();
-		return;
+		return D3D12_GPU_VIRTUAL_ADDRESS(0);
 	}
-
-	mWorkingSize = alignedSize;
-
-	void* dstPtr = (char*)mCpuBaseVirtualAddr + mTailOffset;
-	memcpy(dstPtr, data, size);
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS D3D12ConstantBuffer::GetWorkGpuVa() const
+void ConstBufferBlock::Reset()
 {
-	return mGpuBaseVirtualAddr + mTailOffset;
-}
-
-void D3D12ConstantBuffer::Retire()
-{
-	if (mWorkingSize == 0)
-	{
-		return;
-	}
-
-	int headOffset = mTailOffset + mWorkingSize;
-	if (headOffset >= mGpuResourceSize)
-	{
-		headOffset = 0;
-	}
-	mTailOffset = GpuVaAlign(headOffset);
-
 	mWorkingSize = 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+D3D12ConstantBuffer::D3D12ConstantBuffer(D3D12Device* device)
+	: mDevice(device)
+	, mPool(
+		[device]() { return new ConstBufferBlock(device, msBlockSize); },
+		[](ConstBufferBlock* t) { t->Reset(); },
+		[](ConstBufferBlock* t) { Utils::SafeDelete(t); }
+	)
+{
+
+}
+
+D3D12ConstantBuffer::~D3D12ConstantBuffer()
+{
+	Reset();
 }
 
 void D3D12ConstantBuffer::Reset()
 {
-	mWorkingSize = 0;
-	mTailOffset = 0;
+	mPool.ReleaseAllActiveItems();
+	mWorkingBlock = nullptr;
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS D3D12ConstantBuffer::Push(const void* data, i32 size)
+{
+	Assert(size <= msBlockSize);
+
+	if (mWorkingBlock)
+	{
+		D3D12_GPU_VIRTUAL_ADDRESS result = mWorkingBlock->Push(data, size);
+		if (result != D3D12_GPU_VIRTUAL_ADDRESS(0))
+		{
+			return result;
+		}
+	}
+
+	mWorkingBlock = mPool.AllocItem();
+	D3D12_GPU_VIRTUAL_ADDRESS result = mWorkingBlock->Push(data, size);
+	Assert(result != D3D12_GPU_VIRTUAL_ADDRESS(0));
+	return result;
 }

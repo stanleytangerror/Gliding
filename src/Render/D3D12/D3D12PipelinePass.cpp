@@ -9,20 +9,16 @@ namespace
 	D3D12_GPU_VIRTUAL_ADDRESS BindConstBufferParams(const std::map<std::string, std::vector<byte>>& cbParams, D3D12CommandContext* context, ShaderPiece* shader)
 	{
 		D3D12ConstantBuffer* cb = context->GetConstantBuffer();
-		std::map<std::string, InputCBufferParam> cbufBindings;
+		
+		const std::map<std::string, InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
+		const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
+			[](i32 size, const auto& p) { const InputCBufferParam& cbParam = p.second; return size + cbParam.mSize; });
 
-		for (const auto& p : shader->GetCBufferBindings())
-		{
-			if (cbufBindings.find(p.first) == cbufBindings.end())
-			{
-				cbufBindings[p.first] = p.second;
-			}
-		}
+		std::vector<byte> cbuf(cbSize, 0);
+		i32 offset = 0;
 		for (const auto& p : shader->GetCBufferBindings())
 		{
 			const InputCBufferParam& cbParam = p.second;
-			std::vector<byte> cbuf;
-			cbuf.resize(cbParam.mSize, 0);
 
 			for (const auto& q : cbParam.mVariables)
 			{
@@ -36,11 +32,9 @@ namespace
 				}
 			}
 
-			cb->Submit(cbuf.data(), static_cast<i32>(cbuf.size()));
+			offset += cbParam.mSize;
 		}
-		D3D12_GPU_VIRTUAL_ADDRESS gpuVa = cb->GetWorkGpuVa();
-		cb->Retire();
-		return gpuVa;
+		return cb->Push(cbuf.data(), cbuf.size());
 	};
 
 	template <typename T, typename V>

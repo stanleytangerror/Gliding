@@ -39,6 +39,7 @@ void Pool<T>::ReleaseItem(T*& object)
 {
 	Assert(mAliveItems.find(object) != mAliveItems.end());
 	mAliveItems.erase(mAliveItems.find(object));
+	mResetFun(object);
 	mAvailablePool.push_back(object);
 	object = nullptr;
 }
