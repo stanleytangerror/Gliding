@@ -95,9 +95,11 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"LightViewDepthRt");
-
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
+	
+	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
+	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
 	for (const auto& p : sceneRawData->mTextures)
 	{
@@ -127,8 +129,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 			trans);
 	}
 
-	//mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -0.7f);
-	mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
+	mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+	//mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 	mCameraProj.mFovHorizontal = Math::DegreeToRadian(120.f);
@@ -148,10 +150,10 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	const f32 rad = Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime());
+	const f32 rad = Math::DegreeToRadian(30.f * timer->GetCurrentFrameElapsedSeconds());
 	const Vec3f& camDir = Vec3f{ std::sin(rad), std::cos(rad), 0.f };
 	const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
-	const Vec3f& camRight = camUp.cross(camDir);
+	const Vec3f& camRight = camDir.cross(camUp);
 
 	mCameraTrans.AlignCamera(camDir, camUp, camRight);
 	mCameraTrans.MoveCamera(-100.f * camDir);
