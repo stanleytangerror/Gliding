@@ -5,25 +5,22 @@
 
 void RenderMaterial::UpdateGpuResources(D3D12CommandContext* context)
 {
-	for (const std::vector<D3D12Texture*>& textures : mTextureParams)
+	for (const auto& slot : mMatAttriSlots)
 	{
-		for (D3D12Texture* const tex : textures)
+		if (slot.mTexture && !slot.mTexture->IsD3DResourceReady())
 		{
-			if (!tex->IsD3DResourceReady())
-			{
-				tex->Initial(context);
-			}
+			slot.mTexture->Initial(context);
 		}
 	}
 }
 
 bool RenderMaterial::IsGpuResourceReady() const
 {
-	for (const std::vector<D3D12Texture*>& textures : mTextureParams)
+	for (const auto& slot : mMatAttriSlots)
 	{
-		for (D3D12Texture* const tex : textures)
+		if (slot.mTexture && !slot.mTexture->IsD3DResourceReady())
 		{
-			if (!tex->IsD3DResourceReady())
+			if (!slot.mTexture->IsD3DResourceReady())
 			{
 				return false;
 			}
@@ -34,21 +31,25 @@ bool RenderMaterial::IsGpuResourceReady() const
 }
 
 RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
-	const MaterialRawData* rawData, 
-	const std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>>& textures)
+	const MaterialRawData* matRawData,
+	const SceneRawData* sceneRawData,
+	const std::map<std::string, D3D12Texture*>& textures,
+	const std::map<TextureSamplerType, D3D12SamplerView*>& samplers)
 {
 	RenderMaterial* result = new RenderMaterial;
 
-	for (i32 texUsage = 0; texUsage < TextureUsage_Count; ++texUsage)
+	for (i32 slotIdx = 0; slotIdx < TextureUsage_Count; ++slotIdx)
 	{
-		const auto& texInfos = rawData->mTexturesWithUsage[texUsage];
-		for (i32 texIdx = 0; texIdx < texInfos.size(); ++texIdx)
+		const MaterialRawData::ParamBasicInfo& slotInfo = matRawData->mParamSemanticSlots[slotIdx];
+		MaterialAttriSlot& attr = result->mMatAttriSlots[slotIdx];
 		{
-			const MaterialRawData::TextureBasicInfo& texInfo = texInfos[texIdx];
-			Assert(textures.find(texInfo.mTexturePath) != textures.end());
-			const auto& p = textures.find(texInfo.mTexturePath)->second;
-			result->mTextureParams[texUsage].push_back(p.first);
-			result->mSamplerParams[texUsage].push_back(p.second);
+			attr.mConstantValue = slotInfo.mConstantValue;
+
+			auto itt = textures.find(slotInfo.mTexturePath);
+			attr.mTexture = (itt != textures.end() ? itt->second : nullptr);
+
+			auto its = samplers.find(slotInfo.mSamplerType);
+			attr.mSampler = (its != samplers.end() ? its->second : nullptr);
 		}
 	}
 

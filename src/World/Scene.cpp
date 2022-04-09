@@ -8,7 +8,7 @@
 
 namespace AssimpLoadUtils
 {
-	constexpr TextureUsage FromAssimpTextureUsage(const aiTextureType type)
+	constexpr MaterialParamSemantic FromAssimpTextureUsage(const aiTextureType type)
 	{
 		switch (type)
 		{
@@ -36,6 +36,42 @@ namespace AssimpLoadUtils
 		case aiTextureType_UNKNOWN			: return TextureUsage_Custom;
 		default								: Assert(false); return TextureUsage_Invalid;
 		}
+	}
+
+	MaterialParamSemantic FromAssimpMatParamKey(const aiString& key)
+	{
+		const std::string keyStr = key.C_Str();
+		DEBUG_PRINT("!!!!!!! %s", keyStr.c_str());
+
+		if (std::strncmp(keyStr.c_str(), "$clr.", 5) == 0)
+		{
+			const std::string& colorProp = keyStr.substr(5);
+
+#define CMP_NAME_RET(NAME, ret) if (strncmp(colorProp.c_str(), NAME, strlen(NAME)) == 0) { return ret; }
+			CMP_NAME_RET("diffuse"			, TextureUsage_Diffuse			);
+			CMP_NAME_RET("specular"			, TextureUsage_Specular			);
+			//CMP_NAME_RET("Ambient"			, TextureUsage_Ambient			);
+			CMP_NAME_RET("emissive"			, TextureUsage_Emissive			);
+			//CMP_NAME_RET("Height"			, TextureUsage_Height			);
+			//CMP_NAME_RET("Normal"			, TextureUsage_Normal			);
+			CMP_NAME_RET("shininess"		, TextureUsage_Shininess		);
+			//CMP_NAME_RET("Opacity"			, TextureUsage_Opacity			);
+			//CMP_NAME_RET("Displacement"		, TextureUsage_Displacement		);
+			//CMP_NAME_RET("LightMap"			, TextureUsage_LightMap			);
+			//CMP_NAME_RET("Reflection"		, TextureUsage_Reflection		);
+			CMP_NAME_RET("base"				, TextureUsage_BaseColor		);
+			//CMP_NAME_RET("NormalCamera"		, TextureUsage_NormalCamera		);
+			//CMP_NAME_RET("EmissiveColor"	, TextureUsage_EmissiveColor	);
+			CMP_NAME_RET("metallicFactor"	, TextureUsage_Metalness		);
+			CMP_NAME_RET("roughnessFactor"	, TextureUsage_Roughness		);
+			//CMP_NAME_RET("AmbientOcclusion"	, TextureUsage_AmbientOcclusion	);
+			//CMP_NAME_RET("Sheen"			, TextureUsage_Sheen			);
+			//CMP_NAME_RET("ClearCoat"		, TextureUsage_ClearCoat		);
+			//CMP_NAME_RET("Transmission"		, TextureUsage_Transmission		);
+#undef CMP_NAME_RET
+		}
+
+		return TextureUsage_Invalid;
 	}
 
 	constexpr TextureSamplerType FromAssimpTextureSamplerType(const std::array<aiTextureMapMode, 2>& type)
@@ -214,17 +250,16 @@ namespace AssimpLoadUtils
 		return result;
 	}
 
-	TextureRawData* LoadTexture(const MaterialRawData::TextureBasicInfo& texInfo)
+	TextureRawData* LoadTexture(const std::string& texPath)
 	{
 		return new TextureRawData
 		{
-			texInfo.mTexturePath,
-			Utils::LoadFileContent(texInfo.mTexturePath.c_str()),
-			texInfo.mSamplerType
+			texPath,
+			Utils::LoadFileContent(texPath.c_str()),
 		};
 	}
 
-	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material, std::vector<MaterialRawData::TextureBasicInfo>& textureInfos)
+	MaterialRawData* LoadMaterial(const std::filesystem::path& folder, aiMaterial* material)
 	{
 		MaterialRawData* result = new MaterialRawData;
 
@@ -239,13 +274,56 @@ namespace AssimpLoadUtils
 				std::array<aiTextureMapMode, 2> mapmode = {};
 				if (AI_SUCCESS == material->GetTexture(texType, idx, &relPath, nullptr, nullptr, nullptr, nullptr, mapmode.data()))
 				{
-					const auto& texturePath = Utils::ToString(folder / relPath.C_Str());
-					
-					const MaterialRawData::TextureBasicInfo& texInfo = { texturePath, FromAssimpTextureSamplerType(mapmode) };
-					textureInfos.push_back(texInfo);
-					result->mTexturePaths.push_back(texInfo);
-					result->mTexturesWithUsage[FromAssimpTextureUsage(texType)].push_back(texInfo);
+					MaterialRawData::ParamBasicInfo& info = result->mParamSemanticSlots[FromAssimpTextureUsage(texType)];
+					info.mTexturePath = Utils::ToString(folder / relPath.C_Str());
+					info.mSamplerType = FromAssimpTextureSamplerType(mapmode);
 				}
+			}
+		}
+
+		for (i32 i = 0; i < material->mNumProperties; ++i)
+		{
+			aiMaterialProperty* prop = material->mProperties[i];
+
+			if (prop->mSemantic != aiTextureType_NONE) { continue; }
+
+			MaterialParamSemantic sem = FromAssimpMatParamKey(prop->mKey);
+			if (sem == TextureUsage_Invalid) { continue; }
+
+			const char* propName = prop->mKey.C_Str();
+			MaterialRawData::ParamBasicInfo& info = result->mParamSemanticSlots[sem];
+
+			switch (prop->mType)
+			{
+			case aiPTI_Float:
+			case aiPTI_Double:
+			{
+				aiColor4D c4; aiColor3D c3; ai_real f;
+				if (AI_SUCCESS == material->Get(propName, prop->mSemantic, prop->mIndex, c4))
+				{
+					info.mConstantValue = Vec4f(c4.r, c4.g, c4.b, c4.a);
+				}
+				else if (AI_SUCCESS == material->Get(propName, prop->mSemantic, prop->mIndex, c3))
+				{
+					info.mConstantValue = Vec4f(c3.r, c3.g, c3.b, 1.f);
+				}
+				else if (AI_SUCCESS == material->Get(propName, prop->mSemantic, prop->mIndex, f))
+				{
+					info.mConstantValue = Vec4f::Ones() * f32(f);
+				}
+				break;
+			}
+			case aiPTI_String:
+			{
+				aiString str;
+				if (AI_SUCCESS == material->Get(propName, prop->mSemantic, prop->mIndex, str))
+				{
+					result->mStringParams[propName] = str.C_Str();
+				}
+				break;
+			}
+			default:
+				break;
 			}
 		}
 
@@ -326,20 +404,29 @@ SceneRawData* SceneRawData::LoadScene(const char* path,
 		}
 	}
 
-	std::vector<MaterialRawData::TextureBasicInfo> textureInfos;
+	std::set<std::string> texturePaths;
 	for (int i = 0; i < static_cast<i32>(pScene->mNumMaterials); ++i)
 	{
-		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i], textureInfos))
+		if (MaterialRawData* mat = AssimpLoadUtils::LoadMaterial(fileFolder, pScene->mMaterials[i]))
 		{
 			scene->mMaterials.emplace_back(mat);
+
+			for (const auto& slot : mat->mParamSemanticSlots)
+			{
+				if (!slot.mTexturePath.empty())
+				{
+					texturePaths.insert(slot.mTexturePath);
+					scene->mSamplers.insert(slot.mSamplerType);
+				}
+			}
 		}
 	}
 
-	for (const MaterialRawData::TextureBasicInfo& texInfo : textureInfos)
+	for (const auto& path : texturePaths)
 	{
-		if (TextureRawData* textureRawData = AssimpLoadUtils::LoadTexture(texInfo))
+		if (TextureRawData* textureRawData = AssimpLoadUtils::LoadTexture(path))
 		{
-			scene->mTextures[texInfo.mTexturePath] = textureRawData;
+			scene->mTextures[path] = textureRawData;
 		}
 	}
 

@@ -100,22 +100,25 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
-	std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>> textures;
-	for (const auto& p : sceneRawData->mTextures)
-	{
-		const std::string& texPath = p.first;
-		const TextureRawData* texRawData = p.second;
 
+	std::map<std::string, D3D12Texture*> textures;
+	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
+	{
 		if (texRawData)
 		{
-			textures[texPath].first = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
 		}
-		textures[texPath].second = new D3D12SamplerView(device, ToD3DSamplerDesc(texRawData->mSamplerType));
 	}
+	std::map<TextureSamplerType, D3D12SamplerView*> samplers;
+	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
+	{
+		samplers[samplerType] = new D3D12SamplerView(device, ToD3DSamplerDesc(samplerType));
+	}
+
 	std::vector<std::shared_ptr<RenderMaterial>> materials;
 	for (const auto& mat : sceneRawData->mMaterials)
 	{
-		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, textures));
+		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, sceneRawData, textures, samplers));
 	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
@@ -431,7 +434,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
 	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
-	const std::pair<TextureUsage, std::string> texSlots[] =
+	const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
 	{
 		{ TextureUsage_Normal,			 "Normal" },
 		{ TextureUsage_Metalness,		 "Metallic" },
@@ -439,19 +442,19 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 		{ TextureUsage_Roughness,		 "Roughness" },
 	};
 
-	for (const auto& [usage, paramName] : texSlots)
+	for (const auto& [usage, paramName] : semanticSlots)
 	{
-		const auto& texs = material->mTextureParams[usage];
-		if (texs.empty())
-		{
-			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), (Vec4f::Ones() * 0.5f).eval());
-		}
-		else
+		const auto& attr = material->mMatAttriSlots[usage];
+		if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
 		{
 			gbufferPass.mShaderMacros.push_back(ShaderMacro{ paramName + "_USE_MAP", "" });
 
-			gbufferPass.AddSrv((paramName + "Tex").c_str(), texs.front()->GetSrv());
-			gbufferPass.AddSampler((paramName + "Sampler").c_str(), material->mSamplerParams[usage].front());
+			gbufferPass.AddSrv((paramName + "Tex").c_str(), attr.mTexture->GetSrv());
+			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
+		}
+		else
+		{
+			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), attr.mConstantValue);
 		}
 	}
 
@@ -499,11 +502,11 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3
 
 	const char* paramName = "BaseColorTex";
 
-	const auto& texs = material->mTextureParams[TextureUsage_BaseColor];
-	if (!texs.empty())
+	const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
+	if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
 	{
-		pass.AddSrv(paramName, texs.front()->GetSrv());
-		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), material->mSamplerParams[TextureUsage_BaseColor].front());
+		pass.AddSrv(paramName, attr.mTexture->GetSrv());
+		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), attr.mSampler);
 	}
 
 	pass.Draw();

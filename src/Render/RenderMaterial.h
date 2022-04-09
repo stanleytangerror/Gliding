@@ -8,13 +8,21 @@ class D3D12SamplerView;
 
 struct RenderMaterial
 {
-	std::array<std::vector<D3D12Texture*>, TextureUsage_Count> mTextureParams;
-	std::array<std::vector<D3D12SamplerView*>, TextureUsage_Count> mSamplerParams;
+	struct MaterialAttriSlot
+	{
+		D3D12Texture* mTexture = nullptr;
+		D3D12SamplerView* mSampler = nullptr;
+		Vec4f mConstantValue = Vec4f::Zero();
+	};
+
+	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
 
 	void UpdateGpuResources(D3D12CommandContext* context);
 	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(
-		const MaterialRawData* rawData, 
-		const std::map<std::string, std::pair<D3D12Texture*, D3D12SamplerView*>>& textures);
+		const MaterialRawData* matRawData,
+		const SceneRawData* sceneRawData,
+		const std::map<std::string, D3D12Texture*>& textures,
+		const std::map<TextureSamplerType, D3D12SamplerView*>& samplers);
 };

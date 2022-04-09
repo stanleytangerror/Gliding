@@ -1,6 +1,6 @@
 #pragma once
 
-enum GD_WORLD_API TextureUsage
+enum GD_WORLD_API MaterialParamSemantic
 {
 	TextureUsage_Invalid,
 	TextureUsage_Diffuse,
@@ -44,7 +44,6 @@ struct GD_WORLD_API TextureRawData
 {
 	std::string			mPath;
 	std::vector<b8>		mRawData;
-	TextureSamplerType	mSamplerType = {};
 };
 
 struct GD_WORLD_API MatParamMeta
@@ -56,15 +55,16 @@ struct GD_WORLD_API MatParamMeta
 
 struct GD_WORLD_API MaterialRawData
 {
-	struct TextureBasicInfo
+	struct ParamBasicInfo
 	{
 		std::string			mTexturePath;
 		TextureSamplerType	mSamplerType;
+		Vec4f				mConstantValue = {};
 	};
 
 	std::string mName;
-	std::vector<TextureBasicInfo> mTexturePaths;
-	std::array<std::vector<TextureBasicInfo>, TextureUsage_Count> mTexturesWithUsage;
+	std::array<ParamBasicInfo, TextureUsage_Count> mParamSemanticSlots;
+	std::map<std::string, std::string> mStringParams;
 };
 
 union GD_WORLD_API VertexAttriRawData
@@ -120,6 +120,7 @@ struct GD_WORLD_API SceneRawData
 {
 	std::vector<MeshRawData*> mMeshes;
 	std::map<std::string, TextureRawData*> mTextures;
+	std::set<TextureSamplerType> mSamplers;
 	std::vector<MaterialRawData*> mMaterials;
 
 	static SceneRawData* LoadScene(const char* path, 
