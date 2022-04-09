@@ -38,6 +38,35 @@ namespace AssimpLoadUtils
 		}
 	}
 
+	Vec4f DefaultValueFromSemantic(const MaterialParamSemantic semantic)
+	{
+		switch (semantic)
+		{
+		case TextureUsage_Invalid				: return Vec4f::Zero();
+		case TextureUsage_Diffuse				: return Vec4f::Ones();
+		case TextureUsage_Specular				: return Vec4f::Ones();
+		case TextureUsage_Ambient				: return Vec4f::Ones();
+		case TextureUsage_Emissive				: return Vec4f::Ones();
+		case TextureUsage_Height				: return Vec4f::Ones();
+		case TextureUsage_Normal				: return Vec4f(0.5f, 0.5f, 1.f, 0.f);
+		case TextureUsage_Shininess				: return Vec4f::Ones();
+		case TextureUsage_Opacity				: return Vec4f::Ones();
+		case TextureUsage_Displacement			: return Vec4f::Ones();
+		case TextureUsage_LightMap				: return Vec4f::Ones();
+		case TextureUsage_Reflection			: return Vec4f::Ones();
+		case TextureUsage_BaseColor				: return Vec4f::Ones();
+		case TextureUsage_NormalCamera			: return Vec4f::Ones();
+		case TextureUsage_EmissiveColor			: return Vec4f::Ones();
+		case TextureUsage_Metalness				: return Vec4f::Ones();
+		case TextureUsage_Roughness				: return Vec4f::Ones();
+		case TextureUsage_AmbientOcclusion		: return Vec4f::Ones();
+		case TextureUsage_Sheen					: return Vec4f::Ones();
+		case TextureUsage_ClearCoat				: return Vec4f::Ones();
+		case TextureUsage_Transmission			: return Vec4f::Ones();
+		case TextureUsage_Custom				: return Vec4f::Zero();
+		default									: Assert(false); return Vec4f::Zero();
+		}
+	}
 	MaterialParamSemantic FromAssimpMatParamKey(const aiString& key)
 	{
 		const std::string keyStr = key.C_Str();
@@ -263,6 +292,10 @@ namespace AssimpLoadUtils
 		MaterialRawData* result = new MaterialRawData;
 
 		result->mName = material->GetName().C_Str();
+		for (i32 t = 0; t < TextureUsage_Count; ++t)
+		{
+			result->mParamSemanticSlots[t].mConstantValue = DefaultValueFromSemantic(MaterialParamSemantic(t));
+		}
 
 		for (i32 t = 0; t < aiTextureType_UNKNOWN; ++t)
 		{

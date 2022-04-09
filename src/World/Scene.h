@@ -59,7 +59,7 @@ struct GD_WORLD_API MaterialRawData
 	{
 		std::string			mTexturePath;
 		TextureSamplerType	mSamplerType;
-		Vec4f				mConstantValue = {};
+		Vec4f				mConstantValue = Vec4f::Zero();
 	};
 
 	std::string mName;
