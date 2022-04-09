@@ -30,6 +30,14 @@ void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppA
 	*ppAdapter = adapter.Detach();
 }
 
+std::string GetContentFromD3DBlob(ID3DBlob* blob)
+{
+	Assert(blob);
+	std::vector<char> buf(blob->GetBufferSize());
+	std::memcpy(buf.data(), blob->GetBufferPointer(), blob->GetBufferSize());
+	return std::string(buf.begin(), buf.end());
+}
+
 ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros)
 {
 	std::ostringstream buf;
@@ -48,11 +56,20 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 #endif
 
 	const HRESULT hr = D3DCompile(content.c_str(), content.size(), filePath, macros.data(), include.get(), entryName, target, flags, 0, &result, &error);
-	if (hr)
+	if (FAILED(hr))
 	{
-		char errorStr[1024] = {};
-		std::memcpy(errorStr, (char*)error->GetBufferPointer(), error->GetBufferSize());
-		OutputDebugString(errorStr);
+		{
+			ID3DBlob* preprocessCode = nullptr;
+			ID3DBlob* preprocessError = nullptr;
+			const HRESULT preprocessResult = D3DPreprocess(content.c_str(), content.size(), filePath, macros.data(), include.get(), &preprocessCode, &preprocessError);
+			if (FAILED(preprocessResult))
+			{
+				OutputDebugString(GetContentFromD3DBlob(preprocessError).c_str());
+				Assert(false);
+			}
+			OutputDebugString(GetContentFromD3DBlob(preprocessCode).c_str());
+		}
+		OutputDebugString(GetContentFromD3DBlob(error).c_str());
 		AssertHResultOk(hr);
 	}
 
