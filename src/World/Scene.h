@@ -19,7 +19,7 @@ enum GD_WORLD_API TextureUsage
 	TextureUsage_NormalCamera,
 	TextureUsage_EmissiveColor,
 	TextureUsage_Metalness,
-	TextureUsage_DiffuseRoughness,
+	TextureUsage_Roughness,
 	TextureUsage_AmbientOcclusion,
 	TextureUsage_Sheen,
 	TextureUsage_ClearCoat,

@@ -28,7 +28,7 @@ namespace AssimpLoadUtils
 		case aiTextureType_NORMAL_CAMERA 	: return TextureUsage_NormalCamera;
 		case aiTextureType_EMISSION_COLOR	: return TextureUsage_EmissiveColor;
 		case aiTextureType_METALNESS		: return TextureUsage_Metalness;
-		case aiTextureType_DIFFUSE_ROUGHNESS: return TextureUsage_DiffuseRoughness;
+		case aiTextureType_DIFFUSE_ROUGHNESS: return TextureUsage_Roughness;
 		case aiTextureType_AMBIENT_OCCLUSION: return TextureUsage_AmbientOcclusion;
 		case aiTextureType_SHEEN			: return TextureUsage_Sheen;
 		case aiTextureType_CLEARCOAT		: return TextureUsage_ClearCoat;

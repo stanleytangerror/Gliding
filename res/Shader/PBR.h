@@ -3,18 +3,51 @@
 
 #include "Common.h"
 
-#define DeclareMaterialTexture(name) \
+#define DECLARE_MATERIAL_INPUTS(name) \
 Texture2D name##Tex;\
-SamplerState name##TexSampler;
+SamplerState name##TexSampler;\
+float4 name##ConstantValue;
 
-DeclareMaterialTexture(Diffuse);
-DeclareMaterialTexture(Normal);
-DeclareMaterialTexture(Metalness);
-DeclareMaterialTexture(LightMap);
-DeclareMaterialTexture(Specular);
-DeclareMaterialTexture(BaseColor);
-DeclareMaterialTexture(DiffuseRoughness);
+DECLARE_MATERIAL_INPUTS(Normal);
+DECLARE_MATERIAL_INPUTS(Metallic);
+DECLARE_MATERIAL_INPUTS(BaseColor);
+DECLARE_MATERIAL_INPUTS(Roughness);
 
+float4 GetBaseColorValue(float2 uv)
+{
+#ifdef BaseColor_USE_MAP
+	return BaseColorTex.Sample(BaseColorTexSampler, uv);
+#else
+	return BaseColorConstantValue;
+#endif
+}
+
+float4 GetNormalValue(float2 uv)
+{
+#ifdef Normal_USE_MAP
+	return NormalTex.Sample(NormalTexSampler, uv);
+#else
+	return NormalConstantValue;
+#endif
+}
+
+float4 GetMetallicValue(float2 uv)
+{
+#ifdef Metallic_USE_MAP
+	return MetallicTex.Sample(MetallicTexSampler, uv);
+#else
+	return MetallicConstantValue;
+#endif
+}
+
+float4 GetRoughnessValue(float2 uv)
+{
+#ifdef Roughness_USE_MAP
+	return RoughnessTex.Sample(RoughnessTexSampler, uv);
+#else
+	return RoughnessConstantValue;
+#endif
+}
 
 /* from Frostbite engine */
 struct PBRStandard

@@ -431,24 +431,27 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
 	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
-	const std::pair<TextureUsage, const char*> texSlots[] =
+	const std::pair<TextureUsage, std::string> texSlots[] =
 	{
-		{ TextureUsage_Normal,			 "NormalTex" },
-		{ TextureUsage_Metalness,		 "MetalnessTex" },
-		{ TextureUsage_BaseColor,		 "BaseColorTex" },
-		{ TextureUsage_DiffuseRoughness, "DiffuseRoughnessTex" },
+		{ TextureUsage_Normal,			 "Normal" },
+		{ TextureUsage_Metalness,		 "Metallic" },
+		{ TextureUsage_BaseColor,		 "BaseColor" },
+		{ TextureUsage_Roughness,		 "Roughness" },
 	};
 
-	for (const auto& p : texSlots)
+	for (const auto& [usage, paramName] : texSlots)
 	{
-		const TextureUsage usage = p.first;
-		const char* paramName = p.second;
-
 		const auto& texs = material->mTextureParams[usage];
-		if (!texs.empty())
+		if (texs.empty())
 		{
-			gbufferPass.AddSrv(paramName, texs.front()->GetSrv());
-			gbufferPass.AddSampler((std::string(paramName) + "Sampler").c_str(), material->mSamplerParams[usage].front());
+			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), (Vec4f::Ones() * 0.5f).eval());
+		}
+		else
+		{
+			gbufferPass.mShaderMacros.push_back(ShaderMacro{ paramName + "_USE_MAP", "" });
+
+			gbufferPass.AddSrv((paramName + "Tex").c_str(), texs.front()->GetSrv());
+			gbufferPass.AddSampler((paramName + "Sampler").c_str(), material->mSamplerParams[usage].front());
 		}
 	}
 
