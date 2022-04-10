@@ -88,15 +88,9 @@ void ComputePipelineState::Finalize(D3D12PipelineStateLibrary* psLib)
 namespace
 {
 	template <typename PSO_DESC>
-	u64 HashPsoDesc(const PSO_DESC& desc)
+	u32 HashPsoDesc(const PSO_DESC& desc)
 	{
-		u64 h = 0;
-		const byte* const buffer = reinterpret_cast<const byte*>(&desc);
-		for (i32 i = 0; i < sizeof(PSO_DESC); ++i)
-		{
-			h ^= std::hash<byte>{}(buffer[i]) << 1;
-		}
-		return h;
+		return Utils::HashBytes(reinterpret_cast<const b8*>(&desc), sizeof(PSO_DESC));
 	}
 }
 
@@ -108,7 +102,7 @@ D3D12PipelineStateLibrary::D3D12PipelineStateLibrary(D3D12Device* device)
 
 ID3D12PipelineState* D3D12PipelineStateLibrary::CreateGraphicsPso(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
 {
-	const uint64_t hash = HashPsoDesc(desc);
+	const u32 hash = HashPsoDesc(desc);
 
 	if (mGraphicPsoCache.find(hash) == mGraphicPsoCache.end())
 	{
@@ -122,7 +116,7 @@ ID3D12PipelineState* D3D12PipelineStateLibrary::CreateGraphicsPso(const D3D12_GR
 
 ID3D12PipelineState* D3D12PipelineStateLibrary::CreateComputePso(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
 {
-	const uint64_t hash = HashPsoDesc(desc);
+	const u32 hash = HashPsoDesc(desc);
 
 	if (mComputePsoCache.find(hash) == mComputePsoCache.end())
 	{

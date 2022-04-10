@@ -71,7 +71,7 @@ public:
 protected:
 	D3D12Device* const mDevice = nullptr;
 
-	std::map<u64, ID3D12PipelineState*> mGraphicPsoCache;
-	std::map<u64, ID3D12PipelineState*> mComputePsoCache;
+	std::map<u32, ID3D12PipelineState*> mGraphicPsoCache;
+	std::map<u32, ID3D12PipelineState*> mComputePsoCache;
 	std::map<FileEntryKey, ID3D12RootSignature*> mRsCache;
 };
