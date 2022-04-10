@@ -53,5 +53,5 @@ private:
 	CpuDescItem	mNullSrvCpuDesc;
 	CpuDescItem	mNullSamplerCpuDesc;
 
-	static const u32 mSwapChainBufferCount = 2;
+	static const u32 mSwapChainBufferCount = 3;
 };

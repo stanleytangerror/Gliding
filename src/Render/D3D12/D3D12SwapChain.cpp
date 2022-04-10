@@ -63,7 +63,7 @@ void SwapChainBuffers::Present()
 	DEBUG_PRINT(" ================ Begin Present ===================== ");
 	DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
 
-	AssertHResultOk(mSwapChain->Present(1, 0));
+	AssertHResultOk(mSwapChain->Present(0, 0));
 	mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
 
 	DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
