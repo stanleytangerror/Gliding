@@ -6,31 +6,27 @@
 
 namespace
 {
-	i32 BindConstBufferParams(std::vector<byte>& cbuf, const std::map<std::string, std::vector<byte>>& cbParams, ShaderPiece* shader)
+	i32 BindConstBufferParams(std::vector<byte>& cbuf, const std::map<std::string, std::vector<byte>>& cbArgs, ShaderPiece* shader)
 	{
-		const std::map<std::string, InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
+		const std::vector<InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
 		const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
-			[](i32 size, const auto& p) { const InputCBufferParam& cbParam = p.second; return size + cbParam.mSize; });
+			[](i32 size, const auto& param) { return size + param.mSize; });
 
 		i32 offset = cbuf.size();
 		cbuf.insert(cbuf.end(), cbSize, 0);
-		for (const auto& p : shader->GetCBufferBindings())
+		for (const InputCBufferParam& cbParamStruct : shader->GetCBufferBindings())
 		{
-			const InputCBufferParam& cbParam = p.second;
-
-			for (const auto& q : cbParam.mVariables)
+			for (const auto& [varName, varDesc] : cbParamStruct.mVariables)
 			{
-				const std::string& varName = q.first;
-				const InputCBufferParam::CBufferVar& varDesc = q.second;
-				if (cbParams.find(varName) != cbParams.end())
+				if (cbArgs.find(varName) != cbArgs.end())
 				{
-					const auto& varData = cbParams.find(varName)->second;
-					Assert(varDesc.mSize == varData.size());
-					memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varData.data(), varData.size());
+					const auto& varArg = cbArgs.find(varName)->second;
+					Assert(varDesc.mSize == varArg.size());
+					memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.data(), varArg.size());
 				}
 			}
 
-			offset += cbParam.mSize;
+			offset += cbParamStruct.mSize;
 		}
 		return cbSize;
 	};

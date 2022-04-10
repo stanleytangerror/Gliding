@@ -108,14 +108,15 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vect
 		case D3D_SIT_CBUFFER:
 		{
 			// const buffer
-			Assert(mCBufferBindings.find(bindDesc.Name) == mCBufferBindings.end());
+			Assert(mCBufferBindings.end() == std::find_if(mCBufferBindings.begin(), mCBufferBindings.end(), 
+				[&bindDesc](const InputCBufferParam& p) { return p.mName == bindDesc.Name; }));
 			InputCBufferParam param = {};
 			{
 				param.mName = bindDesc.Name;
 				param.mBindPoint = bindDesc.BindPoint;
 				param.mBindCount = bindDesc.BindCount;
 			}
-			mCBufferBindings[bindDesc.Name] = param;
+			mCBufferBindings.push_back(param);
 			break;
 		}
 		case D3D_SIT_SAMPLER:
@@ -173,10 +174,11 @@ ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vect
 		D3D12_SHADER_BUFFER_DESC cbDesc;
 		cb->GetDesc(&cbDesc);
 
-		auto it = mCBufferBindings.find(cbDesc.Name);
+		auto it = std::find_if(mCBufferBindings.begin(), mCBufferBindings.end(),
+			[&cbDesc](const auto& p) { return p.mName == cbDesc.Name; });
 		if (it != mCBufferBindings.end())
 		{
-			InputCBufferParam& param = it->second;
+			InputCBufferParam& param = *it;
 			{
 				param.mSize = cbDesc.Size;
 				param.mVarNum = cbDesc.Variables;
