@@ -1,11 +1,15 @@
 #include "CommonPch.h"
 #include "Profile.h"
+#include "StringUtils.h"
 #include "microprofile.h"
 
 void GD_COMMON_API Profile::Initial()
 {
 #if MICROPROFILE_ENABLED
+	MicroProfileOnThreadCreate("Main");
 	MicroProfileSetEnableAllGroups(true);
+	MicroProfileSetForceMetaCounters(true);
+	MicroProfileStartContextSwitchTrace();
 #endif
 }
 
@@ -16,9 +20,16 @@ void GD_COMMON_API Profile::Flush()
 #endif
 }
 
+void GD_COMMON_API Profile::Destroy()
+{
+#if MICROPROFILE_ENABLED
+	MicroProfileShutdown();
+#endif
+}
+
 Profile::ScopedCpuEvent::ScopedCpuEvent(const char* name)
 {
-	MICROPROFILE_ENTERI("MicroProfile", name, 0);
+	MICROPROFILE_ENTERI("Main", name, 0xff0000ff);
 }
 
 Profile::ScopedCpuEvent::~ScopedCpuEvent()

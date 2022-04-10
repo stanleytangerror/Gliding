@@ -4,6 +4,7 @@ namespace Profile
 {
 	void GD_COMMON_API Initial();
 	void GD_COMMON_API Flush();
+	void GD_COMMON_API Destroy();
 
 	class GD_COMMON_API ScopedCpuEvent
 	{

@@ -41,11 +41,17 @@ void RenderModule::TickFrame(Timer* timer)
 
 	mDevice->StartFrame();
 
-	mScreenRenderer->TickFrame(timer);
-	mWorldRenderer->TickFrame(timer);
+	{
+		PROFILE_EVENT(RendererLogic);
+
+		mScreenRenderer->TickFrame(timer);
+		mWorldRenderer->TickFrame(timer);
+	}
 
 	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
+		PROFILE_EVENT(RenderToGPU);
+		
 		SwapChainBufferResource* backBuffer = mDevice->GetBackBuffer()->GetBuffer();
 		
 		mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
