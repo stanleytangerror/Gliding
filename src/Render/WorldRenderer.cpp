@@ -401,6 +401,8 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj, 
 	const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView)
 {
+	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
+	
 	GraphicsPass gbufferPass(context);
 
 	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -479,6 +481,8 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj, DSV* depthView)
 {
+	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
+
 	GraphicsPass pass(context);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
