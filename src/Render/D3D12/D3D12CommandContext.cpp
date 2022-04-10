@@ -32,6 +32,8 @@ D3D12CommandContext::~D3D12CommandContext()
 
 void D3D12CommandContext::Finalize()
 {
+	PROFILE_EVENT(D3D12CommandContext::Finalize);
+
 	AssertInThread(mThisCpuThreadId);
 
 	AssertHResultOk(mCommandList->Close());

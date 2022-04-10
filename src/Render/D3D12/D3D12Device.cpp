@@ -169,6 +169,8 @@ void D3D12Device::StartFrame()
 
 void D3D12Device::Present()
 {
+	PROFILE_EVENT(Present);
+
 	for (D3D12GpuQueue* q : mGpuQueues)
 	{
 		q->Execute();

@@ -184,6 +184,8 @@ GraphicsPass::GraphicsPass(GraphicsContext* context)
 
 void GraphicsPass::Draw()
 {
+	PROFILE_EVENT(GraphicsPass::Draw);
+
 	// transitions
 	for (const auto& p : mSrvParams)
 	{

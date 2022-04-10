@@ -20,4 +20,4 @@ namespace Profile
 	};
 }
 
-#define PROFILE_EVENT(name)				Profile::ScopedCpuEvent _Event_##_FILE_##_LINE_NO_(#name);
+#define PROFILE_EVENT(name)				Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#name);
