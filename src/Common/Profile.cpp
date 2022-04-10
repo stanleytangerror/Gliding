@@ -28,7 +28,8 @@ void GD_COMMON_API Profile::Destroy()
 
 Profile::ScopedCpuEvent::ScopedCpuEvent(const char* name)
 {
-	mToken = MicroProfileGetToken("Main", name, 0xff0000ff, MicroProfileTokenTypeCpu);
+	const u32 color = Utils::HashBytes(reinterpret_cast<const std::byte*>(name), strlen(name));
+	mToken = MicroProfileGetToken("Main", name, color, MicroProfileTokenTypeCpu);
 	mTick = MicroProfileEnter(mToken);
 }
 

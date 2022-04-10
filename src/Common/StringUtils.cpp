@@ -76,3 +76,19 @@ GD_COMMON_API std::vector<b8> Utils::LoadFileContent(const char* path)
 	return {};
 }
 
+GD_COMMON_API u32 Utils::HashBytes(const b8* data, u32 size)
+{
+	/* Fowler¨CNoll¨CVo hash function */
+	const u32 fnv_prime = 16777619u;
+	const u32 offset_basis = 2166136261u;
+	u32 hash = offset_basis;
+
+	for (u32 i = 0; i < size; i++)
+	{
+		hash ^= u32(data[i]);
+		hash *= fnv_prime;
+	}
+
+	return hash;
+}
+
