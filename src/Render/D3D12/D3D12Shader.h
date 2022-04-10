@@ -67,11 +67,11 @@ public:
 
 	const enum ShaderType						GetType() const { return mType; }
 	ID3DBlob*									GetShader() const { return mShader; }
-	std::vector<D3D12_INPUT_ELEMENT_DESC>		GetInputLayout() const { return mInputLayout; }
-	std::map<std::string, InputCBufferParam>	GetCBufferBindings() const { return mCBufferBindings; }
-	std::map<std::string, InputSrvParam>		GetSrvBindings() const { return mSrvBindings; }
-	std::map<std::string, InputUavParam>		GetUavBindings() const { return mUavBindings; }
-	std::map<std::string, InputSamplerParam>	GetSamplerBindings() const { return mSamplerBindings; }
+	const std::vector<D3D12_INPUT_ELEMENT_DESC>&	GetInputLayout() const { return mInputLayout; }
+	const std::map<std::string, InputCBufferParam>&	GetCBufferBindings() const { return mCBufferBindings; }
+	const std::map<std::string, InputSrvParam>&		GetSrvBindings() const { return mSrvBindings; }
+	const std::map<std::string, InputUavParam>&		GetUavBindings() const { return mUavBindings; }
+	const std::map<std::string, InputSamplerParam>&	GetSamplerBindings() const { return mSamplerBindings; }
 
 protected:
 	const enum ShaderType					mType;
