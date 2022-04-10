@@ -32,6 +32,8 @@ RenderModule::RenderModule(WindowInfo windowInfo)
 
 void RenderModule::TickFrame(Timer* timer)
 {
+	PROFILE_EVENT(RenderModule::TickFrame);
+
 	if (mRenderDoc)
 	{
 		mRenderDoc->OnStartFrame(mDevice, mWindowInfo.mWindow);

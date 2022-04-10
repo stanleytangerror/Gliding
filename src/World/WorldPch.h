@@ -14,6 +14,7 @@
 #include "Common/FreeList.h"
 #include "Common/StringUtils.h"
 #include "Common/Timer.h"
+#include "Common/Profile.h"
 
 // std headers
 #include <utility>

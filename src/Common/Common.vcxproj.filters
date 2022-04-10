@@ -40,10 +40,28 @@
     <ClInclude Include="CommonUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Profile.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="microprofile.h">
+      <Filter>Source\Dependencies\MicroProfile</Filter>
+    </ClInclude>
+    <ClInclude Include="microprofile_html.h">
+      <Filter>Source\Dependencies\MicroProfile</Filter>
+    </ClInclude>
+    <ClInclude Include="microprofile.config.h">
+      <Filter>Source\Dependencies\MicroProfile</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
       <UniqueIdentifier>{0d615b55-989c-495f-ba86-588c7eaf6e65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Dependencies">
+      <UniqueIdentifier>{c841217a-7748-410e-8074-5cd91571279b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Dependencies\MicroProfile">
+      <UniqueIdentifier>{bbac729f-a480-4f13-9714-0601c89cc074}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -61,6 +79,12 @@
     </ClCompile>
     <ClCompile Include="Math.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Profile.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="microprofile.cpp">
+      <Filter>Source\Dependencies\MicroProfile</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
