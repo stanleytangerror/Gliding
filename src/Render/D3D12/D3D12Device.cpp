@@ -6,11 +6,19 @@
 #include "D3D12/D3D12SwapChain.h"
 #include "D3D12/D3D12ResourceManager.h"
 
+#if defined(_DEBUG)
+#define ENABLE_D3D12_DEBUG_LAYER 1
+#define ENABLE_D3D12_DEBUG_LAYER_BREAK_ON_ERROR 1
+#else
+#define ENABLE_D3D12_DEBUG_LAYER 0
+#define ENABLE_D3D12_DEBUG_LAYER_BREAK_ON_ERROR 0
+#endif
+
 D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 {
 	UINT dxgiFactoryFlags = 0;
 
-#if defined(_DEBUG)
+#if ENABLE_D3D12_DEBUG_LAYER
 	// Enable the debug layer (requires the Graphics Tools "optional feature").
 	// NOTE: Enabling the debug layer after device creation will invalidate the active device.
 	{
@@ -59,13 +67,15 @@ D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 		AssertHResultOk(hr);
 	}
 
+#if ENABLE_D3D12_DEBUG_LAYER
 	// create info queue
-#if defined(_DEBUG)
 	{
 		Microsoft::WRL::ComPtr<ID3D12InfoQueue> infoQueue;
 		if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&infoQueue))))
 		{
+#if ENABLE_D3D12_DEBUG_LAYER_BREAK_ON_ERROR
 			AssertHResultOk(infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
+#endif
 
 			D3D12_MESSAGE_SEVERITY denySeverities[] =
 			{

@@ -7,10 +7,18 @@
 #include "D3D12/D3D12RenderTarget.h"
 #include "D3D12/D3D12SwapChain.h"
 
+#if defined(_DEBUG)
+#define ENABLE_RENDER_DOC_PLUGIN 1
+#else
+#define ENABLE_RENDER_DOC_PLUGIN 0
+#endif
+
 RenderModule::RenderModule(WindowInfo windowInfo)
 	: mWindowInfo(windowInfo)
 {
-	//mRenderDoc = new RenderDocIntegration;
+#if ENABLE_RENDER_DOC_PLUGIN
+	mRenderDoc = new RenderDocIntegration;
+#endif
 
 	mDevice = new D3D12Device(mWindowInfo.mWindow, mWindowInfo.mSize);
 	const auto& backBuffer = mDevice->GetBackBuffer()->GetBuffer();
