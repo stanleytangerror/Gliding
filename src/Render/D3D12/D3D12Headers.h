@@ -17,3 +17,6 @@ enum D3D12GpuQueueType : u8
 };
 
 #include "D3D12/D3D12Utils.h"
+#include "D3D12/D3D12GpuEvent.h"
+
+#define RENDER_EVENT(context, format)	D3D12ScopedEvent _Event_##_FILE_##_LINE_NO_(context->GetCommandList(), #format);

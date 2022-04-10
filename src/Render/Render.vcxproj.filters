@@ -108,6 +108,9 @@
     <ClInclude Include="Light.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\D3D12GpuEvent.h">
+      <Filter>Source\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -182,5 +185,11 @@
     <ClCompile Include="RenderUtils.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="D3D12\D3D12GpuEvent.cpp">
+      <Filter>Source\D3D12</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
