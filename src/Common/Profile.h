@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CommonTypes.h"
+
 namespace Profile
 {
 	void GD_COMMON_API Initial();
@@ -11,6 +13,10 @@ namespace Profile
 	public:
 		ScopedCpuEvent(const char* name);
 		~ScopedCpuEvent();
+
+	private:
+		u64 mToken = 0;
+		u64 mTick = 0;
 	};
 }
 
