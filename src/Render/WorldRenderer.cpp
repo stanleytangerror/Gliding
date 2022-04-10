@@ -169,54 +169,66 @@ void WorldRenderer::TickFrame(Timer* timer)
 
 void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 {
-	if (!mPanoramicSkyTex->IsD3DResourceReady())
 	{
-		mPanoramicSkyTex->Initial(context);
-	}
+		RENDER_EVENT(context, UpdateResources);
 
-	mTestModel.ForEach([&](auto& node)
+		if (!mPanoramicSkyTex->IsD3DResourceReady())
 		{
-			if (auto& mat = node.mContent.second)
+			mPanoramicSkyTex->Initial(context);
+		}
+
+		mTestModel.ForEach([&](auto& node)
 			{
-				mat->UpdateGpuResources(context);
-			}
-		});
+				if (auto& mat = node.mContent.second)
+				{
+					mat->UpdateGpuResources(context);
+				}
+			});
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	const Vec3i& rtSize = target->GetResource()->GetSize();
+	{
+		RENDER_EVENT(context, LightViewDepth);
 
-	mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
+		const Vec3i& rtSize = target->GetResource()->GetSize();
 
-	mTestModel.ForEach([&](const auto& node)
-		{
-			D3D12Geometry* geo = node.mContent.first.get();
-			RenderMaterial* mat = node.mContent.second.get();
+		mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
-			if (geo && mat && mat->IsGpuResourceReady())
+		mTestModel.ForEach([&](const auto& node)
 			{
-				RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthRt->GetDsv());
-			}
-		});
+				D3D12Geometry* geo = node.mContent.first.get();
+				RenderMaterial* mat = node.mContent.second.get();
+
+				if (geo && mat && mat->IsGpuResourceReady())
+				{
+					RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthRt->GetDsv());
+				}
+			});
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	for (const auto& rt : mGBufferRts)
 	{
-		rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
-	}
-	mMainDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
+		RENDER_EVENT(context, GBuffer);
 
-	mTestModel.ForEach([&](const auto& node)
+		for (const auto& rt : mGBufferRts)
 		{
-			D3D12Geometry* geo = node.mContent.first.get();
-			RenderMaterial* mat = node.mContent.second.get();
+			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
+		}
+		mMainDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
 
-			if (geo && mat && mat->IsGpuResourceReady())
+		mTestModel.ForEach([&](const auto& node)
 			{
-				RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mMainDepthRt->GetDsv());
-			}
-		});
+				D3D12Geometry* geo = node.mContent.first.get();
+				RenderMaterial* mat = node.mContent.second.get();
+
+				if (geo && mat && mat->IsGpuResourceReady())
+				{
+					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mMainDepthRt->GetDsv());
+				}
+			});
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -274,6 +286,8 @@ void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, IRende
 
 void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)
 {
+	RENDER_EVENT(context, DeferredLighting);
+
 	GraphicsPass lightingPass(context);
 
 	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -327,6 +341,8 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
 {
+	RENDER_EVENT(context, Sky);
+
 	GraphicsPass pass(context);
 
 	D3D12Geometry* geometry = mQuad;
@@ -519,6 +535,8 @@ void WorldRenderer::RenderShadowMask(GraphicsContext* context,
 	const Math::OrthographicProjection& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 	const Math::PerspectiveProjection& cameraProj, const Math::CameraTransformf& cameraTrans)
 {
+	RENDER_EVENT(context, ShadowMask);
+
 	static D3D12Geometry* geometry = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	GraphicsPass pass(context);

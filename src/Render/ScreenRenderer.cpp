@@ -37,6 +37,8 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* scene
 
 void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureTex)
 {
+	RENDER_EVENT(context, Exposure);
+
 	ComputePass calcExposurePass(context);
 
 	calcExposurePass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -55,6 +57,8 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResource
 
 void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target)
 {
+	RENDER_EVENT(context, ToneMapping);
+
 	GraphicsPass ldrScreenPass(context);
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
