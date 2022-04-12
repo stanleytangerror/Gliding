@@ -149,7 +149,7 @@ float3 F_Schlick( float3 SpecularColor, float VoH )
 
 float3 SpecularGGX(float Roughness, float3 SpecularColor, BxDFContext Context, float NoL)
 {
-	float a2 = Pow4( Roughness );
+	float a2 = max(0.002, Pow4(Roughness));
 	float Energy = 1.0; //EnergyNormalization( a2, Context.VoH, AreaLight );
 
 	float D = D_GGX( a2, Context.NoH ) * Energy;
