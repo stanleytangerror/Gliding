@@ -2,6 +2,7 @@
 #include "D3D12CommandContext.h"
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12DescriptorHeap.h"
+#include "D3D12Resource.h"
 
 D3D12CommandContext::D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpuQueue)
 	: mDevice(device)
@@ -81,6 +82,32 @@ void D3D12CommandContext::Transition(ID3D12Resource* resource, const D3D12_RESOU
 
 		mCommandList->ResourceBarrier(1, &BarrierDesc);
 	}
+}
+
+void D3D12CommandContext::CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src)
+{
+	Assert(dst->GetSize() == src->GetSize());
+
+	dst->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);
+	src->Transition(this, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+	{
+		dstLocation.pResource = dst->GetD3D12Resource();
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dstLocation.SubresourceIndex = 0;
+	}
+
+	D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+	{
+		srcLocation.pResource = src->GetD3D12Resource();
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		srcLocation.SubresourceIndex = 0;
+	}
+
+	const auto& size = src->GetSize();
+	D3D12_BOX box = { 0, 0, 0, size.x(), size.y(), size.z() };
+	mCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &box);
 }
 
 GraphicsContext::GraphicsContext(D3D12Device* device, D3D12GpuQueue* gpuQueue)

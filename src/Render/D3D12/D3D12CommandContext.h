@@ -10,6 +10,7 @@ class D3D12Device;
 class D3D12GpuQueue;
 class D3D12ConstantBuffer;
 class RuntimeDescriptorHeap;
+class ID3D12Res;
 
 class D3D12CommandContext
 {
@@ -27,6 +28,8 @@ public:
 	u64							GetPlannedFenceValue() const;
 
 	void						Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState);
+
+	void						CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src);
 
 protected:
 	std::thread::id	mThisCpuThreadId;

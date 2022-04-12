@@ -288,6 +288,15 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 {
 	RENDER_EVENT(context, DeferredLighting);
 
+	const auto& dsSize = mMainDepthRt->GetSize();
+	std::unique_ptr<D3DDepthStencil> tmpDepth = std::make_unique<D3DDepthStencil>(context->GetDevice(), 
+		Vec2i{ dsSize.x(), dsSize.y() },
+		mMainDepthRt->GetFormat(),
+		mMainDepthRt->GetDsv()->GetFormat(),
+		mMainDepthRt->GetSrv()->GetFormat(),
+		"TempDepthRt");
+	context->CopyBuffer2D(tmpDepth.get(), mMainDepthRt);
+
 	GraphicsPass lightingPass(context);
 
 	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -300,14 +309,24 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = false;
+		desc.DepthStencilState.StencilEnable = true;
+		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_OpaqueObject;
+		desc.DepthStencilState.StencilWriteMask = 0;
+		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
 	}
 
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	lightingPass.mRts[0] = target;
+	lightingPass.mDs = tmpDepth->GetDsv();
 	lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	lightingPass.mVbvs.clear();
 	lightingPass.mVbvs.push_back(mQuad->mVbv);
