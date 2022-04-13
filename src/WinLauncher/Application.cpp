@@ -5,39 +5,53 @@ Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
 	Profile::Initial();
-
 	mRenderModule = std::make_unique<RenderModule>();
 }
 
 void Application::Initial(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
 {
-	mWindowHandle = CreateWindowInner(width, height, name, hInstance, nCmdShow);
-
-	mRenderModule->AdaptWindow(WindowInfo{ mWindowHandle, Vec2i{ i32(width), i32(height) } });
-
-	mAppLifeCycle = AppLifeCycle::Running;
-	mLogicThread = std::make_unique<std::thread>([this]() 
-		{ 
-			// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
-			AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
-
-			this->RunLogic(); 
-		});
+	mLogicThread = std::make_unique<std::thread>([this]() { this->LogicThread(); });
+	mWindowThread = std::make_unique<std::thread>([&]() { this->WindowThread(width, height, name, hInstance, nCmdShow); });
 }
 
 void Application::Destroy()
 {
 	mAppLifeCycle = AppLifeCycle::Destroying;
-	
-	mLogicThread->join();
-
 	mRenderModule->Destroy();
-
 	Profile::Destroy();
 }
 
 void Application::Run()
 {
+	mAppLifeCycle = AppLifeCycle::Running;
+	mWindowThread->join();
+	mLogicThread->join();
+}
+
+void Application::LogicThread()
+{
+	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
+	AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
+
+	while (mWindowInfo.mWindow == 0) {}
+
+	mRenderModule->AdaptWindow(mWindowInfo);
+
+	while (mWindowInfo.mWindow != 0)
+	{
+		mTimer->OnStartNewFrame();
+		
+		mRenderModule->TickFrame(mTimer.get());
+
+		Profile::Flush();
+	}
+}
+
+void Application::WindowThread(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
+{
+	mWindowInfo.mSize = { width, height };
+	mWindowInfo.mWindow = CreateWindowInner(width, height, name, hInstance, nCmdShow);
+
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
 	{
@@ -49,24 +63,7 @@ void Application::Run()
 		}
 	}
 
-	Destroy();
-}
-
-void Application::RunLogic()
-{
-	while (mAppLifeCycle == AppLifeCycle::Running)
-	{
-		mTimer->OnStartNewFrame();
-		
-		mRenderModule->TickFrame(mTimer.get());
-
-		Profile::Flush();
-	}
-}
-
-void Application::RunWindow()
-{
-
+	mWindowInfo.mWindow = {};
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -112,7 +109,7 @@ HWND Application::CreateWindowInner(u32 width, u32 height, std::string name, HIN
 	windowClass.lpfnWndProc = WindowProc;
 	windowClass.hInstance = hInstance;
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	windowClass.lpszClassName = "TestApplication";
+	windowClass.lpszClassName = "WinLauncher";
 	RegisterClassEx(&windowClass);
 
 	RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };

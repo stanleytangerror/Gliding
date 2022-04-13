@@ -27,7 +27,6 @@ public:
 
 	D3D12Device*		GetDevice() const { return mDevice; }
 
-	WindowInfo			GetWindowInfo() const { return mWindowInfo; }
 	Vec2i				GetBackBufferSize() const { return mBackBufferSize; }
 
 	void				Destroy();

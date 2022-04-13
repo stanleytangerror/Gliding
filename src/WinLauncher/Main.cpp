@@ -41,4 +41,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	std::unique_ptr<Application> app = std::make_unique<Application>();
 	app->Initial(960, 540, "TestApplication", hInstance, nCmdShow);
 	app->Run();
+	app->Destroy();
 }

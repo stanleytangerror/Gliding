@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <string>
 #include <xstring>
+#include <chrono>
 
 // headers from common
 #include "Common/CommonTypes.h"
