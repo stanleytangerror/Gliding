@@ -18,8 +18,9 @@ enum D3D12GpuQueueType : u8;
 class D3D12Device
 {
 public:
-	D3D12Device(HWND windowHandle, const Vec2i& initWindowSize);
+	D3D12Device();
 
+	void	CreateSwapChain(HWND windowHandle, const Vec2i& initWindowSize);
 	void	StartFrame();
 	void	Present();
 	void	Destroy();
@@ -39,6 +40,7 @@ public:
 	void	ReleaseD3D12Resource(ID3D12Resource*& res);
 
 private:
+	IDXGIFactory4* mFactory = nullptr;
 	ID3D12Device* mDevice = nullptr;
 
 	SwapChainBuffers* mBackBuffers = nullptr;

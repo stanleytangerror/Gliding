@@ -14,7 +14,7 @@
 #define ENABLE_D3D12_DEBUG_LAYER_BREAK_ON_ERROR 0
 #endif
 
-D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
+D3D12Device::D3D12Device()
 {
 	UINT dxgiFactoryFlags = 0;
 
@@ -34,14 +34,12 @@ D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 	}
 #endif
 
-	//IDXGIFactory4* factory = nullptr;
-	Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-	AssertHResultOk(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
+	AssertHResultOk(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&mFactory)));
 
 	if (false)
 	{
 		Microsoft::WRL::ComPtr<IDXGIAdapter> warpAdapter;
-		AssertHResultOk(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
+		AssertHResultOk(mFactory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
 
 		AssertHResultOk(D3D12CreateDevice(
 			warpAdapter.Get(),
@@ -53,7 +51,7 @@ D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 	{
 		Microsoft::WRL::ComPtr<IDXGIAdapter1> hardwareAdapter;
 		//IDXGIAdapter1* hardwareAdapter = nullptr;
-		D3D12Utils::GetHardwareAdapter(factory.Get(), &hardwareAdapter);
+		D3D12Utils::GetHardwareAdapter(mFactory, &hardwareAdapter);
 
 		DXGI_ADAPTER_DESC desc;
 		hardwareAdapter->GetDesc(&desc);
@@ -135,7 +133,10 @@ D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 	}
 	mNullSamplerCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER]->AllocCpuDesc();
 	D3D12Device::GetDevice()->CreateSampler(&nullSamplerDesc, mNullSamplerCpuDesc.Get());
+}
 
+void D3D12Device::CreateSwapChain(HWND windowHandle, const Vec2i& initWindowSize)
+{
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = mSwapChainBufferCount;
@@ -147,7 +148,7 @@ D3D12Device::D3D12Device(HWND windowHandle, const Vec2i& initWindowSize)
 	swapChainDesc.SampleDesc.Count = 1;
 
 	IDXGISwapChain1* swapChain1 = nullptr;
-	AssertHResultOk(factory->CreateSwapChainForHwnd(
+	AssertHResultOk(mFactory->CreateSwapChainForHwnd(
 		mGpuQueues[D3D12GpuQueueType::Graphic]->GetCommandQueue(),
 		windowHandle,
 		&swapChainDesc,

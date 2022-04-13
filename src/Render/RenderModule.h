@@ -19,7 +19,9 @@ struct GD_RENDER_API WindowInfo
 class GD_RENDER_API RenderModule
 {
 public:
-	RenderModule(WindowInfo windowInfo);
+	RenderModule();
+
+	void AdaptWindow(const WindowInfo& windowInfo);
 
 	void TickFrame(Timer* timer);
 

@@ -4,16 +4,16 @@
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
+	Profile::Initial();
 
+	mRenderModule = std::make_unique<RenderModule>();
 }
 
 void Application::Initial(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
 {
-	Profile::Initial();
-
 	mWindowHandle = CreateWindowInner(width, height, name, hInstance, nCmdShow);
 
-	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(width), i32(height) } });
+	mRenderModule->AdaptWindow(WindowInfo{ mWindowHandle, Vec2i{ i32(width), i32(height) } });
 
 	mAppLifeCycle = AppLifeCycle::Running;
 	mLogicThread = std::make_unique<std::thread>([this]() 
@@ -62,6 +62,11 @@ void Application::RunLogic()
 
 		Profile::Flush();
 	}
+}
+
+void Application::RunWindow()
+{
+
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

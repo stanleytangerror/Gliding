@@ -18,9 +18,11 @@ public:
 	void			Destroy();
 
 	void			Run();
-	void			RunLogic();
 
 protected:
+	void			RunLogic();
+	void			RunWindow();
+
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static HWND CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 
@@ -30,6 +32,7 @@ protected:
 	std::unique_ptr<RenderModule>	mRenderModule;
 
 	std::unique_ptr<std::thread>	mLogicThread;
+	std::unique_ptr<std::thread>	mWindowThread;
 
 	enum class AppLifeCycle { Initial, Running, Destroying };
 	std::atomic<AppLifeCycle> mAppLifeCycle = AppLifeCycle::Initial;
