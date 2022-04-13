@@ -1,49 +1,19 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
 
-Application::Application(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
-	: mWidth(width)
-	, mHeight(height)
-	, mTitle(name)
-	, mTimer(std::make_unique<Timer>())
+Application::Application()
+	: mTimer(std::make_unique<Timer>())
 {
-	// Initialize the window class.
-	WNDCLASSEX windowClass = { 0 };
-	windowClass.cbSize = sizeof(WNDCLASSEX);
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = WindowProc;
-	windowClass.hInstance = hInstance;
-	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	windowClass.lpszClassName = "TestApplication";
-	RegisterClassEx(&windowClass);
 
-	RECT windowRect = { 0, 0, static_cast<LONG>(mWidth), static_cast<LONG>(mHeight) };
-	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-	// Create the window and store a handle to it.
-	mWindowHandle = CreateWindow(
-		windowClass.lpszClassName,
-		mTitle.c_str(),
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		windowRect.right - windowRect.left,
-		windowRect.bottom - windowRect.top,
-		nullptr,		// We have no parent window.
-		nullptr,		// We aren't using menus.
-		hInstance,
-		nullptr);
-
-	SetWindowText(mWindowHandle, mTitle.c_str());
-
-	ShowWindow(mWindowHandle, nCmdShow);
 }
 
-void Application::Initial()
+void Application::Initial(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
 {
 	Profile::Initial();
 
-	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(mWidth), i32(mHeight) } });
+	mWindowHandle = CreateWindowInner(width, height, name, hInstance, nCmdShow);
+
+	mRenderModule = std::make_unique<RenderModule>(WindowInfo{ mWindowHandle, Vec2i{ i32(width), i32(height) } });
 
 	mAppLifeCycle = AppLifeCycle::Running;
 	mLogicThread = std::make_unique<std::thread>([this]() 
@@ -126,4 +96,40 @@ LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam,
 
 	// Handle any messages the switch statement didn't.
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+HWND Application::CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
+{
+	// Initialize the window class.
+	WNDCLASSEX windowClass = { 0 };
+	windowClass.cbSize = sizeof(WNDCLASSEX);
+	windowClass.style = CS_HREDRAW | CS_VREDRAW;
+	windowClass.lpfnWndProc = WindowProc;
+	windowClass.hInstance = hInstance;
+	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	windowClass.lpszClassName = "TestApplication";
+	RegisterClassEx(&windowClass);
+
+	RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+	// Create the window and store a handle to it.
+	HWND windowHandle = CreateWindow(
+		windowClass.lpszClassName,
+		name.c_str(),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		nullptr,		// We have no parent window.
+		nullptr,		// We aren't using menus.
+		hInstance,
+		nullptr);
+
+	SetWindowText(windowHandle, name.c_str());
+
+	ShowWindow(windowHandle, nCmdShow);
+
+	return windowHandle;
 }
