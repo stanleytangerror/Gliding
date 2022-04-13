@@ -22,6 +22,13 @@ namespace D3D12Utils
 	
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
+	/* dxgi format util functions from Microsoft/DirectX-Graphics-Samples */
+	DXGI_FORMAT GetBaseFormat(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT GetUAVFormat(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT GetDSVFormat(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT GetDepthFormat(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT GetStencilFormat(DXGI_FORMAT defaultFormat);
+
 	template <typename T>
 	inline std::vector<byte> ToD3DConstBufferParamData(const T& var);
 
