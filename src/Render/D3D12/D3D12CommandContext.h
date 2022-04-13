@@ -29,6 +29,7 @@ public:
 
 	void						Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState);
 
+	void						CopyResource(ID3D12Res* dst, ID3D12Res* src);
 	void						CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src);
 
 protected:

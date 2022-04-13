@@ -84,6 +84,17 @@ void D3D12CommandContext::Transition(ID3D12Resource* resource, const D3D12_RESOU
 	}
 }
 
+void D3D12CommandContext::CopyResource(ID3D12Res* dst, ID3D12Res* src)
+{
+	Assert(dst->GetSize() == src->GetSize());
+	Assert(dst->GetD3D12Resource()->GetDesc() == dst->GetD3D12Resource()->GetDesc());
+	
+	dst->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);
+	src->Transition(this, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	mCommandList->CopyResource(dst->GetD3D12Resource(), src->GetD3D12Resource());
+}
+
 void D3D12CommandContext::CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src)
 {
 	Assert(dst->GetSize() == src->GetSize());
@@ -91,18 +102,20 @@ void D3D12CommandContext::CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src)
 	dst->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);
 	src->Transition(this, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
+	auto desc = src->GetD3D12Resource()->GetDesc();
+
 	D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
 	{
 		dstLocation.pResource = dst->GetD3D12Resource();
 		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		dstLocation.SubresourceIndex = 0;
+		dstLocation.SubresourceIndex = 2;
 	}
 
 	D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
 	{
 		srcLocation.pResource = src->GetD3D12Resource();
 		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		srcLocation.SubresourceIndex = 0;
+		srcLocation.SubresourceIndex = 2;
 	}
 
 	const auto& size = src->GetSize();

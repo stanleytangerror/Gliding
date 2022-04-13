@@ -295,7 +295,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 		mMainDepthRt->GetDsv()->GetFormat(),
 		mMainDepthRt->GetSrv()->GetFormat(),
 		"TempDepthRt");
-	context->CopyBuffer2D(tmpDepth.get(), mMainDepthRt);
+	context->CopyResource(tmpDepth.get(), mMainDepthRt);
 
 	GraphicsPass lightingPass(context);
 
@@ -315,9 +315,9 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
 		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
 		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
 	}
 
