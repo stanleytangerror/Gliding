@@ -4,7 +4,7 @@
 
 constexpr void AssertHResultOk(const long val)
 {
-	if (val != S_OK)
+	if (FAILED(val))
 	{
 		wchar_t buf[1024] = {};
 		FormatMessageW(

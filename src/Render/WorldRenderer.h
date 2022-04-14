@@ -18,7 +18,7 @@ struct DirectionalLight;
 class GD_RENDER_API WorldRenderer
 {
 public:
-	WorldRenderer(RenderModule* renderModule);
+	WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize);
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
@@ -53,6 +53,7 @@ private:
 
 private:
 	RenderModule* mRenderModule = nullptr;
+	Vec2i const mRenderSize = {};
 
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;

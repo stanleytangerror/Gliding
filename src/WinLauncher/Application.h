@@ -14,19 +14,20 @@ class Application
 public:
 	Application();
 
-	void			Initial(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
+	void			Initial( HINSTANCE hInstance, int nCmdShow);
 	void			Destroy();
 
 	void			Run();
 
 protected:
 	void			LogicThread();
-	void			WindowThread(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
+	void			WindowThread(HINSTANCE hInstance, int nCmdShow);
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static HWND CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 
-	WindowInfo						mWindowInfo = {};
+	WindowInfo						mMainWindowInfo = {};
+	WindowInfo						mDebugWindowInfo = {};
 
 	std::unique_ptr<Timer>			mTimer;
 	std::unique_ptr<RenderModule>	mRenderModule;

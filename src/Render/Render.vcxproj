@@ -135,6 +135,7 @@
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />
     <ClInclude Include="Texture.h" />
+    <ClInclude Include="PresentPort.h" />
     <ClInclude Include="WorldRenderer.h" />
   </ItemGroup>
   <ItemGroup>

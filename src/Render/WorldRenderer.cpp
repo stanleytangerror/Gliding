@@ -39,8 +39,9 @@ namespace
 	}
 }
 
-WorldRenderer::WorldRenderer(RenderModule* renderModule)
+WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize)
 	: mRenderModule(renderModule)
+	, mRenderSize(renderSize)
 {
 	D3D12Device* device = mRenderModule->GetDevice();
 
@@ -65,18 +66,17 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule)
 		mNoMipMapLinearDepthCmpSampler = new D3D12SamplerView(device, samplerDesc);
 	}
 
-	const auto& size = renderModule->GetBackBufferSize();
 	for (i32 i = 0; i < mGBufferRts.size(); ++i)
 	{
-		mGBufferRts[i] = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
+		mGBufferRts[i] = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
-	mMainDepthRt = new D3DDepthStencil(device, size,
+	mMainDepthRt = new D3DDepthStencil(device, mRenderSize,
 		DXGI_FORMAT_R24G8_TYPELESS,
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
 		"SceneDepthRt");
 
-	mShadowMask = new D3D12RenderTarget(device, { size.x(), size.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
+	mShadowMask = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
 	mSunLight = new DirectionalLight;
 	{

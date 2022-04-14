@@ -22,19 +22,20 @@ RenderModule::RenderModule()
 	mDevice = new D3D12Device;
 }
 
-void RenderModule::AdaptWindow(const WindowInfo& windowInfo)
+void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInfo)
 {
-	mWindowInfo = windowInfo;
+	mDevice->CreateSwapChain(type, windowInfo.mWindow, windowInfo.mSize);
+}
 
-	mDevice->CreateSwapChain(mWindowInfo.mWindow, mWindowInfo.mSize);
-
-	const auto& backBuffer = mDevice->GetBackBuffer()->GetBuffer();
-	mBackBufferSize = { backBuffer->GetWidth(), backBuffer->GetHeight() };
+void RenderModule::Initial()
+{
+	const Vec3i& mainPortBackBufferSize = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer()->GetSize();
+	const Vec2i& mainPortSize = { mainPortBackBufferSize.x(), mainPortBackBufferSize.y() };
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this);
+	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortSize);
 
-	mSceneHdrRt = new D3D12RenderTarget(mDevice, mDevice->GetBackBuffer()->GetBuffer()->GetSize(), DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = new D3D12RenderTarget(mDevice, mainPortBackBufferSize, DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
 }
 
 void RenderModule::TickFrame(Timer* timer)
@@ -43,7 +44,7 @@ void RenderModule::TickFrame(Timer* timer)
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mDevice, mWindowInfo.mWindow);
+		mRenderDoc->OnStartFrame(mDevice, mDevice->GetPresentPort(PresentPortType::MainPort).mWindow);
 	}
 
 	mDevice->StartFrame();
@@ -57,21 +58,26 @@ void RenderModule::TickFrame(Timer* timer)
 
 	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
-		PROFILE_EVENT(RenderToGPU);
-		
-		SwapChainBufferResource* backBuffer = mDevice->GetBackBuffer()->GetBuffer();
-		
-		mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
-		mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
-
 		{
-			RENDER_EVENT(context, DebugChannels);
-			mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
-			mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
-			mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
+			PROFILE_EVENT(RenderWorldToHdr);
+			mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
 		}
 
-		backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+		{
+			PROFILE_EVENT(RenderToMainPort);
+		
+			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer();
+			mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
+
+			{
+				RENDER_EVENT(context, DebugChannels);
+				mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
+				mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
+				mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
+			}
+
+			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+		}
 	}
 	context->Finalize();
 
@@ -79,7 +85,7 @@ void RenderModule::TickFrame(Timer* timer)
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mDevice, mWindowInfo.mWindow);
+		mRenderDoc->OnEndFrame(mDevice, mDevice->GetPresentPort(PresentPortType::MainPort).mWindow);
 	}
 }
 

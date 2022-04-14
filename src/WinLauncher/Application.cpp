@@ -1,5 +1,6 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
+#include "Render/PresentPort.h"
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
@@ -8,10 +9,10 @@ Application::Application()
 	mRenderModule = std::make_unique<RenderModule>();
 }
 
-void Application::Initial(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
+void Application::Initial(HINSTANCE hInstance, int nCmdShow)
 {
 	mLogicThread = std::make_unique<std::thread>([this]() { this->LogicThread(); });
-	mWindowThread = std::make_unique<std::thread>([&]() { this->WindowThread(width, height, name, hInstance, nCmdShow); });
+	mWindowThread = std::make_unique<std::thread>([&]() { this->WindowThread(hInstance, nCmdShow); });
 }
 
 void Application::Destroy()
@@ -33,11 +34,13 @@ void Application::LogicThread()
 	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
 	AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
 
-	while (mWindowInfo.mWindow == 0) {}
+	while (mMainWindowInfo.mWindow == 0 || mDebugWindowInfo.mWindow == 0) {}
 
-	mRenderModule->AdaptWindow(mWindowInfo);
+	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
+	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
+	mRenderModule->Initial();
 
-	while (mWindowInfo.mWindow != 0)
+	while (mMainWindowInfo.mWindow != 0 && mDebugWindowInfo.mWindow != 0)
 	{
 		mTimer->OnStartNewFrame();
 		
@@ -47,10 +50,13 @@ void Application::LogicThread()
 	}
 }
 
-void Application::WindowThread(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
+void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 {
-	mWindowInfo.mSize = { width, height };
-	mWindowInfo.mWindow = CreateWindowInner(width, height, name, hInstance, nCmdShow);
+	mMainWindowInfo.mSize = { 960, 540 };
+	mMainWindowInfo.mWindow = CreateWindowInner(960, 540, "MainWindow", hInstance, nCmdShow);
+
+	mDebugWindowInfo.mSize = { 640, 360 };
+	mDebugWindowInfo.mWindow = CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow);
 
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
@@ -63,7 +69,8 @@ void Application::WindowThread(u32 width, u32 height, std::string name, HINSTANC
 		}
 	}
 
-	mWindowInfo.mWindow = {};
+	mMainWindowInfo.mWindow = {};
+	mDebugWindowInfo.mWindow = {};
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

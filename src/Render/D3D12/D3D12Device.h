@@ -6,6 +6,7 @@
 #include "D3D12PipelineState.h"
 #include "D3D12Shader.h"
 #include "D3D12ResourceManager.h"
+#include "PresentPort.h"
 
 class D3D12PipelineStateLibrary;
 class D3D12ShaderLibrary;
@@ -20,7 +21,7 @@ class D3D12Device
 public:
 	D3D12Device();
 
-	void	CreateSwapChain(HWND windowHandle, const Vec2i& initWindowSize);
+	void	CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize);
 	void	StartFrame();
 	void	Present();
 	void	Destroy();
@@ -33,7 +34,7 @@ public:
 	D3D12PipelineStateLibrary* GetPipelineStateLib() const { return mPipelineStateLib; }
 	CpuDescItem	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
 	CpuDescItem	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
-	SwapChainBuffers* GetBackBuffer() const { return mBackBuffers; }
+	PresentPort GetPresentPort(PresentPortType type) const;
 
 	D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
 
@@ -43,7 +44,7 @@ private:
 	IDXGIFactory4* mFactory = nullptr;
 	ID3D12Device* mDevice = nullptr;
 
-	SwapChainBuffers* mBackBuffers = nullptr;
+	std::map<PresentPortType, PresentPort>	mPresentPorts;
 
 	std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
 	std::unique_ptr<D3D12ResourceManager>			mResMgr;

@@ -111,6 +111,9 @@
     <ClInclude Include="D3D12\D3D12GpuEvent.h">
       <Filter>Source\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="PresentPort.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">

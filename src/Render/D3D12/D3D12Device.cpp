@@ -135,8 +135,10 @@ D3D12Device::D3D12Device()
 	D3D12Device::GetDevice()->CreateSampler(&nullSamplerDesc, mNullSamplerCpuDesc.Get());
 }
 
-void D3D12Device::CreateSwapChain(HWND windowHandle, const Vec2i& initWindowSize)
+void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)
 {
+	Assert(mPresentPorts.find(type) == mPresentPorts.end());
+
 	// Describe and create the swap chain.
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = mSwapChainBufferCount;
@@ -157,7 +159,11 @@ void D3D12Device::CreateSwapChain(HWND windowHandle, const Vec2i& initWindowSize
 		&swapChain1
 	));
 
-	mBackBuffers = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
+	SwapChainBuffers* swapChain = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
+
+	mPresentPorts[type].mSize = initWindowSize;
+	mPresentPorts[type].mWindow = windowHandle;
+	mPresentPorts[type].mSwapChain = swapChain;
 }
 
 void D3D12Device::StartFrame()
@@ -177,7 +183,10 @@ void D3D12Device::Present()
 		q->Execute();
 	}
 	
-	mBackBuffers->Present();
+	for (auto& [_, presentPort] : mPresentPorts)
+	{
+		presentPort.mSwapChain->Present();
+	}
 
 	for (D3D12GpuQueue* q : mGpuQueues)
 	{
@@ -195,7 +204,10 @@ void D3D12Device::Destroy()
 		Utils::SafeDelete(q);
 	}
 
-	Utils::SafeDelete(mBackBuffers);
+	for (auto& [_, presentPort] : mPresentPorts)
+	{
+		Utils::SafeDelete(presentPort.mSwapChain);
+	}
 
 	mResMgr->Update();
 	mResMgr = nullptr;
@@ -221,6 +233,13 @@ D3D12DescriptorAllocator* D3D12Device::GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TY
 {
 	Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
 	return mDescAllocator[type];
+}
+
+PresentPort D3D12Device::GetPresentPort(PresentPortType type) const
+{
+	auto it = mPresentPorts.find(type);
+	Assert(it != mPresentPorts.end());
+	return it->second;
 }
 
 void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
