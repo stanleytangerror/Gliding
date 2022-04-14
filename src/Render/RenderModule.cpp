@@ -59,23 +59,27 @@ void RenderModule::TickFrame(Timer* timer)
 	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
 		{
-			PROFILE_EVENT(RenderWorldToHdr);
+			RENDER_EVENT(context, RenderWorldToHdr);
 			mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
 		}
 
 		{
-			PROFILE_EVENT(RenderToMainPort);
+			RENDER_EVENT(context, RenderToMainPort);
 		
 			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer();
 			mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
 
-			{
-				RENDER_EVENT(context, DebugChannels);
-				mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
-				mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
-				mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
-			}
+			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+		}
 
+		{
+			RENDER_EVENT(context, DebugChannels);
+			
+			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::DebugPort).mSwapChain->GetBuffer();
+			mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
+			mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
+			mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
+		
 			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
 		}
 	}
