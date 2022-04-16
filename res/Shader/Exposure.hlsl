@@ -46,7 +46,7 @@ void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : 
 
 #elif HISTOGRAM_REDUCE
 
-RWTexture2D<float4> ExposureInfo;
+RWTexture2D<float4> ExposureTexture;
 
 StructuredBuffer<uint> SceneBrightnessHistogram;
 float4 HistogramInfo;
@@ -73,7 +73,7 @@ void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : 
 	float exposure = 1.f / avgLum;
 	float invExposure = avgLum;
 
-	ExposureInfo[uint2(0, 0)] = float4(exposure, invExposure, 0, 0);
+	ExposureTexture[uint2(0, 0)] = float4(exposure, invExposure, 0, 0);
 }
 
 #endif

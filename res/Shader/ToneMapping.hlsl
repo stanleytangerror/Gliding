@@ -20,7 +20,9 @@ float4 RtSize;
 Texture2D SceneHdr;
 SamplerState SamplerLinear;
 
-Texture2D ExposureInfo;
+Texture2D ExposureTexture;
+float4 ExposureInfo;
+#define ExposureCompensation	(ExposureInfo.x)
 
 float3 ACESFilm(float3 x)
 {
@@ -48,8 +50,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float2 uv = RtSize.zw * input.position.xy;
 	float3 sceneHdrColor = SceneHdr.Sample(SamplerLinear, uv);
 
-	float4 exposureInfo = ExposureInfo.Load(0, 0);
-	float exposure = exposureInfo.x;
+	float4 exposureInfo = ExposureTexture.Load(0, 0);
+	float exposure = exposureInfo.x * pow(2, ExposureCompensation);
 
 	float3 sceneLdrColor = ACESFilm(sceneHdrColor * exposure);
 	output.color = float4(LinearToSrgb(sceneLdrColor), 1.0);
