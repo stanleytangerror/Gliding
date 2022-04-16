@@ -1,13 +1,79 @@
 
+#if CONSTRUCT_HISTOGRAM
+
 Texture2D SceneHdr;
-RWTexture2D<float4> SceneExposureTex;
+float4 SceneHdrSize;
+
+RWStructuredBuffer<uint> SceneBrightnessHistogram;
+float4 HistogramInfo;
+#define HistXMin	(HistogramInfo.x)
+#define HistXMax	(HistogramInfo.y)
+#define HistXRes	(HistogramInfo.z)
+#define HistInvXRes	(HistogramInfo.w)
+
+#define HISTOGRAM_MAX_RESOLUTION 256
+groupshared uint HistogramInGroup[HISTOGRAM_MAX_RESOLUTION];
+
+[numthreads(32, 32, 1)]
+void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : SV_GroupThreadID)
+{
+	const uint localThreadId = threadIdInGroup.y * 32 + threadIdInGroup.x;
+
+	if (localThreadId < HISTOGRAM_MAX_RESOLUTION)
+	{
+		HistogramInGroup[localThreadId] = 0;
+	}
+
+    GroupMemoryBarrierWithGroupSync();
+
+	if (threadIdGlobal.x < SceneHdrSize.x && threadIdGlobal.y < SceneHdrSize.y)
+	{
+		const float3 sceneColor = SceneHdr[threadIdGlobal].xyz;
+		const float lum = max(sceneColor.x, max(sceneColor.y, sceneColor.z));
+		const float logLum = log2(lum);
+		const uint histX = saturate((logLum - HistXMin) / (HistXMax - HistXMin)) * HistXRes;
+        InterlockedAdd(HistogramInGroup[histX], 1);
+	}
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (localThreadId < HISTOGRAM_MAX_RESOLUTION)
+    {
+		InterlockedAdd(SceneBrightnessHistogram[localThreadId], HistogramInGroup[localThreadId]);
+	}
+
+}
+
+#elif HISTOGRAM_REDUCE
+
+RWTexture2D<float4> ExposureInfo;
+
+StructuredBuffer<uint> SceneBrightnessHistogram;
+float4 HistogramInfo;
+#define HistXMin	(HistogramInfo.x)
+#define HistXMax	(HistogramInfo.y)
+#define HistXRes	(HistogramInfo.z)
+#define HistInvXRes	(HistogramInfo.w)
 
 float4 SceneHdrSize;
 
-[numthreads(32, 32, 1)]
-void CSMain(int3 threadId : SV_DispatchThreadID)
+[numthreads(1, 1, 1)]
+void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : SV_GroupThreadID)
 {
-	const int2 coord = threadId * SceneHdrSize.xy;
-	SceneExposureTex[coord] = SceneHdr[coord];
+	float avgLum = 0;
+	float invTotalWeight = SceneHdrSize.z * SceneHdrSize.w;
+	for (uint i = 0; i < HistXRes; ++i)
+	{
+		uint y = SceneBrightnessHistogram[i];
+		float x = i * HistInvXRes * (HistXMax - HistXMin) + HistXMin;
+		float lum = pow(2, x);
+		avgLum += lum * y * invTotalWeight;
+	}
+
+	float exposure = 1.f / avgLum;
+	float invExposure = avgLum;
+
+	ExposureInfo[uint2(0, 0)] = float4(exposure, invExposure, 0, 0);
 }
 
+#endif

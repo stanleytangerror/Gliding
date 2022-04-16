@@ -49,6 +49,13 @@ UAV::UAV(D3D12Device* device, ID3D12Res* res)
 	device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
 }
 
+UAV::UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+	: mResource(res)
+{
+	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
+	device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 RTV::RTV(D3D12Device* device, ID3D12Res* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)

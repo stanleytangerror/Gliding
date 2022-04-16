@@ -29,7 +29,7 @@ public:
 	SRV(D3D12Device* device, ID3D12Res* res);
 	SRV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format);
 	SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
-
+	
 	CD3DX12_CPU_DESCRIPTOR_HANDLE				GetHandle() const override { return mDescriptionHandle.Get(); }
 	DXGI_FORMAT									GetFormat() const override { return mFormat; }
 	ID3D12Res*									GetResource() override { return mResource; }
@@ -52,6 +52,7 @@ class UAV : public IUnorderedAccessView
 {
 public:
 	UAV(D3D12Device* device, ID3D12Res* res);
+	UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE				GetHandle() const override { return mDescriptionHandle.Get(); }
 	DXGI_FORMAT									GetFormat() const override { return mFormat; }

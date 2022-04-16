@@ -39,6 +39,66 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 	mUav = new UAV(mDevice, this);
 }
 
+D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name)
+	: mDevice(device)
+	, mSize(count * stride, 1, 1)
+	, mFormat(format)
+	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
+{
+	// Describe and create a Texture2D.
+	D3D12_RESOURCE_DESC desc = {};
+	{
+		desc.MipLevels = 1;
+		desc.Format = mFormat;
+		desc.Width = mSize.x();
+		desc.Height = mSize.y();
+		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		desc.DepthOrArraySize = mSize.z();
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	}
+
+	// create gpu resource default as copy dest
+	const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES{ D3D12_HEAP_TYPE_DEFAULT };
+	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		mState,
+		nullptr,
+		IID_PPV_ARGS(&mResource)));
+
+	NAME_RAW_D3D12_OBJECT(mResource, name);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	{
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = format;
+		srvDesc.ViewDimension = D3D12Utils::GetSrvDimension(D3D12_RESOURCE_DIMENSION_BUFFER);
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.NumElements = count;
+		srvDesc.Buffer.StructureByteStride = stride;
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+	}
+
+	mSrv = new SRV(mDevice, this, srvDesc);
+
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	{
+		uavDesc.Format = format;
+		uavDesc.ViewDimension = D3D12Utils::GetUavDimension(D3D12_RESOURCE_DIMENSION_BUFFER);
+		uavDesc.Buffer.FirstElement = 0;
+		uavDesc.Buffer.NumElements = count;
+		uavDesc.Buffer.StructureByteStride = stride;
+		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+	}
+
+	mUav = new UAV(mDevice, this, uavDesc);
+}
+
 D3D12RenderTarget::~D3D12RenderTarget()
 {
 	mDevice->ReleaseD3D12Resource(mResource);

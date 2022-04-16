@@ -7,6 +7,7 @@ class D3D12RenderTarget : public ID3D12Res
 {
 public:
 	D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name);
+	D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name);
 	virtual ~D3D12RenderTarget();
 
 	void		Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;

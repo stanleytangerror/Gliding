@@ -29,30 +29,63 @@ void ScreenRenderer::TickFrame(Timer* timer)
 
 void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
 {
-	auto exposureRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+	std::unique_ptr<D3D12RenderTarget> exposure = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
-	CalcSceneExposure(context, sceneHdr, exposureRt->GetUav());
-	ToneMapping(context, sceneHdr, exposureRt->GetSrv(), screenRt);
+	CalcSceneExposure(context, sceneHdr, exposure->GetUav());
+	ToneMapping(context, sceneHdr, exposure->GetSrv(), screenRt);
 }
 
-void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureTex)
+void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureRt)
 {
-	RENDER_EVENT(context, Exposure);
+	const i32 histogramSize = 64;
+	const f32 brightMin = 4.f;
+	const f32 brightMax = 65536.f;
+	std::unique_ptr<D3D12RenderTarget> histogram = std::make_unique<D3D12RenderTarget>(context->GetDevice(), histogramSize, sizeof(u32), DXGI_FORMAT_UNKNOWN, "BrightnessHistogram");
 
-	ComputePass calcExposurePass(context);
+	{
+		RENDER_EVENT(context, BrightnessHistogram);
 
-	calcExposurePass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	calcExposurePass.mRootSignatureDesc.mEntry = "ComputeRS";
-	calcExposurePass.mCsFile = "res/Shader/Exposure.hlsl";
+		ComputePass pass(context);
 
-	const Vec3i& size = sceneHdr->GetResource()->GetSize();
-	calcExposurePass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
-	calcExposurePass.AddSrv("SceneHdr", sceneHdr);
-	calcExposurePass.AddUav("SceneExposureTex", exposureTex);
+		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+		pass.mRootSignatureDesc.mEntry = "ComputeRS";
+		pass.mCsFile = "res/Shader/Exposure.hlsl";
+		pass.mShaderMacros.push_back(ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
-	calcExposurePass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
+		const Vec3i& size = sceneHdr->GetResource()->GetSize();
+		pass.AddSrv("SceneHdr", sceneHdr);
+		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
-	calcExposurePass.Dispatch();
+		pass.AddUav("SceneBrightnessHistogram", histogram->GetUav());
+		pass.AddCbVar("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
+
+		pass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
+
+		pass.Dispatch();
+	}
+
+	{
+		RENDER_EVENT(context, HistogramReduce);
+
+		ComputePass pass(context);
+
+		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+		pass.mRootSignatureDesc.mEntry = "ComputeRS";
+		pass.mCsFile = "res/Shader/Exposure.hlsl";
+		pass.mShaderMacros.push_back(ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
+
+		const Vec3i& size = sceneHdr->GetResource()->GetSize();
+		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
+
+		pass.AddSrv("SceneBrightnessHistogram", histogram->GetSrv());
+		pass.AddCbVar("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
+
+		pass.AddUav("ExposureInfo", exposureRt);
+
+		pass.mThreadGroupCounts = { 1, 1, 1 };
+
+		pass.Dispatch();
+	}
 }
 
 void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target)
@@ -80,7 +113,7 @@ void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* 
 	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 	ldrScreenPass.AddSrv("SceneHdr", sceneHdr);
-	ldrScreenPass.AddSrv("SceneExposureTex", exposure);
+	ldrScreenPass.AddSrv("ExposureInfo", exposure);
 
 	ldrScreenPass.mRts[0] = target;
 	ldrScreenPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));

@@ -29,6 +29,9 @@ namespace D3D12Utils
 	DXGI_FORMAT GetDepthFormat(DXGI_FORMAT defaultFormat);
 	DXGI_FORMAT GetStencilFormat(DXGI_FORMAT defaultFormat);
 
+	D3D12_SRV_DIMENSION GetSrvDimension(D3D12_RESOURCE_DIMENSION dim);
+	D3D12_UAV_DIMENSION GetUavDimension(D3D12_RESOURCE_DIMENSION dim);
+
 	template <typename T>
 	inline std::vector<byte> ToD3DConstBufferParamData(const T& var);
 
