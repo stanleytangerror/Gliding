@@ -40,4 +40,9 @@ float3 sRGBToLinear(float3 srgbColor)
             srgbColor * (1.0 / 12.92);
 }
 
+float GetLuminance(float3 color)
+{
+	return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
+
 #endif

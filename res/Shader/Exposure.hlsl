@@ -1,3 +1,4 @@
+#include "Common.h"
 
 #if CONSTRUCT_HISTOGRAM
 
@@ -29,8 +30,7 @@ void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : 
 	if (threadIdGlobal.x < SceneHdrSize.x && threadIdGlobal.y < SceneHdrSize.y)
 	{
 		const float3 sceneColor = SceneHdr[threadIdGlobal].xyz;
-		const float lum = max(sceneColor.x, max(sceneColor.y, sceneColor.z));
-		const float logLum = log2(lum);
+		const float logLum = log2(GetLuminance(sceneColor));
 		const uint histX = saturate((logLum - HistXMin) / (HistXMax - HistXMin)) * HistXRes;
         InterlockedAdd(HistogramInGroup[histX], 1);
 	}
