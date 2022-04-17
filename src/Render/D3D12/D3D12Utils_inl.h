@@ -19,3 +19,12 @@ inline std::vector<byte> D3D12Utils::ToD3DConstBufferParamData(const Mat33f& var
 }
 
 
+template <>
+inline std::vector<byte> D3D12Utils::ToD3DConstBufferParamData(const std::vector<f32>& var)
+{
+	const auto size = var.size() * sizeof(f32);
+
+	std::vector<byte> result(size, 0);
+	memcpy_s(result.data(), size, var.data(), size);
+	return result;
+}

@@ -3,34 +3,6 @@
 #include "D3D12/D3D12CommandContext.h"
 #include "D3D12/D3D12ResourceView.h"
 
-//////////////////////////////////////////////////////////////////////////
-
-template <typename T>
-inline void AddCbVar(std::map<std::string, std::vector<byte>>& cbParams, const std::string& name, const T& var)
-{
-	Assert(cbParams.find(name) == cbParams.end());
-
-	const int size = sizeof(T);
-
-	std::vector<byte>& buf = cbParams[name];
-	buf.resize(size);
-	memcpy_s(buf.data(), size, &var, size);
-}
-
-template <>
-inline void AddCbVar(std::map<std::string, std::vector<byte>>& cbParams, const std::string& name, const Mat33f& var)
-{
-	Assert(cbParams.find(name) == cbParams.end());
-
-	const int size = sizeof(float) * (4 + 4 + 3);
-
-	std::vector<byte>& buf = cbParams[name];
-	buf.resize(size);
-	memcpy_s(buf.data(), size, &var, size);
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 class ComputePass
 {
 public:
