@@ -28,6 +28,10 @@ SamplerState ShadowMaskSampler;
 
 Texture2D PanoramicSky;
 SamplerState PanoramicSkySampler;
+float SkyLightIntensity;
+
+Texture2D BRDFIntegrationMap;
+SamplerState BRDFIntegrationMapSampler;
 
 float4 RtSize;
 float3 CameraDir;
@@ -46,6 +50,10 @@ PSInput VSMain(VSInput vsin)
 	return result;
 }
 
+float GetMipLevelFromRoughness(float roughness)
+{
+	return 6;
+}
 
 PSOutput PSMain(PSInput input) : SV_TARGET
 {
@@ -66,13 +74,27 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	const float shadowMask = ShadowMask.Sample(ShadowMaskSampler, uv).x;
 
 	PBRStandard matData = UnpackGbufferData(gBuffer0, gBuffer1, gBuffer2);
-
+	
 	float3 diffuseColor = matData.baseColor * (1.0 - matData.metalMask);
 	float3 specularColor = ComputeF0(matData.reflectance, matData.baseColor, matData.metalMask);
 
 	FDirectLighting directLighting = DefaultLitBxDF(diffuseColor, specularColor, 1.0 - matData.linearSmoothness, matData.worldNormal, V, -LightDir, LightColor, shadowMask);
 
-	output.color = float4(directLighting.Diffuse + directLighting.Specular, 1);
+	float3 indirectSpecular = float3(0, 0, 0);
+	{
+		// float3 indirectDiffuse = textureCube(IrradianceMap, refVec)  * diffuseColor;
+		
+		const float3 reflectDir = reflect(LightDir, matData.worldNormal);
+		const float lod = GetMipLevelFromRoughness(1.0 - matData.linearSmoothness);
+		const float3 prefilteredColor = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, reflectDir, lod) * SkyLightIntensity;
+
+		const float roughness = 1.0 - matData.linearSmoothness;
+		const float NdotV = dot(matData.worldNormal, V);
+		const float2 envBRDF = BRDFIntegrationMap.Sample(BRDFIntegrationMapSampler, float2(roughness, NdotV)).xy;
+		indirectSpecular = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
+	}
+
+	output.color = float4(directLighting.Diffuse + directLighting.Specular + indirectSpecular, 1);
 
 	return output;
 }

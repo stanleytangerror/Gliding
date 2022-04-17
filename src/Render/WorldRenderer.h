@@ -32,7 +32,7 @@ private:
 	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
 	void DeferredLighting(GraphicsContext* context, IRenderTargetView* target);
 
-	D3D12RenderTarget* CreateFilteredEnvMap(GraphicsContext* context, IShaderResourceView* view);
+	D3D12RenderTarget* FilterEnvironmentMap(GraphicsContext* context, IShaderResourceView* view);
 
 	static void RenderGeometryWithMaterial(GraphicsContext* context, 
 		D3D12Geometry* geometry, RenderMaterial* material, 
@@ -59,11 +59,17 @@ private:
 
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
+
 	D3D12Texture* mPanoramicSkyTex = nullptr;
 	D3D12SamplerView* mPanoramicSkySampler = nullptr;
+	f32	mSkyLightIntensity = 50.f;
+
 	D3D12SamplerView* mLightingSceneSampler = nullptr;
 	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
 	D3D12SamplerView* mNoMipMapLinearDepthCmpSampler = nullptr;
+
+	D3D12Texture* mBRDFIntegrationMap = nullptr;
+	D3D12SamplerView* mBRDFIntegrationMapSampler = nullptr;
 
 	D3D12RenderTarget* mFilteredEnvMap = nullptr;
 
