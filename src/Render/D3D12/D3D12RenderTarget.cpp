@@ -3,6 +3,11 @@
 
 
 D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name)
+	: D3D12RenderTarget(device, size, format, 1, name)
+{
+}
+
+D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name)
 	: mDevice(device)
 	, mSize(size)
 	, mFormat(format)
@@ -11,7 +16,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 	// Describe and create a Texture2D.
 	D3D12_RESOURCE_DESC textureDesc = {};
 	{
-		textureDesc.MipLevels = 1;
+		textureDesc.MipLevels = mipLevelCount;
 		textureDesc.Format = mFormat;
 		textureDesc.Width = mSize.x();
 		textureDesc.Height = mSize.y();

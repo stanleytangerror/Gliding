@@ -45,7 +45,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float3 dirInViewSpace = normalize(float3(tan(offsetRadius), 1));
 	float3 dirInWorldSpace = mul(InvViewMat, float4(dirInViewSpace, 0));
 
-	const float3 skyLight = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, normalize(dirInWorldSpace));
+	const float3 skyLight = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, normalize(dirInWorldSpace), 3);
 	output.color = float4(skyLight * 50.0, 1);
 
 	return output;

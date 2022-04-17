@@ -118,5 +118,7 @@ D3D12_SAMPLER_DESC D3D12SamplerView::GetDesc(D3D12_FILTER filterType, const std:
 	desc.AddressU = addrMode[0];
 	desc.AddressV = addrMode[1];
 	desc.AddressW = addrMode[2];
+	desc.MinLOD = 0;
+	desc.MaxLOD = std::numeric_limits<f32>::max();
 	return desc;
 }

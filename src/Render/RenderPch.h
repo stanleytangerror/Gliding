@@ -4,6 +4,8 @@
 #pragma warning( disable : 4251 ) // needs to have dll-interface (declare dllexport for each instantiated template, painful)
 #pragma warning( disable : 4996 ) // This function or variable may be unsafe. Consider using _s instead.
 
+#define NOMINMAX
+
 #include "Common/CommonMacros.h"
 #include "World/WorldMacros.h"
 #include "Render/RenderMacros.h"
