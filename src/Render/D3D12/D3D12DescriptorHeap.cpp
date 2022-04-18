@@ -94,6 +94,11 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE RuntimeDescriptorHeap::Push(const i32 handleCount,
 	return gpuDescBaseAddr;
 }
 
+u32 RuntimeDescriptorHeap::GetDescHandleSize() const
+{
+	return mDevice->GetDescriptorHandleIncrementSize(mDescriptorType);
+}
+
 void RuntimeDescriptorHeap::Reset()
 {
 	mPool.ReleaseAllActiveItems();

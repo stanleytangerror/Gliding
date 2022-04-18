@@ -33,6 +33,8 @@ public:
 
 	ID3D12DescriptorHeap*				GetCurrentDescriptorHeap() const { return mCurrentWorkingBlock ? mCurrentWorkingBlock->GetDescriptorHeap() : nullptr; }
 
+	u32									GetDescHandleSize() const;
+
 	void								Reset();
 
 protected:
