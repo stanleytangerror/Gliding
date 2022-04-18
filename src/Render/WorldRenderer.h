@@ -60,7 +60,8 @@ private:
 	D3D12Geometry* mQuad = nullptr;
 	D3D12Geometry* mSphere = nullptr;
 
-	D3D12Texture* mPanoramicSkyTex = nullptr;
+	D3D12Texture* mSkyTexture = nullptr;
+	D3D12RenderTarget* mPanoramicSkyRt = nullptr;
 	D3D12SamplerView* mPanoramicSkySampler = nullptr;
 	f32	mSkyLightIntensity = 50.f;
 

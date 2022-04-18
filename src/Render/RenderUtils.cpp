@@ -47,6 +47,12 @@ void RenderUtils::CopyTexture(GraphicsContext* context,
 	pass.Draw();
 }
 
+void RenderUtils::CopyTexture(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* source, D3D12SamplerView* sourceSampler)
+{
+	const auto& targetSize = target->GetResource()->GetSize();
+	CopyTexture(context, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
+}
+
 void GaussianBlur1D(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* source, i32 kernelSizeInPixel, D3D12SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };

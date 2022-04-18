@@ -11,6 +11,10 @@ namespace RenderUtils
 		IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
 		IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
 
+	void CopyTexture(GraphicsContext* context,
+		IRenderTargetView* target, 
+		IShaderResourceView* source, D3D12SamplerView* sourceSampler);
+
 	void GaussianBlur(GraphicsContext* context,
 		IRenderTargetView* target, 
 		IShaderResourceView* source, i32 kernelSizeInPixel);

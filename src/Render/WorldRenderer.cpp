@@ -48,7 +48,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
 	
-	mPanoramicSkyTex = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
+	mSkyTexture = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
@@ -146,7 +146,8 @@ WorldRenderer::~WorldRenderer()
 {
 	Utils::SafeDelete(mQuad);
 	Utils::SafeDelete(mSphere);
-	Utils::SafeDelete(mPanoramicSkyTex);
+	Utils::SafeDelete(mSkyTexture);
+	Utils::SafeDelete(mPanoramicSkyRt);
 	Utils::SafeDelete(mMainDepthRt);
 	for (auto& rt : mGBufferRts)
 	{
@@ -175,9 +176,18 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	{
 		RENDER_EVENT(context, UpdateResources);
 
-		if (!mPanoramicSkyTex->IsD3DResourceReady())
+		if (!mSkyTexture->IsD3DResourceReady())
 		{
-			mPanoramicSkyTex->Initial(context);
+			mSkyTexture->Initial(context);
+
+			const auto& srcSize = mSkyTexture->GetSize();
+			const i32 width = 1024;
+			mPanoramicSkyRt = new D3D12RenderTarget(context->GetDevice(), { width, width * srcSize.y() / srcSize.x(), 1 }, mSkyTexture->GetFormat(), "PanoramicSkyRt");
+
+			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), mSkyTexture->GetSrv(), mNoMipMapLinearSampler);
+
+			mFilteredEnvMap = FilterEnvironmentMap(context, mPanoramicSkyRt->GetSrv());
+			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 4);
 		}
 
 		mTestModel.ForEach([&](auto& node)
@@ -187,11 +197,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 					mat->UpdateGpuResources(context);
 				}
 			});
-
-		if (!mFilteredEnvMap && mPanoramicSkyTex->IsD3DResourceReady())
-		{
-			mFilteredEnvMap = FilterEnvironmentMap(context, mPanoramicSkyTex->GetSrv());
-		}
 
 		if (!mBRDFIntegrationMap->IsD3DResourceReady())
 		{
@@ -434,6 +439,8 @@ D3D12RenderTarget* WorldRenderer::FilterEnvironmentMap(GraphicsContext* context,
 
 void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
 {
+	if (!mPanoramicSkyRt) { return; }
+
 	RENDER_EVENT(context, Sky);
 
 	GraphicsPass pass(context);
@@ -482,7 +489,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 	pass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
 	pass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 
-	pass.AddSrv("PanoramicSky", mFilteredEnvMap->GetSrv());
+	pass.AddSrv("PanoramicSky", mPanoramicSkyRt->GetSrv());
 	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 	pass.AddCbVar("SkyLightIntensity", mSkyLightIntensity);
 

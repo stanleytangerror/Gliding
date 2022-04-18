@@ -16,6 +16,7 @@ public:
 
 	ID3D12Resource*					GetD3D12Resource() const override { return mD3D12Resource; }
 	Vec3i							GetSize() const override { return mSize; }
+	DXGI_FORMAT						GetFormat() const { return mFormat; }
 
 	bool							IsD3DResourceReady() const { return mD3D12Resource; }
 
@@ -32,6 +33,7 @@ protected:
 	ID3D12Resource*			mD3D12Resource = nullptr;
 	D3D12_RESOURCE_STATES	mResStates = D3D12_RESOURCE_STATE_COPY_DEST;
 	Vec3i					mSize = {};
+	DXGI_FORMAT				mFormat = DXGI_FORMAT_UNKNOWN;
 
 	SRV* mSrv = nullptr;
 	int32_t					mWidth = 0;
