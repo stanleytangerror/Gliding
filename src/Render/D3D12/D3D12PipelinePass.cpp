@@ -99,26 +99,24 @@ void ComputePass::Dispatch()
 	std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
 
 
-	// srv
+	RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	{
-		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		// srv
 		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
-
-		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
-
-		heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[0] = gpuDescBase;
-	}
-	
-	// uav
-	{
-		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		// uav
 		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 
-		const auto& gpuDescBase = srvUavHeap->Push(static_cast<i32>(uavHandles.size()), uavHandles.data());
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+		handles.insert(handles.end(), srvHandles.begin(), srvHandles.end());
+		handles.insert(handles.end(), uavHandles.begin(), uavHandles.end());
+
+		const CD3DX12_GPU_DESCRIPTOR_HANDLE& gpuDescBase = srvUavHeap->Push(static_cast<i32>(handles.size()), handles.data());
+		const u32 handleSize = srvUavHeap->GetDescHandleSize();
+
+		gpuBaseAddrs[0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, 0, handleSize);
+		gpuBaseAddrs[1] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, srvHandles.size(), handleSize);
 
 		heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[1] = gpuDescBase;
 	}
 
 	RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
