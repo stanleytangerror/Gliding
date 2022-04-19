@@ -72,6 +72,7 @@ private:
 	D3D12Texture* mBRDFIntegrationMap = nullptr;
 	D3D12SamplerView* mBRDFIntegrationMapSampler = nullptr;
 
+	D3D12RenderTarget* mIrradianceMap = nullptr;
 	D3D12RenderTarget* mFilteredEnvMap = nullptr;
 
 	DirectionalLight* mSunLight = nullptr;

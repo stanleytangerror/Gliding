@@ -4,6 +4,8 @@
 #define PI (3.1415927)
 #define InvPI (1.0 / PI)
 
+#define EPS	(1e-5)
+
 float Pow4(float x)
 {
 	float xx = x * x;

@@ -114,6 +114,9 @@
     <ClInclude Include="PresentPort.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="EnvironmentMap.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3D12\D3D12DescriptorAllocator.cpp">
@@ -190,6 +193,9 @@
     </ClCompile>
     <ClCompile Include="D3D12\D3D12GpuEvent.cpp">
       <Filter>Source\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="EnvironmentMap.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

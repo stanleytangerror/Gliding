@@ -124,6 +124,7 @@
     <ClInclude Include="D3D12\D3D12Texture.h" />
     <ClInclude Include="D3D12\D3D12Utils.h" />
     <ClInclude Include="D3D12\D3D12Utils_inl.h" />
+    <ClInclude Include="EnvironmentMap.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderMacros.h" />
@@ -169,6 +170,7 @@
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
     </ClCompile>
+    <ClCompile Include="EnvironmentMap.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />

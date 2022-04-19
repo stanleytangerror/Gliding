@@ -12,6 +12,7 @@
 #include "RenderMaterial.h"
 #include "RenderUtils.h"
 #include "Light.h"
+#include "EnvironmentMap.h"
 
 namespace
 {
@@ -185,6 +186,8 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			mPanoramicSkyRt = new D3D12RenderTarget(context->GetDevice(), { width, width * srcSize.y() / srcSize.x(), 1 }, mSkyTexture->GetFormat(), "PanoramicSkyRt");
 
 			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), mSkyTexture->GetSrv(), mNoMipMapLinearSampler);
+
+			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
 
 			mFilteredEnvMap = FilterEnvironmentMap(context, mPanoramicSkyRt->GetSrv());
 			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 4);
