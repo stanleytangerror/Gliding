@@ -54,7 +54,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
-	mBRDFIntegrationMap = new D3D12Texture(device, R"(D:\Assets\BRDFIntegration.dds)");
 	mBRDFIntegrationMapSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
 
 	{
@@ -193,6 +192,11 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 4);
 		}
 
+		if (!mBRDFIntegrationMap)
+		{
+			mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(context, 128);
+		}
+
 		mTestModel.ForEach([&](auto& node)
 			{
 				if (auto& mat = node.mContent.second)
@@ -200,11 +204,6 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 					mat->UpdateGpuResources(context);
 				}
 			});
-
-		if (!mBRDFIntegrationMap->IsD3DResourceReady())
-		{
-			mBRDFIntegrationMap->Initial(context);
-		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
