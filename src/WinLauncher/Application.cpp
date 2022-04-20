@@ -34,7 +34,7 @@ void Application::LogicThread()
 	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
 	AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
 
-	while (mMainWindowInfo.mWindow == 0 || mDebugWindowInfo.mWindow == 0) {}
+	while (!mWindowCreated) {}
 
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
@@ -52,11 +52,13 @@ void Application::LogicThread()
 
 void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 {
-	mMainWindowInfo.mSize = { 960, 540 };
-	mMainWindowInfo.mWindow = CreateWindowInner(960, 540, "MainWindow", hInstance, nCmdShow);
+	mMainWindowInfo.mSize = { 1600, 900 };
+	mMainWindowInfo.mWindow = CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow);
 
 	mDebugWindowInfo.mSize = { 640, 360 };
 	mDebugWindowInfo.mWindow = CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow);
+
+	mWindowCreated = true;
 
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
