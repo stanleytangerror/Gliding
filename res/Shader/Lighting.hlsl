@@ -31,7 +31,6 @@ SamplerState IrradianceMapSampler;
 
 Texture2D PanoramicSky;
 SamplerState PanoramicSkySampler;
-float SkyLightIntensity;
 
 Texture2D BRDFIntegrationMap;
 SamplerState BRDFIntegrationMapSampler;
@@ -92,7 +91,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
 		const float3 reflectDir = reflect(LightDir, matData.worldNormal);
 		const float lod = GetMipLevelFromRoughness(1.0 - matData.linearSmoothness);
-		const float3 prefilteredColor = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, reflectDir, lod) * SkyLightIntensity;
+		const float3 prefilteredColor = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, reflectDir, lod);
 
 		const float roughness = 1.0 - matData.linearSmoothness;
 		const float NdotV = dot(matData.worldNormal, V);

@@ -19,7 +19,6 @@ struct PSOutput
 
 Texture2D PanoramicSky;
 SamplerState PanoramicSkySampler;
-float SkyLightIntensity;
 
 float4 RtSize;
 
@@ -47,7 +46,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	float3 dirInWorldSpace = mul(InvViewMat, float4(dirInViewSpace, 0));
 
 	const float3 skyLight = SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, normalize(dirInWorldSpace), 0);
-	output.color = float4(skyLight * SkyLightIntensity, 1);
+	output.color = float4(skyLight, 1);
 
 	return output;
 }

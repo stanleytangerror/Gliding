@@ -181,10 +181,11 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			mSkyTexture->Initial(context);
 
 			const auto& srcSize = mSkyTexture->GetSize();
-			const i32 width = 1024;
-			mPanoramicSkyRt = new D3D12RenderTarget(context->GetDevice(), { width, width * srcSize.y() / srcSize.x(), 1 }, mSkyTexture->GetFormat(), "PanoramicSkyRt");
+			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
+			mPanoramicSkyRt = new D3D12RenderTarget(context->GetDevice(), skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
-			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), mSkyTexture->GetSrv(), mNoMipMapLinearSampler);
+			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
+			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
 
@@ -368,7 +369,6 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	lightingPass.AddSrv("PanoramicSky", mFilteredEnvMap->GetSrv());
 	lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
-	lightingPass.AddCbVar("SkyLightIntensity", mSkyLightIntensity);
 
 	lightingPass.AddSrv("IrradianceMap", mIrradianceMap->GetSrv());
 	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
@@ -496,7 +496,6 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 
 	pass.AddSrv("PanoramicSky", mPanoramicSkyRt->GetSrv());
 	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
-	pass.AddCbVar("SkyLightIntensity", mSkyLightIntensity);
 
 	pass.Draw();
 }
