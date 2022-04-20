@@ -369,7 +369,10 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSrv("PanoramicSky", mFilteredEnvMap->GetSrv());
 	lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 	lightingPass.AddCbVar("SkyLightIntensity", mSkyLightIntensity);
-	
+
+	lightingPass.AddSrv("IrradianceMap", mIrradianceMap->GetSrv());
+	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
+
 	lightingPass.AddSrv("BRDFIntegrationMap", mBRDFIntegrationMap->GetSrv());
 	lightingPass.AddSampler("BRDFIntegrationMapSampler", mBRDFIntegrationMapSampler);
 
