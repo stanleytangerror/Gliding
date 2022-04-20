@@ -69,7 +69,7 @@ private:
 	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
 	D3D12SamplerView* mNoMipMapLinearDepthCmpSampler = nullptr;
 
-	D3D12Texture* mBRDFIntegrationMap = nullptr;
+	D3D12RenderTarget* mBRDFIntegrationMap = nullptr;
 	D3D12SamplerView* mBRDFIntegrationMapSampler = nullptr;
 
 	D3D12RenderTarget* mIrradianceMap = nullptr;
