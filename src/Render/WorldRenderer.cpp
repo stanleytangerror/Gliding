@@ -53,7 +53,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-
+	mFilteredEnvMapSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
+	
 	mBRDFIntegrationMapSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
 
 	{
@@ -157,7 +158,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	const f32 rad = Math::DegreeToRadian(30.f * timer->GetCurrentFrameElapsedSeconds());
+	const f32 rad = Math::DegreeToRadian(10.f * timer->GetCurrentFrameElapsedSeconds());
 	const Vec3f& camDir = Vec3f{ std::sin(rad), std::cos(rad), 0.f };
 	const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
 	const Vec3f& camRight = camDir.cross(camUp);
@@ -166,7 +167,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mCameraTrans.MoveCamera(-100.f * camDir);
 
 	mTestModel.mRelTransform =
-		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(90.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
 		* mTestModel.mRelTransform;
 	mTestModel.CalcAbsTransform();
 }
@@ -188,8 +189,8 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
-
-			mFilteredEnvMap = FilterEnvironmentMap(context, mPanoramicSkyRt->GetSrv());
+			mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
+		
 			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 4);
 		}
 
@@ -367,8 +368,8 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 	lightingPass.AddCbVar("InvProjMat", mCameraProj.ComputeInvProjectionMatrix());
 
-	lightingPass.AddSrv("PanoramicSky", mFilteredEnvMap->GetSrv());
-	lightingPass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+	lightingPass.AddSrv("PrefilteredEnvMap", mFilteredEnvMap->GetSrv());
+	lightingPass.AddSampler("PrefilteredEnvMapSampler", mFilteredEnvMapSampler);
 
 	lightingPass.AddSrv("IrradianceMap", mIrradianceMap->GetSrv());
 	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
@@ -382,64 +383,6 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddCbVar("LightColor", (mSunLight->mLightColor * mSunLight->mLightIntensity).eval());
 
 	lightingPass.Draw();
-}
-
-
-D3D12RenderTarget* WorldRenderer::FilterEnvironmentMap(GraphicsContext* context, IShaderResourceView* view)
-{
-	const auto& originSize = view->GetResource()->GetSize();
-	const auto& format = view->GetFormat();
-	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
-
-	D3D12RenderTarget* result = new D3D12RenderTarget(context->GetDevice(), Vec3i{ originSize.x(), originSize.y(), 1 }, format, levelCount, "FilteredEnvMap");
-	std::vector<RTV*> rtvs;
-	std::vector<SRV*> srvs;
-
-	if (rtvs.empty())
-	{
-		for (i32 i = 0; i < levelCount; ++i)
-		{
-			{
-				D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-				{
-					desc.Format = format;
-					desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-					desc.Texture2D.MipSlice = i;
-					desc.Texture2D.PlaneSlice = 0;
-				}
-
-				rtvs.push_back(new RTV(context->GetDevice(), result, desc));
-			}
-
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-				{
-					desc.Format = format;
-					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-					desc.Texture2D.MostDetailedMip = i;
-					desc.Texture2D.MipLevels = 1;
-					desc.Texture2D.PlaneSlice = 0;
-				}
-
-				srvs.push_back(new SRV(context->GetDevice(), result, desc));
-			}
-		}
-	}
-
-	{
-		RENDER_EVENT(context, FilterEnvironmentMap);
-
-		Vec2f dstSize = Vec2f{ originSize.x(), originSize.y() };
-		for (i32 i = 0; i < levelCount; ++i)
-		{
-			IShaderResourceView* srcSrv = (i == 0) ? view : srvs[i - 1];
-			RenderUtils::CopyTexture(context, rtvs[i], Vec2f::Zero(), Vec2f{ dstSize.x(), dstSize.y() }, view, mNoMipMapLinearSampler);
-			dstSize = dstSize * 0.5f;
-		}
-	}
-
-	return result;
 }
 
 void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const

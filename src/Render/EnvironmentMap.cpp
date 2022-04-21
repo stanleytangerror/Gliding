@@ -65,7 +65,7 @@ D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* conte
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution, resolution };
-	static D3D12RenderTarget* integratedBRDF = new D3D12RenderTarget(context->GetDevice(), Vec3i{ rtSize.x(), rtSize.y(), 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "IrradianceMap");
+	D3D12RenderTarget* integratedBRDF = new D3D12RenderTarget(context->GetDevice(), Vec3i{ rtSize.x(), rtSize.y(), 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "IrradianceMap");
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
 
@@ -104,4 +104,103 @@ D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* conte
 	pass.Draw();
 
 	return integratedBRDF;
+}
+
+D3D12RenderTarget* EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution)
+{
+	const auto& originSize = src->GetResource()->GetSize();
+	const auto& format = src->GetFormat();
+	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
+
+	D3D12RenderTarget* result = new D3D12RenderTarget(context->GetDevice(), Vec3i{ originSize.x(), originSize.y(), 1 }, format, levelCount, "FilteredEnvMap");
+	std::vector<RTV*> rtvs;
+	std::vector<SRV*> srvs;
+
+	if (rtvs.empty())
+	{
+		for (i32 i = 0; i < levelCount; ++i)
+		{
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC desc = {};
+				{
+					desc.Format = format;
+					desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+					desc.Texture2D.MipSlice = i;
+					desc.Texture2D.PlaneSlice = 0;
+				}
+
+				rtvs.push_back(new RTV(context->GetDevice(), result, desc));
+			}
+
+			{
+				D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+				{
+					desc.Format = format;
+					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+					desc.Texture2D.MostDetailedMip = i;
+					desc.Texture2D.MipLevels = 1;
+					desc.Texture2D.PlaneSlice = 0;
+				}
+
+				srvs.push_back(new SRV(context->GetDevice(), result, desc));
+			}
+		}
+	}
+
+	RENDER_EVENT(context, FilterEnvironmentMap);
+
+	Vec2f dstSize = Vec2f{ originSize.x(), originSize.y() };
+	for (i32 i = 0; i < levelCount; ++i)
+	{
+		f32 roughness = f32(i) / (levelCount - 1);
+		PrefilterEnvironmentMap(context, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		dstSize = dstSize * 0.5f;
+	}
+
+	return result;
+}
+
+void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
+{
+	static D3D12SamplerView* mPanoramicSkySampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
+
+	GraphicsPass pass(context);
+
+	D3D12Geometry* geometry = mQuad;
+	const Transformf& transform = Transformf(UniScalingf(1000.f));
+
+	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
+	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
+	pass.mShaderMacros.push_back(ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
+	{
+		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		desc.DepthStencilState.DepthEnable = false;
+		desc.DepthStencilState.StencilEnable = false;
+		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
+	}
+
+	pass.mRts[0] = target;
+	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mStencilRef = 0;
+
+	pass.mVbvs.clear();
+	pass.mVbvs.push_back(geometry->mVbv);
+	pass.mIbv = geometry->mIbv;
+	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+
+	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+	pass.AddCbVar("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });
+
+	pass.AddSrv("PanoramicSky", src);
+	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+
+	pass.Draw();
 }

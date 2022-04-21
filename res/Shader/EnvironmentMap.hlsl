@@ -28,15 +28,57 @@ PSInput VSMain(VSInput vsin)
 
 float4 RtSize;
 
+Texture2D PanoramicSky;
+SamplerState PanoramicSkySampler;
+
+float RadicalInverse_VdC(uint bits) 
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+float2 Hammersley(uint i, uint N)
+{
+    return float2(float(i)/float(N), RadicalInverse_VdC(i));
+}  
+
+float3 ImportanceSampleGGX( float2 E, float a2 )
+{
+    float Phi = 2 * PI * E.x;
+    float CosTheta = sqrt( (1 - E.y) / ( 1 + (a2 * a2 - 1) * E.y ) );
+    float SinTheta = sqrt( 1 - CosTheta * CosTheta );
+
+    float3 H;
+    H.x = SinTheta * cos( Phi );
+    H.y = SinTheta * sin( Phi );
+    H.z = CosTheta;
+
+    return H;
+}
+
+float3 ImportanceSampleGGX( float2 E, float3 N, float a2 )
+{
+    float3 H = ImportanceSampleGGX(E, a2);
+
+    // from tangent-space vector to world-space sample vector
+    float3 up        = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+    float3 tangent   = normalize(cross(up, N));
+    float3 bitangent = cross(N, tangent);
+	
+    float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return normalize(sampleVec);
+}
+
 #if GENERATE_IRRADIANCE_MAP
 
     float4 SemiSphereSampleInfo;
     #define DELTA_RADIAN        (SemiSphereSampleInfo.x)
     #define SAMPLE_COUNT        (SemiSphereSampleInfo.y)
     #define INV_SAMPLE_COUNT    (SemiSphereSampleInfo.z)
-
-    Texture2D PanoramicSky;
-    SamplerState PanoramicSkySampler;
 
     float3x3 CreateTBNMatFromNormal(float3 normal)
     {
@@ -75,39 +117,6 @@ float4 RtSize;
     }
 
 #elif GENERATE_INTEGRATE_BRDF
-
-    float RadicalInverse_VdC(uint bits) 
-    {
-        bits = (bits << 16u) | (bits >> 16u);
-        bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-        bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-        bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-        bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-        return float(bits) * 2.3283064365386963e-10; // / 0x100000000
-    }
-
-    float2 Hammersley(uint i, uint N)
-    {
-        return float2(float(i)/float(N), RadicalInverse_VdC(i));
-    }  
-
-    float3 ImportanceSampleGGX( float2 E, float a2 )
-    {
-        float Phi = 2 * PI * E.x;
-        float CosTheta = sqrt( (1 - E.y) / ( 1 + (a2 - 1) * E.y ) );
-        float SinTheta = sqrt( 1 - CosTheta * CosTheta );
-
-        float3 H;
-        H.x = SinTheta * cos( Phi );
-        H.y = SinTheta * sin( Phi );
-        H.z = CosTheta;
-        
-        float d = ( CosTheta * a2 - CosTheta ) * CosTheta + 1;
-        float D = a2 / ( PI*d*d );
-        float PDF = D * CosTheta;
-
-        return float4( H, PDF );
-    }
 
     float2 IntegrateBRDF(float Roughness, float NoV)
     {
@@ -158,6 +167,46 @@ float4 RtSize;
         float2 envBrdf = IntegrateBRDF(uv.x, uv.y);
 
         output.color = float4(envBrdf, 0, 0);
+        return output;
+    }
+
+#elif PREFILTER_ENVIRONMENT_MAP
+
+    float4 PrefilterInfo;
+    #define ROUGHNESS   (PrefilterInfo.x)
+
+    PSOutput PSMain(PSInput input) : SV_TARGET
+    {
+        PSOutput output;
+        
+        float2 uv = RtSize.zw * input.position.xy;
+        float3 normalInWorldSpace = PanoramicUvToDir(uv);
+
+        float3 N = normalInWorldSpace;    
+        float3 R = N;
+        float3 V = R;
+
+        const uint NumSamples = 1024;
+        float invNumSamples = 1.0 / NumSamples;
+        float totalWeight = 0.0;   
+        float3 prefilteredColor = 0;     
+        for(uint i = 0u; i < NumSamples; ++i)
+        {
+            float2 Xi = Hammersley(i, NumSamples);
+            float3 H  = ImportanceSampleGGX(Xi, N, ROUGHNESS * ROUGHNESS);
+            float3 L  = normalize(2.0 * dot(V, H) * H - V);
+
+            float NdotL = max(dot(N, L), 0.0);
+            if(NdotL > 0.0)
+            {
+                float w = NdotL;
+                prefilteredColor += invNumSamples * w * SamplePanoramicSky(PanoramicSky, PanoramicSkySampler, L, 0);
+                totalWeight      += invNumSamples * w;
+            }
+        }
+        prefilteredColor = prefilteredColor / totalWeight;
+
+        output.color = float4(prefilteredColor, 0);
         return output;
     }
 
