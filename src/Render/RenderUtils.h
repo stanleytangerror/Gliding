@@ -37,4 +37,9 @@ namespace RenderUtils
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
 	FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData);
+
+	TransformNode<std::pair<
+		std::unique_ptr<D3D12Geometry>,
+		std::shared_ptr<RenderMaterial>>>*
+		GenerateMaterialProbes(D3D12Device* device);
 }
