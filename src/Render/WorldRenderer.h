@@ -86,5 +86,5 @@ private:
 
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
-		std::shared_ptr<RenderMaterial>>> mTestModel;
+		std::shared_ptr<RenderMaterial>>>* mTestModel;
 };

@@ -1,9 +1,14 @@
 #pragma once
 
+#include "Common/TransformHierarchy.h"
+#include "D3D12/D3D12Geometry.h"
+#include "RenderMaterial.h"
+
 class GraphicsContext;
 class IRenderTargetView;
 class IShaderResourceView;
 class D3D12SamplerView;
+class SceneRawData;
 
 namespace RenderUtils
 {
@@ -25,4 +30,11 @@ namespace RenderUtils
 		WorldStencilMask_OpaqueObject = 0x1 << 0,
 		WorldStencilMask_Sky = 0x1 << 6
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+
+	TransformNode<std::pair<
+		std::unique_ptr<D3D12Geometry>,
+		std::shared_ptr<RenderMaterial>>>*
+	FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData);
 }

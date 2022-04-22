@@ -14,32 +14,6 @@
 #include "Light.h"
 #include "EnvironmentMap.h"
 
-namespace
-{
-	D3D12_SAMPLER_DESC ToD3DSamplerDesc(const TextureSamplerType& type)
-	{
-		D3D12_SAMPLER_DESC result = {};
-
-		auto mapType = [](SamplerAddrMode mode)
-		{
-			switch (mode)
-			{
-			case TextureSamplerType_Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			case TextureSamplerType_Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case TextureSamplerType_Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			case TextureSamplerType_Decal:
-			default:  Assert(false); return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			}
-		};
-
-		result.AddressU = mapType(type[0]);
-		result.AddressV = mapType(type[1]);
-		result.AddressW = mapType(type[2]);
-
-		return result;
-	}
-}
-
 WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize)
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
@@ -105,39 +79,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 
-	std::map<std::string, D3D12Texture*> textures;
-	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
-	{
-		if (texRawData)
-		{
-			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
-		}
-	}
-	std::map<TextureSamplerType, D3D12SamplerView*> samplers;
-	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
-	{
-		samplers[samplerType] = new D3D12SamplerView(device, ToD3DSamplerDesc(samplerType));
-	}
+	mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
 
-	std::vector<std::shared_ptr<RenderMaterial>> materials;
-	for (const auto& mat : sceneRawData->mMaterials)
-	{
-		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, sceneRawData, textures, samplers));
-	}
-	for (MeshRawData* mesh : sceneRawData->mMeshes)
-	{
-		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
-		const auto& mat = materials[mesh->mMaterialIndex];
-		const Transformf& trans = mesh->mTransform;
-
-		mTestModel.PushChild({
-			std::unique_ptr<D3D12Geometry>(geo),
-			mat },
-			trans);
-	}
-
-	mTestModel.mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
-	//mTestModel.mRelTransform = Translationf(0.f, 0.f, 10.f);
+	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 	mCameraProj.mFovHorizontal = Math::DegreeToRadian(120.f);
@@ -145,6 +90,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 
 WorldRenderer::~WorldRenderer()
 {
+	Utils::SafeDelete(mTestModel);
 	Utils::SafeDelete(mQuad);
 	Utils::SafeDelete(mSphere);
 	Utils::SafeDelete(mSkyTexture);
@@ -166,10 +112,10 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mCameraTrans.AlignCamera(camDir, camUp, camRight);
 	mCameraTrans.MoveCamera(-100.f * camDir);
 
-	mTestModel.mRelTransform =
+	mTestModel->mRelTransform =
 		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
-		* mTestModel.mRelTransform;
-	mTestModel.CalcAbsTransform();
+		* mTestModel->mRelTransform;
+	mTestModel->CalcAbsTransform();
 }
 
 void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
@@ -191,7 +137,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
 			mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
 		
-			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 4);
+			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
 		}
 
 		if (!mBRDFIntegrationMap)
@@ -199,7 +145,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(context, 1024);
 		}
 
-		mTestModel.ForEach([&](auto& node)
+		mTestModel->ForEach([&](auto& node)
 			{
 				if (auto& mat = node.mContent.second)
 				{
@@ -217,7 +163,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
-		mTestModel.ForEach([&](const auto& node)
+		mTestModel->ForEach([&](const auto& node)
 			{
 				D3D12Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();
@@ -240,7 +186,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		}
 		mMainDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
 
-		mTestModel.ForEach([&](const auto& node)
+		mTestModel->ForEach([&](const auto& node)
 			{
 				D3D12Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();

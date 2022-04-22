@@ -6,6 +6,35 @@
 #include "D3D12/D3D12ResourceView.h"
 #include "D3D12/D3D12Resource.h"
 #include "D3D12/D3D12RenderTarget.h"
+#include "World/Scene.h"
+#include "RenderMaterial.h"
+#include "D3D12/D3D12Texture.h"
+
+namespace
+{
+	D3D12_SAMPLER_DESC ToD3DSamplerDesc(const TextureSamplerType& type)
+	{
+		D3D12_SAMPLER_DESC result = {};
+
+		auto mapType = [](SamplerAddrMode mode)
+		{
+			switch (mode)
+			{
+			case TextureSamplerType_Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			case TextureSamplerType_Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+			case TextureSamplerType_Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			case TextureSamplerType_Decal:
+			default:  Assert(false); return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			}
+		};
+
+		result.AddressU = mapType(type[0]);
+		result.AddressV = mapType(type[1]);
+		result.AddressW = mapType(type[2]);
+
+		return result;
+	}
+}
 
 void RenderUtils::CopyTexture(GraphicsContext* context, 
 	IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
@@ -118,4 +147,47 @@ void RenderUtils::GaussianBlur(GraphicsContext* context, IRenderTargetView* targ
 	RENDER_EVENT(context, GaussianBlur);
 	GaussianBlur1D(context, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
 	GaussianBlur1D(context, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
+}
+
+TransformNode<std::pair<
+	std::unique_ptr<D3D12Geometry>,
+	std::shared_ptr<RenderMaterial>>>*
+RenderUtils::FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData)
+{
+	auto result = new TransformNode<std::pair<
+		std::unique_ptr<D3D12Geometry>,
+		std::shared_ptr<RenderMaterial>>>;
+
+	std::map<std::string, D3D12Texture*> textures;
+	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
+	{
+		if (texRawData)
+		{
+			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
+		}
+	}
+	std::map<TextureSamplerType, D3D12SamplerView*> samplers;
+	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
+	{
+		samplers[samplerType] = new D3D12SamplerView(device, ToD3DSamplerDesc(samplerType));
+	}
+
+	std::vector<std::shared_ptr<RenderMaterial>> materials;
+	for (const auto& mat : sceneRawData->mMaterials)
+	{
+		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, sceneRawData, textures, samplers));
+	}
+	for (MeshRawData* mesh : sceneRawData->mMeshes)
+	{
+		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
+		const auto& mat = materials[mesh->mMaterialIndex];
+		const Transformf& trans = mesh->mTransform;
+
+		result->PushChild({
+			std::unique_ptr<D3D12Geometry>(geo),
+			mat },
+			trans);
+	}
+
+	return result;
 }
