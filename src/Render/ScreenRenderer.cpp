@@ -24,7 +24,8 @@ ScreenRenderer::~ScreenRenderer()
 
 void ScreenRenderer::TickFrame(Timer* timer)
 {
-	
+	mLastFrameDeltaTimeInSeconds = timer->GetLastFrameDeltaTime();
+	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
 void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
@@ -77,9 +78,12 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResource
 		const Vec3i& size = sceneHdr->GetResource()->GetSize();
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
+		pass.AddCbVar("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
+
 		pass.AddSrv("SceneBrightnessHistogram", histogram->GetSrv());
 		pass.AddCbVar("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
-
+		pass.AddCbVar("EyeAdaptInfo", Vec4f{ mEyeAdaptSpeedUp, mEyeAdaptSpeedDown, 0.f, 0.f });
+		
 		pass.AddUav("ExposureTexture", exposureRt);
 
 		pass.mThreadGroupCounts = { 1, 1, 1 };
@@ -115,7 +119,7 @@ void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* 
 	ldrScreenPass.AddSrv("SceneHdr", sceneHdr);
 	ldrScreenPass.AddSrv("ExposureTexture", exposure);
 
-	ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -3.f, 0.f, 0.f, 0.f });
+	ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
 	ldrScreenPass.mRts[0] = target;
 	ldrScreenPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));

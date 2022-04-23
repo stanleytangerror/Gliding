@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "Time.h"
 
 #if CONSTRUCT_HISTOGRAM
 
@@ -57,6 +58,10 @@ float4 HistogramInfo;
 
 float4 SceneHdrSize;
 
+float4 EyeAdaptInfo;
+#define EYE_ADAPT_SPEED_UP		(EyeAdaptInfo.x)
+#define EYE_ADAPT_SPEED_DOWN	(EyeAdaptInfo.y)
+
 [numthreads(1, 1, 1)]
 void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : SV_GroupThreadID)
 {
@@ -69,11 +74,26 @@ void CSMain(uint2 threadIdGlobal : SV_DispatchThreadID, uint2 threadIdInGroup : 
 		float lum = pow(2, x);
 		avgLum += lum * y * invTotalWeight;
 	}
+	avgLum = clamp(avgLum, pow(2, HistXMin), pow(2, HistXMax));
 
-	float exposure = 1.f / avgLum;
-	float invExposure = avgLum;
+	float2 lastExposure = ExposureTexture[uint2(0, 0)].zw;
+	float lastLum = clamp(lastExposure.y, pow(2, HistXMin), pow(2, HistXMax));
 
-	ExposureTexture[uint2(0, 0)] = float4(exposure, invExposure, 0, 0);
+	float lastLogLum = log2(lastLum);
+	float targetLogLum = log2(avgLum);
+
+	if (targetLogLum < lastLogLum)
+	{
+		targetLogLum = max(lastLogLum - EYE_ADAPT_SPEED_DOWN * GetDeltaTime(), targetLogLum);
+	}
+	else
+	{
+		targetLogLum = min(lastLogLum + EYE_ADAPT_SPEED_UP * GetDeltaTime(), targetLogLum);
+	}
+
+	float invExposure = pow(2, targetLogLum);
+	float exposure = 1.f / invExposure;
+	ExposureTexture[uint2(0, 0)] = float4(exposure, invExposure, lastExposure);
 }
 
 #endif
