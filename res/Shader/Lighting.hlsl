@@ -91,7 +91,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 		float3 irradiance = SamplePanoramicSky(IrradianceMap, IrradianceMapSampler, matData.worldNormal, 0);
 		indirectDiffuse = (1.0 - F_Schlick(specularColor, NoV)) * irradiance * diffuseColor;
 
-		const float3 reflectDir = reflect(LightDir, matData.worldNormal);
+		const float3 reflectDir = 2.0 * matData.worldNormal * dot(V, matData.worldNormal) - V;
 		const float lod = GetMipLevelFromRoughness(1.0 - matData.linearSmoothness);
 		const float3 prefilteredColor = SamplePanoramicSky(PrefilteredEnvMap, PrefilteredEnvMapSampler, reflectDir, lod);
 
