@@ -203,21 +203,24 @@ TransformNode<std::pair<
 	D3D12Geometry* geo = D3D12Geometry::GenerateSphere(device, 40, 20);
 	D3D12SamplerView* sampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
-	for (f32 roughness = 0.f; roughness <= 1.05f; roughness += 0.1f)
+	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
 	{
-		for (f32 metallic = 0.f; metallic <= 1.05f; metallic += 0.1f)
+		RenderMaterial* material = new RenderMaterial;
+		material->mMatAttriSlots[TextureUsage_BaseColor].mConstantValue = Vec4f::Ones() * 0.5f;
+		material->mMatAttriSlots[TextureUsage_Metalness].mConstantValue = Vec4f::Ones() * metallic;
+		material->mMatAttriSlots[TextureUsage_Roughness].mConstantValue = Vec4f::Ones() * roughness;
+		material->mMatAttriSlots[TextureUsage_Normal].mConstantValue = Vec4f{ 0.5f, 0.5f, 1.f, 0.f };
+
+		result->PushChild(std::pair<
+			std::unique_ptr<D3D12Geometry>,
+			std::shared_ptr<RenderMaterial>>{ geo, material }, Transformf(Translationf(pos)));
+	};
+
+	for (f32 roughness = 0.f; roughness <= 1.05f; roughness += 0.25f)
+	{
+		for (f32 metallic = 0.f; metallic <= 1.05f; metallic += 0.25f)
 		{
-			RenderMaterial* material = new RenderMaterial;
-			material->mMatAttriSlots[TextureUsage_BaseColor].mConstantValue = Vec4f::Ones() * 0.5f;
-			material->mMatAttriSlots[TextureUsage_Metalness].mConstantValue = Vec4f::Ones() * metallic;
-			material->mMatAttriSlots[TextureUsage_Roughness].mConstantValue = Vec4f::Ones() * roughness;
-			material->mMatAttriSlots[TextureUsage_Normal].mConstantValue = Vec4f{ 0.5f, 0.5f, 1.f, 0.f };
-
-			const Vec3f pos = 30.f * Vec3f{ roughness - 0.5f, 0.f, metallic - 0.5f };
-
-			result->PushChild(std::pair<
-				std::unique_ptr<D3D12Geometry>,
-				std::shared_ptr<RenderMaterial>>{ geo, material }, Transformf(Translationf(pos)));
+			genMesh(roughness, metallic, 10.f * Vec3f{ roughness - 0.5f, 0.f, metallic - 0.5f });
 		}
 	}
 

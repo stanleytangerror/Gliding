@@ -26,6 +26,7 @@ public:
 	D3D12_RESOURCE_STATES				GetResStates() const { return mState; }
 	ID3D12Resource*						GetD3D12Resource() const override { return mResource; }
 	Vec3i								GetSize() const override { return mSize; }
+	i32									GetMipLevelCount() const { return mMipLevelCount; }
 
 	void								Clear(D3D12CommandContext* context, const Vec4f& color);
 
@@ -33,6 +34,7 @@ protected:
 	D3D12Device*				mDevice = nullptr;
 	ID3D12Resource*				mResource = nullptr;
 	Vec3i						mSize = {};
+	i32							mMipLevelCount = 1;
 	DXGI_FORMAT					mFormat;
 	D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
 

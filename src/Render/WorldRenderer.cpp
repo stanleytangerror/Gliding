@@ -82,12 +82,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	//mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
 	mTestModel = RenderUtils::GenerateMaterialProbes(device);
 
-	mTestModel->mRelTransform = UniScalingf(5.f);
+	mTestModel->mRelTransform = UniScalingf(10.f);
 	//mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
-	mCameraProj.mFovHorizontal = Math::DegreeToRadian(120.f);
+	mCameraProj.mFovHorizontal = Math::DegreeToRadian(90.f);
+	mCameraProj.mAspectRatio = f32(renderSize.x()) / renderSize.y();
 }
 
 WorldRenderer::~WorldRenderer()
@@ -318,7 +319,8 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	lightingPass.AddSrv("PrefilteredEnvMap", mFilteredEnvMap->GetSrv());
 	lightingPass.AddSampler("PrefilteredEnvMapSampler", mFilteredEnvMapSampler);
-
+	lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(mFilteredEnvMap->GetMipLevelCount()), 0.f, 0.f, 0.f });
+	
 	lightingPass.AddSrv("IrradianceMap", mIrradianceMap->GetSrv());
 	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
 

@@ -10,6 +10,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name)
 	: mDevice(device)
 	, mSize(size)
+	, mMipLevelCount(mipLevelCount)
 	, mFormat(format)
 	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 {

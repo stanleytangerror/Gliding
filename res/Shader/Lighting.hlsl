@@ -31,6 +31,8 @@ SamplerState IrradianceMapSampler;
 
 Texture2D PrefilteredEnvMap;
 SamplerState PrefilteredEnvMapSampler;
+float4 PrefilteredInfo;
+#define PREFILTERED_ENVMAP_MIP_COUNT	(PrefilteredInfo.x)
 
 Texture2D BRDFIntegrationMap;
 SamplerState BRDFIntegrationMapSampler;
@@ -54,7 +56,7 @@ PSInput VSMain(VSInput vsin)
 
 float GetMipLevelFromRoughness(float roughness)
 {
-	return 6;
+	return roughness * roughness * PREFILTERED_ENVMAP_MIP_COUNT;
 }
 
 PSOutput PSMain(PSInput input) : SV_TARGET
