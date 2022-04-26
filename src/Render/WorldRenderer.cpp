@@ -49,9 +49,9 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mGBufferRts[i] = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
 	mMainDepthRt = new D3DDepthStencil(device, mRenderSize,
-		DXGI_FORMAT_R24G8_TYPELESS,
-		DXGI_FORMAT_D24_UNORM_S8_UINT,
-		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+		DXGI_FORMAT_R32G8X24_TYPELESS,
+		DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+		DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS,
 		"SceneDepthRt");
 
 	mShadowMask = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
@@ -78,17 +78,20 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	//mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
-	mTestModel = RenderUtils::GenerateMaterialProbes(device);
+	mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
+	//mTestModel = RenderUtils::GenerateMaterialProbes(device);
 
-	mTestModel->mRelTransform = UniScalingf(10.f);
+	//mTestModel->mRelTransform = UniScalingf(10.f);
 	//mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
+	mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 	mCameraProj.mFovHorizontal = Math::DegreeToRadian(90.f);
 	mCameraProj.mAspectRatio = f32(renderSize.x()) / renderSize.y();
+	mCameraProj.mFar = 100000.f;
 }
 
 WorldRenderer::~WorldRenderer()
