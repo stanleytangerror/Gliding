@@ -6,5 +6,5 @@ struct GD_RENDER_API DirectionalLight
 	f32		mLightIntensity = 0.f;
 
 	Math::CameraTransformf			mWorldTransform;
-	Math::OrthographicProjection	mLightViewProj;
+	Math::OrthographicProjectionf	mLightViewProj;
 };

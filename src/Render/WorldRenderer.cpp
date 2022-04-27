@@ -399,7 +399,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* targe
 void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, 
 	D3D12Geometry* geometry, RenderMaterial* material, 
 	const Transformf& transform, 
-	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj, 
+	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
 	const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
@@ -480,7 +480,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	gbufferPass.Draw();
 }
 
-void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj, DSV* depthView)
+void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, DSV* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -537,8 +537,8 @@ void WorldRenderer::RenderShadowMask(GraphicsContext* context,
 	IRenderTargetView* shadowMask, 
 	IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
 	IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
-	const Math::OrthographicProjection& lightViewProj, const Math::CameraTransformf& lightViewTrans,
-	const Math::PerspectiveProjection& cameraProj, const Math::CameraTransformf& cameraTrans)
+	const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
+	const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans)
 {
 	RENDER_EVENT(context, ShadowMask);
 

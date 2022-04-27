@@ -130,7 +130,7 @@ namespace AssimpLoadUtils
 			return Mat33f::Identity();
 		}
 
-		const Mat33f rot = Math::GetRotation(sourceUpDir, targetUpDir, sourceChirality);
+		const Mat33f rot = Math::GetRotation<f32>(sourceUpDir, targetUpDir, sourceChirality);
 		if (sourceChirality == targetChirality)
 		{
 			return rot;

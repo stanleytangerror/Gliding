@@ -32,7 +32,6 @@
   <ItemGroup>
     <ClCompile Include="AssertUtils.cpp" />
     <ClCompile Include="CommonPch.cpp" />
-    <ClCompile Include="Math.cpp" />
     <ClCompile Include="Profile.cpp" />
     <ClCompile Include="StringUtils.cpp" />
     <ClCompile Include="Timer.cpp" />

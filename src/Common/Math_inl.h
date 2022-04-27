@@ -139,3 +139,139 @@ constexpr Vec3<T> Math::Axis3DDir(const Math::Axis3D& axis)
 	default: Assert(false); return Vec3<T>::UnitZ();
 	}
 }
+
+template <typename T>
+Mat33<T> Math::GetRotation<T>(Axis3D source, Axis3D target, Chirality chirality)
+{
+	if (source == target)
+	{
+		return Mat33<T>::Identity();
+	}
+
+	if (std::min(source, target) % 2 == 1 && std::abs(target - source) == 1)
+	{
+		Math::Axis3D invAxis = std::min(source, target);
+		return Scaling<T>(Math::Axis3DDir<T>(invAxis) * T(-1));
+	}
+
+	const Vec3<T>& v0 = Math::Axis3DDir<T>(source);
+	const Vec3<T>& v1 = Math::Axis3DDir<T>(target);
+
+	const Vec3<T>& rotAxis = v0.cross(v1); // v0/v1 always vertical
+	Assert(rotAxis.norm());
+	T ang = Math::HalfPi<T>() * (chirality == Chirality::RightHanded ? T(1) : T(-1));
+	return Math::FromAngleAxis<T>(ang, rotAxis).toRotationMatrix();
+}
+
+template <typename T>
+Mat44<T> Math::PerspectiveProjection<T>::ComputeProjectionMatrix() const
+{
+	const T fovVertical = mFovHorizontal / mAspectRatio;
+
+	Assert(mFovHorizontal < Math::Pi<T>() * T(2));
+	Assert(fovVertical < Math::Pi<T>() * T(2));
+
+	const T invW = T(1) / std::tan(mFovHorizontal * T(0.5));
+	const T invH = T(1) / std::tan(fovVertical * T(0.5));
+	const T Q = mFar / (mFar - mNear);
+
+	Mat44<T> projMat;
+	{
+		projMat.row(0) << invW, 0, 0, 0;
+		projMat.row(1) << 0, invH, 0, 0;
+		projMat.row(2) << 0, 0, Q, -Q * mNear;
+		projMat.row(3) << 0, 0, 1, 0;
+	}
+
+	return projMat;
+}
+
+template <typename T>
+Mat44<T> Math::PerspectiveProjection<T>::ComputeInvProjectionMatrix() const
+{
+	const T fovVertical = mFovHorizontal / mAspectRatio;
+
+	Assert(mFovHorizontal < Math::Pi<T>() * T(2));
+	Assert(fovVertical < Math::Pi<T>() * T(2));
+
+	const T w = std::tan(mFovHorizontal * T(0.5));
+	const T h = std::tan(fovVertical * T(0.5));
+	const T Q = mFar / (mFar - mNear);
+
+	Mat44<T> invProjMat;
+	{
+		invProjMat.row(0) << w, 0, 0, 0;
+		invProjMat.row(1) << 0, h, 0, 0;
+		invProjMat.row(2) << 0, 0, 0, 1;
+		invProjMat.row(3) << 0, 0, T(1) / (-Q * mNear), T(1) / mNear;
+	}
+
+	return invProjMat;
+}
+
+template <typename T>
+T Math::PerspectiveProjection<T>::GetFarPlaneDeviceDepth() const
+{
+	return T(1);
+}
+
+template <typename T>
+T Math::PerspectiveProjection<T>::GetNearPlaneDeviceDepth() const
+{
+	return T(0);
+}
+
+template <typename T>
+T Math::PerspectiveProjection<T>::GetHalfFovHorizontal() const
+{
+	return mFovHorizontal * T(0.5);
+}
+
+template <typename T>
+T Math::PerspectiveProjection<T>::GetHalfFovVertical() const
+{
+	return GetHalfFovHorizontal() / mAspectRatio;
+}
+
+template <typename T>
+Math::ValueCompareState Math::PerspectiveProjection<T>::GetNearerDepthCompare() const
+{
+	return ValueCompareState(ValueCompareState_Less | ValueCompareState_Equal);
+}
+
+
+template <typename T>
+Mat44<T> Math::OrthographicProjection<T>::ComputeProjectionMatrix() const
+{
+	const float w = T(1) / (mViewWidth * T(0.5));
+	const float h = T(1) / (mViewHeight * T(0.5));
+	const float Q = T(1) / (mFar - mNear);
+
+	Mat44<T> projMat;
+	{
+		projMat.row(0) << w, 0, 0, 0;
+		projMat.row(1) << 0, h, 0, 0;
+		projMat.row(2) << 0, 0, Q, -Q * mNear;
+		projMat.row(3) << 0, 0, 0, 1;
+	}
+
+	return projMat;
+}
+
+template <typename T>
+T Math::OrthographicProjection<T>::GetFarPlaneDeviceDepth() const
+{
+	return T(1);
+}
+
+template <typename T>
+T Math::OrthographicProjection<T>::GetNearPlaneDeviceDepth() const
+{
+	return T(0);
+}
+
+template <typename T>
+Math::ValueCompareState Math::OrthographicProjection<T>::GetNearerDepthCompare() const
+{
+	return ValueCompareState(ValueCompareState_Less | ValueCompareState_Equal);
+}

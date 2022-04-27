@@ -35,21 +35,21 @@ private:
 	static void RenderGeometryWithMaterial(GraphicsContext* context, 
 		D3D12Geometry* geometry, RenderMaterial* material, 
 		const Transformf& transform, 
-		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjection& cameraProj,
+		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 		const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView);
 
 	static void RenderGeometryDepthWithMaterial(GraphicsContext* context,
 		D3D12Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjection& cameraProj,
+		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 		DSV* depthView);
 
 	static void RenderShadowMask(GraphicsContext* context,
 		IRenderTargetView* shadowMask,
 		IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
 		IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
-		const Math::OrthographicProjection& lightViewProj, const Math::CameraTransformf& lightViewTrans,
-		const Math::PerspectiveProjection& cameraProj, const Math::CameraTransformf& cameraTrans);
+		const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
+		const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans);
 
 private:
 	RenderModule* mRenderModule = nullptr;
@@ -81,7 +81,7 @@ private:
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
 	D3D12RenderTarget* mShadowMask = nullptr;
 
-	Math::PerspectiveProjection	mCameraProj;
+	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf mCameraTrans;
 
 	TransformNode<std::pair<

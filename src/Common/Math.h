@@ -100,37 +100,44 @@ namespace Math
 	template <typename T>
 	constexpr Vec3<T> Axis3DDir(const Axis3D& axis);
 
-	GD_COMMON_API Mat33f GetRotation(Math::Axis3D source, Math::Axis3D target, Chirality chirality);
+	template <typename T>
+	Mat33<T> GetRotation(Math::Axis3D source, Math::Axis3D target, Chirality chirality);
 
-	struct GD_COMMON_API PerspectiveProjection
+	template <typename T>
+	struct PerspectiveProjection
 	{
-		f32		mFovHorizontal = Math::DegreeToRadian(45.f);
-		f32		mAspectRatio = 16.f / 9.f;
-		f32		mNear = 1.f;
-		f32		mFar = 1000.f;
+		T		mFovHorizontal = Math::DegreeToRadian<T>(45);
+		T		mAspectRatio = T(16.0 / 9.0);
+		T		mNear = T(1);
+		T		mFar = T(1000);
 
-		Mat44f	ComputeProjectionMatrix() const;
-		Mat44f	ComputeInvProjectionMatrix() const;
+		Mat44<T>	ComputeProjectionMatrix() const;
+		Mat44<T>	ComputeInvProjectionMatrix() const;
 
-		f32		GetFarPlaneDeviceDepth() const;
-		f32		GetNearPlaneDeviceDepth() const;
-		f32		GetHalfFovHorizontal() const;
-		f32		GetHalfFovVertical() const;
+		T		GetFarPlaneDeviceDepth() const;
+		T		GetNearPlaneDeviceDepth() const;
+		T		GetHalfFovHorizontal() const;
+		T		GetHalfFovVertical() const;
 		ValueCompareState	GetNearerDepthCompare() const;
 	};
 
-	struct GD_COMMON_API OrthographicProjection
-	{
-		f32		mViewWidth = 100.f;
-		f32		mViewHeight = 100.f;
-		f32		mNear = 1.f;
-		f32		mFar = 1000.f;
+	using PerspectiveProjectionf = PerspectiveProjection<f32>;
 
-		Mat44f	ComputeProjectionMatrix() const;
-		f32		GetFarPlaneDeviceDepth() const;
-		f32		GetNearPlaneDeviceDepth() const;
+	template <typename T>
+	struct OrthographicProjection
+	{
+		T		mViewWidth = 100.f;
+		T		mViewHeight = 100.f;
+		T		mNear = 1.f;
+		T		mFar = 1000.f;
+
+		Mat44<T>	ComputeProjectionMatrix() const;
+		T			GetFarPlaneDeviceDepth() const;
+		T			GetNearPlaneDeviceDepth() const;
 		ValueCompareState	GetNearerDepthCompare() const;
 	};
+
+	using OrthographicProjectionf = OrthographicProjection<f32>;
 
 	template <typename T>
 	struct GD_COMMON_API CameraTransform
