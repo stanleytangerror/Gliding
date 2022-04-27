@@ -140,7 +140,7 @@ namespace Math
 	using OrthographicProjectionf = OrthographicProjection<f32>;
 
 	template <typename T>
-	struct GD_COMMON_API CameraTransform
+	struct CameraTransform
 	{
 		/* In camera view space (right-handed, +z up), camera axis:
 		 *		CamDir_v	+y,
