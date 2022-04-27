@@ -1,8 +1,8 @@
 #pragma once
 
 #include "renderdoc_app.h"
-#include "D3D12/D3D12Headers.h"
-#include "D3D12/D3D12Device.h"
+#include "D3D12Backend/D3D12Headers.h"
+#include "D3D12Backend/D3D12Device.h"
 
 class D3D12Device;
 class RenderDocApi;

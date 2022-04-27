@@ -1,9 +1,9 @@
 #include "RenderPch.h"
 #include "EnvironmentMap.h"
-#include "D3D12/D3D12RenderTarget.h"
-#include "D3D12/D3D12PipelinePass.h"
-#include "D3D12/D3D12CommandContext.h"
-#include "D3D12/D3D12Geometry.h"
+#include "D3D12Backend/D3D12RenderTarget.h"
+#include "D3D12Backend/D3D12PipelinePass.h"
+#include "D3D12Backend/D3D12CommandContext.h"
+#include "D3D12Backend/D3D12Geometry.h"
 
 D3D12RenderTarget* EnvironmentMap::GenerateIrradianceMap(GraphicsContext* context, IShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {

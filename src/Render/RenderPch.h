@@ -8,6 +8,7 @@
 
 #include "Common/CommonMacros.h"
 #include "World/WorldMacros.h"
+#include "D3D12Backend/D3D12BackendMacros.h"
 #include "Render/RenderMacros.h"
 
 // headers from common
@@ -19,6 +20,7 @@
 #include "Common/StringUtils.h"
 #include "Common/Timer.h"
 #include "Common/Profile.h"
+#include "Common/SuspendedRelease.h"
 
 // std headers
 #include <utility>

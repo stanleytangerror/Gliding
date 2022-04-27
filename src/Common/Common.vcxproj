@@ -21,8 +21,11 @@
     <ClInclude Include="Math_inl.h" />
     <ClInclude Include="Pool.h" />
     <ClInclude Include="Pool_inl.h" />
+    <ClInclude Include="PresentPort.h" />
     <ClInclude Include="Profile.h" />
     <ClInclude Include="StringUtils.h" />
+    <ClInclude Include="SuspendedRelease.h" />
+    <ClInclude Include="SuspendedRelease_inl.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TransformHierarchy.h" />
   </ItemGroup>

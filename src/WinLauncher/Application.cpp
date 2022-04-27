@@ -1,6 +1,6 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
-#include "Render/PresentPort.h"
+#include "Common/PresentPort.h"
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
@@ -53,10 +53,10 @@ void Application::LogicThread()
 void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 {
 	mMainWindowInfo.mSize = { 1600, 900 };
-	mMainWindowInfo.mWindow = CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow);
+	mMainWindowInfo.mWindow = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
 
 	mDebugWindowInfo.mSize = { 640, 360 };
-	mDebugWindowInfo.mWindow = CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow);
+	mDebugWindowInfo.mWindow = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
 
 	mWindowCreated = true;
 

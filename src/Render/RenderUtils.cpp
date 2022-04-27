@@ -1,14 +1,14 @@
 #include "RenderPch.h"
 #include "RenderUtils.h"
-#include "D3D12/D3D12PipelinePass.h"
-#include "D3D12/D3D12Geometry.h"
-#include "D3D12/D3D12CommandContext.h"
-#include "D3D12/D3D12ResourceView.h"
-#include "D3D12/D3D12Resource.h"
-#include "D3D12/D3D12RenderTarget.h"
+#include "D3D12Backend/D3D12PipelinePass.h"
+#include "D3D12Backend/D3D12Geometry.h"
+#include "D3D12Backend/D3D12CommandContext.h"
+#include "D3D12Backend/D3D12ResourceView.h"
+#include "D3D12Backend/D3D12Resource.h"
+#include "D3D12Backend/D3D12RenderTarget.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
-#include "D3D12/D3D12Texture.h"
+#include "D3D12Backend/D3D12Texture.h"
 
 namespace
 {
@@ -179,7 +179,7 @@ RenderUtils::FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData)
 	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
-		D3D12Geometry* geo = D3D12Geometry::GenerateGeometryFromMeshRawData(device, mesh);
+		D3D12Geometry* geo = GenerateGeometryFromMeshRawData(device, mesh);
 		const auto& mat = materials[mesh->mMaterialIndex];
 		const Transformf& trans = mesh->mTransform;
 
@@ -225,4 +225,67 @@ TransformNode<std::pair<
 	}
 
 	return result;
+}
+
+D3D12Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData)
+{
+	const i32 vertexCount = meshRawData->mVertexCount;
+	const auto& vertexData = meshRawData->mVertexData;
+	const u32 vertexTotalStride = std::accumulate(vertexData.begin(), vertexData.end(), 0, [](u32 a, const auto& p) { return a + p.first.mStrideInBytes; });
+
+	std::vector<b8> vertices(vertexTotalStride * vertexCount, b8(0));
+	std::vector<D3D12_INPUT_ELEMENT_DESC> inputDesc;
+
+	static const char* names[] =
+	{
+		"POSITION",
+		"NORMAL",
+		"TANGENT",
+		"BINORMAL",
+		"TEXCOORD",
+		"COLOR"
+	};
+
+	static const DXGI_FORMAT formats[] =
+	{
+		DXGI_FORMAT_R32_FLOAT,
+		DXGI_FORMAT_R32G32_FLOAT,
+		DXGI_FORMAT_R32G32B32_FLOAT,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+	};
+
+	u32 vertexStride = 0;
+	for (const auto& p : vertexData)
+	{
+		const VertexAttriMeta& meta = p.first;
+		const std::vector<VertexAttriRawData>& attrData = p.second;
+
+		inputDesc.push_back(D3D12_INPUT_ELEMENT_DESC{
+			names[meta.mType],
+			meta.mChannelIndex,
+			formats[meta.mStrideInBytes / sizeof(f32)],
+			meta.mChannelIndex,
+			vertexStride,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+			0 });
+
+		b8* target = vertices.data() + vertexStride;
+		for (i32 i = 0; i < vertexCount; i += 1, target += vertexTotalStride)
+		{
+			memcpy(target, &attrData[i], meta.mStrideInBytes);
+		}
+
+		vertexStride += meta.mStrideInBytes;
+	}
+
+	std::vector<u16> indices;
+	indices.reserve(meshRawData->mFaces.size() * 3);
+	for (const auto& f : meshRawData->mFaces)
+	{
+		indices.push_back(f[0]);
+		indices.push_back(f[1]);
+		indices.push_back(f[2]);
+	}
+
+	return D3D12Geometry::GenerateGeometry(device, vertices, vertexTotalStride, indices, inputDesc);
 }

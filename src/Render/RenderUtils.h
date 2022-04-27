@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Common/TransformHierarchy.h"
-#include "D3D12/D3D12Geometry.h"
+#include "D3D12Backend/D3D12Geometry.h"
 #include "RenderMaterial.h"
 
 class GraphicsContext;
 class IRenderTargetView;
 class IShaderResourceView;
 class D3D12SamplerView;
-class SceneRawData;
+struct SceneRawData;
 
 namespace RenderUtils
 {
@@ -42,4 +42,6 @@ namespace RenderUtils
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
 		GenerateMaterialProbes(D3D12Device* device);
+
+	D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData);
 }

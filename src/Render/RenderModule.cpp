@@ -3,9 +3,9 @@
 #include "ScreenRenderer.h"
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
-#include "D3D12/D3D12Device.h"
-#include "D3D12/D3D12RenderTarget.h"
-#include "D3D12/D3D12SwapChain.h"
+#include "D3D12Backend/D3D12Device.h"
+#include "D3D12Backend/D3D12RenderTarget.h"
+#include "D3D12Backend/D3D12SwapChain.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -24,7 +24,7 @@ RenderModule::RenderModule()
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInfo)
 {
-	mDevice->CreateSwapChain(type, windowInfo.mWindow, windowInfo.mSize);
+	mDevice->CreateSwapChain(type, HWND(windowInfo.mWindow), windowInfo.mSize);
 }
 
 void RenderModule::Initial()
@@ -44,7 +44,7 @@ void RenderModule::TickFrame(Timer* timer)
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mDevice, mDevice->GetPresentPort(PresentPortType::MainPort).mWindow);
+		mRenderDoc->OnStartFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
 	}
 
 	mDevice->StartFrame();
@@ -89,7 +89,7 @@ void RenderModule::TickFrame(Timer* timer)
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mDevice, mDevice->GetPresentPort(PresentPortType::MainPort).mWindow);
+		mRenderDoc->OnEndFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
 	}
 }
 

@@ -1,7 +1,7 @@
 #include "RenderPch.h"
 #include "RenderMaterial.h"
-#include "D3D12/D3D12CommandContext.h"
-#include "D3D12/D3D12Texture.h"
+#include "D3D12Backend/D3D12CommandContext.h"
+#include "D3D12Backend/D3D12Texture.h"
 
 void RenderMaterial::UpdateGpuResources(D3D12CommandContext* context)
 {

@@ -43,6 +43,15 @@
     <ClInclude Include="Profile.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="SuspendedRelease.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SuspendedRelease_inl.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentPort.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
