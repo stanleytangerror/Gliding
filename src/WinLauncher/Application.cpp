@@ -1,12 +1,14 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
 #include "Common/PresentPort.h"
+#include "ImGuiIntegration/ImGuiIntegration.h"
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
 	Profile::Initial();
 	mRenderModule = std::make_unique<RenderModule>();
+	ImGuiIntegration::Initial();
 }
 
 void Application::Initial(HINSTANCE hInstance, int nCmdShow)
@@ -17,6 +19,7 @@ void Application::Initial(HINSTANCE hInstance, int nCmdShow)
 
 void Application::Destroy()
 {
+	ImGuiIntegration::Shutdown();
 	mAppLifeCycle = AppLifeCycle::Destroying;
 	mRenderModule->Destroy();
 	Profile::Destroy();
@@ -39,6 +42,7 @@ void Application::LogicThread()
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
 	mRenderModule->Initial();
+	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mWindow);
 
 	while (mMainWindowInfo.mWindow != 0 && mDebugWindowInfo.mWindow != 0)
 	{
@@ -86,23 +90,16 @@ LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam,
 	}
 	return 0;
 
-	case WM_KEYDOWN:
-	case WM_KEYUP:
-	case WM_MOUSEMOVE:
-	case WM_LBUTTONUP:
-	case WM_LBUTTONDOWN:
-	case WM_RBUTTONUP:
-	case WM_RBUTTONDOWN:
-	{
-	}
-	return 0;
-
 	case WM_PAINT:
 		return 0;
 
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+
+	default:
+		;
+		//ImGuiIntegration::WindowProcHandler(u64(hWnd), message, wParam, lParam);
 	}
 
 	// Handle any messages the switch statement didn't.
@@ -122,7 +119,7 @@ HWND Application::CreateWindowInner(u32 width, u32 height, std::string name, HIN
 	RegisterClassEx(&windowClass);
 
 	RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
-	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+	Assert(AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE));
 
 	// Create the window and store a handle to it.
 	HWND windowHandle = CreateWindow(
@@ -138,7 +135,9 @@ HWND Application::CreateWindowInner(u32 width, u32 height, std::string name, HIN
 		hInstance,
 		nullptr);
 
-	SetWindowText(windowHandle, name.c_str());
+	Assert(windowHandle != 0);
+
+	Assert(SetWindowText(windowHandle, name.c_str()));
 
 	ShowWindow(windowHandle, nCmdShow);
 

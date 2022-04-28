@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "World", "World\World.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3D12Backend", "D3D12Backend\D3D12Backend.vcxproj", "{E9A8E828-0B5E-4FC1-81CC-CAB60F6346BB}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGuiIntegration", "ImGuiIntegration\ImGuiIntegration.vcxproj", "{1122A6AE-E522-4A89-95C9-CEFDE43C0B04}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -47,6 +49,10 @@ Global
 		{E9A8E828-0B5E-4FC1-81CC-CAB60F6346BB}.Debug|x64.Build.0 = Debug|x64
 		{E9A8E828-0B5E-4FC1-81CC-CAB60F6346BB}.Release|x64.ActiveCfg = Release|x64
 		{E9A8E828-0B5E-4FC1-81CC-CAB60F6346BB}.Release|x64.Build.0 = Release|x64
+		{1122A6AE-E522-4A89-95C9-CEFDE43C0B04}.Debug|x64.ActiveCfg = Debug|x64
+		{1122A6AE-E522-4A89-95C9-CEFDE43C0B04}.Debug|x64.Build.0 = Debug|x64
+		{1122A6AE-E522-4A89-95C9-CEFDE43C0B04}.Release|x64.ActiveCfg = Release|x64
+		{1122A6AE-E522-4A89-95C9-CEFDE43C0B04}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
