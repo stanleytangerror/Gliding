@@ -63,10 +63,10 @@ namespace Math
 	constexpr bool AlmostZero(T a) { return AlmostEqual<T>(a, T(0)); }
 
 	template <typename T>
-	constexpr float DegreeToRadian(const T deg) { return deg / 180.f * Pi<T>(); }
+	constexpr float DegreeToRadian(const T deg) { return deg / T(180) * Pi<T>(); }
 
 	template <typename T>
-	constexpr float RadianToDegree(const T rad) { return rad * 180.f / Pi<T>(); }
+	constexpr float RadianToDegree(const T rad) { return rad * T(180) / Pi<T>(); }
 
 	template <typename T>
 	inline Rotationf FromAngleAxis(T angleInRad, const Vec3<T>& axis) { return Rotation<T>(AngleAxis<T>(angleInRad, axis)); }
@@ -107,17 +107,17 @@ namespace Math
 	struct PerspectiveProjection
 	{
 		T		mFovHorizontal = Math::DegreeToRadian<T>(45);
-		T		mAspectRatio = T(16.0 / 9.0);
+		T		mAspectRatio = T(16) / T(9);
 		T		mNear = T(1);
 		T		mFar = T(1000);
 
 		Mat44<T>	ComputeProjectionMatrix() const;
 		Mat44<T>	ComputeInvProjectionMatrix() const;
 
-		T		GetFarPlaneDeviceDepth() const;
-		T		GetNearPlaneDeviceDepth() const;
-		T		GetHalfFovHorizontal() const;
-		T		GetHalfFovVertical() const;
+		T			GetFarPlaneDeviceDepth() const;
+		T			GetNearPlaneDeviceDepth() const;
+		T			GetHalfFovHorizontal() const;
+		T			GetHalfFovVertical() const;
 		ValueCompareState	GetNearerDepthCompare() const;
 	};
 
@@ -126,10 +126,10 @@ namespace Math
 	template <typename T>
 	struct OrthographicProjection
 	{
-		T		mViewWidth = 100.f;
-		T		mViewHeight = 100.f;
-		T		mNear = 1.f;
-		T		mFar = 1000.f;
+		T		mViewWidth = T(100);
+		T		mViewHeight = T(100);
+		T		mNear = T(1);
+		T		mFar = T(1000);
 
 		Mat44<T>	ComputeProjectionMatrix() const;
 		T			GetFarPlaneDeviceDepth() const;
