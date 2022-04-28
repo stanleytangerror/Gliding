@@ -2,6 +2,31 @@
 #include "Application.h"
 #include "Common/PresentPort.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
+#include <mutex>
+
+struct WinMessage
+{
+	HWND hWnd = 0;
+	UINT message = 0;
+	WPARAM wParam = 0;
+	LPARAM lParam = 0;
+};
+static std::vector<WinMessage>			sMessages;
+static std::mutex						sMessageMutex;
+
+std::vector<WinMessage> ReadMessages()
+{
+	std::lock_guard<std::mutex> guard(sMessageMutex);
+	std::vector<WinMessage> result;
+	std::swap(result, sMessages);
+	return result;
+}
+
+void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	std::lock_guard<std::mutex> guard(sMessageMutex);
+	sMessages.push_back(WinMessage{ hWnd, message, wParam, lParam });
+}
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
@@ -39,14 +64,21 @@ void Application::LogicThread()
 
 	while (!mWindowCreated) {}
 
+	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mWindow);
+
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
 	mRenderModule->Initial();
-	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mWindow);
 
 	while (mMainWindowInfo.mWindow != 0 && mDebugWindowInfo.mWindow != 0)
 	{
 		mTimer->OnStartNewFrame();
+
+		for (const WinMessage& msg : ReadMessages())
+		{
+			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
+		}
+		ImGuiIntegration::OnStartNewFrame();
 		
 		mRenderModule->TickFrame(mTimer.get());
 
@@ -98,8 +130,7 @@ LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam,
 		return 0;
 
 	default:
-		;
-		//ImGuiIntegration::WindowProcHandler(u64(hWnd), message, wParam, lParam);
+		WriteMessage(hWnd, message, wParam, lParam);
 	}
 
 	// Handle any messages the switch statement didn't.

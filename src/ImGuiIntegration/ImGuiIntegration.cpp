@@ -15,7 +15,7 @@ bool ImGuiIntegration::AttachToWindow(const u64 windowHandle)
 	return ImGui_ImplWin32_Init(HWND(windowHandle));
 }
 
-void ImGuiIntegration::OnNewFrame()
+void ImGuiIntegration::OnStartNewFrame()
 {
 	ImGui_ImplWin32_NewFrame();
 }
