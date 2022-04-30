@@ -75,8 +75,8 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 		Math::OrthographicProjectionf proj;
 		proj.mNear = 0.f;
 		proj.mFar = 1.f;
-		proj.mViewWidth = 0.5f * size.x();
-		proj.mViewHeight = 0.5f * size.y(); 
+		proj.mViewWidth = size.x();
+		proj.mViewHeight = size.y(); 
 		
 		wvpMat = proj.ComputeProjectionMatrix() * camTrans.ComputeViewMatrix();
 	}
