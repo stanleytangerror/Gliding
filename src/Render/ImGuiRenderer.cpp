@@ -192,8 +192,8 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 			pass.mVbvs.push_back(geo->mVbv);
 			pass.mIbv = geo->mIbv;
 			pass.mIndexCount = cmd->ElemCount;
-			pass.mIndexStartLocation = (indexOffset + cmd->IdxOffset) * sizeof(ImDrawIdx);
-			pass.mVertexStartLocation = (vertexOffset + cmd->VtxOffset) * sizeof(ImDrawVert);
+			pass.mIndexStartLocation = indexOffset + cmd->IdxOffset;
+			pass.mVertexStartLocation = vertexOffset + cmd->VtxOffset;
 
 			if (srv)
 			{
