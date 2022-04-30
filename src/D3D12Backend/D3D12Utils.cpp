@@ -250,6 +250,7 @@ ID3D12Resource* D3D12Utils::CreateTextureFromRawMemory(D3D12CommandContext* cont
 {
 	std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
 	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);
+	memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
 	const auto& result = CreateD3DResFromScratchImage(context, *image);
 	ID3D12Resource* resource = result.first;
