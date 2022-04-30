@@ -78,9 +78,18 @@ void Application::LogicThread()
 		{
 			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
 		}
-		ImGuiIntegration::OnStartNewFrame();
-		
+
+		ImGuiIntegration::BeginUI();
+		{
+			bool open = true;
+			ImGui::ShowDemoWindow(&open);
+		}
+		ImDrawData* uiDate = ImGuiIntegration::EndUI();
+		mRenderModule->mUiData = uiDate;
+
 		mRenderModule->TickFrame(mTimer.get());
+
+		mRenderModule->Render();
 
 		Profile::Flush();
 	}

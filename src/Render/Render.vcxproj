@@ -63,7 +63,7 @@
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -87,7 +87,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\DirectX-Headers-1.4.9\include;$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -104,6 +104,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="EnvironmentMap.h" />
+    <ClInclude Include="ImGuiRenderer.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderMacros.h" />
@@ -117,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EnvironmentMap.cpp" />
+    <ClCompile Include="ImGuiRenderer.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
@@ -131,6 +133,9 @@
     </ProjectReference>
     <ProjectReference Include="..\D3D12Backend\D3D12Backend.vcxproj">
       <Project>{e9a8e828-0b5e-4fc1-81cc-cab60f6346bb}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ImGuiIntegration\ImGuiIntegration.vcxproj">
+      <Project>{1122a6ae-e522-4a89-95c9-cefde43c0b04}</Project>
     </ProjectReference>
     <ProjectReference Include="..\World\World.vcxproj">
       <Project>{cc4a2cf2-ce68-48fd-b843-285a25b2e06a}</Project>

@@ -338,7 +338,7 @@ void GraphicsPass::Draw()
 	commandList->IASetVertexBuffers(0, static_cast<u32>(mVbvs.size()), mVbvs.data());
 	commandList->IASetIndexBuffer(&mIbv);
 
-	commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, 0, 0, 0);
+	commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, mIndexStartLocation, mVertexStartLocation, 0);
 }
 
 void GraphicsPass::AddSrv(const std::string& name, IShaderResourceView* srv)

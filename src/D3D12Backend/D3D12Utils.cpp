@@ -246,6 +246,21 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* co
 	return nullptr;
 }
 
+ID3D12Resource* D3D12Utils::CreateTextureFromRawMemory(D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+{
+	std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
+	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);
+
+	const auto& result = CreateD3DResFromScratchImage(context, *image);
+	ID3D12Resource* resource = result.first;
+	ID3D12Resource* tempRes = result.second;
+	NAME_RAW_D3D12_OBJECT(resource, name);
+	NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
+	context->GetDevice()->ReleaseD3D12Resource(tempRes);
+
+	return resource;
+}
+
 D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareState& state)
 {
 	if (state == Math::ValueCompareState_Equal) return D3D12_COMPARISON_FUNC_EQUAL;

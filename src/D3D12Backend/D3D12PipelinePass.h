@@ -85,6 +85,8 @@ public:
 
 	std::vector<D3D12_VERTEX_BUFFER_VIEW>	mVbvs;
 	D3D12_INDEX_BUFFER_VIEW					mIbv = {};
+	int										mVertexStartLocation = 0;
+	int										mIndexStartLocation = 0;
 	int										mIndexCount = 0;
 	int										mInstanceCount = 1;
 

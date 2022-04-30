@@ -1,8 +1,5 @@
 #include "ImGuiIntegration.h"
 #include <windows.h>
-
-#define IMGUI_API __declspec(dllexport)
-#include "imgui.h"
 #include "backends/imgui_impl_win32.h"
 
 IMGUI_INTEGRATION_API bool ImGuiIntegration::Initial()
@@ -15,9 +12,20 @@ bool ImGuiIntegration::AttachToWindow(const u64 windowHandle)
 	return ImGui_ImplWin32_Init(HWND(windowHandle));
 }
 
-void ImGuiIntegration::OnStartNewFrame()
+void ImGuiIntegration::BeginUI()
 {
 	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+}
+
+ImDrawData* ImGuiIntegration::EndUI()
+{
+	if (ImGui::GetIO().Fonts->TexID)
+	{
+		ImGui::Render();
+	}
+	ImGui::EndFrame();
+	return ImGui::GetDrawData();
 }
 
 void ImGuiIntegration::Shutdown()

@@ -18,6 +18,17 @@ float Pow5(float x)
 	return xx * xx * x;
 }
 
+float4 UnpackColorABGRU32(uint v)
+{
+	float4 channels = float4(
+		float(0x000000ff & (v >> 24)),
+		float(0x000000ff & (v >> 16)),
+		float(0x000000ff & (v >> 8)	),
+		float(0x000000ff & (v >> 0)	)
+	);
+	return channels.wzyx / 255.0;
+}
+
 float LinearToSrgbChannel(float linearColor)
 {
 	return (linearColor < 0.00313067) ?

@@ -16,6 +16,17 @@ D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath, const std:
 
 }
 
+D3D12Texture::D3D12Texture(D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+	: mDevice(device)
+	, mName(name)
+	, mSize(size)
+	, mContent(content)
+	, mMipLevelCount(mipLevel)
+	, mFormat(format)
+{
+
+}
+
 D3D12Texture::~D3D12Texture()
 {
 	mDevice->ReleaseD3D12Resource(mD3D12Resource);
@@ -23,7 +34,14 @@ D3D12Texture::~D3D12Texture()
 
 void D3D12Texture::Initial(D3D12CommandContext* context)
 {
-	mD3D12Resource = D3D12Utils::CreateTextureFromImageMemory(context, mFilePath.c_str(), mContent);
+	if (!mFilePath.empty())
+	{
+		mD3D12Resource = D3D12Utils::CreateTextureFromImageMemory(context, mFilePath.c_str(), mContent);
+	}
+	else
+	{
+		mD3D12Resource = D3D12Utils::CreateTextureFromRawMemory(context, mFormat, mContent, mSize, mMipLevelCount, mName.c_str());
+	}
 
 	const auto& desc = mD3D12Resource->GetDesc();
 	mSize = { i32(desc.Width), i32(desc.Height), i32(desc.DepthOrArraySize) };
