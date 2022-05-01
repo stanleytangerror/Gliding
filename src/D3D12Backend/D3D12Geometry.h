@@ -48,6 +48,17 @@ namespace GeometryUtils
 
 		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
 	};
+
+	struct VertexPosNormTanUv
+	{
+		Vec3f mPos;
+		Vec3f mNorm;
+		Vec3f mTangent;
+		Vec3f mBiTangent;
+		Vec2f mUv;
+
+		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
+	};
 }
 
 #include "D3D12Geometry_inl.h"

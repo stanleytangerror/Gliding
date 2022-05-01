@@ -29,7 +29,7 @@ D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
 
 D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
 {
-	std::vector<GeometryUtils::VertexPosNormUv> vertices;
+	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
 	std::vector<u16> indices;
 
 	const i32 stacks = subDev;
@@ -44,16 +44,18 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
 		{
 			f32 u = f32(j) / f32(slices);
 			f32 phi = 2.f * Math::Pi<f32>() * u;
-			f32 x = std::sin(theta) * std::cos(phi);
-			f32 y = std::sin(theta) * std::sin(phi);
-			f32 z = std::cos(theta);
-			vertices.push_back({ {x, y, z}, {}, {u, v} });
-		}
-	}
 
-	for (auto& v : vertices)
-	{
-		v.mNorm = v.mPos.normalized();
+			const Vec3f pos = {
+				std::sin(theta) * std::cos(phi),
+				std::sin(theta) * std::sin(phi),
+				std::cos(theta) };
+			
+			const Vec3f norm = pos.normalized();
+			const Vec3f tang = Vec3f{ -std::sin(phi), std::cos(phi), 0.f }.normalized();
+			const Vec3f biTang = norm.cross(tang);
+
+			vertices.push_back({ pos, norm, tang, biTang, {u, v} });
+		}
 	}
 
 	// ccw
@@ -79,7 +81,7 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
 		}
 	}
 
-	return D3D12Geometry::GenerateGeometry<GeometryUtils::VertexPosNormUv>(device, vertices, indices, GeometryUtils::VertexPosNormUv::GetInputDesc());
+	return D3D12Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(device, vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
 }
 
 
@@ -126,5 +128,17 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormUv::GetInputDe
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+}
+
+std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormTanUv::GetInputDesc()
+{
+	return
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 }
