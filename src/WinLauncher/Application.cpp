@@ -92,9 +92,23 @@ void Application::LogicThread()
 				ImGuiWindowFlags_NoBackground |
 				ImGuiWindowFlags_NoTitleBar);
 			{
+				static Vec2f lastDragInScreenSpace = Vec2f::Zero();
+				const Vec2f curDragInScreenSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
+
+				Vec2f deltaDragInScreenSpace;
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+				{
+					deltaDragInScreenSpace = Vec2f::Zero();
+					lastDragInScreenSpace = Vec2f::Zero();
+				}
+				else
+				{
+					deltaDragInScreenSpace = curDragInScreenSpace - lastDragInScreenSpace;
+					lastDragInScreenSpace = curDragInScreenSpace;
+				}
+
 				/* +x: camera right, +y: camera down */
-				const Vec2f dragInScreenSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
-				const Vec2f dragInViewSpace = dragInScreenSpace / std::min<f32>(f32(fullWindowSize.x()), f32(-fullWindowSize.y()));
+				const Vec3f dragInViewSpace = Vec3f(deltaDragInScreenSpace.x(), -deltaDragInScreenSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
 
 				if (!Math::AlmostZero(dragInViewSpace))
 				{
@@ -107,7 +121,7 @@ void Application::LogicThread()
 					
 					const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
 						dragInViewSpace.norm() * Math::Pi<f32>() * 2.f, 
-						dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()));
+						dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
 
 					worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
 				}
