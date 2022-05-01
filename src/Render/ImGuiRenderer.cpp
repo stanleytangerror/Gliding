@@ -51,10 +51,8 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 
 	D3D12Device* device = mRenderModule->GetDevice();
 
-	ImDrawData* drawData = ImGui::GetDrawData();
-
 	// Avoid rendering when minimized
-	if (!drawData || drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f) { return; }
+	if (!uiData || uiData->CmdListsCount == 0 || uiData->DisplaySize.x <= 0.0f || uiData->DisplaySize.y <= 0.0f) { return; }
 
 	Mat44f wvpMat;
 	{
@@ -62,8 +60,8 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 		 * x+: screen right
 		 * y+: screen down
 		 */
-		const Vec2f size = { drawData->DisplaySize.x, drawData->DisplaySize.y };
-		const Vec2f pos = Vec2f{ drawData->DisplayPos.x, drawData->DisplayPos.y } + 0.5f * size;
+		const Vec2f size = { uiData->DisplaySize.x, uiData->DisplaySize.y };
+		const Vec2f pos = Vec2f{ uiData->DisplayPos.x, uiData->DisplayPos.y } + 0.5f * size;
 
 		Math::CameraTransformf camTrans;
 		camTrans.AlignCamera(
@@ -82,22 +80,22 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 	}
 
 	// Create and grow buffers if needed
-	std::vector<ImDrawVert> vertexBuffer(drawData->TotalVtxCount);
-	std::vector<ImDrawIdx> indexBuffer(drawData->TotalIdxCount);
+	std::vector<ImDrawVert> vertexBuffer(uiData->TotalVtxCount);
+	std::vector<ImDrawIdx> indexBuffer(uiData->TotalIdxCount);
 
 	i32 vertexOffset = 0;
 	i32 indexOffset = 0;
-	for (i32 n = 0; n < drawData->CmdListsCount; n++)
+	for (i32 n = 0; n < uiData->CmdListsCount; n++)
 	{
-		const ImDrawList* cmdList = drawData->CmdLists[n];
+		const ImDrawList* cmdList = uiData->CmdLists[n];
 
 		memcpy(vertexBuffer.data() + vertexOffset, cmdList->VtxBuffer.Data, cmdList->VtxBuffer.size() * sizeof(ImDrawVert));
 		vertexOffset += cmdList->VtxBuffer.size();
 		memcpy(indexBuffer.data() + indexOffset, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
 		indexOffset += cmdList->IdxBuffer.size();
 
-		Assert(drawData->TotalVtxCount >= vertexOffset);
-		Assert(drawData->TotalIdxCount >= indexOffset);
+		Assert(uiData->TotalVtxCount >= vertexOffset);
+		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
 	std::unique_ptr<D3D12Geometry> geo;
@@ -111,10 +109,10 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 	// Render command lists
 	vertexOffset = 0;
 	indexOffset = 0;
-	const ImVec2& clipOffset = drawData->DisplayPos;
-	for (int n = 0; n < drawData->CmdListsCount; n++)
+	const ImVec2& clipOffset = uiData->DisplayPos;
+	for (int n = 0; n < uiData->CmdListsCount; n++)
 	{
-		const ImDrawList* cmdList = drawData->CmdLists[n];
+		const ImDrawList* cmdList = uiData->CmdLists[n];
 		for (int cmd_i = 0; cmd_i < cmdList->CmdBuffer.Size; cmd_i++)
 		{
 			const ImDrawCmd* cmd = &cmdList->CmdBuffer[cmd_i];
