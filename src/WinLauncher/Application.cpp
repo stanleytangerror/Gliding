@@ -65,7 +65,7 @@ public:
 
 	void Update()
 	{
-		const Vec2f curDragInPixelSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(mMouseButton));
+		const Vec2f curDragInPixelSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(mMouseButton, 0.1f));
 
 		if (ImGui::IsMouseReleased(mMouseButton))
 		{
