@@ -27,23 +27,26 @@ D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
 		});
 }
 
-D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 stacks, i32 slices)
+D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
 {
 	std::vector<GeometryUtils::VertexPosNormUv> vertices;
 	std::vector<u16> indices;
+
+	const i32 stacks = subDev;
+	const i32 slices = 2 * subDev;
 
 	// z-up
 	for (int i = 0; i <= stacks; i++)
 	{
 		f32 v = f32(i) / f32(stacks);
-		f32 phi = Math::Pi<f32>() * v;
+		f32 theta = Math::Pi<f32>() * v;
 		for (int j = 0; j < slices; j++)
 		{
 			f32 u = f32(j) / f32(slices);
-			f32 theta = 2.f * Math::Pi<f32>() * u;
-			f32 x = std::sin(phi) * std::cos(theta);
-			f32 y = std::sin(phi) * std::sin(theta);
-			f32 z = std::cos(phi);
+			f32 phi = 2.f * Math::Pi<f32>() * u;
+			f32 x = std::sin(theta) * std::cos(phi);
+			f32 y = std::sin(theta) * std::sin(phi);
+			f32 z = std::cos(theta);
 			vertices.push_back({ {x, y, z}, {}, {u, v} });
 		}
 	}

@@ -200,7 +200,7 @@ TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	D3D12Geometry* geo = D3D12Geometry::GenerateSphere(device, 40, 20);
+	D3D12Geometry* geo = D3D12Geometry::GenerateSphere(device, 40);
 	D3D12SamplerView* sampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)

@@ -20,7 +20,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 {
 	D3D12Device* device = mRenderModule->GetDevice();
 
-	mSphere = D3D12Geometry::GenerateSphere(device, 20, 40);
+	mSphere = D3D12Geometry::GenerateSphere(device, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
 	
 	mSkyTexture = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
@@ -118,9 +118,6 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mCameraTrans.AlignCamera(camDir, camUp, camRight);
 	mCameraTrans.MoveCamera(-100.f * camDir);
 
-	//mTestModel->mRelTransform =
-	//	Transformf(Math::FromAngleAxis(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
-	//	* mTestModel->mRelTransform;
 	mTestModel->CalcAbsTransform();
 }
 
