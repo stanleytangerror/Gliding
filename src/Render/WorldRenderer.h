@@ -81,8 +81,9 @@ private:
 	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
 	D3D12RenderTarget* mShadowMask = nullptr;
 
+public:
 	Math::PerspectiveProjectionf	mCameraProj;
-	Math::CameraTransformf mCameraTrans;
+	Math::CameraTransformf			mCameraTrans;
 
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,

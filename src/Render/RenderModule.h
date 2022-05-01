@@ -27,6 +27,7 @@ public:
 	void Render();
 
 	D3D12Device*		GetDevice() const { return mDevice; }
+	WorldRenderer*		GetWorldRenderer() const { return mWorldRenderer.get(); }
 
 	void				Destroy();
 

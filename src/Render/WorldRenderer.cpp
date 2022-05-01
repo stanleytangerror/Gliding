@@ -78,15 +78,15 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
+	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
-	//mTestModel = RenderUtils::GenerateMaterialProbes(device);
+	//mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
+	mTestModel = RenderUtils::GenerateMaterialProbes(device);
 
-	//mTestModel->mRelTransform = UniScalingf(10.f);
+	mTestModel->mRelTransform = UniScalingf(10.f);
 	//mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
-	mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
+	//mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
 
 	mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 	mCameraProj.mFovHorizontal = Math::DegreeToRadian(90.f);
@@ -118,9 +118,9 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mCameraTrans.AlignCamera(camDir, camUp, camRight);
 	mCameraTrans.MoveCamera(-100.f * camDir);
 
-	mTestModel->mRelTransform =
-		Transformf(Math::FromAngleAxis(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
-		* mTestModel->mRelTransform;
+	//mTestModel->mRelTransform =
+	//	Transformf(Math::FromAngleAxis(Math::DegreeToRadian(30.f * timer->GetLastFrameDeltaTime()), Math::Axis3DDir<f32>(Math::Axis3D_Zp)))
+	//	* mTestModel->mRelTransform;
 	mTestModel->CalcAbsTransform();
 }
 

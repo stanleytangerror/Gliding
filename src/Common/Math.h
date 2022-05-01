@@ -59,8 +59,14 @@ namespace Math
 	template <typename T>
 	constexpr bool AlmostEqual(T a, T b) { return std::max(a, b) <= std::min(a, b) + Epsilon<T>(); }
 
+	template <typename T, i32 Rols, i32 Cols>
+	inline bool AlmostEqual(const Mat<T, Rols, Cols>& a, const Mat<T, Rols, Cols>& b);
+
 	template <typename T>
 	constexpr bool AlmostZero(T a) { return AlmostEqual<T>(a, T(0)); }
+
+	template <typename T, i32 Rols, i32 Cols>
+	constexpr bool AlmostZero(const Mat<T, Rols, Cols>& a) { return AlmostEqual<T, Rols, Cols>(a, Mat<T, Rols, Cols>::Zero()); }
 
 	template <typename T>
 	constexpr float DegreeToRadian(const T deg) { return deg / T(180) * Pi<T>(); }

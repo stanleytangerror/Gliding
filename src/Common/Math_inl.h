@@ -3,6 +3,23 @@
 #include "AssertUtils.h"
 #include <sstream>
 
+template <typename T, i32 Rols, i32 Cols>
+inline bool Math::AlmostEqual(const Mat<T, Rols, Cols>& a, const Mat<T, Rols, Cols>& b)
+{
+	for (i32 r = 0; r < Rols; ++r)
+	{
+		for (i32 c = 0; c < Cols; ++c)
+		{
+			if (!AlmostEqual<T>(T(a(r, c)), T(b(r, c))))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 template <>
 inline f64 Math::Sqrt(f64 v)
 {

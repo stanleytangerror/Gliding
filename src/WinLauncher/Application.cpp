@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Common/PresentPort.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
+#include "Render/WorldRenderer.h"
 #include <mutex>
 
 struct WinMessage
@@ -81,8 +82,37 @@ void Application::LogicThread()
 
 		ImGuiIntegration::BeginUI();
 		{
+			const auto& fullWindowSize = mMainWindowInfo.mSize;
+
 			bool open = true;
-			ImGui::ShowDemoWindow(&open);
+			ImGui::SetNextWindowPos({});
+			ImGui::SetNextWindowSize(ImGui::FromVec2(fullWindowSize));
+			ImGui::Begin("OperatePanel", &open,
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoTitleBar);
+			{
+				/* +x: camera right, +y: camera down */
+				const Vec2f dragInScreenSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
+				const Vec2f dragInViewSpace = dragInScreenSpace / std::min<f32>(f32(fullWindowSize.x()), f32(-fullWindowSize.y()));
+
+				if (!Math::AlmostZero(dragInViewSpace))
+				{
+					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
+					Math::CameraTransformf& camTrans = worldRenderer->mCameraTrans;
+					
+					const Vec3f dragInWorldSpace =
+						dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
+						dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
+					
+					const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
+						dragInViewSpace.norm() * Math::Pi<f32>() * 2.f, 
+						dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()));
+
+					worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
+				}
+			}
+			ImGui::End();
 		}
 		ImDrawData* uiDate = ImGuiIntegration::EndUI();
 		mRenderModule->mUiData = uiDate;

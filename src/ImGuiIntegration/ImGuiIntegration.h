@@ -30,5 +30,11 @@ namespace ImGui
 	ImVec2 FromVec2(const Vec2<T>& v) { return { f32(v.x()), f32(v.y()) }; }
 
 	template <typename T>
+	Vec2<T> ToVec2(const ImVec2& v) { return { T(v.x), T(v.y) }; }
+
+	template <typename T>
 	ImVec4 FromVec4(const Vec4<T>& v) { return { f32(v.x()), f32(v.y()), f32(v.z()), f32(v.w()) }; }
+
+	template <typename T>
+	Vec4<T> ToVec4(const ImVec4& v) { return { T(v.x), T(v.y), T(v.z), T(v.w) }; }
 }
