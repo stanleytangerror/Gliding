@@ -110,14 +110,6 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	const f32 rad = Math::DegreeToRadian(10.f * timer->GetCurrentFrameElapsedSeconds());
-	const Vec3f& camDir = Vec3f{ std::sin(rad), std::cos(rad), 0.f };
-	const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
-	const Vec3f& camRight = camDir.cross(camUp);
-
-	mCameraTrans.AlignCamera(camDir, camUp, camRight);
-	mCameraTrans.MoveCamera(-100.f * camDir);
-
 	mTestModel->CalcAbsTransform();
 }
 

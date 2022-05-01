@@ -58,6 +58,35 @@ void Application::Run()
 	mLogicThread->join();
 }
 
+class MouseDrag
+{
+public:
+	MouseDrag(ImGuiMouseButton mouseButton) : mMouseButton(mouseButton) {}
+
+	void Update()
+	{
+		const Vec2f curDragInPixelSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(mMouseButton));
+
+		if (ImGui::IsMouseReleased(mMouseButton))
+		{
+			mDeltaDragInPixelSpace = Vec2f::Zero();
+			mLastDragInPixelSpace = Vec2f::Zero();
+		}
+		else
+		{
+			mDeltaDragInPixelSpace = curDragInPixelSpace - mLastDragInPixelSpace;
+			mLastDragInPixelSpace = curDragInPixelSpace;
+		}
+	}
+
+	Vec2f	GetDragDeltaInPixelSpace() const { return mDeltaDragInPixelSpace; }
+
+protected:
+	ImGuiMouseButton	mMouseButton = ImGuiMouseButton_Left;
+	Vec2f				mLastDragInPixelSpace = Vec2f::Zero();
+	Vec2f				mDeltaDragInPixelSpace = Vec2f::Zero();
+};
+
 void Application::LogicThread()
 {
 	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
@@ -92,38 +121,50 @@ void Application::LogicThread()
 				ImGuiWindowFlags_NoBackground |
 				ImGuiWindowFlags_NoTitleBar);
 			{
-				static Vec2f lastDragInScreenSpace = Vec2f::Zero();
-				const Vec2f curDragInScreenSpace = ImGui::ToVec2<f32>(ImGui::GetMouseDragDelta(ImGuiMouseButton_Left));
+				static std::array<MouseDrag, 2> drags = {
+					MouseDrag(ImGuiMouseButton_Left),
+					MouseDrag(ImGuiMouseButton_Right) };
 
-				Vec2f deltaDragInScreenSpace;
-				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+				for (auto& drag : drags)
 				{
-					deltaDragInScreenSpace = Vec2f::Zero();
-					lastDragInScreenSpace = Vec2f::Zero();
-				}
-				else
-				{
-					deltaDragInScreenSpace = curDragInScreenSpace - lastDragInScreenSpace;
-					lastDragInScreenSpace = curDragInScreenSpace;
+					drag.Update();
 				}
 
-				/* +x: camera right, +y: camera down */
-				const Vec3f dragInViewSpace = Vec3f(deltaDragInScreenSpace.x(), -deltaDragInScreenSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
-
-				if (!Math::AlmostZero(dragInViewSpace))
+				WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
+				Math::CameraTransformf& camTrans = worldRenderer->mCameraTrans;
 				{
-					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
-					Math::CameraTransformf& camTrans = worldRenderer->mCameraTrans;
-					
-					const Vec3f dragInWorldSpace =
-						dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
-						dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
-					
-					const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
-						dragInViewSpace.norm() * Math::Pi<f32>() * 2.f, 
-						dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
+					/* +x: camera right, +y: camera down */
+					const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
+					const Vec3f dragInViewSpace = Vec3f(leftButtonDeltaDragInPixelSpace.x(), -leftButtonDeltaDragInPixelSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
 
-					worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
+					if (!Math::AlmostZero(dragInViewSpace))
+					{
+
+						const Vec3f dragInWorldSpace =
+							dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
+							dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
+
+						const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
+							dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
+							dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
+
+						worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
+					}
+				}
+
+				{
+					const Vec2f rightButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Right].GetDragDeltaInPixelSpace();
+					const f32 camRotDeltaRad = Math::DegreeToRadian(rightButtonDeltaDragInPixelSpace.x() / fullWindowSize.y() * 360.f);
+
+					const Vec3f lastCamDir = camTrans.CamDirInWorldSpace();
+					const f32 camRotRad = std::atan2f(lastCamDir.x(), lastCamDir.y()) + camRotDeltaRad;
+					
+					const Vec3f& camDir = Vec3f{ std::sin(camRotRad), std::cos(camRotRad), 0.f };
+					const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
+					const Vec3f& camRight = camDir.cross(camUp);
+
+					camTrans.AlignCamera(camDir, camUp, camRight);
+					camTrans.MoveCamera(-100.f * camDir);
 				}
 			}
 			ImGui::End();
