@@ -4,11 +4,11 @@
 #include "D3D12Resource.h"
 #include "D3D12ResourceView.h"
 #include "D3D12CommandContext.h"
+#include "Common/Texture.h"
 
 class GD_D3D12BACKEND_API D3D12Texture : public ID3D12Res
 {
 public:
-	D3D12Texture(D3D12Device* device, const char* filePath);
 	D3D12Texture(D3D12Device* device, const char* filePath, const std::vector<b8>& content);
 	D3D12Texture(D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 	virtual ~D3D12Texture();
@@ -27,7 +27,8 @@ public:
 	void							Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 
 protected:
-	std::vector<b8>	mContent;
+	std::vector<b8>			mContent;
+	bool					mFromImageMemory = true;
 
 	D3D12Device* const		mDevice = nullptr;
 	std::string				mFilePath;

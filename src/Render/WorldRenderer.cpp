@@ -23,7 +23,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mSphere = D3D12Geometry::GenerateSphere(device, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
 	
-	mSkyTexture = new D3D12Texture(device, R"(D:\Assets\Panorama_of_Marienplatz.dds)");
+	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
+	mSkyTexture = new D3D12Texture(device, skyTexPath, Utils::LoadFileContent(skyTexPath));
 	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });

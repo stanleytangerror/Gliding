@@ -1,17 +1,11 @@
 #include "D3D12BackendPch.h"
 #include "D3D12Texture.h"
 
-D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath)
-	: mDevice(device)
-	, mFilePath(filePath)
-{
-	mContent = Utils::LoadFileContent(filePath);
-}
-
 D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath, const std::vector<b8>& content)
 	: mDevice(device)
-	, mFilePath(filePath)
+	, mName(filePath)
 	, mContent(content)
+	, mFromImageMemory(true)
 {
 
 }
@@ -23,6 +17,7 @@ D3D12Texture::D3D12Texture(D3D12Device* device, DXGI_FORMAT format, const std::v
 	, mContent(content)
 	, mMipLevelCount(mipLevel)
 	, mFormat(format)
+	, mFromImageMemory(false)
 {
 
 }
@@ -34,9 +29,10 @@ D3D12Texture::~D3D12Texture()
 
 void D3D12Texture::Initial(D3D12CommandContext* context)
 {
-	if (!mFilePath.empty())
+	if (mFromImageMemory)
 	{
-		mD3D12Resource = D3D12Utils::CreateTextureFromImageMemory(context, mFilePath.c_str(), mContent);
+		const TextureFileExt::Enum ext = Utils::GetTextureExtension(mName.c_str());
+		mD3D12Resource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
 	}
 	else
 	{

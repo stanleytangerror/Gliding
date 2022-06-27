@@ -1,6 +1,7 @@
 #pragma once
 
 #include "D3D12Headers.h"
+#include "Common/Texture.h"
 
 class D3D12CommandContext;
 
@@ -18,7 +19,7 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
 	ID3D12Resource* CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath);
-	ID3D12Resource* CreateTextureFromImageMemory(D3D12CommandContext* context, const char* filePath, const std::vector<b8>& content);
+	ID3D12Resource* CreateTextureFromImageMemory(D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
 	ID3D12Resource* CreateTextureFromRawMemory(D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 	
 	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);

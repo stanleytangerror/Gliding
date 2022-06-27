@@ -217,17 +217,25 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageFile(D3D12CommandContext* cont
 	return nullptr;
 }
 
-ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* context, const char* filePath, const std::vector<b8>& content)
+ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
 {
-	std::filesystem::path ext = std::filesystem::path(filePath).extension();
 	std::unique_ptr<DirectX::ScratchImage> image;
-	if (ext == ".dds")
+
+	switch (ext)
 	{
+	case TextureFileExt::DDS:
 		image = LoadDDSImageFromMemory(content.data(), content.size());
-	}
-	else if (ext == ".png" || ext == ".bmp" || ext == ".gif" || ext == ".tiff" || ext == ".jpeg" || ext == ".jpg")
-	{
+		break;
+	case TextureFileExt::PNG:
+	case TextureFileExt::BMP:
+	case TextureFileExt::GIF:
+	case TextureFileExt::TIFF:
+	case TextureFileExt::JPEG:
+	case TextureFileExt::JPG:
 		image = LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size());
+		break;
+	default:
+		break;
 	}
 
 	if (image->GetImageCount() != 0)
@@ -235,7 +243,6 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* co
 		const auto& result = CreateD3DResFromScratchImage(context, *image);
 		ID3D12Resource* resource = result.first;
 		ID3D12Resource* tempRes = result.second;
-		NAME_RAW_D3D12_OBJECT(resource, filePath);
 		NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
 		context->GetDevice()->ReleaseD3D12Resource(tempRes);
 

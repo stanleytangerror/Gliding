@@ -52,6 +52,9 @@
     <ClInclude Include="PresentPort.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
@@ -72,6 +75,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Profile.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
