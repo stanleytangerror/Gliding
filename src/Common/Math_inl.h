@@ -183,13 +183,13 @@ Mat33<T> Math::GetRotation<T>(Axis3D source, Axis3D target, Chirality chirality)
 template <typename T>
 Mat44<T> Math::PerspectiveProjection<T>::ComputeProjectionMatrix() const
 {
-	const T fovVertical = mFovHorizontal / mAspectRatio;
+	Assert(mFovHorizontal < Math::Pi<T>()* T(2));
 
-	Assert(mFovHorizontal < Math::Pi<T>() * T(2));
-	Assert(fovVertical < Math::Pi<T>() * T(2));
+	const T tanHalfHorizontal = std::tan(mFovHorizontal * T(0.5));
+	const T tanHalfVertical = tanHalfHorizontal / mAspectRatio;
 
-	const T invW = T(1) / std::tan(mFovHorizontal * T(0.5));
-	const T invH = T(1) / std::tan(fovVertical * T(0.5));
+	const T invW = T(1) / tanHalfHorizontal;
+	const T invH = T(1) / tanHalfVertical;
 	const T Q = mFar / (mFar - mNear);
 
 	Mat44<T> projMat;
@@ -206,13 +206,13 @@ Mat44<T> Math::PerspectiveProjection<T>::ComputeProjectionMatrix() const
 template <typename T>
 Mat44<T> Math::PerspectiveProjection<T>::ComputeInvProjectionMatrix() const
 {
-	const T fovVertical = mFovHorizontal / mAspectRatio;
+	Assert(mFovHorizontal < Math::Pi<T>()* T(2));
+	
+	const T tanHalfHorizontal = std::tan(mFovHorizontal * T(0.5));
+	const T tanHalfVertical = tanHalfHorizontal / mAspectRatio;
 
-	Assert(mFovHorizontal < Math::Pi<T>() * T(2));
-	Assert(fovVertical < Math::Pi<T>() * T(2));
-
-	const T w = std::tan(mFovHorizontal * T(0.5));
-	const T h = std::tan(fovVertical * T(0.5));
+	const T w = tanHalfHorizontal;
+	const T h = tanHalfVertical;
 	const T Q = mFar / (mFar - mNear);
 
 	Mat44<T> invProjMat;
