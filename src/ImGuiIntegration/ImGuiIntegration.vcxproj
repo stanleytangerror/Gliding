@@ -100,18 +100,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\imgui-1.87\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="..\Dependencies\imgui-1.87\imgui.cpp">
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreprocessToFile>
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreprocessToFile>
-    </ClCompile>
+    <ClCompile Include="..\Dependencies\imgui-1.87\imgui.cpp" />
     <ClCompile Include="..\Dependencies\imgui-1.87\imgui_demo.cpp" />
     <ClCompile Include="..\Dependencies\imgui-1.87\imgui_draw.cpp" />
     <ClCompile Include="..\Dependencies\imgui-1.87\imgui_tables.cpp" />
     <ClCompile Include="..\Dependencies\imgui-1.87\imgui_widgets.cpp" />
-    <ClCompile Include="ImGuiIntegration.cpp">
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreprocessToFile>
-    </ClCompile>
+    <ClCompile Include="ImGuiIntegration.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
