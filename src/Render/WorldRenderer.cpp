@@ -45,10 +45,33 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mNoMipMapLinearDepthCmpSampler = new D3D12SamplerView(device, samplerDesc);
 	}
 
-	for (i32 i = 0; i < mGBufferRts.size(); ++i)
+	for (i32 i = 0; i < mGBuffers.size(); ++i)
 	{
-		mGBufferRts[i] = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
+		mGBuffers[i] = D3D12Backend::CommitedResource::Builder()
+			.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+			.SetWidth(mRenderSize.x())
+			.SetHeight(mRenderSize.y())
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
+			.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
+			.Build(device);
+
+		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
+			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
+			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+			.SetMipLevels(1)
+			.BuildTex2D();
+		
+		mGBufferRtvs[i] = mGBuffers[i]->CreateRtv()
+			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
+			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
+			.BuildTex2D();
+
+		//mGBufferRts[i] = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
+
 	mMainDepthRt = new D3DDepthStencil(device, mRenderSize,
 		DXGI_FORMAT_R32G8X24_TYPELESS,
 		DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
@@ -103,7 +126,7 @@ WorldRenderer::~WorldRenderer()
 	Utils::SafeDelete(mSkyTexture);
 	Utils::SafeDelete(mPanoramicSkyRt);
 	Utils::SafeDelete(mMainDepthRt);
-	for (auto& rt : mGBufferRts)
+	for (auto& rt : mGBuffers)
 	{
 		Utils::SafeDelete(rt);
 	}
@@ -176,7 +199,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	{
 		RENDER_EVENT(context, GBuffer);
 
-		for (const auto& rt : mGBufferRts)
+		for (const auto& rt : mGBufferRtvs)
 		{
 			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
 		}
@@ -189,7 +212,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRts, mMainDepthRt->GetDsv());
+					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRtvs, mMainDepthRt->GetDsv());
 				}
 			});
 	}
@@ -223,7 +246,7 @@ void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTarge
 
 		RenderUtils::CopyTexture(context, 
 			target, { i * width, 0.f }, { width, height }, 
-			mGBufferRts[idx]->GetSrv(), mNoMipMapLinearSampler, unary);
+			mGBufferSrvs[idx], mNoMipMapLinearSampler, unary);
 	}
 }
 
@@ -299,9 +322,9 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 	lightingPass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
-	lightingPass.AddSrv("GBuffer0", mGBufferRts[0]->GetSrv());
-	lightingPass.AddSrv("GBuffer1", mGBufferRts[1]->GetSrv());
-	lightingPass.AddSrv("GBuffer2", mGBufferRts[2]->GetSrv());
+	lightingPass.AddSrv("GBuffer0", mGBufferSrvs[0]);
+	lightingPass.AddSrv("GBuffer1", mGBufferSrvs[1]);
+	lightingPass.AddSrv("GBuffer2", mGBufferSrvs[2]);
 	lightingPass.AddSrv("ShadowMask", mShadowMask->GetSrv());
 	lightingPass.AddSampler("ShadowMaskSampler", mLightingSceneSampler);
 	lightingPass.AddSrv("SceneDepth", mMainDepthRt->GetSrv());
@@ -390,7 +413,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	D3D12Geometry* geometry, RenderMaterial* material, 
 	const Transformf& transform, 
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
-	const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView)
+	const std::array<RTV*, 3>& gbufferRtvs, DSV* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
 	
@@ -421,13 +444,13 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
 
-	for (i32 i = 0; i < gbufferRts.size(); ++i)
+	for (i32 i = 0; i < gbufferRtvs.size(); ++i)
 	{
-		gbufferPass.mRts[i] = gbufferRts[i]->GetRtv();
+		gbufferPass.mRts[i] = gbufferRtvs[i];
 	}
 	gbufferPass.mDs = depthView;
 
-	const Vec3i& targetSize = gbufferRts[0]->GetSize();
+	const Vec3i& targetSize = gbufferRtvs[0]->GetResource()->GetSize();
 	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;

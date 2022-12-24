@@ -234,3 +234,98 @@ void D3DDepthStencil::Clear(D3D12CommandContext* context, float depth, UINT sten
 
 	context->GetCommandList()->ClearDepthStencilView(GetDsv()->GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
 }
+
+D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D3D12Device* device)
+{
+	CommitedResource* result = new CommitedResource;
+
+	D3D12_RESOURCE_DESC desc = {};
+	{
+		desc.Dimension = mDimention;
+		desc.Alignment = mAlignment;
+		desc.Width = mWidth;
+		desc.Height = mHeight;
+		desc.DepthOrArraySize = mDepthOrArraySize;
+		desc.MipLevels = mMipLevels;
+		desc.Format = mFormat;
+		desc.SampleDesc = mSampleDesc;
+		desc.Layout = mLayout;
+		desc.Flags = mFlags;
+	}
+
+	// create gpu resource default as copy dest
+	ID3D12Resource* resource = nullptr;
+	D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		state,
+		nullptr,
+		IID_PPV_ARGS(&resource)));
+
+	NAME_RAW_D3D12_OBJECT(resource, mName);
+
+	result->mDevice = device;
+	result->mResource = resource;
+	result->mSize = { (i32) mWidth, (i32) mHeight, mDepthOrArraySize };
+	result->mMipLevelCount = mMipLevels;
+	result->mFormat = mFormat;
+	result->mState = state;
+	
+	return result;
+}
+
+D3D12Backend::CommitedResource::~CommitedResource()
+{
+	mDevice->ReleaseD3D12Resource(mResource);
+}
+
+void D3D12Backend::CommitedResource::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
+{
+	if (mState != destState)
+	{
+		context->Transition(mResource, mState, destState);
+		mState = destState;
+	}
+}
+
+D3D12Backend::CommitedResource::SrvBuilder D3D12Backend::CommitedResource::CreateSrv()
+{
+	return SrvBuilder().SetDevice(mDevice).SetResource(this);
+}
+
+D3D12Backend::CommitedResource::RtvBuilder D3D12Backend::CommitedResource::CreateRtv()
+{
+	return RtvBuilder().SetDevice(mDevice).SetResource(this);
+}
+
+SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildTex2D()
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+	{
+		desc.Format = mFormat;
+		desc.ViewDimension = mViewDimension;
+		desc.Shader4ComponentMapping = mShader4ComponentMapping;
+		desc.Texture2D.MostDetailedMip = mMostDetailedMip;
+		desc.Texture2D.MipLevels = mMipLevels;
+		desc.Texture2D.PlaneSlice = mPlaneSlice;
+		desc.Texture2D.ResourceMinLODClamp = mResourceMinLODClamp;
+	}
+
+	return new SRV(mDevice, mResource, desc);
+}
+
+RTV* D3D12Backend::CommitedResource::RtvBuilder::BuildTex2D()
+{
+	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
+	{
+		desc.Format = mFormat;
+		desc.ViewDimension = mViewDimension;
+		desc.Texture2D.MipSlice = mMipSlice;
+		desc.Texture2D.PlaneSlice = mPlaneSlice;
+	}
+
+	return new RTV(mDevice, mResource, desc);
+}

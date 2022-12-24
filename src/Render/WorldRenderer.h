@@ -11,9 +11,15 @@ class GraphicsContext;
 class D3D12Texture;
 class D3D12RenderTarget;
 class D3DDepthStencil;
+class SRV;
+class RTV;
 class DSV;
 struct RenderMaterial;
 struct DirectionalLight;
+namespace D3D12Backend
+{
+	class CommitedResource;
+}
 
 class GD_RENDER_API WorldRenderer
 {
@@ -36,7 +42,7 @@ private:
 		D3D12Geometry* geometry, RenderMaterial* material, 
 		const Transformf& transform, 
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
-		const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView);
+		const std::array<RTV*, 3>& gbufferRts, DSV* depthView);
 
 	static void RenderGeometryDepthWithMaterial(GraphicsContext* context,
 		D3D12Geometry* geometry, RenderMaterial* material,
@@ -78,7 +84,10 @@ private:
 	D3DDepthStencil* mLightViewDepthRt = nullptr;
 
 	D3DDepthStencil* mMainDepthRt = nullptr;
-	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
+	std::array<D3D12Backend::CommitedResource*, 3> mGBuffers = {};
+	std::array<SRV*, 3> mGBufferSrvs = {};
+	std::array<RTV*, 3> mGBufferRtvs = {};
+
 	D3D12RenderTarget* mShadowMask = nullptr;
 
 public:
