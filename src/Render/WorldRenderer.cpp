@@ -68,8 +68,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
 			.BuildTex2D();
-
-		//mGBufferRts[i] = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16G16B16A16_UNORM, Utils::FormatString("GBuffer%d", i).c_str());
 	}
 
 	mMainDepthRt = new D3DDepthStencil(device, mRenderSize,
