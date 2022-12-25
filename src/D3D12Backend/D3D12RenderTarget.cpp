@@ -162,77 +162,12 @@ SRV* D3D12RenderTarget::CreateTexCubeSrv()
 	return new SRV(mDevice, this, desc);
 }
 
-//DSV* D3D12RenderTarget::CreateTex2DDsv()
-//{
-//	return new DSV(this);
-//}
-
 void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
 {
 	Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	using F4 = const FLOAT[4];
 	context->GetCommandList()->ClearRenderTargetView(GetRtv()->GetHandle(), *(F4*)&color, 0, nullptr);
-}
-
-//////////////////////////////////////////////
-
-D3DDepthStencil::D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, DXGI_FORMAT dsvFormat, DXGI_FORMAT srvFormat, const char* name)
-	: mDevice(device)
-	, mSize{ size.x(), size.y(), 1 }
-	, mFormat(format)
-	, mState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
-{
-	// Describe and create a Texture2D.
-	D3D12_RESOURCE_DESC textureDesc = {};
-	{
-		textureDesc.MipLevels = 1;
-		textureDesc.Format = mFormat;
-		textureDesc.Width = mSize.x();
-		textureDesc.Height = mSize.y();
-		textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		textureDesc.DepthOrArraySize = 1;
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.SampleDesc.Quality = 0;
-		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	}
-
-	// create gpu resource default as copy dest
-	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&textureDesc,
-		mState,
-		nullptr,
-		IID_PPV_ARGS(&mResource)));
-
-	NAME_RAW_D3D12_OBJECT(mResource, name);
-
-	mSrv = new SRV(mDevice, this, srvFormat);
-
-	mDsv = new DSV(mDevice, this, dsvFormat);
-}
-
-D3DDepthStencil::~D3DDepthStencil()
-{
-	mDevice->ReleaseD3D12Resource(mResource);
-}
-
-void D3DDepthStencil::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
-{
-	if (mState != destState)
-	{
-		context->Transition(mResource, mState, destState);
-		mState = destState;
-	}
-}
-
-void D3DDepthStencil::Clear(D3D12CommandContext* context, float depth, UINT stencil)
-{
-	Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-	context->GetCommandList()->ClearDepthStencilView(GetDsv()->GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
 }
 
 D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D3D12Device* device)
@@ -345,4 +280,19 @@ DSV* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
 	}
 
 	return new DSV(mDevice, mResource, desc);
+}
+
+D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name)
+{
+	return D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+		.SetWidth(size.x())
+		.SetHeight(size.y())
+		.SetDepthOrArraySize(size.z())
+		.SetMipLevels(1)
+		.SetFormat(format)
+		.SetFlags(flags)
+		.SetName(name)
+		.SetInitState(initStates)
+		.Build(device);
 }

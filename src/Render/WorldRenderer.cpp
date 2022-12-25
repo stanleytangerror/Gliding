@@ -47,17 +47,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 
 	for (i32 i = 0; i < mGBuffers.size(); ++i)
 	{
-		mGBuffers[i] = D3D12Backend::CommitedResource::Builder()
-			.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-			.SetWidth(mRenderSize.x())
-			.SetHeight(mRenderSize.y())
-			.SetDepthOrArraySize(1)
-			.SetMipLevels(1)
-			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
-			.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
-			.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-			.Build(device);
+		mGBuffers[i] = D3D12Backend::CreateCommitedResourceTex2D(
+			device,
+			{ mRenderSize.x(), mRenderSize.y(), 1 },
+			DXGI_FORMAT_R16G16B16A16_UNORM,
+			D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			Utils::FormatString("GBuffer%d", i).c_str());
 
 		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
@@ -71,17 +67,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.BuildTex2D();
 	}
 
-	mMainDepth = D3D12Backend::CommitedResource::Builder()
-		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-		.SetWidth(mRenderSize.x())
-		.SetHeight(mRenderSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(DXGI_FORMAT_R32G8X24_TYPELESS)
-		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-		.SetName("SceneDDepthStencil")
-		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
-		.Build(device);
+	mMainDepth = D3D12Backend::CreateCommitedResourceTex2D(
+		device,
+		{ mRenderSize.x(), mRenderSize.y(), 1 },
+		DXGI_FORMAT_R32G8X24_TYPELESS,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		"SceneDDepthStencil");
 
 	mMainDepthDsv = mMainDepth->CreateDsv()
 		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
@@ -109,17 +101,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mSunLight->mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mLightViewDepth = D3D12Backend::CommitedResource::Builder()
-		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-		.SetWidth(512)
-		.SetHeight(512)
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(DXGI_FORMAT_R24G8_TYPELESS)
-		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-		.SetName("LightViewDepth")
-		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
-		.Build(device);
+	mLightViewDepth = D3D12Backend::CreateCommitedResourceTex2D(
+		device,
+		{ mRenderSize.x(), mRenderSize.y(), 1 },
+		DXGI_FORMAT_R24G8_TYPELESS,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		"LightViewDepth");
 
 	mLightViewDepthDsv = mLightViewDepth->CreateDsv()
 		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
@@ -312,18 +300,13 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	const auto& dsSize = mMainDepth->GetSize();
 
-	auto tmpDepth = std::unique_ptr<D3D12Backend::CommitedResource>(
-		D3D12Backend::CommitedResource::Builder()
-		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-		.SetWidth(dsSize.x())
-		.SetHeight(dsSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(mMainDepth->GetFormat())
-		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-		.SetName("TempDepthRt")
-		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
-		.Build(context->GetDevice()));
+	auto tmpDepth = std::unique_ptr<D3D12Backend::CommitedResource>(D3D12Backend::CreateCommitedResourceTex2D(
+		context->GetDevice(),
+		dsSize,
+		mMainDepth->GetFormat(),
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		"TempDepthRt")); 
 
 	auto tmpDepthDsv = std::unique_ptr<DSV>(
 		tmpDepth->CreateDsv()

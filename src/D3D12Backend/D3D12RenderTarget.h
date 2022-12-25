@@ -43,34 +43,6 @@ protected:
 	SRV*						mSrv = nullptr;
 };
 
-
-class GD_D3D12BACKEND_API D3DDepthStencil : public ID3D12Res
-{
-	// https://docs.microsoft.com/en-us/windows/desktop/direct3d11/d3d10-graphics-programming-guide-depth-stencil
-public:
-	D3DDepthStencil(D3D12Device* device, Vec2i size, DXGI_FORMAT format, DXGI_FORMAT dsvFormat, DXGI_FORMAT srvFormat, const char* name);
-	virtual ~D3DDepthStencil();
-
-	void								Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
-	DSV*								GetDsv() const { return mDsv; }
-	SRV*								GetSrv() const { return mSrv; }
-	DXGI_FORMAT							GetFormat() const { return mFormat; }
-	D3D12_RESOURCE_STATES				GetResStates() const { return mState; }
-	ID3D12Resource*						GetD3D12Resource() const override { return mResource; }
-	Vec3i								GetSize() const override { return mSize; }
-
-	void								Clear(D3D12CommandContext* context, float depth, UINT stencil);
-
-protected:
-	D3D12Device*				mDevice = nullptr;
-	ID3D12Resource*				mResource = nullptr;
-	Vec3i						mSize = {};
-	SRV*						mSrv = nullptr;
-	DSV*						mDsv = nullptr;
-	DXGI_FORMAT					mFormat;
-	D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
-};
-
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
 
@@ -168,7 +140,9 @@ namespace D3D12Backend
 		ID3D12Resource*				mResource = nullptr;
 		Vec3i						mSize = {};
 		i32							mMipLevelCount = 1;
-		DXGI_FORMAT					mFormat;
+		DXGI_FORMAT					mFormat = DXGI_FORMAT_UNKNOWN;
 		D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
 	};
+
+	GD_D3D12BACKEND_API CommitedResource*				CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name);
 }
