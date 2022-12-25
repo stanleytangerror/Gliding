@@ -109,12 +109,30 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mSunLight->mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mLightViewDepthRt = new D3DDepthStencil(device, { 512, 512 },
-		DXGI_FORMAT_R24G8_TYPELESS,
-		DXGI_FORMAT_D24_UNORM_S8_UINT,
-		DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
-		"LightViewDepthRt");
-	
+	mLightViewDepth = D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+		.SetWidth(512)
+		.SetHeight(512)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_R24G8_TYPELESS)
+		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+		.SetName("LightViewDepth")
+		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		.Build(device);
+
+	mLightViewDepthDsv = mLightViewDepth->CreateDsv()
+		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
+		.SetFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
+		.SetFlags(D3D12_DSV_FLAG_NONE)
+		.BuildTex2D();
+
+	mLightViewDepthSrv = mLightViewDepth->CreateSrv()
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetFormat(DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
+		.SetMipLevels(1)
+		.BuildTex2D();
+
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
@@ -197,7 +215,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		const Vec3i& rtSize = target->GetResource()->GetSize();
 
-		mLightViewDepthRt->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
+		mLightViewDepthDsv->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -206,7 +224,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthRt->GetDsv());
+					RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthDsv);
 				}
 			});
 	}
@@ -236,7 +254,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler,
+	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler,
 		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
 	DeferredLighting(context, target);
 	RenderSky(context, target, mMainDepthDsv);
@@ -285,7 +303,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, IRende
 
 	RenderUtils::CopyTexture(context,
 		target, { 0.f, size }, { size, size },
-		mLightViewDepthRt->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
+		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
 void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)
@@ -293,12 +311,27 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	RENDER_EVENT(context, DeferredLighting);
 
 	const auto& dsSize = mMainDepth->GetSize();
-	std::unique_ptr<D3DDepthStencil> tmpDepth = std::make_unique<D3DDepthStencil>(context->GetDevice(), 
-		Vec2i{ dsSize.x(), dsSize.y() },
-		mMainDepth->GetFormat(),
-		mMainDepthDsv->GetFormat(),
-		mMainDepthSrv->GetFormat(),
-		"TempDepthRt");
+
+	auto tmpDepth = std::unique_ptr<D3D12Backend::CommitedResource>(
+		D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+		.SetWidth(dsSize.x())
+		.SetHeight(dsSize.y())
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(mMainDepth->GetFormat())
+		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+		.SetName("TempDepthRt")
+		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		.Build(context->GetDevice()));
+
+	auto tmpDepthDsv = std::unique_ptr<DSV>(
+		tmpDepth->CreateDsv()
+		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
+		.SetFormat(mMainDepthDsv->GetFormat())
+		.SetFlags(D3D12_DSV_FLAG_NONE)
+		.BuildTex2D());
+
 	context->CopyResource(tmpDepth.get(), mMainDepth);
 
 	GraphicsPass lightingPass(context);
@@ -327,7 +360,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	lightingPass.mRts[0] = target;
-	lightingPass.mDs = tmpDepth->GetDsv();
+	lightingPass.mDs = tmpDepthDsv.get();
 	lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
 	lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;

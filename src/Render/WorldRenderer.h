@@ -10,7 +10,6 @@ class D3D12SamplerView;
 class GraphicsContext;
 class D3D12Texture;
 class D3D12RenderTarget;
-class D3DDepthStencil;
 class SRV;
 class RTV;
 class DSV;
@@ -81,7 +80,10 @@ private:
 	D3D12SamplerView* mFilteredEnvMapSampler = nullptr;
 
 	DirectionalLight* mSunLight = nullptr;
-	D3DDepthStencil* mLightViewDepthRt = nullptr;
+
+	D3D12Backend::CommitedResource* mLightViewDepth = nullptr;
+	DSV* mLightViewDepthDsv = nullptr;
+	SRV* mLightViewDepthSrv = nullptr;
 
 	D3D12Backend::CommitedResource* mMainDepth = nullptr;
 	DSV* mMainDepthDsv = nullptr;
