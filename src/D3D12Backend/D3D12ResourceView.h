@@ -85,10 +85,13 @@ class GD_D3D12BACKEND_API DSV
 {
 public:
 	DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format);
+	DSV(D3D12Device* device, ID3D12Res* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
 
 	ID3D12Res*						GetResource() const { return mResource; }
 	DXGI_FORMAT						GetFormat() const { return mFormat; }
 	CD3DX12_CPU_DESCRIPTOR_HANDLE	GetHandle() const { return mHandle.Get(); }
+
+	void							Clear(D3D12CommandContext* context, float depth, const u32 stencil);
 
 protected:
 	ID3D12Res*						mResource = nullptr;

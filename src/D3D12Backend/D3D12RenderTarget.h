@@ -105,6 +105,7 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(Builder, D3D12_TEXTURE_LAYOUT, Layout);
 			CONTINOUS_SETTER(Builder, D3D12_RESOURCE_FLAGS, Flags);
 			CONTINOUS_SETTER(Builder, const char*, Name);
+			CONTINOUS_SETTER_VALUE(Builder, D3D12_RESOURCE_STATES, InitState, D3D12_RESOURCE_STATE_COMMON);
 
 		public:
 			CommitedResource* Build(D3D12Device* device);
@@ -139,13 +140,28 @@ namespace D3D12Backend
 			RTV* BuildTex2D();
 		};
 
+		class GD_D3D12BACKEND_API DsvBuilder
+		{
+			CONTINOUS_SETTER(DsvBuilder, D3D12Device*, Device);
+			CONTINOUS_SETTER(DsvBuilder, CommitedResource*, Resource);
+			CONTINOUS_SETTER(DsvBuilder, DXGI_FORMAT, Format);
+			CONTINOUS_SETTER(DsvBuilder, D3D12_DSV_DIMENSION, ViewDimension);
+			CONTINOUS_SETTER(DsvBuilder, D3D12_DSV_FLAGS, Flags);
+			CONTINOUS_SETTER(DsvBuilder, u32, MipSlice);
+
+		public:
+			DSV* BuildTex2D();
+		};
+
 		~CommitedResource();
 		void						Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource*				GetD3D12Resource() const override { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }
+		DXGI_FORMAT					GetFormat() const { return mFormat; } // TODO override?
 
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
+		DsvBuilder					CreateDsv();
 
 	protected:
 		D3D12Device*				mDevice = nullptr;

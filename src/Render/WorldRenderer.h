@@ -83,7 +83,10 @@ private:
 	DirectionalLight* mSunLight = nullptr;
 	D3DDepthStencil* mLightViewDepthRt = nullptr;
 
-	D3DDepthStencil* mMainDepthRt = nullptr;
+	D3D12Backend::CommitedResource* mMainDepth = nullptr;
+	DSV* mMainDepthDsv = nullptr;
+	SRV* mMainDepthSrv = nullptr;
+
 	std::array<D3D12Backend::CommitedResource*, 3> mGBuffers = {};
 	std::array<SRV*, 3> mGBufferSrvs = {};
 	std::array<RTV*, 3> mGBufferRtvs = {};

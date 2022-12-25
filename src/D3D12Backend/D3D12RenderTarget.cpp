@@ -255,13 +255,12 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 
 	// create gpu resource default as copy dest
 	ID3D12Resource* resource = nullptr;
-	D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
 		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
-		state,
+		mInitState,
 		nullptr,
 		IID_PPV_ARGS(&resource)));
 
@@ -272,7 +271,7 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 	result->mSize = { (i32) mWidth, (i32) mHeight, mDepthOrArraySize };
 	result->mMipLevelCount = mMipLevels;
 	result->mFormat = mFormat;
-	result->mState = state;
+	result->mState = mInitState;
 	
 	return result;
 }
@@ -299,6 +298,11 @@ D3D12Backend::CommitedResource::SrvBuilder D3D12Backend::CommitedResource::Creat
 D3D12Backend::CommitedResource::RtvBuilder D3D12Backend::CommitedResource::CreateRtv()
 {
 	return RtvBuilder().SetDevice(mDevice).SetResource(this);
+}
+
+D3D12Backend::CommitedResource::DsvBuilder D3D12Backend::CommitedResource::CreateDsv()
+{
+	return DsvBuilder().SetDevice(mDevice).SetResource(this);
 }
 
 SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildTex2D()
@@ -328,4 +332,17 @@ RTV* D3D12Backend::CommitedResource::RtvBuilder::BuildTex2D()
 	}
 
 	return new RTV(mDevice, mResource, desc);
+}
+
+DSV* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
+{
+	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+	{
+		desc.Format = mFormat;
+		desc.ViewDimension = mViewDimension;
+		desc.Flags = mFlags;
+		desc.Texture2D.MipSlice = mMipSlice;
+	}
+
+	return new DSV(mDevice, mResource, desc);
 }

@@ -56,6 +56,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
 			.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
 			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
+			.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 			.Build(device);
 
 		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
@@ -70,11 +71,29 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.BuildTex2D();
 	}
 
-	mMainDepthRt = new D3DDepthStencil(device, mRenderSize,
-		DXGI_FORMAT_R32G8X24_TYPELESS,
-		DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-		DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS,
-		"SceneDepthRt");
+	mMainDepth = D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+		.SetWidth(mRenderSize.x())
+		.SetHeight(mRenderSize.y())
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_R32G8X24_TYPELESS)
+		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+		.SetName("SceneDDepthStencil")
+		.SetInitState(D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		.Build(device);
+
+	mMainDepthDsv = mMainDepth->CreateDsv()
+		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
+		.SetFormat(DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+		.SetFlags(D3D12_DSV_FLAG_NONE)
+		.BuildTex2D();
+
+	mMainDepthSrv = mMainDepth->CreateSrv()
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetFormat(DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS)
+		.SetMipLevels(1)
+		.BuildTex2D();
 
 	mShadowMask = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
@@ -123,7 +142,7 @@ WorldRenderer::~WorldRenderer()
 	Utils::SafeDelete(mSphere);
 	Utils::SafeDelete(mSkyTexture);
 	Utils::SafeDelete(mPanoramicSkyRt);
-	Utils::SafeDelete(mMainDepthRt);
+	Utils::SafeDelete(mMainDepth);
 	for (auto& rt : mGBuffers)
 	{
 		Utils::SafeDelete(rt);
@@ -201,7 +220,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 		{
 			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
 		}
-		mMainDepthRt->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
+		mMainDepthDsv->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -210,17 +229,17 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRtvs, mMainDepthRt->GetDsv());
+					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRtvs, mMainDepthDsv);
 				}
 			});
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthRt->GetSrv(), mNoMipMapLinearSampler,
+	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthRt->GetSrv(), mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler,
 		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
 	DeferredLighting(context, target);
-	RenderSky(context, target, mMainDepthRt->GetDsv());
+	RenderSky(context, target, mMainDepthDsv);
 }
 
 void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target)
@@ -273,14 +292,14 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 {
 	RENDER_EVENT(context, DeferredLighting);
 
-	const auto& dsSize = mMainDepthRt->GetSize();
+	const auto& dsSize = mMainDepth->GetSize();
 	std::unique_ptr<D3DDepthStencil> tmpDepth = std::make_unique<D3DDepthStencil>(context->GetDevice(), 
 		Vec2i{ dsSize.x(), dsSize.y() },
-		mMainDepthRt->GetFormat(),
-		mMainDepthRt->GetDsv()->GetFormat(),
-		mMainDepthRt->GetSrv()->GetFormat(),
+		mMainDepth->GetFormat(),
+		mMainDepthDsv->GetFormat(),
+		mMainDepthSrv->GetFormat(),
 		"TempDepthRt");
-	context->CopyResource(tmpDepth.get(), mMainDepthRt);
+	context->CopyResource(tmpDepth.get(), mMainDepth);
 
 	GraphicsPass lightingPass(context);
 
@@ -325,7 +344,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSrv("GBuffer2", mGBufferSrvs[2]);
 	lightingPass.AddSrv("ShadowMask", mShadowMask->GetSrv());
 	lightingPass.AddSampler("ShadowMaskSampler", mLightingSceneSampler);
-	lightingPass.AddSrv("SceneDepth", mMainDepthRt->GetSrv());
+	lightingPass.AddSrv("SceneDepth", mMainDepthSrv);
 	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
 
 	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());

@@ -95,6 +95,22 @@ DSV::DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format)
 	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
 }
 
+DSV::DSV(D3D12Device* device, ID3D12Res* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+	: mResource(res)
+	, mFormat(desc.Format)
+{
+	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	mHandle = rtvDescAllocator->AllocCpuDesc();
+	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
+}
+
+void DSV::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
+{
+	GetResource()->Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	context->GetCommandList()->ClearDepthStencilView(GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 D3D12SamplerView::D3D12SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
