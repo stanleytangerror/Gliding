@@ -176,7 +176,10 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
-			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
+			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
+			mIrradianceMap = irradMap;
+			mIrradianceMapSrv = irradMapSrv;
+
 			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
 			mFilteredEnvMap = filterEnvMap;
 			mFilteredEnvMapSrv = filterEnvMapSrv;
@@ -372,7 +375,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSampler("PrefilteredEnvMapSampler", mFilteredEnvMapSampler);
 	lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(mFilteredEnvMap->GetMipLevelCount()), 0.f, 0.f, 0.f });
 	
-	lightingPass.AddSrv("IrradianceMap", mIrradianceMap->GetSrv());
+	lightingPass.AddSrv("IrradianceMap", mIrradianceMapSrv);
 	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
 
 	lightingPass.AddSrv("BRDFIntegrationMap", mBRDFIntegrationMap->GetSrv());

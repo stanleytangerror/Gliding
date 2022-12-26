@@ -14,7 +14,7 @@ namespace D3D12Backend
 class EnvironmentMap
 {
 public:
-	static D3D12RenderTarget* GenerateIrradianceMap(GraphicsContext* context, IShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount);
+	static std::tuple<D3D12Backend::CommitedResource*, SRV*> GenerateIrradianceMap(GraphicsContext* context, IShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount);
 	static D3D12RenderTarget* GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution);
 	static std::tuple<D3D12Backend::CommitedResource*, SRV*> GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution);
 
