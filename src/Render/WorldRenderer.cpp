@@ -189,7 +189,9 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 
 		if (!mBRDFIntegrationMap)
 		{
-			mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(context, 1024);
+			auto [map, srv] = EnvironmentMap::GenerateIntegratedBRDF(context, 1024);
+			mBRDFIntegrationMap = map;
+			mBRDFIntegrationMapSrv = srv;
 		}
 
 		mTestModel->ForEach([&](auto& node)
@@ -378,7 +380,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddSrv("IrradianceMap", mIrradianceMapSrv);
 	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
 
-	lightingPass.AddSrv("BRDFIntegrationMap", mBRDFIntegrationMap->GetSrv());
+	lightingPass.AddSrv("BRDFIntegrationMap", mBRDFIntegrationMapSrv);
 	lightingPass.AddSampler("BRDFIntegrationMapSampler", mBRDFIntegrationMapSampler);
 
 	lightingPass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());

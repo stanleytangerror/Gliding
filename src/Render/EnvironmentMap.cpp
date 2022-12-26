@@ -76,13 +76,30 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIrradi
 	return std::make_tuple(irradianceMap, srv);
 }
 
-D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution)
 {
 	static D3D12SamplerView* mPanoramicSkySampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution, resolution };
-	D3D12RenderTarget* integratedBRDF = new D3D12RenderTarget(context->GetDevice(), Vec3i{ rtSize.x(), rtSize.y(), 1 }, DXGI_FORMAT_R32G32B32A32_FLOAT, "IrradianceMap");
+	D3D12Backend::CommitedResource* integratedBRDF = D3D12Backend::CreateCommitedResourceTex2D(
+		context->GetDevice(),
+		Vec3i{ rtSize.x(), rtSize.y(), 1 },
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		"IntegratedBRDF");
+
+	auto rtv = std::unique_ptr<RTV>(integratedBRDF->CreateRtv()
+		.SetFormat(integratedBRDF->GetFormat())
+		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
+		.BuildTex2D());
+
+	auto srv = integratedBRDF->CreateSrv()
+		.SetFormat(integratedBRDF->GetFormat())
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetMipLevels(1)
+		.BuildTex2D();
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
 
@@ -106,7 +123,7 @@ D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* conte
 		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
 	}
 
-	pass.mRts[0] = integratedBRDF->GetRtv();
+	pass.mRts[0] = rtv.get();
 	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(rtSize.x()), float(rtSize.y()));
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
@@ -120,7 +137,7 @@ D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* conte
 
 	pass.Draw();
 
-	return integratedBRDF;
+	return std::make_tuple(integratedBRDF, srv);
 }
 
 std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution)
