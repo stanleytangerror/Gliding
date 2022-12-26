@@ -177,8 +177,10 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
-			mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
-		
+			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
+			mFilteredEnvMap = filterEnvMap;
+			mFilteredEnvMapSrv = filterEnvMapSrv;
+
 			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
 		}
 
@@ -366,7 +368,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
 	lightingPass.AddCbVar("InvProjMat", mCameraProj.ComputeInvProjectionMatrix());
 
-	lightingPass.AddSrv("PrefilteredEnvMap", mFilteredEnvMap->GetSrv());
+	lightingPass.AddSrv("PrefilteredEnvMap", mFilteredEnvMapSrv);
 	lightingPass.AddSampler("PrefilteredEnvMapSampler", mFilteredEnvMapSampler);
 	lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(mFilteredEnvMap->GetMipLevelCount()), 0.f, 0.f, 0.f });
 	

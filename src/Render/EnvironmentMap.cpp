@@ -106,47 +106,51 @@ D3D12RenderTarget* EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* conte
 	return integratedBRDF;
 }
 
-D3D12RenderTarget* EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution)
 {
 	const auto& originSize = src->GetResource()->GetSize();
 	const auto& format = src->GetFormat();
 	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
 
-	D3D12RenderTarget* result = new D3D12RenderTarget(context->GetDevice(), Vec3i{ originSize.x(), originSize.y(), 1 }, format, levelCount, "FilteredEnvMap");
+	D3D12Backend::CommitedResource* result = D3D12Backend::CreateCommitedResourceTex2D(
+		context->GetDevice(),
+		Vec3i{ originSize.x(), originSize.y(), 1 },
+		format,
+		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		"FilteredEnvMap",
+		levelCount);
+	
 	std::vector<RTV*> rtvs;
 	std::vector<SRV*> srvs;
 
-	if (rtvs.empty())
+	for (i32 i = 0; i < levelCount; ++i)
 	{
-		for (i32 i = 0; i < levelCount; ++i)
-		{
-			{
-				D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-				{
-					desc.Format = format;
-					desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-					desc.Texture2D.MipSlice = i;
-					desc.Texture2D.PlaneSlice = 0;
-				}
+		rtvs.push_back(
+			result->CreateRtv()
+			.SetFormat(result->GetFormat())
+			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
+			.SetMipSlice(i)
+			.SetPlaneSlice(0)
+			.BuildTex2D());
 
-				rtvs.push_back(new RTV(context->GetDevice(), result, desc));
-			}
-
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-				{
-					desc.Format = format;
-					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-					desc.Texture2D.MostDetailedMip = i;
-					desc.Texture2D.MipLevels = 1;
-					desc.Texture2D.PlaneSlice = 0;
-				}
-
-				srvs.push_back(new SRV(context->GetDevice(), result, desc));
-			}
-		}
+		srvs.push_back(
+			result->CreateSrv()
+			.SetFormat(result->GetFormat())
+			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+			.SetMostDetailedMip(i)
+			.SetMipLevels(1)
+			.SetPlaneSlice(0)
+			.BuildTex2D());
 	}
+
+	SRV* fullSrv = result->CreateSrv()
+		.SetFormat(result->GetFormat())
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetMostDetailedMip(0)
+		.SetMipLevels(levelCount)
+		.SetPlaneSlice(0)
+		.BuildTex2D();
 
 	RENDER_EVENT(context, FilterEnvironmentMap);
 
@@ -158,7 +162,7 @@ D3D12RenderTarget* EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsCon
 		dstSize = dstSize * 0.5f;
 	}
 
-	return result;
+	return std::make_tuple(result, fullSrv);
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* src, const Vec2i& targetSize, f32 roughness)

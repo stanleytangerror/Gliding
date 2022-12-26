@@ -129,7 +129,8 @@ namespace D3D12Backend
 		void						Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource*				GetD3D12Resource() const override { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }
-		DXGI_FORMAT					GetFormat() const { return mFormat; } // TODO override?
+		DXGI_FORMAT					GetFormat() const { return mDesc.Format; } // TODO override?
+		u16							GetMipLevelCount() const { return mDesc.MipLevels; } // TODO override?
 
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
@@ -139,10 +140,9 @@ namespace D3D12Backend
 		D3D12Device*				mDevice = nullptr;
 		ID3D12Resource*				mResource = nullptr;
 		Vec3i						mSize = {};
-		i32							mMipLevelCount = 1;
-		DXGI_FORMAT					mFormat = DXGI_FORMAT_UNKNOWN;
+		D3D12_RESOURCE_DESC			mDesc = {};
 		D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
 	};
 
-	GD_D3D12BACKEND_API CommitedResource*				CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name);
+	GD_D3D12BACKEND_API CommitedResource*				CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels = 1);
 }

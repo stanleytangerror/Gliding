@@ -204,8 +204,7 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 	result->mDevice = device;
 	result->mResource = resource;
 	result->mSize = { (i32) mWidth, (i32) mHeight, mDepthOrArraySize };
-	result->mMipLevelCount = mMipLevels;
-	result->mFormat = mFormat;
+	result->mDesc = desc;
 	result->mState = mInitState;
 	
 	return result;
@@ -282,14 +281,14 @@ DSV* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
 	return new DSV(mDevice, mResource, desc);
 }
 
-D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name)
+D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels)
 {
 	return D3D12Backend::CommitedResource::Builder()
 		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
 		.SetWidth(size.x())
 		.SetHeight(size.y())
 		.SetDepthOrArraySize(size.z())
-		.SetMipLevels(1)
+		.SetMipLevels(mipLevels)
 		.SetFormat(format)
 		.SetFlags(flags)
 		.SetName(name)

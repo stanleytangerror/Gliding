@@ -76,7 +76,8 @@ private:
 	D3D12SamplerView* mBRDFIntegrationMapSampler = nullptr;
 
 	D3D12RenderTarget* mIrradianceMap = nullptr;
-	D3D12RenderTarget* mFilteredEnvMap = nullptr;
+	D3D12Backend::CommitedResource* mFilteredEnvMap = nullptr;
+	SRV* mFilteredEnvMapSrv = nullptr;
 	D3D12SamplerView* mFilteredEnvMapSampler = nullptr;
 
 	DirectionalLight* mSunLight = nullptr;
