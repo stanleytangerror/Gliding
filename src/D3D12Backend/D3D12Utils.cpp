@@ -1,6 +1,7 @@
 #include "D3D12BackendPch.h"
 #include "D3D12Utils.h"
 #include "D3D12CommandContext.h"
+#include "D3D12RenderTarget.h"
 #include <DirectXTex/DirectXTex.h>
 
 void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter)
@@ -152,7 +153,7 @@ namespace
 		return image;
 	}
 
-	std::pair<ID3D12Resource*, ID3D12Resource*> CreateD3DResFromScratchImage(D3D12CommandContext* context, const DirectX::ScratchImage& image)
+	ID3D12Resource* CreateD3DResFromScratchImage(D3D12CommandContext* context, const DirectX::ScratchImage& image)
 	{
 		ID3D12Device* device = context->GetDevice()->GetDevice();
 		ID3D12GraphicsCommandList* commandList = context->GetCommandList();
@@ -167,24 +168,27 @@ namespace
 		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
 		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(result, 0, static_cast<unsigned int>(subresources.size()));
 
-		ID3D12Resource* textureUploadHeap = nullptr;
-		const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-		const CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-		AssertHResultOk(device->CreateCommittedResource(
-			&heapProp,
-			D3D12_HEAP_FLAG_NONE,
-			&resDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&textureUploadHeap)));
+		auto textureUploadHeap = std::unique_ptr< D3D12Backend::CommitedResource>(
+			D3D12Backend::CommitedResource::Builder()
+			.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+			.SetAlignment(0)
+			.SetWidth(uploadBufferSize)
+			.SetHeight(1)
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(DXGI_FORMAT_UNKNOWN)
+			.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+			.SetFlags(D3D12_RESOURCE_FLAG_NONE)
+			.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
+			.BuildUpload(context->GetDevice()));
 		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
 
 		UpdateSubresources(commandList,
-			result, textureUploadHeap,
+			result, textureUploadHeap->GetD3D12Resource(),
 			0, 0, static_cast<unsigned int>(subresources.size()),
 			subresources.data());
 
-		return { result, textureUploadHeap };
+		return result;
 	}
 }
 
@@ -203,12 +207,8 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageFile(D3D12CommandContext* cont
 
 	if (image->GetImageCount() != 0)
 	{
-		const auto& result = CreateD3DResFromScratchImage(context, *image);
-		ID3D12Resource* resource = result.first;
-		ID3D12Resource* tempRes = result.second;
+		ID3D12Resource* resource = CreateD3DResFromScratchImage(context, *image);
 		NAME_RAW_D3D12_OBJECT(resource, filePath);
-		NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
-		context->GetDevice()->ReleaseD3D12Resource(tempRes);
 
 		return resource;
 	}
@@ -240,13 +240,7 @@ ID3D12Resource* D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* co
 
 	if (image->GetImageCount() != 0)
 	{
-		const auto& result = CreateD3DResFromScratchImage(context, *image);
-		ID3D12Resource* resource = result.first;
-		ID3D12Resource* tempRes = result.second;
-		NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
-		context->GetDevice()->ReleaseD3D12Resource(tempRes);
-
-		return resource;
+		return CreateD3DResFromScratchImage(context, *image);
 	}
 
 	Assert(false);
@@ -259,12 +253,8 @@ ID3D12Resource* D3D12Utils::CreateTextureFromRawMemory(D3D12CommandContext* cont
 	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);
 	memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
-	const auto& result = CreateD3DResFromScratchImage(context, *image);
-	ID3D12Resource* resource = result.first;
-	ID3D12Resource* tempRes = result.second;
+	ID3D12Resource* resource = CreateD3DResFromScratchImage(context, *image);
 	NAME_RAW_D3D12_OBJECT(resource, name);
-	NAME_RAW_D3D12_OBJECT(tempRes, "IntermediateHeap");
-	context->GetDevice()->ReleaseD3D12Resource(tempRes);
 
 	return resource;
 }

@@ -170,7 +170,7 @@ void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
 	context->GetCommandList()->ClearRenderTargetView(GetRtv()->GetHandle(), *(F4*)&color, 0, nullptr);
 }
 
-D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D3D12Device* device)
+D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D3D12Device* device, D3D12_HEAP_TYPE heapType)
 {
 	CommitedResource* result = new CommitedResource;
 
@@ -190,7 +190,7 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 
 	// create gpu resource default as copy dest
 	ID3D12Resource* resource = nullptr;
-	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(heapType);
 	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
 		&heapProp,
 		D3D12_HEAP_FLAG_NONE,
@@ -293,5 +293,5 @@ D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12D
 		.SetFlags(flags)
 		.SetName(name)
 		.SetInitState(initStates)
-		.Build(device);
+		.BuildDefault(device);
 }

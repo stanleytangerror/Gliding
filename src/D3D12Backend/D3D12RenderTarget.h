@@ -80,7 +80,10 @@ namespace D3D12Backend
 			CONTINOUS_SETTER_VALUE(Builder, D3D12_RESOURCE_STATES, InitState, D3D12_RESOURCE_STATE_COMMON);
 
 		public:
-			CommitedResource* Build(D3D12Device* device);
+			CommitedResource* Build(D3D12Device* device, D3D12_HEAP_TYPE heapType);
+			CommitedResource* BuildUpload(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_UPLOAD); }
+			CommitedResource* BuildDefault(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_DEFAULT); }
+			CommitedResource* BuildReadback(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_READBACK); }
 		};
 
 		class GD_D3D12BACKEND_API SrvBuilder
