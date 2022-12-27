@@ -210,6 +210,22 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 	return result;
 }
 
+D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Possessor::Possess(D3D12Device* device)
+{
+	CommitedResource* result = new CommitedResource;
+
+	NAME_RAW_D3D12_OBJECT(mResource, mName);
+	const D3D12_RESOURCE_DESC& desc = mResource->GetDesc();
+
+	result->mDevice = device;
+	result->mResource = mResource;
+	result->mSize = { (i32)desc.Width, (i32)desc.Height, desc.DepthOrArraySize };
+	result->mDesc = desc;
+	result->mState = mCurrentState;
+
+	return result;
+}
+
 D3D12Backend::CommitedResource::~CommitedResource()
 {
 	mDevice->ReleaseD3D12Resource(mResource);
@@ -295,3 +311,4 @@ D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12D
 		.SetInitState(initStates)
 		.BuildDefault(device);
 }
+

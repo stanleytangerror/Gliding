@@ -86,6 +86,16 @@ namespace D3D12Backend
 			CommitedResource* BuildReadback(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_READBACK); }
 		};
 
+		class GD_D3D12BACKEND_API Possessor
+		{
+			CONTINOUS_SETTER(Possessor, ID3D12Resource*, Resource);
+			CONTINOUS_SETTER(Possessor, const char*, Name);
+			CONTINOUS_SETTER(Possessor, D3D12_RESOURCE_STATES, CurrentState);
+
+		public:
+			CommitedResource* Possess(D3D12Device* device);
+		};
+
 		class GD_D3D12BACKEND_API SrvBuilder
 		{
 			CONTINOUS_SETTER(SrvBuilder, D3D12Device*, Device);
