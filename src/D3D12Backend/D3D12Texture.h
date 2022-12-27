@@ -11,7 +11,7 @@ namespace D3D12Backend
 	class CommitedResource;
 }
 
-class GD_D3D12BACKEND_API D3D12Texture : public ID3D12Res
+class GD_D3D12BACKEND_API D3D12Texture
 {
 public:
 	D3D12Texture(D3D12Device* device, const char* filePath, const std::vector<b8>& content);
@@ -19,16 +19,12 @@ public:
 
 	void							Initial(D3D12CommandContext* context);
 
-	ID3D12Resource*					GetD3D12Resource() const override;
-	Vec3i							GetSize() const override { return mSize; }
+	Vec3i							GetSize() const { return mSize; }
 	DXGI_FORMAT						GetFormat() const { return mFormat; }
-
-	bool							IsD3DResourceReady() const { return mResource != nullptr; }
-
-	D3D12_RESOURCE_STATES			GetResStates() const { return mResStates; }
+	D3D12_RESOURCE_STATES			GetResStates() const;
 	SRV*							GetSrv() const { return mSrv; }
 
-	void							Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
+	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 
 protected:
 	std::vector<b8>			mContent;
@@ -38,7 +34,6 @@ protected:
 	std::string				mFilePath;
 	std::string				mName;
 	std::unique_ptr<D3D12Backend::CommitedResource>			mResource;
-	D3D12_RESOURCE_STATES	mResStates = D3D12_RESOURCE_STATE_COPY_DEST;
 	Vec3i					mSize = {};
 	i32						mMipLevelCount = 1;
 	DXGI_FORMAT				mFormat = DXGI_FORMAT_UNKNOWN;

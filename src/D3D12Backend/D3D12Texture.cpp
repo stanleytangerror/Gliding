@@ -29,26 +29,33 @@ void D3D12Texture::Initial(D3D12CommandContext* context)
 	{
 		const TextureFileExt::Enum ext = Utils::GetTextureExtension(mName.c_str());
 		mResource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
+
+		mFormat = mResource->GetFormat();
+		mMipLevelCount = mResource->GetMipLevelCount();
+		mSize = mResource->GetSize();
 	}
 	else
 	{
 		mResource = D3D12Utils::CreateTextureFromRawMemory(context, mFormat, mContent, mSize, mMipLevelCount, mName.c_str());
-	}
 
-	mSize = mResource->GetSize();
-	mFormat = mResource->GetFormat();
+		Assert(mFormat == mResource->GetFormat());
+		Assert(mMipLevelCount == mResource->GetMipLevelCount());
+		Assert(mSize == mResource->GetSize());
+	}
 
 	NAME_RAW_D3D12_OBJECT(mResource->GetD3D12Resource(), mFilePath.c_str());
 
-	mSrv = new SRV(mDevice, this);
+	mSrv = mResource->CreateSrv()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetMipLevels(mResource->GetMipLevelCount())
+		.BuildTex2D();
 }
 
-ID3D12Resource* D3D12Texture::GetD3D12Resource() const
+D3D12_RESOURCE_STATES D3D12Texture::GetResStates() const
 {
-	return mResource->GetD3D12Resource();
+	Assert(mResource != nullptr);
+
+	return mResource->GetState();
 }
 
-void D3D12Texture::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
-{
-	mResource->Transition(context, destState);
-}

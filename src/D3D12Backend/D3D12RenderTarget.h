@@ -144,6 +144,7 @@ namespace D3D12Backend
 		Vec3i						GetSize() const override { return mSize; }
 		DXGI_FORMAT					GetFormat() const { return mDesc.Format; } // TODO override?
 		u16							GetMipLevelCount() const { return mDesc.MipLevels; } // TODO override?
+		D3D12_RESOURCE_STATES		GetState() const { return mState; }
 
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
