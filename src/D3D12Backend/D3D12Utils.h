@@ -15,8 +15,6 @@ namespace D3D12Utils
 	
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
 
-	ID3D12Resource* CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name = nullptr);
-
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const char* name);
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name);
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);

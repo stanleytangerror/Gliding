@@ -77,26 +77,6 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 	return result;
 }
 
-ID3D12Resource* D3D12Utils::CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name)
-{
-	CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC bufDesc = CD3DX12_RESOURCE_DESC::Buffer(size);
-
-	ID3D12Resource* result = nullptr;
-
-	AssertHResultOk(device->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&bufDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&result)));
-
-	NAME_RAW_D3D12_OBJECT(result, name);
-
-	return result;
-}
-
 void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const char* name)
 {
 	SetRawD3D12ResourceName(res, Utils::ToWString(name));

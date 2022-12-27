@@ -9,15 +9,14 @@ class GD_D3D12BACKEND_API D3D12Geometry
 {
 public:
 	D3D12Geometry(D3D12Device* device);
-	virtual ~D3D12Geometry();
 
 public:
 	D3D12Device* const		mDevice = nullptr;
 
-	ID3D12Resource* mVb = nullptr;
+	std::unique_ptr< D3D12Backend::CommitedResource> mVb = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW mVbv = {};
 
-	ID3D12Resource* mIb = nullptr;
+	std::unique_ptr< D3D12Backend::CommitedResource> mIb = nullptr;
 	D3D12_INDEX_BUFFER_VIEW mIbv = {};
 
 	std::vector < D3D12_INPUT_ELEMENT_DESC > mInputDescs;

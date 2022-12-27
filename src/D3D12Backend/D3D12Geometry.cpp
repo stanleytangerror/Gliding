@@ -1,16 +1,11 @@
 #include "D3D12BackendPch.h"
 #include "D3D12Geometry.h"
+#include "D3D12Resource.h"
 
 D3D12Geometry::D3D12Geometry(D3D12Device* device)
 	: mDevice(device)
 {
 
-}
-
-D3D12Geometry::~D3D12Geometry()
-{
-	mDevice->ReleaseD3D12Resource(mVb);
-	mDevice->ReleaseD3D12Resource(mIb);
 }
 
 D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
@@ -89,30 +84,55 @@ D3D12Geometry* D3D12Geometry::GenerateGeometry(D3D12Device* device, const std::v
 {
 	D3D12Geometry* result = new D3D12Geometry(device);
 
-	result->mVb = D3D12Utils::CreateUploadBuffer(device->GetDevice(), vertices.size());
-	result->mIb = D3D12Utils::CreateUploadBuffer(device->GetDevice(), indices.size() * sizeof(u16));
+	result->mVb = std::unique_ptr<D3D12Backend::CommitedResource>(
+		D3D12Backend::CommitedResource::Builder()
+		.SetAlignment(0)
+		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		.SetWidth(vertices.size())
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_UNKNOWN)
+		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
+		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
+		.BuildUpload(device));
+
+	result->mIb = std::unique_ptr<D3D12Backend::CommitedResource>(
+		D3D12Backend::CommitedResource::Builder()
+		.SetAlignment(0)
+		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		.SetWidth(indices.size() * sizeof(u16))
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_UNKNOWN)
+		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
+		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
+		.BuildUpload(device)); 
 
 	{
 		u8* pVertexDataBegin = nullptr;
 		CD3DX12_RANGE readRange(0, 0);
-		AssertHResultOk(result->mVb->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+		AssertHResultOk(result->mVb->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
 		memcpy(pVertexDataBegin, vertices.data(), vertices.size());
 	}
 
 	{
 		u8* pIndexDataBegin = nullptr;
 		CD3DX12_RANGE readRange(0, 0);
-		AssertHResultOk(result->mIb->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
+		AssertHResultOk(result->mIb->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
 		memcpy(pIndexDataBegin, indices.data(), indices.size() * sizeof(u16));
 	}
 
 	result->mInputDescs = inputDescs;
 
-	result->mVbv.BufferLocation = result->mVb->GetGPUVirtualAddress();
+	result->mVbv.BufferLocation = result->mVb->GetD3D12Resource()->GetGPUVirtualAddress();
 	result->mVbv.StrideInBytes = vertexStride;
 	result->mVbv.SizeInBytes = u32(vertices.size());
 
-	result->mIbv.BufferLocation = result->mIb->GetGPUVirtualAddress();
+	result->mIbv.BufferLocation = result->mIb->GetD3D12Resource()->GetGPUVirtualAddress();
 	result->mIbv.SizeInBytes = u32(indices.size() * sizeof(u16));
 	result->mIbv.Format = DXGI_FORMAT_R16_UINT;
 
