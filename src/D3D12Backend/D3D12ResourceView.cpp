@@ -2,27 +2,6 @@
 #include "D3D12ResourceView.h"
 #include "D3D12Resource.h"
 
-SRV::SRV(D3D12Device* device, ID3D12Res* res)
-	: SRV(device, res, res->GetD3D12Resource()->GetDesc().Format)
-{
-}
-
-SRV::SRV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format)
-	: mResource(res)
-	, mFormat(format)
-{
-	const D3D12_RESOURCE_DESC& desc = mResource->GetD3D12Resource()->GetDesc();
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = desc.MipLevels;
-
-	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
-	device->GetDevice()->CreateShaderResourceView(mResource->GetD3D12Resource(), &srvDesc, mDescriptionHandle.Get());
-}
-
 SRV::SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
@@ -32,22 +11,6 @@ SRV::SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_D
 }
 
 //////////////////////////////////////////////////////////////////////////
-
-UAV::UAV(D3D12Device* device, ID3D12Res* res)
-	: mResource(res)
-{
-	const D3D12_RESOURCE_DESC& resdesc = mResource->GetD3D12Resource()->GetDesc();
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-	{
-		desc.Format = resdesc.Format;
-		desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-		desc.Texture2D.MipSlice = 0;
-	}
-
-	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
-	device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
-}
 
 UAV::UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
 	: mResource(res)
@@ -77,23 +40,6 @@ void RTV::Clear(D3D12CommandContext* context, const Vec4f& color)
 }
 
 //////////////////////////////////////////////////////////////////////////
-
-DSV::DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format)
-	: mResource(res)
-	, mFormat(format)
-{
-	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-	{
-		desc.Format = format;
-		desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		desc.Flags = D3D12_DSV_FLAG_NONE;
-		desc.Texture2D.MipSlice = 0;
-	}
-
-	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	mHandle = rtvDescAllocator->AllocCpuDesc();
-	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
-}
 
 DSV::DSV(D3D12Device* device, ID3D12Res* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
 	: mResource(res)

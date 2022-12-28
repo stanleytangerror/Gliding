@@ -26,8 +26,6 @@ public:
 class GD_D3D12BACKEND_API SRV : public IShaderResourceView
 {
 public:
-	SRV(D3D12Device* device, ID3D12Res* res);
-	SRV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format);
 	SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 	
 	CD3DX12_CPU_DESCRIPTOR_HANDLE				GetHandle() const override { return mDescriptionHandle.Get(); }
@@ -51,7 +49,6 @@ public:
 class GD_D3D12BACKEND_API UAV : public IUnorderedAccessView
 {
 public:
-	UAV(D3D12Device* device, ID3D12Res* res);
 	UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE				GetHandle() const override { return mDescriptionHandle.Get(); }
@@ -84,7 +81,6 @@ protected:
 class GD_D3D12BACKEND_API DSV
 {
 public:
-	DSV(D3D12Device* device, ID3D12Res* res, DXGI_FORMAT format);
 	DSV(D3D12Device* device, ID3D12Res* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
 
 	ID3D12Res*						GetResource() const { return mResource; }
