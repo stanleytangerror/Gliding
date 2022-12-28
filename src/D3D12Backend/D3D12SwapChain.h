@@ -7,26 +7,22 @@
 #include "D3D12Resource.h"
 
 class D3D12Device;
+class D3D12CommandContext;
 class RTV;
 
-class GD_D3D12BACKEND_API SwapChainBufferResource : public ID3D12Res
+class GD_D3D12BACKEND_API SwapChainBufferResource
 {
 public:
 	SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name);
 
-	ID3D12Resource* GetD3D12Resource() const override { return mResource; }
-	Vec3i				GetSize() const override { return { mWidth, mHeight, 1 }; }
-	i32					GetWidth() const { return mWidth; }
-	i32					GetHeight() const { return mHeight; }
-	std::string			GetName() const override;
+	void					PrepareForPresent(D3D12CommandContext* context);
 
-	RTV* GetRtv() const { return mRtv; }
-	void Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
+	RTV*					GetRtv() const { return mRtv; }
+	Vec3i					GetSize() const;
 
 protected:
-	ID3D12Resource* const	mResource = nullptr;
-	D3D12_RESOURCE_STATES	mResStates = D3D12_RESOURCE_STATE_COMMON;
-	RTV* mRtv = nullptr;
+	D3D12Backend::CommitedResource*	mResource = nullptr;
+	RTV*					mRtv = nullptr;
 
 public:
 	std::string const		mName;
@@ -38,9 +34,11 @@ class GD_D3D12BACKEND_API SwapChainBuffers
 {
 public:
 	SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount);
-	SwapChainBufferResource* GetBuffer() const;
 
-	void Present();
+	SwapChainBufferResource* GetBuffer() const;
+	Vec3i					GetSize() const { return mSize; }
+
+	void					Present();
 
 protected:
 	D3D12Device* const						mDevice = nullptr;
@@ -48,5 +46,6 @@ protected:
 	const int32_t							mFrameCount;
 	i32										mCurrentBackBufferIndex = 0;
 	std::vector<SwapChainBufferResource*>	mRenderTargets;
+	Vec3i									mSize = {};
 };
 

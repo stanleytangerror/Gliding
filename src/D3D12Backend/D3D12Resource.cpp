@@ -20,7 +20,6 @@ D3D12Backend::CommitedResource* D3D12Backend::CommitedResource::Builder::Build(D
 		desc.Flags = mFlags;
 	}
 
-	// create gpu resource default as copy dest
 	ID3D12Resource* resource = nullptr;
 	CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(heapType);
 	AssertHResultOk(device->GetDevice()->CreateCommittedResource(

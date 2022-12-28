@@ -29,7 +29,7 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInf
 
 void RenderModule::Initial()
 {
-	const Vec3i& mainPortBackBufferSize = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer()->GetSize();
+	const Vec3i& mainPortBackBufferSize = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetSize();
 	const Vec2i& mainPortSize = { mainPortBackBufferSize.x(), mainPortBackBufferSize.y() };
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
@@ -71,7 +71,7 @@ void RenderModule::Render()
 			mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
 			mImGuiRenderer->Render(context, backBuffer->GetRtv(), mUiData);
 
-			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+			backBuffer->PrepareForPresent(context);
 		}
 
 		{
@@ -82,7 +82,7 @@ void RenderModule::Render()
 			mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
 			mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
 
-			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+			backBuffer->PrepareForPresent(context);
 		}
 	}
 	context->Finalize();

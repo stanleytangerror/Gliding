@@ -2,40 +2,28 @@
 #include "D3D12SwapChain.h"
 
 SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name)
-	: mResource(res)
-	, mName(name)
+	: mName(name)
 {
-	const auto& desc = mResource->GetDesc();
-	mWidth = static_cast<i32>(desc.Width);
-	mHeight = static_cast<i32>(desc.Height);
+	mResource = D3D12Backend::CommitedResource::CommitedResource::Possessor()
+		.SetName(name)
+		.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
+		.SetResource(res)
+		.Possess(device);
 
-	NAME_RAW_D3D12_OBJECT(mResource, name);
-
-	mResStates = D3D12_RESOURCE_STATE_COMMON;
-
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	{
-		rtvDesc.Format = mResource->GetDesc().Format;
-		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtvDesc.Texture2D.MipSlice = 0;
-		rtvDesc.Texture2D.PlaneSlice = 0;
-	}
-
-	mRtv = new RTV(device, this, rtvDesc);
+	mRtv = mResource->CreateRtv()
+		.SetFormat(mResource->GetFormat())
+		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
+		.BuildTex2D();
 }
 
-void SwapChainBufferResource::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
+void SwapChainBufferResource::PrepareForPresent(D3D12CommandContext* context)
 {
-	if (mResStates != destState)
-	{
-		context->Transition(mResource, mResStates, destState);
-		mResStates = destState;
-	}
+	mResource->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-std::string SwapChainBufferResource::GetName() const
+Vec3i SwapChainBufferResource::GetSize() const
 {
-	return mName;
+	return mResource->GetSize();
 }
 
 SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount)
@@ -51,6 +39,8 @@ SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapCha
 
 		mRenderTargets[n] = new SwapChainBufferResource(device, rt, Utils::FormatString("BackBuffer_%d", n).c_str());
 	}
+
+	mSize = mRenderTargets[0]->GetSize();
 }
 
 SwapChainBufferResource* SwapChainBuffers::GetBuffer() const
@@ -69,3 +59,4 @@ void SwapChainBuffers::Present()
 	DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
 	DEBUG_PRINT(" ================ End Present ======================= ");
 }
+
