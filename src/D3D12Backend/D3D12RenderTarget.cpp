@@ -79,44 +79,9 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride,
 		.BuildBuffer();
 }
 
-void D3D12RenderTarget::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
-{
-	mResource->Transition(context, destState);
-}
-
-RTV* D3D12RenderTarget::CreateTex2DArrayRtv(uint32_t firstArrayIdx, uint32_t arrayCount)
-{
-	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-	{
-		desc.Format = mFormat;
-		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-		desc.Texture2DArray.MipSlice = 0;
-		desc.Texture2DArray.FirstArraySlice = firstArrayIdx;
-		desc.Texture2DArray.ArraySize = arrayCount;
-		desc.Texture2DArray.PlaneSlice = 0;
-	}
-
-	return new RTV(mDevice, this, desc);
-}
-
-SRV* D3D12RenderTarget::CreateTexCubeSrv()
-{
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	{
-		desc.Format = mFormat;
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.TextureCube.MipLevels = -1;
-		desc.TextureCube.ResourceMinLODClamp = 0.f;
-		desc.TextureCube.MostDetailedMip = 0;
-	}
-
-	return new SRV(mDevice, this, desc);
-}
-
 void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
 {
-	Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mResource->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	using F4 = const FLOAT[4];
 	context->GetCommandList()->ClearRenderTargetView(GetRtv()->GetHandle(), *(F4*)&color, 0, nullptr);
