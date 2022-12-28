@@ -9,7 +9,6 @@ public:
 	D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name);
 	D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name);
 	D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name);
-	virtual ~D3D12RenderTarget();
 
 	void		Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 
@@ -24,7 +23,7 @@ public:
 
 	DXGI_FORMAT							GetFormat() const { return mFormat; }
 	D3D12_RESOURCE_STATES				GetResStates() const { return mState; }
-	ID3D12Resource*						GetD3D12Resource() const override { return mResource; }
+	ID3D12Resource*						GetD3D12Resource() const override { return mResource->GetD3D12Resource(); }
 	Vec3i								GetSize() const override { return mSize; }
 	i32									GetMipLevelCount() const { return mMipLevelCount; }
 
@@ -32,7 +31,7 @@ public:
 
 protected:
 	D3D12Device*				mDevice = nullptr;
-	ID3D12Resource*				mResource = nullptr;
+	std::unique_ptr<D3D12Backend::CommitedResource>	mResource;
 	Vec3i						mSize = {};
 	i32							mMipLevelCount = 1;
 	DXGI_FORMAT					mFormat;

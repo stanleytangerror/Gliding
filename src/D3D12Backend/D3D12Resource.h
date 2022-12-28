@@ -79,12 +79,17 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(SrvBuilder, DXGI_FORMAT, Format);
 			CONTINOUS_SETTER(SrvBuilder, D3D12_SRV_DIMENSION, ViewDimension);
 			CONTINOUS_SETTER_VALUE(SrvBuilder, u32, Shader4ComponentMapping, D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING);
-			CONTINOUS_SETTER(SrvBuilder, u32, MostDetailedMip);
-			CONTINOUS_SETTER(SrvBuilder, u32, MipLevels);
-			CONTINOUS_SETTER(SrvBuilder, u32, PlaneSlice);
-			CONTINOUS_SETTER(SrvBuilder, f32, ResourceMinLODClamp);
+			CONTINOUS_SETTER(SrvBuilder, u64, Buffer_FirstElement);
+			CONTINOUS_SETTER(SrvBuilder, u32, Buffer_NumElements);
+			CONTINOUS_SETTER(SrvBuilder, u32, Buffer_StructureByteStride);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_BUFFER_SRV_FLAGS, Buffer_Flags);
+			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_MostDetailedMip);
+			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_MipLevels);
+			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_PlaneSlice);
+			CONTINOUS_SETTER(SrvBuilder, f32, Texture2D_ResourceMinLODClamp);
 
 		public:
+			SRV* BuildBuffer();
 			SRV* BuildTex2D();
 		};
 
@@ -114,6 +119,25 @@ namespace D3D12Backend
 			DSV* BuildTex2D();
 		};
 
+		class GD_D3D12BACKEND_API UavBuilder
+		{
+			CONTINOUS_SETTER(UavBuilder, D3D12Device*, Device);
+			CONTINOUS_SETTER(UavBuilder, CommitedResource*, Resource);
+			CONTINOUS_SETTER(UavBuilder, DXGI_FORMAT, Format);
+			CONTINOUS_SETTER(UavBuilder, D3D12_UAV_DIMENSION, ViewDimension);
+			CONTINOUS_SETTER(UavBuilder, u64, Buffer_FirstElement);
+			CONTINOUS_SETTER(UavBuilder, u32, Buffer_NumElements);
+			CONTINOUS_SETTER(UavBuilder, u32, Buffer_StructureByteStride);
+			CONTINOUS_SETTER(UavBuilder, u64, Buffer_CounterOffsetInBytes);
+			CONTINOUS_SETTER(UavBuilder, D3D12_BUFFER_UAV_FLAGS, Buffer_Flags);
+			CONTINOUS_SETTER(UavBuilder, u32, Texture2D_MipSlice);
+			CONTINOUS_SETTER(UavBuilder, u32, Texture2D_PlaneSlice);
+
+		public:
+			UAV* BuildBuffer();
+			UAV* BuildTex2D();
+		};
+
 		~CommitedResource();
 		void						Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource* GetD3D12Resource() const override { return mResource; }
@@ -125,6 +149,7 @@ namespace D3D12Backend
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
 		DsvBuilder					CreateDsv();
+		UavBuilder					CreateUav();
 
 	protected:
 		D3D12Device* mDevice = nullptr;

@@ -58,7 +58,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-			.SetMipLevels(1)
+			.SetTexture2D_MipLevels(1)
 			.BuildTex2D();
 		
 		mGBufferRtvs[i] = mGBuffers[i]->CreateRtv()
@@ -84,7 +84,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mMainDepthSrv = mMainDepth->CreateSrv()
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
 		.SetFormat(DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS)
-		.SetMipLevels(1)
+		.SetTexture2D_MipLevels(1)
 		.BuildTex2D();
 
 	mShadowMask = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
@@ -118,7 +118,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mLightViewDepthSrv = mLightViewDepth->CreateSrv()
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
 		.SetFormat(DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-		.SetMipLevels(1)
+		.SetTexture2D_MipLevels(1)
 		.BuildTex2D();
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);

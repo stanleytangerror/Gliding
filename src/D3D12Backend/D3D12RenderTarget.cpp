@@ -1,6 +1,6 @@
 #include "D3D12BackendPch.h"
 #include "D3D12RenderTarget.h"
-
+#include "D3D12Resource.h"
 
 D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name)
 	: D3D12RenderTarget(device, size, format, 1, name)
@@ -14,35 +14,32 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 	, mFormat(format)
 	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 {
-	// Describe and create a Texture2D.
-	D3D12_RESOURCE_DESC textureDesc = {};
-	{
-		textureDesc.MipLevels = mipLevelCount;
-		textureDesc.Format = mFormat;
-		textureDesc.Width = mSize.x();
-		textureDesc.Height = mSize.y();
-		textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		textureDesc.DepthOrArraySize = mSize.z();
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.SampleDesc.Quality = 0;
-		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	}
+	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+		.SetFormat(mFormat)
+		.SetMipLevels(mipLevelCount)
+		.SetWidth(mSize.x())
+		.SetHeight(mSize.y())
+		.SetDepthOrArraySize(mSize.z())
+		.SetName(name)
+		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+		.BuildDefault(device));
 
-	// create gpu resource default as copy dest
-	const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES{ D3D12_HEAP_TYPE_DEFAULT };
-	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&textureDesc,
-		mState,
-		nullptr,
-		IID_PPV_ARGS(&mResource)));
+	mSrv = mResource->CreateSrv()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
+		.SetTexture2D_MipLevels(mipLevelCount)
+		.BuildTex2D();
 
-	NAME_RAW_D3D12_OBJECT(mResource, name);
+	mRtv = mResource->CreateRtv()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
+		.BuildTex2D();
 
-	mSrv = new SRV(mDevice, this);
-	mRtv = CreateTex2DRtv();
-	mUav = new UAV(mDevice, this);
+	mUav = mResource->CreateUav()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12_UAV_DIMENSION_TEXTURE2D)
+		.BuildTex2D();
 }
 
 D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name)
@@ -51,85 +48,40 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride,
 	, mFormat(format)
 	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 {
-	// Describe and create a Texture2D.
-	D3D12_RESOURCE_DESC desc = {};
-	{
-		desc.MipLevels = 1;
-		desc.Format = mFormat;
-		desc.Width = mSize.x();
-		desc.Height = mSize.y();
-		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		desc.DepthOrArraySize = mSize.z();
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	}
+	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
+		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		.SetFormat(mFormat)
+		.SetMipLevels(1)
+		.SetWidth(mSize.x())
+		.SetHeight(mSize.y())
+		.SetDepthOrArraySize(mSize.z())
+		.SetName(name)
+		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+		.BuildDefault(device));
 
-	// create gpu resource default as copy dest
-	const CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES{ D3D12_HEAP_TYPE_DEFAULT };
-	AssertHResultOk(device->GetDevice()->CreateCommittedResource(
-		&heapProp,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		mState,
-		nullptr,
-		IID_PPV_ARGS(&mResource)));
+	mSrv = mResource->CreateSrv()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12Utils::GetSrvDimension(D3D12_RESOURCE_DIMENSION_BUFFER))
+		.SetBuffer_FirstElement(0)
+		.SetBuffer_NumElements(count)
+		.SetBuffer_StructureByteStride(stride)
+		.SetBuffer_Flags(D3D12_BUFFER_SRV_FLAG_NONE)
+		.BuildBuffer();
 
-	NAME_RAW_D3D12_OBJECT(mResource, name);
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	{
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = format;
-		srvDesc.ViewDimension = D3D12Utils::GetSrvDimension(D3D12_RESOURCE_DIMENSION_BUFFER);
-		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = count;
-		srvDesc.Buffer.StructureByteStride = stride;
-		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	}
-
-	mSrv = new SRV(mDevice, this, srvDesc);
-
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-	{
-		uavDesc.Format = format;
-		uavDesc.ViewDimension = D3D12Utils::GetUavDimension(D3D12_RESOURCE_DIMENSION_BUFFER);
-		uavDesc.Buffer.FirstElement = 0;
-		uavDesc.Buffer.NumElements = count;
-		uavDesc.Buffer.StructureByteStride = stride;
-		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-	}
-
-	mUav = new UAV(mDevice, this, uavDesc);
-}
-
-D3D12RenderTarget::~D3D12RenderTarget()
-{
-	mDevice->ReleaseD3D12Resource(mResource);
+	mUav = mResource->CreateUav()
+		.SetFormat(mFormat)
+		.SetViewDimension(D3D12_UAV_DIMENSION_BUFFER)
+		.SetBuffer_FirstElement(0)
+		.SetBuffer_NumElements(count)
+		.SetBuffer_StructureByteStride(stride)
+		.SetBuffer_Flags(D3D12_BUFFER_UAV_FLAG_NONE)
+		.BuildBuffer();
 }
 
 void D3D12RenderTarget::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
 {
-	if (mState != destState)
-	{
-		context->Transition(mResource, mState, destState);
-		mState = destState;
-	}
-}
-
-RTV* D3D12RenderTarget::CreateTex2DRtv()
-{
-	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-	{
-		desc.Format = mFormat;
-		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		desc.Texture2D.MipSlice = 0;
-		desc.Texture2D.PlaneSlice = 0;
-	}
-
-	return new RTV(mDevice, this, desc);
+	mResource->Transition(context, destState);
 }
 
 RTV* D3D12RenderTarget::CreateTex2DArrayRtv(uint32_t firstArrayIdx, uint32_t arrayCount)

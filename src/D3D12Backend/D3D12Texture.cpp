@@ -48,7 +48,7 @@ void D3D12Texture::Initial(D3D12CommandContext* context)
 	mSrv = mResource->CreateSrv()
 		.SetFormat(mFormat)
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetMipLevels(mResource->GetMipLevelCount())
+		.SetTexture2D_MipLevels(mResource->GetMipLevelCount())
 		.BuildTex2D();
 }
 

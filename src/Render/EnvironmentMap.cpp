@@ -27,7 +27,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIrradi
 	auto srv = irradianceMap->CreateSrv()
 		.SetFormat(irradianceMap->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetMipLevels(1)
+		.SetTexture2D_MipLevels(1)
 		.BuildTex2D();
 
 	RENDER_EVENT(context, GenerateIrradianceMap);
@@ -98,7 +98,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIntegr
 	auto srv = integratedBRDF->CreateSrv()
 		.SetFormat(integratedBRDF->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetMipLevels(1)
+		.SetTexture2D_MipLevels(1)
 		.BuildTex2D();
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
@@ -172,18 +172,18 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefil
 			result->CreateSrv()
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-			.SetMostDetailedMip(i)
-			.SetMipLevels(1)
-			.SetPlaneSlice(0)
+			.SetTexture2D_MostDetailedMip(i)
+			.SetTexture2D_MipLevels(1)
+			.SetTexture2D_PlaneSlice(0)
 			.BuildTex2D());
 	}
 
 	SRV* fullSrv = result->CreateSrv()
 		.SetFormat(result->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetMostDetailedMip(0)
-		.SetMipLevels(levelCount)
-		.SetPlaneSlice(0)
+		.SetTexture2D_MostDetailedMip(0)
+		.SetTexture2D_MipLevels(levelCount)
+		.SetTexture2D_PlaneSlice(0)
 		.BuildTex2D();
 
 	RENDER_EVENT(context, FilterEnvironmentMap);
