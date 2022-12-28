@@ -51,11 +51,3 @@ void D3D12Texture::Initial(D3D12CommandContext* context)
 		.SetTexture2D_MipLevels(mResource->GetMipLevelCount())
 		.BuildTex2D();
 }
-
-D3D12_RESOURCE_STATES D3D12Texture::GetResStates() const
-{
-	Assert(mResource != nullptr);
-
-	return mResource->GetState();
-}
-

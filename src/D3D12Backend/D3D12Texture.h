@@ -21,7 +21,6 @@ public:
 
 	Vec3i							GetSize() const { return mSize; }
 	DXGI_FORMAT						GetFormat() const { return mFormat; }
-	D3D12_RESOURCE_STATES			GetResStates() const;
 	SRV*							GetSrv() const { return mSrv; }
 
 	bool							IsD3DResourceReady() const { return mResource != nullptr; }

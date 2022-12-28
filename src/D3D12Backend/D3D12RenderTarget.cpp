@@ -12,7 +12,6 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 	, mSize(size)
 	, mMipLevelCount(mipLevelCount)
 	, mFormat(format)
-	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 {
 	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
 		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
@@ -23,6 +22,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 		.SetDepthOrArraySize(mSize.z())
 		.SetName(name)
 		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+		.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 		.BuildDefault(device));
 
 	mSrv = mResource->CreateSrv()
@@ -46,7 +46,6 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride,
 	: mDevice(device)
 	, mSize(count * stride, 1, 1)
 	, mFormat(format)
-	, mState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 {
 	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
 		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -58,6 +57,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride,
 		.SetName(name)
 		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
 		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+		.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
 		.BuildDefault(device));
 
 	mSrv = mResource->CreateSrv()
