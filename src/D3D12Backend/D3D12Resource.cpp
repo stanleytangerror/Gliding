@@ -91,7 +91,7 @@ D3D12Backend::CommitedResource::UavBuilder D3D12Backend::CommitedResource::Creat
 	return UavBuilder().SetDevice(mDevice).SetResource(this);
 }
 
-SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildBuffer()
+D3D12Backend::ShaderResourceView* D3D12Backend::CommitedResource::SrvBuilder::BuildBuffer()
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	{
@@ -104,10 +104,10 @@ SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildBuffer()
 		desc.Buffer.Flags = mBuffer_Flags;
 	}
 
-	return new SRV(mDevice, mResource, desc);
+	return new D3D12Backend::ShaderResourceView(mDevice, mResource, desc);
 }
 
-SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildTex2D()
+D3D12Backend::ShaderResourceView* D3D12Backend::CommitedResource::SrvBuilder::BuildTex2D()
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	{
@@ -120,10 +120,10 @@ SRV* D3D12Backend::CommitedResource::SrvBuilder::BuildTex2D()
 		desc.Texture2D.ResourceMinLODClamp = mTexture2D_ResourceMinLODClamp;
 	}
 
-	return new SRV(mDevice, mResource, desc);
+	return new D3D12Backend::ShaderResourceView(mDevice, mResource, desc);
 }
 
-RTV* D3D12Backend::CommitedResource::RtvBuilder::BuildTex2D()
+D3D12Backend::RenderTargetView* D3D12Backend::CommitedResource::RtvBuilder::BuildTex2D()
 {
 	D3D12_RENDER_TARGET_VIEW_DESC desc = {};
 	{
@@ -133,10 +133,10 @@ RTV* D3D12Backend::CommitedResource::RtvBuilder::BuildTex2D()
 		desc.Texture2D.PlaneSlice = mPlaneSlice;
 	}
 
-	return new RTV(mDevice, mResource, desc);
+	return new D3D12Backend::RenderTargetView(mDevice, mResource, desc);
 }
 
-DSV* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
+D3D12Backend::DepthStencilView* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
 {
 	D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
 	{
@@ -146,10 +146,10 @@ DSV* D3D12Backend::CommitedResource::DsvBuilder::BuildTex2D()
 		desc.Texture2D.MipSlice = mMipSlice;
 	}
 
-	return new DSV(mDevice, mResource, desc);
+	return new D3D12Backend::DepthStencilView(mDevice, mResource, desc);
 }
 
-UAV* D3D12Backend::CommitedResource::UavBuilder::BuildBuffer()
+D3D12Backend::UnorderedAccessView* D3D12Backend::CommitedResource::UavBuilder::BuildBuffer()
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
 	{
@@ -162,10 +162,10 @@ UAV* D3D12Backend::CommitedResource::UavBuilder::BuildBuffer()
 		desc.Buffer.Flags = mBuffer_Flags;
 	}
 
-	return new UAV(mDevice, mResource, desc);
+	return new D3D12Backend::UnorderedAccessView(mDevice, mResource, desc);
 }
 
-UAV* D3D12Backend::CommitedResource::UavBuilder::BuildTex2D()
+D3D12Backend::UnorderedAccessView* D3D12Backend::CommitedResource::UavBuilder::BuildTex2D()
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
 	{
@@ -175,7 +175,7 @@ UAV* D3D12Backend::CommitedResource::UavBuilder::BuildTex2D()
 		desc.Texture2D.PlaneSlice = mTexture2D_PlaneSlice;
 	}
 
-	return new UAV(mDevice, mResource, desc);
+	return new D3D12Backend::UnorderedAccessView(mDevice, mResource, desc);
 }
 
 D3D12Backend::CommitedResource* D3D12Backend::CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels)

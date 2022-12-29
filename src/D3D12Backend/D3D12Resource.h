@@ -3,10 +3,13 @@
 #include "D3D12Headers.h"
 #include "D3D12CommandContext.h"
 
-class SRV;
-class RTV;
-class UAV;
-class DSV;
+namespace D3D12Backend
+{
+	class ShaderResourceView;
+	class RenderTargetView;
+	class UnorderedAccessView;
+	class DepthStencilView;
+}
 class D3D12Device;
 class D3D12CommandContext;
 
@@ -89,8 +92,8 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(SrvBuilder, f32, Texture2D_ResourceMinLODClamp);
 
 		public:
-			SRV* BuildBuffer();
-			SRV* BuildTex2D();
+			D3D12Backend::ShaderResourceView* BuildBuffer();
+			D3D12Backend::ShaderResourceView* BuildTex2D();
 		};
 
 		class GD_D3D12BACKEND_API RtvBuilder
@@ -103,7 +106,7 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(RtvBuilder, u32, PlaneSlice);
 
 		public:
-			RTV* BuildTex2D();
+			D3D12Backend::RenderTargetView* BuildTex2D();
 		};
 
 		class GD_D3D12BACKEND_API DsvBuilder
@@ -116,7 +119,7 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(DsvBuilder, u32, MipSlice);
 
 		public:
-			DSV* BuildTex2D();
+			D3D12Backend::DepthStencilView* BuildTex2D();
 		};
 
 		class GD_D3D12BACKEND_API UavBuilder
@@ -134,8 +137,8 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(UavBuilder, u32, Texture2D_PlaneSlice);
 
 		public:
-			UAV* BuildBuffer();
-			UAV* BuildTex2D();
+			D3D12Backend::UnorderedAccessView* BuildBuffer();
+			D3D12Backend::UnorderedAccessView* BuildTex2D();
 		};
 
 		~CommitedResource();

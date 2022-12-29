@@ -4,14 +4,17 @@
 
 class D3D12Texture;
 class D3D12CommandContext;
-class D3D12SamplerView;
+namespace D3D12Backend
+{
+	class SamplerView;
+}
 
 struct RenderMaterial
 {
 	struct MaterialAttriSlot
 	{
 		D3D12Texture* mTexture = nullptr;
-		D3D12SamplerView* mSampler = nullptr;
+		D3D12Backend::SamplerView* mSampler = nullptr;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
 
@@ -24,5 +27,5 @@ struct RenderMaterial
 		const MaterialRawData* matRawData,
 		const SceneRawData* sceneRawData,
 		const std::map<std::string, D3D12Texture*>& textures,
-		const std::map<TextureSamplerType, D3D12SamplerView*>& samplers);
+		const std::map<TextureSamplerType, D3D12Backend::SamplerView*>& samplers);
 };

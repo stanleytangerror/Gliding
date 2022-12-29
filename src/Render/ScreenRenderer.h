@@ -2,9 +2,12 @@
 
 class RenderModule;
 class GraphicsContext;
-class IRenderTargetView;
-class IShaderResourceView;
-class IUnorderedAccessView;
+namespace D3D12Backend
+{
+	class RenderTargetView;
+	class ShaderResourceView;
+	class UnorderedAccessView;
+}
 class D3D12Geometry;
 
 class GD_RENDER_API ScreenRenderer
@@ -14,11 +17,11 @@ public:
 	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt);
+	void Render(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt);
 
 private:
-	void CalcSceneExposure(GraphicsContext* context, IShaderResourceView* input, IUnorderedAccessView* exposureTex);
-	void ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target);
+	void CalcSceneExposure(GraphicsContext* context, D3D12Backend::ShaderResourceView* input, D3D12Backend::UnorderedAccessView* exposureTex);
+	void ToneMapping(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

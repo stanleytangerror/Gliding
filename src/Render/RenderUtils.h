@@ -5,24 +5,28 @@
 #include "RenderMaterial.h"
 
 class GraphicsContext;
-class IRenderTargetView;
-class IShaderResourceView;
-class D3D12SamplerView;
+namespace D3D12Backend
+{
+	class RenderTargetView;
+	class ShaderResourceView;
+	class SamplerView;
+}
+
 struct SceneRawData;
 
 namespace RenderUtils
 {
 	void CopyTexture(GraphicsContext* context, 
-		IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
-		IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
+		D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
+		D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
 
 	void CopyTexture(GraphicsContext* context,
-		IRenderTargetView* target, 
-		IShaderResourceView* source, D3D12SamplerView* sourceSampler);
+		D3D12Backend::RenderTargetView* target, 
+		D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler);
 
 	void GaussianBlur(GraphicsContext* context,
-		IRenderTargetView* target, 
-		IShaderResourceView* source, i32 kernelSizeInPixel);
+		D3D12Backend::RenderTargetView* target, 
+		D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel);
 
 	enum WorldStencilMask : u8
 	{

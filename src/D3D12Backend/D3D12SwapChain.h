@@ -8,7 +8,10 @@
 
 class D3D12Device;
 class D3D12CommandContext;
-class RTV;
+namespace D3D12Backend
+{
+	class RenderTargetView;
+}
 
 class GD_D3D12BACKEND_API SwapChainBufferResource
 {
@@ -17,12 +20,12 @@ public:
 
 	void					PrepareForPresent(D3D12CommandContext* context);
 
-	RTV*					GetRtv() const { return mRtv; }
+	D3D12Backend::RenderTargetView*					GetRtv() const { return mRtv; }
 	Vec3i					GetSize() const;
 
 protected:
 	D3D12Backend::CommitedResource*	mResource = nullptr;
-	RTV*					mRtv = nullptr;
+	D3D12Backend::RenderTargetView*					mRtv = nullptr;
 
 public:
 	std::string const		mName;

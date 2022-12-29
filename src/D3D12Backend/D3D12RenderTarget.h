@@ -10,9 +10,9 @@ public:
 	D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name);
 	D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name);
 
-	RTV*						GetRtv() const { return mRtv; }
-	SRV*						GetSrv() const { return mSrv; }
-	UAV*						GetUav() const { return mUav; }
+	D3D12Backend::RenderTargetView*						GetRtv() const { return mRtv; }
+	D3D12Backend::ShaderResourceView*						GetSrv() const { return mSrv; }
+	D3D12Backend::UnorderedAccessView*						GetUav() const { return mUav; }
 
 	void						Clear(D3D12CommandContext* context, const Vec4f& color);
 
@@ -24,7 +24,7 @@ protected:
 	i32							mMipLevelCount = 1;
 	DXGI_FORMAT					mFormat;
 
-	RTV*						mRtv = nullptr;
-	UAV*						mUav = nullptr;
-	SRV*						mSrv = nullptr;
+	D3D12Backend::RenderTargetView*						mRtv = nullptr;
+	D3D12Backend::UnorderedAccessView*						mUav = nullptr;
+	D3D12Backend::ShaderResourceView*						mSrv = nullptr;
 };

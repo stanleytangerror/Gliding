@@ -1,8 +1,9 @@
 #include "D3D12BackendPch.h"
 #include "D3D12ResourceView.h"
 #include "D3D12Resource.h"
+#include "D3D12Device.h"
 
-SRV::SRV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+D3D12Backend::ShaderResourceView::ShaderResourceView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
 {
@@ -12,7 +13,7 @@ SRV::SRV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_SHADER_R
 
 //////////////////////////////////////////////////////////////////////////
 
-UAV::UAV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+D3D12Backend::UnorderedAccessView::UnorderedAccessView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
 	: mResource(res)
 {
 	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
@@ -21,7 +22,7 @@ UAV::UAV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_UNORDERE
 
 //////////////////////////////////////////////////////////////////////////
 
-RTV::RTV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+D3D12Backend::RenderTargetView::RenderTargetView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
 	: mResource(res)
 	, mDesc(desc)
 {
@@ -31,7 +32,7 @@ RTV::RTV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_RENDER_T
 	device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
 }
 
-void RTV::Clear(D3D12CommandContext* context, const Vec4f& color)
+void D3D12Backend::RenderTargetView::Clear(D3D12CommandContext* context, const Vec4f& color)
 {
 	GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -41,7 +42,7 @@ void RTV::Clear(D3D12CommandContext* context, const Vec4f& color)
 
 //////////////////////////////////////////////////////////////////////////
 
-DSV::DSV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+D3D12Backend::DepthStencilView::DepthStencilView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
 {
@@ -50,7 +51,7 @@ DSV::DSV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_DEPTH_ST
 	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
 }
 
-void DSV::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
+void D3D12Backend::DepthStencilView::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
 {
 	GetResource()->Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
@@ -59,7 +60,7 @@ void DSV::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
 
 //////////////////////////////////////////////////////////////////////////
 
-D3D12SamplerView::D3D12SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
+D3D12Backend::SamplerView::SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
 	: mDesc(desc)
 {
 	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -67,7 +68,7 @@ D3D12SamplerView::D3D12SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC
 	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
 }
 
-D3D12SamplerView::D3D12SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+D3D12Backend::SamplerView::SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
 	: mDesc(GetDesc(filterType, addrMode))
 {
 	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -75,7 +76,7 @@ D3D12SamplerView::D3D12SamplerView(D3D12Device* device, D3D12_FILTER filterType,
 	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
 }
 
-D3D12_SAMPLER_DESC D3D12SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+D3D12_SAMPLER_DESC D3D12Backend::SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
 {
 	D3D12_SAMPLER_DESC desc = {};
 	desc.Filter = filterType;

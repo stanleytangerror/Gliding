@@ -15,7 +15,7 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
 	D3D12Device* device = mRenderModule->GetDevice();
-	mImGuiSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	mImGuiSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	unsigned char* pixels = nullptr;
 	i32 width = 0, height = 0, bytesPerPixel = 0;
@@ -39,7 +39,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, ImDrawData* uiData)
+void ImGuiRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData)
 {
 	if (!mFontAtlas->IsD3DResourceReady())
 	{
@@ -124,7 +124,7 @@ void ImGuiRenderer::Render(GraphicsContext* context, IRenderTargetView* target, 
 
 			const RECT scissorRect = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
 
-			IShaderResourceView* srv = reinterpret_cast<IShaderResourceView*>(cmd->GetTexID());
+			D3D12Backend::ShaderResourceView* srv = reinterpret_cast<D3D12Backend::ShaderResourceView*>(cmd->GetTexID());
 
 			GraphicsPass pass(context);
 

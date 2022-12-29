@@ -37,8 +37,8 @@ namespace
 }
 
 void RenderUtils::CopyTexture(GraphicsContext* context, 
-	IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
-	IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary)
+	D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
+	D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary)
 {
 	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
@@ -76,13 +76,13 @@ void RenderUtils::CopyTexture(GraphicsContext* context,
 	pass.Draw();
 }
 
-void RenderUtils::CopyTexture(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* source, D3D12SamplerView* sourceSampler)
+void RenderUtils::CopyTexture(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler)
 {
 	const auto& targetSize = target->GetResource()->GetSize();
 	CopyTexture(context, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* source, i32 kernelSizeInPixel, D3D12SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -137,9 +137,9 @@ void GaussianBlur1D(GraphicsContext* context, IRenderTargetView* target, IShader
 	pass.Draw();
 }
 
-void RenderUtils::GaussianBlur(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel)
 {
-	static D3D12SamplerView* sampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	static D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	std::unique_ptr<D3D12RenderTarget> interRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), source->GetResource()->GetSize(), source->GetFormat(), "GaussianBlurIntermediateRT");
@@ -166,10 +166,10 @@ RenderUtils::FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData)
 			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
 		}
 	}
-	std::map<TextureSamplerType, D3D12SamplerView*> samplers;
+	std::map<TextureSamplerType, D3D12Backend::SamplerView*> samplers;
 	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
 	{
-		samplers[samplerType] = new D3D12SamplerView(device, ToD3DSamplerDesc(samplerType));
+		samplers[samplerType] = new D3D12Backend::SamplerView(device, ToD3DSamplerDesc(samplerType));
 	}
 
 	std::vector<std::shared_ptr<RenderMaterial>> materials;
@@ -201,7 +201,7 @@ TransformNode<std::pair<
 		std::shared_ptr<RenderMaterial>>>;
 
 	D3D12Geometry* geo = D3D12Geometry::GenerateSphere(device, 40);
-	D3D12SamplerView* sampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
 	{

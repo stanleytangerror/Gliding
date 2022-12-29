@@ -28,7 +28,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
+void ScreenRenderer::Render(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt)
 {
 	std::unique_ptr<D3D12RenderTarget> exposure = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
@@ -36,7 +36,7 @@ void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* scene
 	ToneMapping(context, sceneHdr, exposure->GetSrv(), screenRt);
 }
 
-void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureRt)
+void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::UnorderedAccessView* exposureRt)
 {
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
@@ -92,7 +92,7 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResource
 	}
 }
 
-void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target)
+void ScreenRenderer::ToneMapping(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target)
 {
 	RENDER_EVENT(context, ToneMapping);
 

@@ -2,9 +2,12 @@
 
 class Timer;
 class RenderModule;
-class D3D12SamplerView;
+namespace D3D12Backend
+{
+	class SamplerView;
+	class RenderTargetView;
+}
 class GraphicsContext;
-class IRenderTargetView;
 struct ImDrawData;
 class D3D12Texture;
 
@@ -14,11 +17,11 @@ public:
 	ImGuiRenderer(RenderModule* renderModule);
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, IRenderTargetView* target, ImDrawData* uiData);
+	void Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData);
 
 protected:
 	RenderModule*		mRenderModule = nullptr;
-	D3D12SamplerView*	mImGuiSampler = nullptr;
+	D3D12Backend::SamplerView*	mImGuiSampler = nullptr;
 
 	D3D12Texture*		mFontAtlas = nullptr;
 };

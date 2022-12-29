@@ -5,9 +5,9 @@
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "D3D12Backend/D3D12Geometry.h"
 
-std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIrradianceMap(GraphicsContext* context, IShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIrradianceMap(GraphicsContext* context, D3D12Backend::ShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
-	static D3D12SamplerView* mPanoramicSkySampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution * 2, resolution };
@@ -19,7 +19,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIrradi
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		"IrradianceMap");
 
-	auto rtv = std::unique_ptr<RTV>(irradianceMap->CreateRtv()
+	auto rtv = std::unique_ptr<D3D12Backend::RenderTargetView>(irradianceMap->CreateRtv()
 		.SetFormat(irradianceMap->GetFormat())
 		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
 		.BuildTex2D());
@@ -76,9 +76,9 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIrradi
 	return std::make_tuple(irradianceMap, srv);
 }
 
-std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution)
 {
-	static D3D12SamplerView* mPanoramicSkySampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution, resolution };
@@ -90,7 +90,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIntegr
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		"IntegratedBRDF");
 
-	auto rtv = std::unique_ptr<RTV>(integratedBRDF->CreateRtv()
+	auto rtv = std::unique_ptr<D3D12Backend::RenderTargetView>(integratedBRDF->CreateRtv()
 		.SetFormat(integratedBRDF->GetFormat())
 		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
 		.BuildTex2D());
@@ -140,7 +140,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GenerateIntegr
 	return std::make_tuple(integratedBRDF, srv);
 }
 
-std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, IShaderResourceView* src, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, D3D12Backend::ShaderResourceView* src, i32 resolution)
 {
 	const auto& originSize = src->GetResource()->GetSize();
 	const auto& format = src->GetFormat();
@@ -155,8 +155,8 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefil
 		"FilteredEnvMap",
 		levelCount);
 	
-	std::vector<RTV*> rtvs;
-	std::vector<SRV*> srvs;
+	std::vector<D3D12Backend::RenderTargetView*> rtvs;
+	std::vector<D3D12Backend::ShaderResourceView*> srvs;
 
 	for (i32 i = 0; i < levelCount; ++i)
 	{
@@ -178,7 +178,7 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefil
 			.BuildTex2D());
 	}
 
-	SRV* fullSrv = result->CreateSrv()
+	D3D12Backend::ShaderResourceView* fullSrv = result->CreateSrv()
 		.SetFormat(result->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
 		.SetTexture2D_MostDetailedMip(0)
@@ -199,9 +199,9 @@ std::tuple<D3D12Backend::CommitedResource*, SRV*> EnvironmentMap::GeneratePrefil
 	return std::make_tuple(result, fullSrv);
 }
 
-void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, IRenderTargetView* target, IShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
+void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
 {
-	static D3D12SamplerView* mPanoramicSkySampler = new D3D12SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
 	GraphicsPass pass(context);

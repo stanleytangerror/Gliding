@@ -34,7 +34,7 @@ RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
 	const MaterialRawData* matRawData,
 	const SceneRawData* sceneRawData,
 	const std::map<std::string, D3D12Texture*>& textures,
-	const std::map<TextureSamplerType, D3D12SamplerView*>& samplers)
+	const std::map<TextureSamplerType, D3D12Backend::SamplerView*>& samplers)
 {
 	RenderMaterial* result = new RenderMaterial;
 

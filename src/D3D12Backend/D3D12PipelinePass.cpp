@@ -144,7 +144,7 @@ void ComputePass::Dispatch()
 	commandList->Dispatch(mThreadGroupCounts[0], mThreadGroupCounts[1], mThreadGroupCounts[2]);
 }
 
-void ComputePass::AddSrv(const std::string& name, IShaderResourceView* srv)
+void ComputePass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
 {
 	Assert(mSrvParams.find(name) == mSrvParams.end());
 	Assert(srv);
@@ -152,7 +152,7 @@ void ComputePass::AddSrv(const std::string& name, IShaderResourceView* srv)
 	mSrvParams[name] = srv;
 }
 
-void ComputePass::AddUav(const std::string& name, IUnorderedAccessView* uav)
+void ComputePass::AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav)
 {
 	Assert(mUavParams.find(name) == mUavParams.end());
 	Assert(uav);
@@ -160,7 +160,7 @@ void ComputePass::AddUav(const std::string& name, IUnorderedAccessView* uav)
 	mUavParams[name] = uav;
 }
 
-void ComputePass::AddSampler(const std::string& name, D3D12SamplerView* sampler)
+void ComputePass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
 {
 	Assert(mSamplerParams.find(name) == mSamplerParams.end());
 	Assert(sampler);
@@ -318,7 +318,7 @@ void GraphicsPass::Draw()
 	for (const auto& p : mRts)
 	{
 		const int index = p.first;
-		IRenderTargetView* rt = p.second;
+		D3D12Backend::RenderTargetView* rt = p.second;
 		rtvHandles[index] = rt->GetHandle();
 	}
 
@@ -341,7 +341,7 @@ void GraphicsPass::Draw()
 	commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, mIndexStartLocation, mVertexStartLocation, 0);
 }
 
-void GraphicsPass::AddSrv(const std::string& name, IShaderResourceView* srv)
+void GraphicsPass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
 {
 	Assert(mSrvParams.find(name) == mSrvParams.end());
 	Assert(srv);
@@ -349,7 +349,7 @@ void GraphicsPass::AddSrv(const std::string& name, IShaderResourceView* srv)
 	mSrvParams[name] = srv;
 }
 
-void GraphicsPass::AddSampler(const std::string& name, D3D12SamplerView* sampler)
+void GraphicsPass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
 {
 	Assert(mSamplerParams.find(name) == mSamplerParams.end());
 	Assert(sampler);

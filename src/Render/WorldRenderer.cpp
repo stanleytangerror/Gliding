@@ -25,12 +25,12 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
 	mSkyTexture = new D3D12Texture(device, skyTexPath, Utils::LoadFileContent(skyTexPath));
-	mPanoramicSkySampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mLightingSceneSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mNoMipMapLinearSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mFilteredEnvMapSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
+	mPanoramicSkySampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	mLightingSceneSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	mNoMipMapLinearSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+	mFilteredEnvMapSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
 	
-	mBRDFIntegrationMapSampler = new D3D12SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
+	mBRDFIntegrationMapSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
 
 	{
 		D3D12_SAMPLER_DESC samplerDesc = {};
@@ -42,7 +42,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			std::fill_n(samplerDesc.BorderColor, Utils::GetArrayLength(samplerDesc.BorderColor), mSunLight->mLightViewProj.GetFarPlaneDeviceDepth());
 			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		}
-		mNoMipMapLinearDepthCmpSampler = new D3D12SamplerView(device, samplerDesc);
+		mNoMipMapLinearDepthCmpSampler = new D3D12Backend::SamplerView(device, samplerDesc);
 	}
 
 	for (i32 i = 0; i < mGBuffers.size(); ++i)
@@ -123,15 +123,15 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
+	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	//mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
-	mTestModel = RenderUtils::GenerateMaterialProbes(device);
+	mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
+	//mTestModel = RenderUtils::GenerateMaterialProbes(device);
 
-	mTestModel->mRelTransform = UniScalingf(10.f);
-	//mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+	//mTestModel->mRelTransform = UniScalingf(10.f);
+	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
 	//mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
 
@@ -160,7 +160,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	{
 		RENDER_EVENT(context, UpdateResources);
@@ -255,7 +255,7 @@ void WorldRenderer::Render(GraphicsContext* context, IRenderTargetView* target)
 	RenderSky(context, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -280,7 +280,7 @@ void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, IRenderTarge
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
@@ -291,7 +291,7 @@ void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, IRenderTar
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
@@ -301,7 +301,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, IRende
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView* target)
+void WorldRenderer::DeferredLighting(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	RENDER_EVENT(context, DeferredLighting);
 
@@ -315,7 +315,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		"TempDepthRt")); 
 
-	auto tmpDepthDsv = std::unique_ptr<DSV>(
+	auto tmpDepthDsv = std::unique_ptr<D3D12Backend::DepthStencilView>(
 		tmpDepth->CreateDsv()
 		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
 		.SetFormat(mMainDepthDsv->GetFormat())
@@ -391,7 +391,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, IRenderTargetView
 	lightingPass.Draw();
 }
 
-void WorldRenderer::RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const
+void WorldRenderer::RenderSky(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
@@ -453,7 +453,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	D3D12Geometry* geometry, RenderMaterial* material, 
 	const Transformf& transform, 
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
-	const std::array<RTV*, 3>& gbufferRtvs, DSV* depthView)
+	const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRtvs, D3D12Backend::DepthStencilView* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
 	
@@ -533,7 +533,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	gbufferPass.Draw();
 }
 
-void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, DSV* depthView)
+void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -587,9 +587,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3
 }
 
 void WorldRenderer::RenderShadowMask(GraphicsContext* context, 
-	IRenderTargetView* shadowMask, 
-	IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
-	IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
+	D3D12Backend::RenderTargetView* shadowMask, 
+	D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
+	D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,
 	const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 	const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans)
 {

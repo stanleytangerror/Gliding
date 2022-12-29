@@ -17,9 +17,9 @@ public:
 		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
 	}
 
-	void AddSrv(const std::string& name, IShaderResourceView* srv);
-	void AddUav(const std::string& name, IUnorderedAccessView* uav);
-	void AddSampler(const std::string& name, D3D12SamplerView* sampler);
+	void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
+	void AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav);
+	void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
 	
 public:
 	struct
@@ -34,9 +34,9 @@ public:
 public:
 	GraphicsContext* const					mContext = nullptr;
 	
-	std::map<std::string, D3D12SamplerView*>		mSamplerParams;
-	std::map<std::string, IShaderResourceView*>		mSrvParams;
-	std::map<std::string, IUnorderedAccessView*>	mUavParams;
+	std::map<std::string, D3D12Backend::SamplerView*>		mSamplerParams;
+	std::map<std::string, D3D12Backend::ShaderResourceView*>		mSrvParams;
+	std::map<std::string, D3D12Backend::UnorderedAccessView*>	mUavParams;
 	std::map<std::string, std::vector<byte>>		mCbParams;
 
 	std::array<u32, 3>								mThreadGroupCounts = {};
@@ -64,8 +64,8 @@ public:
 		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
 	}
 
-	void AddSrv(const std::string& name, IShaderResourceView* srv);
-	void AddSampler(const std::string& name, D3D12SamplerView* sampler);
+	void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
+	void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
 
 public:
 	struct
@@ -80,8 +80,8 @@ public:
 
 public:
 	GraphicsContext* const					mContext = nullptr;
-	std::map<int, IRenderTargetView*>		mRts;
-	DSV*									mDs = nullptr;
+	std::map<int, D3D12Backend::RenderTargetView*>		mRts;
+	D3D12Backend::DepthStencilView*									mDs = nullptr;
 
 	std::vector<D3D12_VERTEX_BUFFER_VIEW>	mVbvs;
 	D3D12_INDEX_BUFFER_VIEW					mIbv = {};
@@ -96,8 +96,8 @@ public:
 
 protected:
 	std::map<std::string, std::vector<byte>>	mCbParams;
-	std::map<std::string, IShaderResourceView*>	mSrvParams;
-	std::map<std::string, D3D12SamplerView*>	mSamplerParams;
+	std::map<std::string, D3D12Backend::ShaderResourceView*>	mSrvParams;
+	std::map<std::string, D3D12Backend::SamplerView*>	mSamplerParams;
 
 	ID3D12RootSignature* mRootSignature = nullptr;
 	std::unique_ptr<GraphicsPipelineState> mPso;

@@ -21,7 +21,7 @@ public:
 
 	Vec3i							GetSize() const { return mSize; }
 	DXGI_FORMAT						GetFormat() const { return mFormat; }
-	SRV*							GetSrv() const { return mSrv; }
+	D3D12Backend::ShaderResourceView*							GetSrv() const { return mSrv; }
 
 	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 
@@ -37,5 +37,5 @@ protected:
 	i32						mMipLevelCount = 1;
 	DXGI_FORMAT				mFormat = DXGI_FORMAT_UNKNOWN;
 
-	SRV*					mSrv = nullptr;
+	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
 };
