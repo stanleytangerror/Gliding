@@ -3,87 +3,91 @@
 #include "D3D12Resource.h"
 #include "D3D12Device.h"
 
-D3D12Backend::ShaderResourceView::ShaderResourceView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
-	: mResource(res)
-	, mFormat(desc.Format)
+namespace D3D12Backend
 {
-	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
-	device->GetDevice()->CreateShaderResourceView(mResource->GetD3D12Resource(), &desc, mDescriptionHandle.Get());
-}
+	ShaderResourceView::ShaderResourceView(D3D12Device* device, IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+		: mResource(res)
+		, mDesc(desc)
+	{
+		mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
+		device->GetDevice()->CreateShaderResourceView(mResource->GetD3D12Resource(), &desc, mDescriptionHandle.Get());
+	}
 
-//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
-D3D12Backend::UnorderedAccessView::UnorderedAccessView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
-	: mResource(res)
-{
-	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
-	device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
-}
+	UnorderedAccessView::UnorderedAccessView(D3D12Device* device, IResource* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+		: mResource(res)
+		, mDesc(desc)
+	{
+		mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
+		device->GetDevice()->CreateUnorderedAccessView(mResource->GetD3D12Resource(), nullptr, &desc, mDescriptionHandle.Get());
+	}
 
-//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
-D3D12Backend::RenderTargetView::RenderTargetView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
-	: mResource(res)
-	, mDesc(desc)
-{
-	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	RenderTargetView::RenderTargetView(D3D12Device* device, IResource* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+		: mResource(res)
+		, mDesc(desc)
+	{
+		D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-	mRtv = rtvDescAllocator->AllocCpuDesc();
-	device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
-}
+		mRtv = rtvDescAllocator->AllocCpuDesc();
+		device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
+	}
 
-void D3D12Backend::RenderTargetView::Clear(D3D12CommandContext* context, const Vec4f& color)
-{
-	GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	void RenderTargetView::Clear(D3D12CommandContext* context, const Vec4f& color)
+	{
+		GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	using F4 = const FLOAT[4];
-	context->GetCommandList()->ClearRenderTargetView(GetHandle(), *(F4*)&color, 0, nullptr);
-}
+		using F4 = const FLOAT[4];
+		context->GetCommandList()->ClearRenderTargetView(GetHandle(), *(F4*)&color, 0, nullptr);
+	}
 
-//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
-D3D12Backend::DepthStencilView::DepthStencilView(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
-	: mResource(res)
-	, mFormat(desc.Format)
-{
-	D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	mHandle = rtvDescAllocator->AllocCpuDesc();
-	device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
-}
+	DepthStencilView::DepthStencilView(D3D12Device* device, IResource* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+		: mResource(res)
+		, mDesc(desc)
+	{
+		D3D12DescriptorAllocator* rtvDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		mHandle = rtvDescAllocator->AllocCpuDesc();
+		device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
+	}
 
-void D3D12Backend::DepthStencilView::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
-{
-	GetResource()->Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	void DepthStencilView::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
+	{
+		GetResource()->Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-	context->GetCommandList()->ClearDepthStencilView(GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
-}
+		context->GetCommandList()->ClearDepthStencilView(GetHandle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
+	}
 
-//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
-D3D12Backend::SamplerView::SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
-	: mDesc(desc)
-{
-	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	mHandle = samplerDescAllocator->AllocCpuDesc();
-	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
-}
+	SamplerView::SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
+		: mDesc(desc)
+	{
+		D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		mHandle = samplerDescAllocator->AllocCpuDesc();
+		device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
+	}
 
-D3D12Backend::SamplerView::SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
-	: mDesc(GetDesc(filterType, addrMode))
-{
-	D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	mHandle = samplerDescAllocator->AllocCpuDesc();
-	device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
-}
+	SamplerView::SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+		: mDesc(GetDesc(filterType, addrMode))
+	{
+		D3D12DescriptorAllocator* samplerDescAllocator = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		mHandle = samplerDescAllocator->AllocCpuDesc();
+		device->GetDevice()->CreateSampler(&mDesc, mHandle.Get());
+	}
 
-D3D12_SAMPLER_DESC D3D12Backend::SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
-{
-	D3D12_SAMPLER_DESC desc = {};
-	desc.Filter = filterType;
-	desc.AddressU = addrMode[0];
-	desc.AddressV = addrMode[1];
-	desc.AddressW = addrMode[2];
-	desc.MinLOD = 0;
-	desc.MaxLOD = std::numeric_limits<f32>::max();
-	return desc;
+	D3D12_SAMPLER_DESC SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
+	{
+		D3D12_SAMPLER_DESC desc = {};
+		desc.Filter = filterType;
+		desc.AddressU = addrMode[0];
+		desc.AddressV = addrMode[1];
+		desc.AddressW = addrMode[2];
+		desc.MinLOD = 0;
+		desc.MaxLOD = std::numeric_limits<f32>::max();
+		return desc;
+	}
 }

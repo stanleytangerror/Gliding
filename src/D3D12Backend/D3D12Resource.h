@@ -3,16 +3,6 @@
 #include "D3D12Headers.h"
 #include "D3D12CommandContext.h"
 
-namespace D3D12Backend
-{
-	class ShaderResourceView;
-	class RenderTargetView;
-	class UnorderedAccessView;
-	class DepthStencilView;
-}
-class D3D12Device;
-class D3D12CommandContext;
-
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
 
@@ -29,8 +19,16 @@ class D3D12CommandContext;
 	public:		using CAT(Temp, __LINE__) = Type; \
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  }
 
+class D3D12Device;
+class D3D12CommandContext;
+
 namespace D3D12Backend
 {
+	class ShaderResourceView;
+	class RenderTargetView;
+	class UnorderedAccessView;
+	class DepthStencilView;
+
 	class GD_D3D12BACKEND_API IResource
 	{
 	public:
