@@ -10,7 +10,10 @@ class D3D12Device;
 class D3D12GpuQueue;
 class D3D12ConstantBuffer;
 class RuntimeDescriptorHeap;
-class ID3D12Res;
+namespace D3D12Backend
+{
+	class IResource;
+}
 
 class GD_D3D12BACKEND_API D3D12CommandContext
 {
@@ -29,8 +32,8 @@ public:
 
 	void						Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState);
 
-	void						CopyResource(ID3D12Res* dst, ID3D12Res* src);
-	void						CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src);
+	void						CopyResource(D3D12Backend::IResource* dst, D3D12Backend::IResource* src);
+	void						CopyBuffer2D(D3D12Backend::IResource* dst, D3D12Backend::IResource* src);
 
 protected:
 	std::thread::id	mThisCpuThreadId;

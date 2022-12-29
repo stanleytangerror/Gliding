@@ -68,13 +68,13 @@ void ComputePass::Dispatch()
 {
 	for (const auto& p : mSrvParams)
 	{
-		ID3D12Res* res = p.second->GetResource();
+		D3D12Backend::IResource* res = p.second->GetResource();
 		res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	}
 
 	for (const auto& p : mUavParams)
 	{
-		ID3D12Res* res = p.second->GetResource();
+		D3D12Backend::IResource* res = p.second->GetResource();
 		res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	}
 
@@ -183,19 +183,19 @@ void GraphicsPass::Draw()
 	// transitions
 	for (const auto& p : mSrvParams)
 	{
-		ID3D12Res* res = p.second->GetResource();
+		D3D12Backend::IResource* res = p.second->GetResource();
 		res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	for (const auto& p : mRts)
 	{
-		ID3D12Res* res = p.second->GetResource();
+		D3D12Backend::IResource* res = p.second->GetResource();
 		res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	if (mDs)
 	{
-		ID3D12Res* res = mDs->GetResource();
+		D3D12Backend::IResource* res = mDs->GetResource();
 		res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	}
 

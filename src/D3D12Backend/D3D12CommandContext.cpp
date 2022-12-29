@@ -84,7 +84,7 @@ void D3D12CommandContext::Transition(ID3D12Resource* resource, const D3D12_RESOU
 	}
 }
 
-void D3D12CommandContext::CopyResource(ID3D12Res* dst, ID3D12Res* src)
+void D3D12CommandContext::CopyResource(D3D12Backend::IResource* dst, D3D12Backend::IResource* src)
 {
 	Assert(dst->GetSize() == src->GetSize());
 	Assert(dst->GetD3D12Resource()->GetDesc() == dst->GetD3D12Resource()->GetDesc());
@@ -95,7 +95,7 @@ void D3D12CommandContext::CopyResource(ID3D12Res* dst, ID3D12Res* src)
 	mCommandList->CopyResource(dst->GetD3D12Resource(), src->GetD3D12Resource());
 }
 
-void D3D12CommandContext::CopyBuffer2D(ID3D12Res* dst, ID3D12Res* src)
+void D3D12CommandContext::CopyBuffer2D(D3D12Backend::IResource* dst, D3D12Backend::IResource* src)
 {
 	Assert(dst->GetSize() == src->GetSize());
 

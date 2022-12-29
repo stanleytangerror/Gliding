@@ -2,7 +2,7 @@
 #include "D3D12ResourceView.h"
 #include "D3D12Resource.h"
 
-SRV::SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+SRV::SRV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
 {
@@ -12,7 +12,7 @@ SRV::SRV(D3D12Device* device, ID3D12Res* res, const D3D12_SHADER_RESOURCE_VIEW_D
 
 //////////////////////////////////////////////////////////////////////////
 
-UAV::UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+UAV::UAV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
 	: mResource(res)
 {
 	mDescriptionHandle = device->GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->AllocCpuDesc();
@@ -21,7 +21,7 @@ UAV::UAV(D3D12Device* device, ID3D12Res* res, const D3D12_UNORDERED_ACCESS_VIEW_
 
 //////////////////////////////////////////////////////////////////////////
 
-RTV::RTV(D3D12Device* device, ID3D12Res* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+RTV::RTV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
 	: mResource(res)
 	, mDesc(desc)
 {
@@ -41,7 +41,7 @@ void RTV::Clear(D3D12CommandContext* context, const Vec4f& color)
 
 //////////////////////////////////////////////////////////////////////////
 
-DSV::DSV(D3D12Device* device, ID3D12Res* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+DSV::DSV(D3D12Device* device, D3D12Backend::IResource* res, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
 	: mResource(res)
 	, mFormat(desc.Format)
 {

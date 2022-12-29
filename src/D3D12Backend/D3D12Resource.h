@@ -10,15 +10,6 @@ class DSV;
 class D3D12Device;
 class D3D12CommandContext;
 
-class GD_D3D12BACKEND_API ID3D12Res
-{
-public:
-	virtual void Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;
-	virtual ID3D12Resource* GetD3D12Resource() const = 0;
-	virtual Vec3i GetSize() const = 0;
-	virtual std::string GetName() const { return {}; }
-};
-
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
 
@@ -37,7 +28,16 @@ public:
 
 namespace D3D12Backend
 {
-	class GD_D3D12BACKEND_API CommitedResource : public ID3D12Res
+	class GD_D3D12BACKEND_API IResource
+	{
+	public:
+		virtual void Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;
+		virtual ID3D12Resource* GetD3D12Resource() const = 0;
+		virtual Vec3i GetSize() const = 0;
+		virtual std::string GetName() const { return {}; }
+	};
+
+	class GD_D3D12BACKEND_API CommitedResource : public IResource
 	{
 	public:
 		class GD_D3D12BACKEND_API Builder
@@ -145,7 +145,7 @@ namespace D3D12Backend
 		DXGI_FORMAT					GetFormat() const { return mDesc.Format; } // TODO override?
 		u16							GetMipLevelCount() const { return mDesc.MipLevels; } // TODO override?
 		D3D12_RESOURCE_STATES		GetState() const { return mState; }
-
+		
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
 		DsvBuilder					CreateDsv();

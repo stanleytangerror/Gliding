@@ -7,7 +7,7 @@ struct MeshRawData;
 
 class GD_D3D12BACKEND_API D3D12Geometry
 {
-public:
+protected:
 	D3D12Geometry(D3D12Device* device);
 
 public:
