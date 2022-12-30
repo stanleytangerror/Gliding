@@ -10,8 +10,11 @@
 class ScreenRenderer;
 class RenderDocIntegration;
 class WorldRenderer;
-class D3D12RenderTarget;
-class D3D12Device;
+namespace D3D12Backend
+{
+	class D3D12RenderTarget;
+	class D3D12Device;
+}
 class ImGuiRenderer;
 
 class GD_RENDER_API RenderModule
@@ -26,20 +29,20 @@ public:
 	void TickFrame(Timer* timer);
 	void Render();
 
-	D3D12Device*		GetDevice() const { return mDevice; }
-	WorldRenderer*		GetWorldRenderer() const { return mWorldRenderer.get(); }
+	D3D12Backend::D3D12Device*	GetDevice() const { return mDevice; }
+	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
 
 	void				Destroy();
 
 protected:
-	D3D12Device*							mDevice = nullptr;
+	D3D12Backend::D3D12Device*				mDevice = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
 	std::unique_ptr<ScreenRenderer>			mScreenRenderer;
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	D3D12RenderTarget*						mSceneHdrRt = nullptr;
+	D3D12RenderTarget*		mSceneHdrRt = nullptr;
 
 public:
 	ImDrawData*								mUiData = nullptr;

@@ -4,11 +4,13 @@
 
 class RenderModule;
 class D3D12Geometry;
-class GraphicsContext;
 class D3D12Texture;
 class D3D12RenderTarget;
 namespace D3D12Backend
 {
+	class GraphicsContext;
+	class CommitedResource;
+	class SamplerView;
 	class ShaderResourceView;
 	class RenderTargetView;
 	class UnorderedAccessView;
@@ -16,11 +18,6 @@ namespace D3D12Backend
 }
 struct RenderMaterial;
 struct DirectionalLight;
-namespace D3D12Backend
-{
-	class CommitedResource;
-	class SamplerView;
-}
 
 class GD_RENDER_API WorldRenderer
 {
@@ -29,29 +26,29 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target);
+	void Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
 
-	void RenderGBufferChannels(GraphicsContext* context, D3D12Backend::RenderTargetView* target);
-	void RenderShadowMaskChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target);
-	void RenderLightViewDepthChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target);
+	void RenderGBufferChannels(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
+	void RenderShadowMaskChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
+	void RenderLightViewDepthChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
 
 private:
-	void RenderSky(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const;
-	void DeferredLighting(GraphicsContext* context, D3D12Backend::RenderTargetView* target);
+	void RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const;
+	void DeferredLighting(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
 
-	static void RenderGeometryWithMaterial(GraphicsContext* context, 
+	static void RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context,
 		D3D12Geometry* geometry, RenderMaterial* material, 
 		const Transformf& transform, 
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 		const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRts, D3D12Backend::DepthStencilView* depthView);
 
-	static void RenderGeometryDepthWithMaterial(GraphicsContext* context,
+	static void RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context,
 		D3D12Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 		D3D12Backend::DepthStencilView* depthView);
 
-	static void RenderShadowMask(GraphicsContext* context,
+	static void RenderShadowMask(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* shadowMask,
 		D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
 		D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,

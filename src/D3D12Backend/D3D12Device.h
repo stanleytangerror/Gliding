@@ -8,53 +8,56 @@
 #include "D3D12ResourceManager.h"
 #include "Common/PresentPort.h"
 
-class D3D12PipelineStateLibrary;
-class D3D12ShaderLibrary;
-class D3D12DescriptorAllocator;
-class SwapChainBuffers;
-class D3D12GpuQueue;
-class D3D12ResourceManager;
-enum D3D12GpuQueueType : u8;
-
-class GD_D3D12BACKEND_API D3D12Device
+namespace D3D12Backend
 {
-public:
-	D3D12Device();
+	class D3D12PipelineStateLibrary;
+	class D3D12ShaderLibrary;
+	class D3D12DescriptorAllocator;
+	class SwapChainBuffers;
+	class D3D12GpuQueue;
+	class D3D12ResourceManager;
+	enum D3D12GpuQueueType : u8;
 
-	void	CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize);
-	void	StartFrame();
-	void	Present();
-	void	Destroy();
+	class GD_D3D12BACKEND_API D3D12Device
+	{
+	public:
+		D3D12Device();
 
-	ID3D12Device* GetDevice() const;
+		void	CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize);
+		void	StartFrame();
+		void	Present();
+		void	Destroy();
 
-public:
-	D3D12DescriptorAllocator* GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
-	D3D12ShaderLibrary* GetShaderLib() const { return mShaderLib; }
-	D3D12PipelineStateLibrary* GetPipelineStateLib() const { return mPipelineStateLib; }
-	CpuDescItem	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
-	CpuDescItem	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
-	PresentPort GetPresentPort(PresentPortType type) const;
+		ID3D12Device* GetDevice() const;
 
-	D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
+	public:
+		D3D12DescriptorAllocator* GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+		D3D12ShaderLibrary* GetShaderLib() const { return mShaderLib; }
+		D3D12PipelineStateLibrary* GetPipelineStateLib() const { return mPipelineStateLib; }
+		CpuDescItem	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
+		CpuDescItem	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
+		PresentPort GetPresentPort(PresentPortType type) const;
 
-	void	ReleaseD3D12Resource(ID3D12Resource*& res);
+		D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
 
-private:
-	IDXGIFactory4* mFactory = nullptr;
-	ID3D12Device* mDevice = nullptr;
+		void	ReleaseD3D12Resource(ID3D12Resource*& res);
 
-	std::map<PresentPortType, PresentPort>	mPresentPorts;
+	private:
+		IDXGIFactory4* mFactory = nullptr;
+		ID3D12Device* mDevice = nullptr;
 
-	std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
-	std::unique_ptr<D3D12ResourceManager>			mResMgr;
+		std::map<PresentPortType, PresentPort>	mPresentPorts;
 
-	D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
-	D3D12ShaderLibrary* mShaderLib = nullptr;
+		std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
+		std::unique_ptr<D3D12ResourceManager>			mResMgr;
 
-	std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
-	CpuDescItem	mNullSrvCpuDesc;
-	CpuDescItem	mNullSamplerCpuDesc;
+		D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
+		D3D12ShaderLibrary* mShaderLib = nullptr;
 
-	static const u32 mSwapChainBufferCount = 3;
-};
+		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
+		CpuDescItem	mNullSrvCpuDesc;
+		CpuDescItem	mNullSamplerCpuDesc;
+
+		static const u32 mSwapChainBufferCount = 3;
+	};
+}

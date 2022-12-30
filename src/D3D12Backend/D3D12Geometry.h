@@ -8,10 +8,10 @@ struct MeshRawData;
 class GD_D3D12BACKEND_API D3D12Geometry
 {
 protected:
-	D3D12Geometry(D3D12Device* device);
+	D3D12Geometry(D3D12Backend::D3D12Device* device);
 
 public:
-	D3D12Device* const		mDevice = nullptr;
+	D3D12Backend::D3D12Device* const		mDevice = nullptr;
 
 	std::unique_ptr< D3D12Backend::CommitedResource> mVb = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW mVbv = {};
@@ -23,15 +23,15 @@ public:
 
 public:
 	template <typename TVertex>
-	static D3D12Geometry* GenerateGeometry(D3D12Device* device,
+	static D3D12Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
 
-	static D3D12Geometry* GenerateQuad(D3D12Device* device);
-	static D3D12Geometry* GenerateSphere(D3D12Device* device, i32 subDev);
+	static D3D12Geometry* GenerateQuad(D3D12Backend::D3D12Device* device);
+	static D3D12Geometry* GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev);
 
-	static D3D12Geometry* GenerateGeometry(D3D12Device* device,
+	static D3D12Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
 		const std::vector<b8>& vertices, i32 vertexStride,
 		const std::vector<u16>& indices,
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);

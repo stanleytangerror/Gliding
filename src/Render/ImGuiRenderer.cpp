@@ -14,7 +14,7 @@
 ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	D3D12Device* device = mRenderModule->GetDevice();
+	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
 	mImGuiSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	unsigned char* pixels = nullptr;
@@ -39,7 +39,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData)
+void ImGuiRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData)
 {
 	if (!mFontAtlas->IsD3DResourceReady())
 	{
@@ -49,7 +49,7 @@ void ImGuiRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetV
 
 	RENDER_EVENT(context, ImGuiRenderer::Render);
 
-	D3D12Device* device = mRenderModule->GetDevice();
+	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
 
 	// Avoid rendering when minimized
 	if (!uiData || uiData->CmdListsCount == 0 || uiData->DisplaySize.x <= 0.0f || uiData->DisplaySize.y <= 0.0f) { return; }
@@ -126,13 +126,13 @@ void ImGuiRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetV
 
 			D3D12Backend::ShaderResourceView* srv = reinterpret_cast<D3D12Backend::ShaderResourceView*>(cmd->GetTexID());
 
-			GraphicsPass pass(context);
+			D3D12Backend::GraphicsPass pass(context);
 
 			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/ImGui.hlsl";
 			pass.mPsFile = "res/Shader/ImGui.hlsl";
-			pass.mShaderMacros.push_back(ShaderMacro{ "USE_TEXTURE", srv ? "1" : "0" });
+			pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "USE_TEXTURE", srv ? "1" : "0" });
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc = pass.PsoDesc();
 			{

@@ -19,7 +19,7 @@ RenderModule::RenderModule()
 	mRenderDoc = new RenderDocIntegration;
 #endif
 
-	mDevice = new D3D12Device;
+	mDevice = new D3D12Backend::D3D12Device;
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInfo)
@@ -57,7 +57,7 @@ void RenderModule::Render()
 
 	mDevice->StartFrame();
 
-	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
+	D3D12Backend::GraphicsContext* context = mDevice->GetGpuQueue(D3D12Backend::D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{
 		{
 			RENDER_EVENT(context, RenderWorldToHdr);
@@ -67,7 +67,7 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(context, RenderToMainPort);
 
-			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer();
+			D3D12Backend::SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer();
 			mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
 			mImGuiRenderer->Render(context, backBuffer->GetRtv(), mUiData);
 
@@ -77,7 +77,7 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(context, DebugChannels);
 
-			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::DebugPort).mSwapChain->GetBuffer();
+			D3D12Backend::SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::DebugPort).mSwapChain->GetBuffer();
 			mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
 			mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
 			mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());

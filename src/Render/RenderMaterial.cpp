@@ -3,7 +3,7 @@
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "D3D12Backend/D3D12Texture.h"
 
-void RenderMaterial::UpdateGpuResources(D3D12CommandContext* context)
+void RenderMaterial::UpdateGpuResources(D3D12Backend::D3D12CommandContext* context)
 {
 	for (const auto& slot : mMatAttriSlots)
 	{

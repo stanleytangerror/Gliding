@@ -50,7 +50,7 @@ namespace D3D12Backend
 		DXGI_FORMAT									GetFormat() const { return mDesc.Format; }
 		IResource*									GetResource() const { return mResource; }
 
-		void										Clear(D3D12CommandContext* context, const Vec4f& color);
+		void										Clear(D3D12Backend::D3D12CommandContext* context, const Vec4f& color);
 
 	protected:
 		IResource*									mResource = nullptr;
@@ -67,7 +67,7 @@ namespace D3D12Backend
 		DXGI_FORMAT									GetFormat() const { return mDesc.Format; }
 		CD3DX12_CPU_DESCRIPTOR_HANDLE				GetHandle() const { return mHandle.Get(); }
 
-		void										Clear(D3D12CommandContext* context, float depth, const u32 stencil);
+		void										Clear(D3D12Backend::D3D12CommandContext* context, float depth, const u32 stencil);
 
 	protected:
 		IResource*									mResource = nullptr;

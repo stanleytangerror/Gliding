@@ -28,7 +28,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt)
+void ScreenRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt)
 {
 	std::unique_ptr<D3D12RenderTarget> exposure = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
@@ -36,7 +36,7 @@ void ScreenRenderer::Render(GraphicsContext* context, D3D12Backend::ShaderResour
 	ToneMapping(context, sceneHdr, exposure->GetSrv(), screenRt);
 }
 
-void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::UnorderedAccessView* exposureRt)
+void ScreenRenderer::CalcSceneExposure(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::UnorderedAccessView* exposureRt)
 {
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
@@ -46,12 +46,12 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, D3D12Backend::S
 	{
 		RENDER_EVENT(context, BrightnessHistogram);
 
-		ComputePass pass(context);
+		D3D12Backend::ComputePass pass(context);
 
 		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 		pass.mRootSignatureDesc.mEntry = "ComputeRS";
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
-		pass.mShaderMacros.push_back(ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
+		pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
 		const Vec3i& size = sceneHdr->GetResource()->GetSize();
 		pass.AddSrv("SceneHdr", sceneHdr);
@@ -68,12 +68,12 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, D3D12Backend::S
 	{
 		RENDER_EVENT(context, HistogramReduce);
 
-		ComputePass pass(context);
+		D3D12Backend::ComputePass pass(context);
 
 		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 		pass.mRootSignatureDesc.mEntry = "ComputeRS";
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
-		pass.mShaderMacros.push_back(ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
+		pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
 		const Vec3i& size = sceneHdr->GetResource()->GetSize();
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
@@ -92,11 +92,11 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, D3D12Backend::S
 	}
 }
 
-void ScreenRenderer::ToneMapping(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target)
+void ScreenRenderer::ToneMapping(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target)
 {
 	RENDER_EVENT(context, ToneMapping);
 
-	GraphicsPass ldrScreenPass(context);
+	D3D12Backend::GraphicsPass ldrScreenPass(context);
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	ldrScreenPass.mRootSignatureDesc.mEntry = "GraphicsRS";

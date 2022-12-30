@@ -6,8 +6,8 @@ namespace D3D12Backend
 {
 	class SamplerView;
 	class RenderTargetView;
+	class GraphicsContext;
 }
-class GraphicsContext;
 struct ImDrawData;
 class D3D12Texture;
 
@@ -17,7 +17,7 @@ public:
 	ImGuiRenderer(RenderModule* renderModule);
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData);
+	void Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData);
 
 protected:
 	RenderModule*		mRenderModule = nullptr;

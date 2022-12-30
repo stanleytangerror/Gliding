@@ -16,15 +16,15 @@ struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(GraphicsContext* context, 
+	void CopyTexture(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
 		D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
 
-	void CopyTexture(GraphicsContext* context,
+	void CopyTexture(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* target, 
 		D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler);
 
-	void GaussianBlur(GraphicsContext* context,
+	void GaussianBlur(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* target, 
 		D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel);
 
@@ -40,12 +40,12 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData);
+	FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-		GenerateMaterialProbes(D3D12Device* device);
+		GenerateMaterialProbes(D3D12Backend::D3D12Device* device);
 
-	D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData);
+	D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData);
 }

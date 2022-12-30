@@ -1,13 +1,14 @@
 #include "D3D12BackendPch.h"
 #include "D3D12RenderTarget.h"
 #include "D3D12Resource.h"
+#include "D3D12Device.h"
 
-D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name)
+D3D12RenderTarget::D3D12RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name)
 	: D3D12RenderTarget(device, size, format, 1, name)
 {
 }
 
-D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name)
+D3D12RenderTarget::D3D12RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name)
 	: mDevice(device)
 	, mSize(size)
 	, mMipLevelCount(mipLevelCount)
@@ -42,7 +43,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, Vec3i size, DXGI_FORMA
 		.BuildTex2D();
 }
 
-D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name)
+D3D12RenderTarget::D3D12RenderTarget(D3D12Backend::D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name)
 	: mDevice(device)
 	, mSize(count * stride, 1, 1)
 	, mFormat(format)
@@ -79,7 +80,7 @@ D3D12RenderTarget::D3D12RenderTarget(D3D12Device* device, i32 count, i32 stride,
 		.BuildBuffer();
 }
 
-void D3D12RenderTarget::Clear(D3D12CommandContext* context, const Vec4f& color)
+void D3D12RenderTarget::Clear(D3D12Backend::D3D12CommandContext* context, const Vec4f& color)
 {
 	mResource->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 

@@ -64,7 +64,7 @@ namespace D3D12Backend
 		mDevice->ReleaseD3D12Resource(mResource);
 	}
 
-	void CommitedResource::Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
+	void CommitedResource::Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)
 	{
 		if (mState != destState)
 		{

@@ -3,45 +3,48 @@
 #include "D3D12Device.h"
 #include "Common/Pool.h"
 
-class D3D12Device;
-
-class ConstBufferBlock
+namespace D3D12Backend
 {
-public:
-	ConstBufferBlock(D3D12Device* device, i32 size);
-	virtual ~ConstBufferBlock();
+	class D3D12Device;
 
-	D3D12_GPU_VIRTUAL_ADDRESS		Push(const void* data, i32 size);
-	void							Reset();
+	class ConstBufferBlock
+	{
+	public:
+		ConstBufferBlock(D3D12Device* device, i32 size);
+		virtual ~ConstBufferBlock();
 
-private:
-	static const u64				msGpuAddrAlignment = 256;
-	D3D12Device* const				mDevice = nullptr;
-	i32	const						mSize = 0;
-	
-	ID3D12Resource*					mGpuResource = nullptr; // ownership, release by fence
+		D3D12_GPU_VIRTUAL_ADDRESS		Push(const void* data, i32 size);
+		void							Reset();
 
-	// va
-	byte*							mCpuBaseVirtualAddr = nullptr;
-	D3D12_GPU_VIRTUAL_ADDRESS		mGpuBaseVirtualAddr = {};
+	private:
+		static const u64				msGpuAddrAlignment = 256;
+		D3D12Device* const				mDevice = nullptr;
+		i32	const						mSize = 0;
 
-	i32								mWorkingSize = 0;
-};
+		ID3D12Resource* mGpuResource = nullptr; // ownership, release by fence
 
-class D3D12ConstantBuffer
-{
-public:
-	D3D12ConstantBuffer(D3D12Device* device);
-	virtual							~D3D12ConstantBuffer();
+		// va
+		byte* mCpuBaseVirtualAddr = nullptr;
+		D3D12_GPU_VIRTUAL_ADDRESS		mGpuBaseVirtualAddr = {};
 
-	void							Reset();
-	D3D12_GPU_VIRTUAL_ADDRESS		Push(const void* data, i32 size);
+		i32								mWorkingSize = 0;
+	};
 
-private:
-	static const i32				msBlockSize = 2048;
-	D3D12Device* const				mDevice = nullptr;
+	class D3D12ConstantBuffer
+	{
+	public:
+		D3D12ConstantBuffer(D3D12Device* device);
+		virtual							~D3D12ConstantBuffer();
 
-	Pool<ConstBufferBlock>			mPool;
-	ConstBufferBlock*				mWorkingBlock = nullptr;
-};
+		void							Reset();
+		D3D12_GPU_VIRTUAL_ADDRESS		Push(const void* data, i32 size);
 
+	private:
+		static const i32				msBlockSize = 2048;
+		D3D12Device* const				mDevice = nullptr;
+
+		Pool<ConstBufferBlock>			mPool;
+		ConstBufferBlock* mWorkingBlock = nullptr;
+	};
+
+}

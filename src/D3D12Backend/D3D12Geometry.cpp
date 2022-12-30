@@ -2,13 +2,13 @@
 #include "D3D12Geometry.h"
 #include "D3D12Resource.h"
 
-D3D12Geometry::D3D12Geometry(D3D12Device* device)
+D3D12Geometry::D3D12Geometry(D3D12Backend::D3D12Device* device)
 	: mDevice(device)
 {
 
 }
 
-D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
+D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
 {
 	return D3D12Geometry::GenerateGeometry<Vec2f>(device,
 		{
@@ -22,7 +22,7 @@ D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Device* device)
 		});
 }
 
-D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
+D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev)
 {
 	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
 	std::vector<u16> indices;
@@ -80,7 +80,7 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Device* device, i32 subDev)
 }
 
 
-D3D12Geometry* D3D12Geometry::GenerateGeometry(D3D12Device* device, const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
+D3D12Geometry* D3D12Geometry::GenerateGeometry(D3D12Backend::D3D12Device* device, const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
 {
 	D3D12Geometry* result = new D3D12Geometry(device);
 

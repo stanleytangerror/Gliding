@@ -133,7 +133,7 @@ namespace
 		return image;
 	}
 
-	std::unique_ptr<D3D12Backend::CommitedResource> CreateD3DResFromScratchImage(D3D12CommandContext* context, const DirectX::ScratchImage& image)
+	std::unique_ptr<D3D12Backend::CommitedResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const DirectX::ScratchImage& image)
 	{
 		ID3D12Device* device = context->GetDevice()->GetDevice();
 		ID3D12GraphicsCommandList* commandList = context->GetCommandList();
@@ -178,7 +178,7 @@ namespace
 	}
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath)
+std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath)
 {
 	std::filesystem::path ext = std::filesystem::path(filePath).extension();
 	std::unique_ptr<DirectX::ScratchImage> image;
@@ -203,7 +203,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromIma
 	return nullptr;
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageMemory(D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
+std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
 {
 	std::unique_ptr<DirectX::ScratchImage> image;
 
@@ -233,7 +233,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromIma
 	return nullptr;
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromRawMemory(D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 {
 	std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
 	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);

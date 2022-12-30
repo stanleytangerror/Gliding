@@ -36,19 +36,19 @@ namespace
 	}
 }
 
-void RenderUtils::CopyTexture(GraphicsContext* context, 
+void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context,
 	D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
 	D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary)
 {
 	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 	pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-	pass.mShaderMacros.push_back(ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{
@@ -76,27 +76,27 @@ void RenderUtils::CopyTexture(GraphicsContext* context,
 	pass.Draw();
 }
 
-void RenderUtils::CopyTexture(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler)
+void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler)
 {
 	const auto& targetSize = target->GetResource()->GetSize();
 	CopyTexture(context, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
 	const auto& size = source->GetResource()->GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
 	pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
-	pass.mShaderMacros.push_back(ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
-	pass.mShaderMacros.push_back(ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1"});
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1"});
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{
@@ -137,7 +137,7 @@ void GaussianBlur1D(GraphicsContext* context, D3D12Backend::RenderTargetView* ta
 	pass.Draw();
 }
 
-void RenderUtils::GaussianBlur(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel)
 {
 	static D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
@@ -152,7 +152,7 @@ void RenderUtils::GaussianBlur(GraphicsContext* context, D3D12Backend::RenderTar
 TransformNode<std::pair<
 	std::unique_ptr<D3D12Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData)
+RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
@@ -194,7 +194,7 @@ RenderUtils::FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData)
 
 TransformNode<std::pair<
 	std::unique_ptr<D3D12Geometry>,
-	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(D3D12Device* device)
+	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(D3D12Backend::D3D12Device* device)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<D3D12Geometry>,
@@ -227,7 +227,7 @@ TransformNode<std::pair<
 	return result;
 }
 
-D3D12Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData)
+D3D12Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData)
 {
 	const i32 vertexCount = meshRawData->mVertexCount;
 	const auto& vertexData = meshRawData->mVertexData;

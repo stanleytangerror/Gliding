@@ -35,7 +35,7 @@ namespace D3D12Backend
 		device->GetDevice()->CreateRenderTargetView(res->GetD3D12Resource(), &mDesc, mRtv.Get());
 	}
 
-	void RenderTargetView::Clear(D3D12CommandContext* context, const Vec4f& color)
+	void RenderTargetView::Clear(D3D12Backend::D3D12CommandContext* context, const Vec4f& color)
 	{
 		GetResource()->Transition(context, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -54,7 +54,7 @@ namespace D3D12Backend
 		device->GetDevice()->CreateDepthStencilView(mResource->GetD3D12Resource(), &desc, mHandle.Get());
 	}
 
-	void DepthStencilView::Clear(D3D12CommandContext* context, float depth, const u32 stencil)
+	void DepthStencilView::Clear(D3D12Backend::D3D12CommandContext* context, float depth, const u32 stencil)
 	{
 		GetResource()->Transition(context, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 

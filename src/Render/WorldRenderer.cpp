@@ -18,7 +18,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
 {
-	D3D12Device* device = mRenderModule->GetDevice();
+	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
 
 	mSphere = D3D12Geometry::GenerateSphere(device, 40);
 	mQuad = D3D12Geometry::GenerateQuad(device);
@@ -160,7 +160,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	{
 		RENDER_EVENT(context, UpdateResources);
@@ -255,7 +255,7 @@ void WorldRenderer::Render(GraphicsContext* context, D3D12Backend::RenderTargetV
 	RenderSky(context, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderGBufferChannels(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -280,7 +280,7 @@ void WorldRenderer::RenderGBufferChannels(GraphicsContext* context, D3D12Backend
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderShadowMaskChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
@@ -291,7 +291,7 @@ void WorldRenderer::RenderShadowMaskChannel(GraphicsContext* context, D3D12Backe
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderLightViewDepthChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
@@ -301,7 +301,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GraphicsContext* context, D3D12B
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::DeferredLighting(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
 	RENDER_EVENT(context, DeferredLighting);
 
@@ -324,7 +324,7 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, D3D12Backend::Ren
 
 	context->CopyResource(tmpDepth.get(), mMainDepth);
 
-	GraphicsPass lightingPass(context);
+	D3D12Backend::GraphicsPass lightingPass(context);
 
 	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
@@ -391,13 +391,13 @@ void WorldRenderer::DeferredLighting(GraphicsContext* context, D3D12Backend::Ren
 	lightingPass.Draw();
 }
 
-void WorldRenderer::RenderSky(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const
+void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
 	RENDER_EVENT(context, Sky);
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	D3D12Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -449,7 +449,7 @@ void WorldRenderer::RenderSky(GraphicsContext* context, D3D12Backend::RenderTarg
 	pass.Draw();
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context, 
+void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context, 
 	D3D12Geometry* geometry, RenderMaterial* material, 
 	const Transformf& transform, 
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
@@ -457,7 +457,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
 	
-	GraphicsPass gbufferPass(context);
+	D3D12Backend::GraphicsPass gbufferPass(context);
 
 	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
@@ -519,7 +519,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 		const auto& attr = material->mMatAttriSlots[usage];
 		if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
 		{
-			gbufferPass.mShaderMacros.push_back(ShaderMacro{ paramName + "_USE_MAP", "" });
+			gbufferPass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ paramName + "_USE_MAP", "" });
 
 			gbufferPass.AddSrv((paramName + "Tex").c_str(), attr.mTexture->GetSrv());
 			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
@@ -533,11 +533,11 @@ void WorldRenderer::RenderGeometryWithMaterial(GraphicsContext* context,
 	gbufferPass.Draw();
 }
 
-void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
+void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
@@ -586,7 +586,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(GraphicsContext* context, D3
 	pass.Draw();
 }
 
-void WorldRenderer::RenderShadowMask(GraphicsContext* context, 
+void WorldRenderer::RenderShadowMask(D3D12Backend::GraphicsContext* context, 
 	D3D12Backend::RenderTargetView* shadowMask, 
 	D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
 	D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,
@@ -597,7 +597,7 @@ void WorldRenderer::RenderShadowMask(GraphicsContext* context,
 
 	static D3D12Geometry* geometry = D3D12Geometry::GenerateQuad(context->GetDevice());
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";

@@ -3,9 +3,9 @@
 #include "D3D12Headers.h"
 #include "Common/Texture.h"
 
-class D3D12CommandContext;
 namespace D3D12Backend
 {
+	class D3D12CommandContext;
 	class CommitedResource;
 }
 
@@ -20,9 +20,9 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);
 	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
-	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath);
-	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageMemory(D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromRawMemory(D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
+	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+	std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 	
 	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 

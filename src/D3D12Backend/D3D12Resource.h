@@ -19,11 +19,10 @@
 	public:		using CAT(Temp, __LINE__) = Type; \
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  }
 
-class D3D12Device;
-class D3D12CommandContext;
-
 namespace D3D12Backend
 {
+	class D3D12Device;
+	class D3D12CommandContext;
 	class ShaderResourceView;
 	class RenderTargetView;
 	class UnorderedAccessView;
@@ -32,7 +31,7 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API IResource
 	{
 	public:
-		virtual void Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;
+		virtual void Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;
 		virtual ID3D12Resource* GetD3D12Resource() const = 0;
 		virtual Vec3i GetSize() const = 0;
 		virtual std::string GetName() const { return {}; }
@@ -140,7 +139,7 @@ namespace D3D12Backend
 		};
 
 		~CommitedResource();
-		void						Transition(D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
+		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource* GetD3D12Resource() const override { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }
 		DXGI_FORMAT					GetFormat() const { return mDesc.Format; } // TODO override?

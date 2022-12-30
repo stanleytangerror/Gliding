@@ -1,9 +1,9 @@
 #pragma once
 
 class RenderModule;
-class GraphicsContext;
 namespace D3D12Backend
 {
+	class GraphicsContext;
 	class RenderTargetView;
 	class ShaderResourceView;
 	class UnorderedAccessView;
@@ -17,11 +17,11 @@ public:
 	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt);
+	void Render(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt);
 
 private:
-	void CalcSceneExposure(GraphicsContext* context, D3D12Backend::ShaderResourceView* input, D3D12Backend::UnorderedAccessView* exposureTex);
-	void ToneMapping(GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target);
+	void CalcSceneExposure(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* input, D3D12Backend::UnorderedAccessView* exposureTex);
+	void ToneMapping(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

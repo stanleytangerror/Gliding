@@ -3,9 +3,9 @@
 #include "World/Scene.h"
 
 class D3D12Texture;
-class D3D12CommandContext;
 namespace D3D12Backend
 {
+	class D3D12CommandContext;
 	class SamplerView;
 }
 
@@ -20,7 +20,7 @@ struct RenderMaterial
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
 
-	void UpdateGpuResources(D3D12CommandContext* context);
+	void UpdateGpuResources(D3D12Backend::D3D12CommandContext* context);
 	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(

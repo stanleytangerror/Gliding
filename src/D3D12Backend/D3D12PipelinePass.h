@@ -3,103 +3,106 @@
 #include "D3D12CommandContext.h"
 #include "D3D12ResourceView.h"
 
-class GD_D3D12BACKEND_API ComputePass
+namespace D3D12Backend
 {
-public:
-	ComputePass(GraphicsContext* context);
-
-	void Dispatch();
-
-	template <typename T>
-	void AddCbVar(const std::string& name, const T& var) 
-	{ 
-		Assert(mCbParams.find(name) == mCbParams.end());
-		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
-	}
-
-	void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
-	void AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav);
-	void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
-	
-public:
-	struct
+	class GD_D3D12BACKEND_API ComputePass
 	{
-		std::string mFile;
-		const char* mEntry = nullptr;
-	}					mRootSignatureDesc;
+	public:
+		ComputePass(GraphicsContext* context);
 
-	std::string mCsFile;
-	std::vector<ShaderMacro>	mShaderMacros;
+		void Dispatch();
 
-public:
-	GraphicsContext* const					mContext = nullptr;
-	
-	std::map<std::string, D3D12Backend::SamplerView*>		mSamplerParams;
-	std::map<std::string, D3D12Backend::ShaderResourceView*>		mSrvParams;
-	std::map<std::string, D3D12Backend::UnorderedAccessView*>	mUavParams;
-	std::map<std::string, std::vector<byte>>		mCbParams;
+		template <typename T>
+		void AddCbVar(const std::string& name, const T& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+		}
 
-	std::array<u32, 3>								mThreadGroupCounts = {};
+		void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
+		void AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav);
+		void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
 
-protected:
-	ID3D12RootSignature* mRootSignature = nullptr;
-	std::unique_ptr<ComputePipelineState>			mPso;
-};
+	public:
+		struct
+		{
+			std::string mFile;
+			const char* mEntry = nullptr;
+		}					mRootSignatureDesc;
 
-//////////////////////////////////////////////////////////////////////////
+		std::string mCsFile;
+		std::vector<ShaderMacro>	mShaderMacros;
 
-class GD_D3D12BACKEND_API GraphicsPass
-{
-public:
-	GraphicsPass(GraphicsContext* context);
+	public:
+		GraphicsContext* const					mContext = nullptr;
 
-	void Draw();
+		std::map<std::string, D3D12Backend::SamplerView*>		mSamplerParams;
+		std::map<std::string, D3D12Backend::ShaderResourceView*>		mSrvParams;
+		std::map<std::string, D3D12Backend::UnorderedAccessView*>	mUavParams;
+		std::map<std::string, std::vector<byte>>		mCbParams;
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& PsoDesc() { return mPso->Descriptor(); }
+		std::array<u32, 3>								mThreadGroupCounts = {};
 
-	template <typename T>
-	void AddCbVar(const std::string& name, const T& var)
+	protected:
+		ID3D12RootSignature* mRootSignature = nullptr;
+		std::unique_ptr<ComputePipelineState>			mPso;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+
+	class GD_D3D12BACKEND_API GraphicsPass
 	{
-		Assert(mCbParams.find(name) == mCbParams.end());
-		mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
-	}
+	public:
+		GraphicsPass(GraphicsContext* context);
 
-	void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
-	void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
+		void Draw();
 
-public:
-	struct
-	{
-		std::string	mFile;
-		const char* mEntry = nullptr;
-	}					mRootSignatureDesc;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC& PsoDesc() { return mPso->Descriptor(); }
 
-	std::string mVsFile;
-	std::string mPsFile;
-	std::vector<ShaderMacro>	mShaderMacros;
+		template <typename T>
+		void AddCbVar(const std::string& name, const T& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+		}
 
-public:
-	GraphicsContext* const					mContext = nullptr;
-	std::map<int, D3D12Backend::RenderTargetView*>		mRts;
-	D3D12Backend::DepthStencilView*									mDs = nullptr;
+		void AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv);
+		void AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler);
 
-	std::vector<D3D12_VERTEX_BUFFER_VIEW>	mVbvs;
-	D3D12_INDEX_BUFFER_VIEW					mIbv = {};
-	int										mVertexStartLocation = 0;
-	int										mIndexStartLocation = 0;
-	int										mIndexCount = 0;
-	int										mInstanceCount = 1;
+	public:
+		struct
+		{
+			std::string	mFile;
+			const char* mEntry = nullptr;
+		}					mRootSignatureDesc;
 
-	D3D12_VIEWPORT							mViewPort = {};
-	D3D12_RECT								mScissorRect = {};
-	UINT									mStencilRef = 0;
+		std::string mVsFile;
+		std::string mPsFile;
+		std::vector<ShaderMacro>	mShaderMacros;
 
-protected:
-	std::map<std::string, std::vector<byte>>	mCbParams;
-	std::map<std::string, D3D12Backend::ShaderResourceView*>	mSrvParams;
-	std::map<std::string, D3D12Backend::SamplerView*>	mSamplerParams;
+	public:
+		GraphicsContext* const					mContext = nullptr;
+		std::map<int, D3D12Backend::RenderTargetView*>		mRts;
+		D3D12Backend::DepthStencilView* mDs = nullptr;
 
-	ID3D12RootSignature* mRootSignature = nullptr;
-	std::unique_ptr<GraphicsPipelineState> mPso;
-};
+		std::vector<D3D12_VERTEX_BUFFER_VIEW>	mVbvs;
+		D3D12_INDEX_BUFFER_VIEW					mIbv = {};
+		int										mVertexStartLocation = 0;
+		int										mIndexStartLocation = 0;
+		int										mIndexCount = 0;
+		int										mInstanceCount = 1;
 
+		D3D12_VIEWPORT							mViewPort = {};
+		D3D12_RECT								mScissorRect = {};
+		UINT									mStencilRef = 0;
+
+	protected:
+		std::map<std::string, std::vector<byte>>	mCbParams;
+		std::map<std::string, D3D12Backend::ShaderResourceView*>	mSrvParams;
+		std::map<std::string, D3D12Backend::SamplerView*>	mSamplerParams;
+
+		ID3D12RootSignature* mRootSignature = nullptr;
+		std::unique_ptr<GraphicsPipelineState> mPso;
+	};
+
+}

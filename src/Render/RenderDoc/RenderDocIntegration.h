@@ -4,7 +4,6 @@
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Device.h"
 
-class D3D12Device;
 class RenderDocApi;
 
 class RenderDocIntegration
@@ -14,8 +13,8 @@ public:
 
 	bool CaptureNextFrame();
 
-	void OnStartFrame(D3D12Device* device, HWND windowHandle);
-	void OnEndFrame(D3D12Device* device, HWND windowHandle);
+	void OnStartFrame(D3D12Backend::D3D12Device* device, HWND windowHandle);
+	void OnEndFrame(D3D12Backend::D3D12Device* device, HWND windowHandle);
 
 private:
 	using RenderDocApi = RENDERDOC_API_1_0_0;

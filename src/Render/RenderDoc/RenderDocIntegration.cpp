@@ -35,7 +35,7 @@ bool RenderDocIntegration::CaptureNextFrame()
 	}
 }
 
-void RenderDocIntegration::OnStartFrame(D3D12Device* device, HWND windowHandle)
+void RenderDocIntegration::OnStartFrame(D3D12Backend::D3D12Device* device, HWND windowHandle)
 {
 	if (!mApi) { return; }
 
@@ -53,7 +53,7 @@ void RenderDocIntegration::OnStartFrame(D3D12Device* device, HWND windowHandle)
 	}
 }
 
-void RenderDocIntegration::OnEndFrame(D3D12Device* device, HWND windowHandle)
+void RenderDocIntegration::OnEndFrame(D3D12Backend::D3D12Device* device, HWND windowHandle)
 {
 	if (!mApi) { return; }
 

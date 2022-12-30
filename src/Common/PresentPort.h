@@ -3,7 +3,10 @@
 #include "Math.h"
 
 using PortHandle = u64;
-class SwapChainBuffers;
+namespace D3D12Backend
+{
+	class SwapChainBuffers;
+}
 
 enum class GD_COMMON_API PresentPortType
 {
@@ -21,5 +24,5 @@ struct GD_COMMON_API PresentPort
 {
 	PortHandle			mWindow = {};
 	Vec2i				mSize = {};
-	SwapChainBuffers*	mSwapChain = nullptr;
+	D3D12Backend::SwapChainBuffers*	mSwapChain = nullptr;
 };

@@ -4,355 +4,358 @@
 #include "D3D12Resource.h"
 #include "D3D12ResourceView.h"
 
-namespace
+namespace D3D12Backend
 {
-	i32 BindConstBufferParams(std::vector<byte>& cbuf, const std::map<std::string, std::vector<byte>>& cbArgs, ShaderPiece* shader)
+	namespace
 	{
-		const std::vector<InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
-		const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
-			[](i32 size, const auto& param) { return size + param.mSize; });
-
-		i32 offset = cbuf.size();
-		cbuf.insert(cbuf.end(), cbSize, 0);
-		for (const InputCBufferParam& cbParamStruct : shader->GetCBufferBindings())
+		i32 BindConstBufferParams(std::vector<byte>& cbuf, const std::map<std::string, std::vector<byte>>& cbArgs, ShaderPiece* shader)
 		{
-			for (const auto& [varName, varDesc] : cbParamStruct.mVariables)
+			const std::vector<InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
+			const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
+				[](i32 size, const auto& param) { return size + param.mSize; });
+
+			i32 offset = cbuf.size();
+			cbuf.insert(cbuf.end(), cbSize, 0);
+			for (const InputCBufferParam& cbParamStruct : shader->GetCBufferBindings())
 			{
-				if (cbArgs.find(varName) != cbArgs.end())
+				for (const auto& [varName, varDesc] : cbParamStruct.mVariables)
 				{
-					const auto& varArg = cbArgs.find(varName)->second;
-					Assert(varDesc.mSize == varArg.size());
-					memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.data(), varArg.size());
+					if (cbArgs.find(varName) != cbArgs.end())
+					{
+						const auto& varArg = cbArgs.find(varName)->second;
+						Assert(varDesc.mSize == varArg.size());
+						memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.data(), varArg.size());
+					}
+				}
+
+				offset += cbParamStruct.mSize;
+			}
+			return cbSize;
+		};
+
+		template <typename T, typename V>
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12Backend::D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues, const CpuDescItem& nullDesc)
+		{
+			int maxIdx = 0;
+			for (const auto& p : paramBindings)
+			{
+				const T& param = p.second;
+				maxIdx = std::max<int>(maxIdx, param.mBindPoint);
+			}
+
+			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles(maxIdx + 1, nullDesc.Get());
+			for (const auto& p : paramBindings)
+			{
+				const std::string& name = p.first;
+				const T& param = p.second;
+
+				if (paramValues.find(name) != paramValues.end())
+				{
+					handles[param.mBindPoint] = paramValues.find(name)->second->GetHandle();
 				}
 			}
-
-			offset += cbParamStruct.mSize;
+			return handles;
 		}
-		return cbSize;
-	};
+	}
 
-	template <typename T, typename V>
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues, const CpuDescItem& nullDesc)
+	//////////////////////////////////////////////////////////////////////////
+
+	ComputePass::ComputePass(GraphicsContext* context)
+		: mContext(context)
 	{
-		int maxIdx = 0;
-		for (const auto& p : paramBindings)
+		mPso = std::make_unique<ComputePipelineState>();
+	}
+
+	void ComputePass::Dispatch()
+	{
+		for (const auto& p : mSrvParams)
 		{
-			const T& param = p.second;
-			maxIdx = std::max<int>(maxIdx, param.mBindPoint);
+			D3D12Backend::IResource* res = p.second->GetResource();
+			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		}
 
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles(maxIdx + 1, nullDesc.Get());
-		for (const auto& p : paramBindings)
+		for (const auto& p : mUavParams)
 		{
-			const std::string& name = p.first;
-			const T& param = p.second;
-
-			if (paramValues.find(name) != paramValues.end())
-			{
-				handles[param.mBindPoint] = paramValues.find(name)->second->GetHandle();
-			}
+			D3D12Backend::IResource* res = p.second->GetResource();
+			res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		}
-		return handles;
-	}
-}
 
-//////////////////////////////////////////////////////////////////////////
+		// root signatures
+		D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+		mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
 
-ComputePass::ComputePass(GraphicsContext* context)
-	: mContext(context)
-{
-	mPso = std::make_unique<ComputePipelineState>();
-}
+		mPso->SetRootSignature(mRootSignature);
 
-void ComputePass::Dispatch()
-{
-	for (const auto& p : mSrvParams)
-	{
-		D3D12Backend::IResource* res = p.second->GetResource();
-		res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	}
+		// shader
+		ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(mCsFile.c_str(), mShaderMacros);
+		mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
 
-	for (const auto& p : mUavParams)
-	{
-		D3D12Backend::IResource* res = p.second->GetResource();
-		res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	}
+		mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
-	// root signatures
-	D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-	mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
+		ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
 
-	mPso->SetRootSignature(mRootSignature);
+		commandList->SetComputeRootSignature(mRootSignature);
+		commandList->SetPipelineState(mPso->Get());
 
-	// shader
-	ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(mCsFile.c_str(), mShaderMacros);
-	mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
-
-	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
-
-	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-
-	commandList->SetComputeRootSignature(mRootSignature);
-	commandList->SetPipelineState(mPso->Get());
-
-	std::set<ID3D12DescriptorHeap*> heaps;
-	std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
+		std::set<ID3D12DescriptorHeap*> heaps;
+		std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
 
 
-	RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	{
-		// srv
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
-		// uav
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
-
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
-		handles.insert(handles.end(), srvHandles.begin(), srvHandles.end());
-		handles.insert(handles.end(), uavHandles.begin(), uavHandles.end());
-
-		const CD3DX12_GPU_DESCRIPTOR_HANDLE& gpuDescBase = srvUavHeap->Push(static_cast<i32>(handles.size()), handles.data());
-		const u32 handleSize = srvUavHeap->GetDescHandleSize();
-
-		gpuBaseAddrs[0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, 0, handleSize);
-		gpuBaseAddrs[1] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, srvHandles.size(), handleSize);
-
-		heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
-	}
-
-	RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	{
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
-
-		const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
-
-		heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[3] = gpuDescBase;
-	}
-
-	std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
-	commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
-	for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
-	{
-		commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
-	}
-
-	std::vector<byte> cbufData;
-	BindConstBufferParams(cbufData, mCbParams, cs);
-	const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
-	mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
-
-	commandList->Dispatch(mThreadGroupCounts[0], mThreadGroupCounts[1], mThreadGroupCounts[2]);
-}
-
-void ComputePass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
-{
-	Assert(mSrvParams.find(name) == mSrvParams.end());
-	Assert(srv);
-
-	mSrvParams[name] = srv;
-}
-
-void ComputePass::AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav)
-{
-	Assert(mUavParams.find(name) == mUavParams.end());
-	Assert(uav);
-
-	mUavParams[name] = uav;
-}
-
-void ComputePass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
-{
-	Assert(mSamplerParams.find(name) == mSamplerParams.end());
-	Assert(sampler);
-
-	mSamplerParams[name] = sampler;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-GraphicsPass::GraphicsPass(GraphicsContext* context)
-	: mContext(context)
-{
-	mPso = std::make_unique<GraphicsPipelineState>();
-}
-
-void GraphicsPass::Draw()
-{
-	PROFILE_EVENT(GraphicsPass::Draw);
-
-	// transitions
-	for (const auto& p : mSrvParams)
-	{
-		D3D12Backend::IResource* res = p.second->GetResource();
-		res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	}
-
-	for (const auto& p : mRts)
-	{
-		D3D12Backend::IResource* res = p.second->GetResource();
-		res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	}
-
-	if (mDs)
-	{
-		D3D12Backend::IResource* res = mDs->GetResource();
-		res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	}
-
-	// root signatures
-	D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-	mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
-
-	mPso->SetRootSignature(mRootSignature);
-
-	// shader
-	ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(mVsFile.c_str(), mShaderMacros);
-	ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(mPsFile.c_str(), mShaderMacros);
-
-	mPso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
-	mPso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
-
-	const auto& inputLayout = vs->GetInputLayout();
-	mPso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
-
-	// rts
-	auto& desc = mPso->Descriptor();
-	desc.NumRenderTargets = static_cast<u32>(mRts.size());
-	for (const auto& p : mRts)
-	{
-		desc.RTVFormats[p.first] = p.second->GetFormat();
-	}
-
-	if (mDs)
-	{
-		desc.DSVFormat = mDs->GetFormat();
-	}
-
-	mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
-
-	// resource bindings
-	ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-
-	commandList->SetGraphicsRootSignature(mRootSignature);
-	commandList->SetPipelineState(mPso->Get());
-
-	std::set<ID3D12DescriptorHeap*> heaps;
-	std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
-
-	// srvs
-	{
-		RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		
-		std::map<std::string, InputSrvParam> srvBindings;
+		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		{
-			for (const auto& p : vs->GetSrvBindings())
-			{
-				if (srvBindings.find(p.first) == srvBindings.end())
-				{
-					srvBindings[p.first] = p.second;
-				}
-			}
-			for (const auto& p : ps->GetSrvBindings())
-			{
-				if (srvBindings.find(p.first) == srvBindings.end())
-				{
-					srvBindings[p.first] = p.second;
-				}
-			}
+			// srv
+			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), mSrvParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
+			// uav
+			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), mUavParams, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
+
+			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+			handles.insert(handles.end(), srvHandles.begin(), srvHandles.end());
+			handles.insert(handles.end(), uavHandles.begin(), uavHandles.end());
+
+			const CD3DX12_GPU_DESCRIPTOR_HANDLE& gpuDescBase = srvUavHeap->Push(static_cast<i32>(handles.size()), handles.data());
+			const u32 handleSize = srvUavHeap->GetDescHandleSize();
+
+			gpuBaseAddrs[0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, 0, handleSize);
+			gpuBaseAddrs[1] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, srvHandles.size(), handleSize);
+
+			heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
 		}
 
-		int maxSrvIndex = 0;
-		for (const auto& p : srvBindings)
-		{
-			const InputSrvParam& srvParam = p.second;
-			maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
-		}
-
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
-		for (const auto& p : srvBindings)
-		{
-			const std::string& srvName = p.first;
-			const InputSrvParam& srvParam = p.second;
-
-			if (mSrvParams.find(srvName) != mSrvParams.end())
-			{
-				srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
-			}
-		}
-		const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
-
-		heaps.insert(srvHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[0] = gpuDescBaseAddr;
-	}
-
-	{
 		RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		
-		const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
+		{
+			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
 
-		const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+			const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
 
-		heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
-		gpuBaseAddrs[2] = gpuDescBase;
+			heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+			gpuBaseAddrs[3] = gpuDescBase;
+		}
+
+		std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+		commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+		for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+		{
+			commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
+		}
+
+		std::vector<byte> cbufData;
+		BindConstBufferParams(cbufData, mCbParams, cs);
+		const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+		mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
+
+		commandList->Dispatch(mThreadGroupCounts[0], mThreadGroupCounts[1], mThreadGroupCounts[2]);
 	}
 
-	std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
-	commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
-	for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+	void ComputePass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
 	{
-		commandList->SetGraphicsRootDescriptorTable(rsSlot, gpuBaseAddr);
+		Assert(mSrvParams.find(name) == mSrvParams.end());
+		Assert(srv);
+
+		mSrvParams[name] = srv;
 	}
 
-	// cbs
-	std::vector<byte> cbufData;
-	BindConstBufferParams(cbufData, mCbParams, vs);
-	BindConstBufferParams(cbufData, mCbParams, ps);
-	const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
-	mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
-
-	Assert(mViewPort.MinDepth < mViewPort.MaxDepth);
-	commandList->RSSetViewports(1, &mViewPort);
-	commandList->RSSetScissorRects(1, &mScissorRect);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
-	for (const auto& p : mRts)
+	void ComputePass::AddUav(const std::string& name, D3D12Backend::UnorderedAccessView* uav)
 	{
-		const int index = p.first;
-		D3D12Backend::RenderTargetView* rt = p.second;
-		rtvHandles[index] = rt->GetHandle();
+		Assert(mUavParams.find(name) == mUavParams.end());
+		Assert(uav);
+
+		mUavParams[name] = uav;
 	}
 
-	if (mDs)
+	void ComputePass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
 	{
-		CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = mDs->GetHandle();
-		commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, &dsHandle);
+		Assert(mSamplerParams.find(name) == mSamplerParams.end());
+		Assert(sampler);
+
+		mSamplerParams[name] = sampler;
 	}
-	else
+
+	//////////////////////////////////////////////////////////////////////////
+
+	GraphicsPass::GraphicsPass(GraphicsContext* context)
+		: mContext(context)
 	{
-		commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, nullptr);
+		mPso = std::make_unique<GraphicsPipelineState>();
 	}
-	commandList->OMSetStencilRef(mStencilRef);
 
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	void GraphicsPass::Draw()
+	{
+		PROFILE_EVENT(GraphicsPass::Draw);
 
-	commandList->IASetVertexBuffers(0, static_cast<u32>(mVbvs.size()), mVbvs.data());
-	commandList->IASetIndexBuffer(&mIbv);
+		// transitions
+		for (const auto& p : mSrvParams)
+		{
+			D3D12Backend::IResource* res = p.second->GetResource();
+			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
 
-	commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, mIndexStartLocation, mVertexStartLocation, 0);
-}
+		for (const auto& p : mRts)
+		{
+			D3D12Backend::IResource* res = p.second->GetResource();
+			res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
 
-void GraphicsPass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
-{
-	Assert(mSrvParams.find(name) == mSrvParams.end());
-	Assert(srv);
+		if (mDs)
+		{
+			D3D12Backend::IResource* res = mDs->GetResource();
+			res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		}
 
-	mSrvParams[name] = srv;
-}
+		// root signatures
+		D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+		mRootSignature = psoLib->CreateRootSignature(mRootSignatureDesc.mFile.c_str(), mRootSignatureDesc.mEntry);
 
-void GraphicsPass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
-{
-	Assert(mSamplerParams.find(name) == mSamplerParams.end());
-	Assert(sampler);
+		mPso->SetRootSignature(mRootSignature);
 
-	mSamplerParams[name] = sampler;
+		// shader
+		ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(mVsFile.c_str(), mShaderMacros);
+		ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(mPsFile.c_str(), mShaderMacros);
+
+		mPso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
+		mPso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
+
+		const auto& inputLayout = vs->GetInputLayout();
+		mPso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
+
+		// rts
+		auto& desc = mPso->Descriptor();
+		desc.NumRenderTargets = static_cast<u32>(mRts.size());
+		for (const auto& p : mRts)
+		{
+			desc.RTVFormats[p.first] = p.second->GetFormat();
+		}
+
+		if (mDs)
+		{
+			desc.DSVFormat = mDs->GetFormat();
+		}
+
+		mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
+
+		// resource bindings
+		ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
+
+		commandList->SetGraphicsRootSignature(mRootSignature);
+		commandList->SetPipelineState(mPso->Get());
+
+		std::set<ID3D12DescriptorHeap*> heaps;
+		std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
+
+		// srvs
+		{
+			RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			std::map<std::string, InputSrvParam> srvBindings;
+			{
+				for (const auto& p : vs->GetSrvBindings())
+				{
+					if (srvBindings.find(p.first) == srvBindings.end())
+					{
+						srvBindings[p.first] = p.second;
+					}
+				}
+				for (const auto& p : ps->GetSrvBindings())
+				{
+					if (srvBindings.find(p.first) == srvBindings.end())
+					{
+						srvBindings[p.first] = p.second;
+					}
+				}
+			}
+
+			int maxSrvIndex = 0;
+			for (const auto& p : srvBindings)
+			{
+				const InputSrvParam& srvParam = p.second;
+				maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
+			}
+
+			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
+			for (const auto& p : srvBindings)
+			{
+				const std::string& srvName = p.first;
+				const InputSrvParam& srvParam = p.second;
+
+				if (mSrvParams.find(srvName) != mSrvParams.end())
+				{
+					srvHandles[srvParam.mBindPoint] = mSrvParams[srvName]->GetHandle();
+				}
+			}
+			const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
+
+			heaps.insert(srvHeap->GetCurrentDescriptorHeap());
+			gpuBaseAddrs[0] = gpuDescBaseAddr;
+		}
+
+		{
+			RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), mSamplerParams, mContext->GetDevice()->GetNullSamplerCpuDesc());
+
+			const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+
+			heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+			gpuBaseAddrs[2] = gpuDescBase;
+		}
+
+		std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+		commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+		for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+		{
+			commandList->SetGraphicsRootDescriptorTable(rsSlot, gpuBaseAddr);
+		}
+
+		// cbs
+		std::vector<byte> cbufData;
+		BindConstBufferParams(cbufData, mCbParams, vs);
+		BindConstBufferParams(cbufData, mCbParams, ps);
+		const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+		mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
+
+		Assert(mViewPort.MinDepth < mViewPort.MaxDepth);
+		commandList->RSSetViewports(1, &mViewPort);
+		commandList->RSSetScissorRects(1, &mScissorRect);
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
+		for (const auto& p : mRts)
+		{
+			const int index = p.first;
+			D3D12Backend::RenderTargetView* rt = p.second;
+			rtvHandles[index] = rt->GetHandle();
+		}
+
+		if (mDs)
+		{
+			CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = mDs->GetHandle();
+			commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, &dsHandle);
+		}
+		else
+		{
+			commandList->OMSetRenderTargets(static_cast<i32>(mRts.size()), rtvHandles, false, nullptr);
+		}
+		commandList->OMSetStencilRef(mStencilRef);
+
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		commandList->IASetVertexBuffers(0, static_cast<u32>(mVbvs.size()), mVbvs.data());
+		commandList->IASetIndexBuffer(&mIbv);
+
+		commandList->DrawIndexedInstanced(mIndexCount, mInstanceCount, mIndexStartLocation, mVertexStartLocation, 0);
+	}
+
+	void GraphicsPass::AddSrv(const std::string& name, D3D12Backend::ShaderResourceView* srv)
+	{
+		Assert(mSrvParams.find(name) == mSrvParams.end());
+		Assert(srv);
+
+		mSrvParams[name] = srv;
+	}
+
+	void GraphicsPass::AddSampler(const std::string& name, D3D12Backend::SamplerView* sampler)
+	{
+		Assert(mSamplerParams.find(name) == mSamplerParams.end());
+		Assert(sampler);
+
+		mSamplerParams[name] = sampler;
+	}
 }

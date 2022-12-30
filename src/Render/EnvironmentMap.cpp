@@ -5,7 +5,7 @@
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "D3D12Backend/D3D12Geometry.h"
 
-std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIrradianceMap(GraphicsContext* context, D3D12Backend::ShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIrradianceMap(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
@@ -32,7 +32,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 
 	RENDER_EVENT(context, GenerateIrradianceMap);
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	D3D12Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -41,7 +41,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{
@@ -76,7 +76,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	return std::make_tuple(irradianceMap, srv);
 }
 
-std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIntegratedBRDF(GraphicsContext* context, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIntegratedBRDF(D3D12Backend::GraphicsContext* context, i32 resolution)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
@@ -103,7 +103,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	D3D12Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -112,7 +112,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{
@@ -140,7 +140,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	return std::make_tuple(integratedBRDF, srv);
 }
 
-std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(GraphicsContext* context, D3D12Backend::ShaderResourceView* src, i32 resolution)
+std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GeneratePrefilteredEnvironmentMap(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* src, i32 resolution)
 {
 	const auto& originSize = src->GetResource()->GetSize();
 	const auto& format = src->GetFormat();
@@ -199,12 +199,12 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	return std::make_tuple(result, fullSrv);
 }
 
-void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
+void EnvironmentMap::PrefilterEnvironmentMap(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
 
-	GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(context);
 
 	D3D12Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -213,7 +213,7 @@ void EnvironmentMap::PrefilterEnvironmentMap(GraphicsContext* context, D3D12Back
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
+	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
 	{

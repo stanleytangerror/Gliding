@@ -2,7 +2,7 @@
 #include "D3D12Texture.h"
 #include "D3D12RenderTarget.h"
 
-D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath, const std::vector<b8>& content)
+D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content)
 	: mDevice(device)
 	, mName(filePath)
 	, mContent(content)
@@ -11,7 +11,7 @@ D3D12Texture::D3D12Texture(D3D12Device* device, const char* filePath, const std:
 
 }
 
-D3D12Texture::D3D12Texture(D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 	: mDevice(device)
 	, mName(name)
 	, mSize(size)
@@ -23,7 +23,7 @@ D3D12Texture::D3D12Texture(D3D12Device* device, DXGI_FORMAT format, const std::v
 
 }
 
-void D3D12Texture::Initial(D3D12CommandContext* context)
+void D3D12Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 {
 	if (mFromImageMemory)
 	{
