@@ -9,7 +9,7 @@ namespace D3D12Backend
 	class GraphicsContext;
 }
 struct ImDrawData;
-class D3D12Texture;
+class Texture;
 
 class ImGuiRenderer
 {
@@ -23,5 +23,5 @@ protected:
 	RenderModule*		mRenderModule = nullptr;
 	D3D12Backend::SamplerView*	mImGuiSampler = nullptr;
 
-	D3D12Texture*		mFontAtlas = nullptr;
+	Texture*		mFontAtlas = nullptr;
 };

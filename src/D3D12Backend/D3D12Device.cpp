@@ -2,7 +2,6 @@
 #include "D3D12Device.h"
 #include "D3D12Utils.h"
 #include "D3D12CommandContext.h"
-#include "D3D12RenderTarget.h"
 #include "D3D12SwapChain.h"
 #include "D3D12ResourceManager.h"
 

@@ -8,7 +8,7 @@ namespace D3D12Backend
 	class ShaderResourceView;
 	class UnorderedAccessView;
 }
-class D3D12Geometry;
+class Geometry;
 
 class GD_RENDER_API ScreenRenderer
 {
@@ -26,7 +26,7 @@ private:
 private:
 	RenderModule* mRenderModule = nullptr;
 
-	D3D12Geometry* mQuad = nullptr;
+	Geometry* mQuad = nullptr;
 
 	f32 mSecondsSinceLaunch = 0.f;
 	f32 mLastFrameDeltaTimeInSeconds = 0.f;

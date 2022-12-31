@@ -104,6 +104,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="EnvironmentMap.h" />
+    <ClInclude Include="Geometry.h" />
+    <ClInclude Include="Geometry_inl.h" />
     <ClInclude Include="ImGuiRenderer.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
@@ -111,6 +113,7 @@
     <ClInclude Include="RenderMaterial.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
+    <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="RenderUtils.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Texture.h" />
@@ -118,13 +121,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EnvironmentMap.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImGuiRenderer.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
+    <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="RenderUtils.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
+    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="WorldRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>

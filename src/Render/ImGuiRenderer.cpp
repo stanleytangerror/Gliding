@@ -1,13 +1,13 @@
 #include "RenderPch.h"
 #include "ImGuiRenderer.h"
 #include "RenderModule.h"
+#include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
 #include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12Geometry.h"
-#include "D3D12Backend/D3D12Texture.h"
-#include "D3D12Backend/D3D12Headers.h"
+#include "Geometry.h"
+#include "Texture.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
 #include "imgui.h"
 
@@ -31,7 +31,7 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 		memcpy((void*)((uintptr_t)fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
 	}
 
-	mFontAtlas = new D3D12Texture(device, DXGI_FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas");
+	mFontAtlas = new Texture(device, DXGI_FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas");
 }
 
 void ImGuiRenderer::TickFrame(Timer* timer)
@@ -98,8 +98,8 @@ void ImGuiRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
-	std::unique_ptr<D3D12Geometry> geo;
-	geo.reset(D3D12Geometry::GenerateGeometry(device, vertexBuffer, indexBuffer,
+	std::unique_ptr<Geometry> geo;
+	geo.reset(Geometry::GenerateGeometry(device, vertexBuffer, indexBuffer,
 		{
 			{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, pos), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, uv),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },

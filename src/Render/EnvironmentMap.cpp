@@ -1,14 +1,14 @@
 #include "RenderPch.h"
 #include "EnvironmentMap.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
+#include "RenderTarget.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
 #include "D3D12Backend/D3D12CommandContext.h"
-#include "D3D12Backend/D3D12Geometry.h"
+#include "Geometry.h"
 
 std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIrradianceMap(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* mQuad = Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution * 2, resolution };
 	D3D12Backend::CommitedResource* irradianceMap = D3D12Backend::CreateCommitedResourceTex2D(
@@ -34,7 +34,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 
 	D3D12Backend::GraphicsPass pass(context);
 
-	D3D12Geometry* geometry = mQuad;
+	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -79,7 +79,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> EnvironmentMap::GenerateIntegratedBRDF(D3D12Backend::GraphicsContext* context, i32 resolution)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* mQuad = Geometry::GenerateQuad(context->GetDevice());
 
 	const Vec2i& rtSize = { resolution, resolution };
 	D3D12Backend::CommitedResource* integratedBRDF = D3D12Backend::CreateCommitedResourceTex2D(
@@ -105,7 +105,7 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 
 	D3D12Backend::GraphicsPass pass(context);
 
-	D3D12Geometry* geometry = mQuad;
+	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -202,11 +202,11 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 void EnvironmentMap::PrefilterEnvironmentMap(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* src, const Vec2i& targetSize, f32 roughness)
 {
 	static D3D12Backend::SamplerView* mPanoramicSkySampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	static D3D12Geometry* mQuad = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* mQuad = Geometry::GenerateQuad(context->GetDevice());
 
 	D3D12Backend::GraphicsPass pass(context);
 
-	D3D12Geometry* geometry = mQuad;
+	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";

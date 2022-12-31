@@ -104,18 +104,15 @@
     <ClCompile Include="D3D12DescriptorAllocator.cpp" />
     <ClCompile Include="D3D12DescriptorHeap.cpp" />
     <ClCompile Include="D3D12Device.cpp" />
-    <ClCompile Include="D3D12Geometry.cpp" />
     <ClCompile Include="D3D12GpuEvent.cpp" />
     <ClCompile Include="D3D12GpuQueue.cpp" />
     <ClCompile Include="D3D12PipelinePass.cpp" />
     <ClCompile Include="D3D12PipelineState.cpp" />
-    <ClCompile Include="D3D12RenderTarget.cpp" />
     <ClCompile Include="D3D12Resource.cpp" />
     <ClCompile Include="D3D12ResourceManager.cpp" />
     <ClCompile Include="D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12Shader.cpp" />
     <ClCompile Include="D3D12SwapChain.cpp" />
-    <ClCompile Include="D3D12Texture.cpp" />
     <ClCompile Include="D3D12Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -126,20 +123,16 @@
     <ClInclude Include="D3D12DescriptorAllocator.h" />
     <ClInclude Include="D3D12DescriptorHeap.h" />
     <ClInclude Include="D3D12Device.h" />
-    <ClInclude Include="D3D12Geometry.h" />
-    <ClInclude Include="D3D12Geometry_inl.h" />
     <ClInclude Include="D3D12GpuEvent.h" />
     <ClInclude Include="D3D12GpuQueue.h" />
     <ClInclude Include="D3D12Headers.h" />
     <ClInclude Include="D3D12PipelinePass.h" />
     <ClInclude Include="D3D12PipelineState.h" />
-    <ClInclude Include="D3D12RenderTarget.h" />
     <ClInclude Include="D3D12Resource.h" />
     <ClInclude Include="D3D12ResourceManager.h" />
     <ClInclude Include="D3D12ResourceView.h" />
     <ClInclude Include="D3D12Shader.h" />
     <ClInclude Include="D3D12SwapChain.h" />
-    <ClInclude Include="D3D12Texture.h" />
     <ClInclude Include="D3D12Utils.h" />
     <ClInclude Include="D3D12Utils_inl.h" />
   </ItemGroup>

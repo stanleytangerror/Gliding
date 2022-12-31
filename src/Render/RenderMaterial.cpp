@@ -1,7 +1,7 @@
 #include "RenderPch.h"
 #include "RenderMaterial.h"
 #include "D3D12Backend/D3D12CommandContext.h"
-#include "D3D12Backend/D3D12Texture.h"
+#include "Texture.h"
 
 void RenderMaterial::UpdateGpuResources(D3D12Backend::D3D12CommandContext* context)
 {
@@ -33,7 +33,7 @@ bool RenderMaterial::IsGpuResourceReady() const
 RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
 	const MaterialRawData* matRawData,
 	const SceneRawData* sceneRawData,
-	const std::map<std::string, D3D12Texture*>& textures,
+	const std::map<std::string, Texture*>& textures,
 	const std::map<TextureSamplerType, D3D12Backend::SamplerView*>& samplers)
 {
 	RenderMaterial* result = new RenderMaterial;

@@ -3,11 +3,11 @@
 #include "RenderModule.h"
 #include "D3D12Backend/D3D12Device.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
+#include "RenderTarget.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12Geometry.h"
-#include "D3D12Backend/D3D12Texture.h"
+#include "Geometry.h"
+#include "Texture.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "RenderUtils.h"
@@ -20,11 +20,11 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 {
 	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
 
-	mSphere = D3D12Geometry::GenerateSphere(device, 40);
-	mQuad = D3D12Geometry::GenerateQuad(device);
+	mSphere = Geometry::GenerateSphere(device, 40);
+	mQuad = Geometry::GenerateQuad(device);
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = new D3D12Texture(device, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	mSkyTexture = new Texture(device, skyTexPath, Utils::LoadFileContent(skyTexPath));
 	mPanoramicSkySampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
@@ -87,7 +87,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		.SetTexture2D_MipLevels(1)
 		.BuildTex2D();
 
-	mShadowMask = new D3D12RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
+	mShadowMask = new RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
 	mSunLight = new DirectionalLight;
 	{
@@ -171,7 +171,7 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 			const auto& srcSize = mSkyTexture->GetSize();
 			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
-			mPanoramicSkyRt = new D3D12RenderTarget(context->GetDevice(), skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
+			mPanoramicSkyRt = new RenderTarget(context->GetDevice(), skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
@@ -214,7 +214,7 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 		mTestModel->ForEach([&](const auto& node)
 			{
-				D3D12Geometry* geo = node.mContent.first.get();
+				Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();
 
 				if (geo && mat && mat->IsGpuResourceReady())
@@ -237,7 +237,7 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 		mTestModel->ForEach([&](const auto& node)
 			{
-				D3D12Geometry* geo = node.mContent.first.get();
+				Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();
 
 				if (geo && mat && mat->IsGpuResourceReady())
@@ -399,7 +399,7 @@ void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backe
 
 	D3D12Backend::GraphicsPass pass(context);
 
-	D3D12Geometry* geometry = mQuad;
+	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -450,7 +450,7 @@ void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backe
 }
 
 void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context, 
-	D3D12Geometry* geometry, RenderMaterial* material, 
+	Geometry* geometry, RenderMaterial* material, 
 	const Transformf& transform, 
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
 	const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRtvs, D3D12Backend::DepthStencilView* depthView)
@@ -533,7 +533,7 @@ void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* co
 	gbufferPass.Draw();
 }
 
-void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context, D3D12Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
+void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context, Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -595,7 +595,7 @@ void WorldRenderer::RenderShadowMask(D3D12Backend::GraphicsContext* context,
 {
 	RENDER_EVENT(context, ShadowMask);
 
-	static D3D12Geometry* geometry = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* geometry = Geometry::GenerateQuad(context->GetDevice());
 
 	D3D12Backend::GraphicsPass pass(context);
 

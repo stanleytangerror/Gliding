@@ -1,7 +1,7 @@
 #include "D3D12BackendPch.h"
 #include "D3D12Utils.h"
 #include "D3D12CommandContext.h"
-#include "D3D12RenderTarget.h"
+#include "D3D12Resource.h"
 #include <DirectXTex/DirectXTex.h>
 
 void D3D12Utils::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter)

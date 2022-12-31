@@ -1,14 +1,14 @@
 #include "RenderPch.h"
 #include "RenderUtils.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
-#include "D3D12Backend/D3D12Geometry.h"
+#include "Geometry.h"
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
+#include "RenderTarget.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
-#include "D3D12Backend/D3D12Texture.h"
+#include "Texture.h"
 
 namespace
 {
@@ -40,7 +40,7 @@ void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context,
 	D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
 	D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary)
 {
-	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* quad = Geometry::GenerateQuad(context->GetDevice());
 
 	D3D12Backend::GraphicsPass pass(context);
 
@@ -82,7 +82,7 @@ void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context, D3D12Backe
 	CopyTexture(context, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, D3D12Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -140,9 +140,9 @@ void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::Render
 void RenderUtils::GaussianBlur(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel)
 {
 	static D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	static D3D12Geometry* quad = D3D12Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* quad = Geometry::GenerateQuad(context->GetDevice());
 
-	std::unique_ptr<D3D12RenderTarget> interRt = std::make_unique<D3D12RenderTarget>(context->GetDevice(), source->GetResource()->GetSize(), source->GetFormat(), "GaussianBlurIntermediateRT");
+	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(context->GetDevice(), source->GetResource()->GetSize(), source->GetFormat(), "GaussianBlurIntermediateRT");
 
 	RENDER_EVENT(context, GaussianBlur);
 	GaussianBlur1D(context, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
@@ -150,20 +150,20 @@ void RenderUtils::GaussianBlur(D3D12Backend::GraphicsContext* context, D3D12Back
 }
 
 TransformNode<std::pair<
-	std::unique_ptr<D3D12Geometry>,
+	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
 RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	std::map<std::string, D3D12Texture*> textures;
+	std::map<std::string, Texture*> textures;
 	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
 	{
 		if (texRawData)
 		{
-			textures[texPath] = new D3D12Texture(device, texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new Texture(device, texPath.c_str(), texRawData->mRawData);
 		}
 	}
 	std::map<TextureSamplerType, D3D12Backend::SamplerView*> samplers;
@@ -179,12 +179,12 @@ RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* s
 	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
-		D3D12Geometry* geo = GenerateGeometryFromMeshRawData(device, mesh);
+		Geometry* geo = GenerateGeometryFromMeshRawData(device, mesh);
 		const auto& mat = materials[mesh->mMaterialIndex];
 		const Transformf& trans = mesh->mTransform;
 
 		result->PushChild({
-			std::unique_ptr<D3D12Geometry>(geo),
+			std::unique_ptr<Geometry>(geo),
 			mat },
 			trans);
 	}
@@ -193,14 +193,14 @@ RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* s
 }
 
 TransformNode<std::pair<
-	std::unique_ptr<D3D12Geometry>,
+	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(D3D12Backend::D3D12Device* device)
 {
 	auto result = new TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	D3D12Geometry* geo = D3D12Geometry::GenerateSphere(device, 40);
+	Geometry* geo = Geometry::GenerateSphere(device, 40);
 	D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
@@ -212,7 +212,7 @@ TransformNode<std::pair<
 		material->mMatAttriSlots[TextureUsage_Normal].mConstantValue = Vec4f{ 0.5f, 0.5f, 1.f, 0.f };
 
 		result->PushChild(std::pair<
-			std::unique_ptr<D3D12Geometry>,
+			std::unique_ptr<Geometry>,
 			std::shared_ptr<RenderMaterial>>{ geo, material }, Transformf(Translationf(pos)));
 	};
 
@@ -227,7 +227,7 @@ TransformNode<std::pair<
 	return result;
 }
 
-D3D12Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData)
+Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData)
 {
 	const i32 vertexCount = meshRawData->mVertexCount;
 	const auto& vertexData = meshRawData->mVertexData;
@@ -287,5 +287,5 @@ D3D12Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12D
 		indices.push_back(f[2]);
 	}
 
-	return D3D12Geometry::GenerateGeometry(device, vertices, vertexTotalStride, indices, inputDesc);
+	return Geometry::GenerateGeometry(device, vertices, vertexTotalStride, indices, inputDesc);
 }

@@ -1,16 +1,16 @@
-#include "D3D12BackendPch.h"
-#include "D3D12Geometry.h"
-#include "D3D12Resource.h"
+#include "RenderPch.h"
+#include "Geometry.h"
+#include "D3D12Backend/D3D12Resource.h"
 
-D3D12Geometry::D3D12Geometry(D3D12Backend::D3D12Device* device)
+Geometry::Geometry(D3D12Backend::D3D12Device* device)
 	: mDevice(device)
 {
 
 }
 
-D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
+Geometry* Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
 {
-	return D3D12Geometry::GenerateGeometry<Vec2f>(device,
+	return Geometry::GenerateGeometry<Vec2f>(device,
 		{
 			Vec2f{ 1.f, -1.f },
 			Vec2f{ 1.f, 1.f },
@@ -22,7 +22,7 @@ D3D12Geometry* D3D12Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
 		});
 }
 
-D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev)
+Geometry* Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev)
 {
 	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
 	std::vector<u16> indices;
@@ -76,13 +76,13 @@ D3D12Geometry* D3D12Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, 
 		}
 	}
 
-	return D3D12Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(device, vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
+	return Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(device, vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
 }
 
 
-D3D12Geometry* D3D12Geometry::GenerateGeometry(D3D12Backend::D3D12Device* device, const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
+Geometry* Geometry::GenerateGeometry(D3D12Backend::D3D12Device* device, const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
 {
-	D3D12Geometry* result = new D3D12Geometry(device);
+	Geometry* result = new Geometry(device);
 
 	result->mVb = std::unique_ptr<D3D12Backend::CommitedResource>(
 		D3D12Backend::CommitedResource::Builder()

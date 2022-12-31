@@ -1,14 +1,14 @@
 #pragma once
 
-#include "D3D12Headers.h"
-#include "D3D12Device.h"
+#include "D3D12Backend/D3D12Headers.h"
+#include "D3D12Backend/D3D12Device.h"
 
 struct MeshRawData;
 
-class GD_D3D12BACKEND_API D3D12Geometry
+class GD_RENDER_API Geometry
 {
 protected:
-	D3D12Geometry(D3D12Backend::D3D12Device* device);
+	Geometry(D3D12Backend::D3D12Device* device);
 
 public:
 	D3D12Backend::D3D12Device* const		mDevice = nullptr;
@@ -23,15 +23,15 @@ public:
 
 public:
 	template <typename TVertex>
-	static D3D12Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
+	static Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
 
-	static D3D12Geometry* GenerateQuad(D3D12Backend::D3D12Device* device);
-	static D3D12Geometry* GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev);
+	static Geometry* GenerateQuad(D3D12Backend::D3D12Device* device);
+	static Geometry* GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev);
 
-	static D3D12Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
+	static Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
 		const std::vector<b8>& vertices, i32 vertexStride,
 		const std::vector<u16>& indices,
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
@@ -60,4 +60,4 @@ namespace GeometryUtils
 	};
 }
 
-#include "D3D12Geometry_inl.h"
+#include "Geometry_inl.h"

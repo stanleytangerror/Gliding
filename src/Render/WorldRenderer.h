@@ -3,9 +3,9 @@
 #include "Common/TransformHierarchy.h"
 
 class RenderModule;
-class D3D12Geometry;
-class D3D12Texture;
-class D3D12RenderTarget;
+class Geometry;
+class Texture;
+class RenderTarget;
 namespace D3D12Backend
 {
 	class GraphicsContext;
@@ -37,13 +37,13 @@ private:
 	void DeferredLighting(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
 
 	static void RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context,
-		D3D12Geometry* geometry, RenderMaterial* material, 
+		Geometry* geometry, RenderMaterial* material, 
 		const Transformf& transform, 
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 		const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRts, D3D12Backend::DepthStencilView* depthView);
 
 	static void RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context,
-		D3D12Geometry* geometry, RenderMaterial* material,
+		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 		D3D12Backend::DepthStencilView* depthView);
@@ -59,11 +59,11 @@ private:
 	RenderModule* mRenderModule = nullptr;
 	Vec2i const mRenderSize = {};
 
-	D3D12Geometry* mQuad = nullptr;
-	D3D12Geometry* mSphere = nullptr;
+	Geometry* mQuad = nullptr;
+	Geometry* mSphere = nullptr;
 
-	D3D12Texture* mSkyTexture = nullptr;
-	D3D12RenderTarget* mPanoramicSkyRt = nullptr;
+	Texture* mSkyTexture = nullptr;
+	RenderTarget* mPanoramicSkyRt = nullptr;
 	D3D12Backend::SamplerView* mPanoramicSkySampler = nullptr;
 	f32	mSkyLightIntensity = 50.f;
 
@@ -96,13 +96,13 @@ private:
 	std::array<D3D12Backend::ShaderResourceView*, 3> mGBufferSrvs = {};
 	std::array<D3D12Backend::RenderTargetView*, 3> mGBufferRtvs = {};
 
-	D3D12RenderTarget* mShadowMask = nullptr;
+	RenderTarget* mShadowMask = nullptr;
 
 public:
 	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf			mCameraTrans;
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>* mTestModel;
 };

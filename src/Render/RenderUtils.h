@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/TransformHierarchy.h"
-#include "D3D12Backend/D3D12Geometry.h"
+#include "Geometry.h"
 #include "RenderMaterial.h"
 
 class GraphicsContext;
@@ -38,14 +38,14 @@ namespace RenderUtils
 	//////////////////////////////////////////////////////////////////////////
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
 	FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
 		GenerateMaterialProbes(D3D12Backend::D3D12Device* device);
 
-	D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData);
+	Geometry* GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData);
 }

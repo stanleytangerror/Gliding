@@ -2,7 +2,7 @@
 
 #include "World/Scene.h"
 
-class D3D12Texture;
+class Texture;
 namespace D3D12Backend
 {
 	class D3D12CommandContext;
@@ -13,7 +13,7 @@ struct RenderMaterial
 {
 	struct MaterialAttriSlot
 	{
-		D3D12Texture* mTexture = nullptr;
+		Texture* mTexture = nullptr;
 		D3D12Backend::SamplerView* mSampler = nullptr;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
@@ -26,6 +26,6 @@ struct RenderMaterial
 	static RenderMaterial* GenerateRenderMaterialFromRawData(
 		const MaterialRawData* matRawData,
 		const SceneRawData* sceneRawData,
-		const std::map<std::string, D3D12Texture*>& textures,
+		const std::map<std::string, Texture*>& textures,
 		const std::map<TextureSamplerType, D3D12Backend::SamplerView*>& samplers);
 };

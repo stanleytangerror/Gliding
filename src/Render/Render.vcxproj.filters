@@ -45,6 +45,15 @@
     <ClInclude Include="ImGuiRenderer.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Geometry.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry_inl.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderTarget.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderPch.cpp">
@@ -72,6 +81,15 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="ImGuiRenderer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTarget.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

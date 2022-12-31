@@ -1,19 +1,41 @@
 #pragma once
 
-enum TextureType
-{
-	TextureType_1d = 5,
-	TextureType_1dArray = 4,
-	TextureType_2d = 0,
-	TextureType_2dArray = 3,
-	TextureType_Cube = 1,
-	TextureType_3d = 2,
-	TextureType_CubeArray = 6,
-	TextureTypeCount = 7,
-};
+#include "D3D12Backend/D3D12Headers.h"
+#include "D3D12Backend/D3D12Resource.h"
+#include "D3D12Backend/D3D12ResourceView.h"
+#include "D3D12Backend/D3D12CommandContext.h"
+#include "Common/Texture.h"
 
-enum RenderFormat
+namespace D3D12Backend
 {
-	RenderFormat_Unknown = 0,
-	RenderFormat_R8G8B8A8_UNORM,
+	class CommitedResource;
+}
+
+class GD_RENDER_API Texture
+{
+public:
+	Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content);
+	Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+
+	void							Initial(D3D12Backend::D3D12CommandContext* context);
+
+	Vec3i							GetSize() const { return mSize; }
+	DXGI_FORMAT						GetFormat() const { return mFormat; }
+	D3D12Backend::ShaderResourceView*							GetSrv() const { return mSrv; }
+
+	bool							IsD3DResourceReady() const { return mResource != nullptr; }
+
+protected:
+	std::vector<b8>			mContent;
+	bool					mFromImageMemory = true;
+
+	D3D12Backend::D3D12Device* const		mDevice = nullptr;
+	std::string				mFilePath;
+	std::string				mName;
+	std::unique_ptr<D3D12Backend::CommitedResource>			mResource;
+	Vec3i					mSize = {};
+	i32						mMipLevelCount = 1;
+	DXGI_FORMAT				mFormat = DXGI_FORMAT_UNKNOWN;
+
+	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
 };

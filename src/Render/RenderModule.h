@@ -12,7 +12,7 @@ class RenderDocIntegration;
 class WorldRenderer;
 namespace D3D12Backend
 {
-	class D3D12RenderTarget;
+	class RenderTarget;
 	class D3D12Device;
 }
 class ImGuiRenderer;
@@ -42,7 +42,7 @@ protected:
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	D3D12RenderTarget*		mSceneHdrRt = nullptr;
+	RenderTarget*		mSceneHdrRt = nullptr;
 
 public:
 	ImDrawData*								mUiData = nullptr;

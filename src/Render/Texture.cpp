@@ -1,8 +1,8 @@
-#include "D3D12BackendPch.h"
-#include "D3D12Texture.h"
-#include "D3D12RenderTarget.h"
+#include "RenderPch.h"
+#include "Texture.h"
+#include "RenderTarget.h"
 
-D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content)
+Texture::Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content)
 	: mDevice(device)
 	, mName(filePath)
 	, mContent(content)
@@ -11,7 +11,7 @@ D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, const char* filePa
 
 }
 
-D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+Texture::Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 	: mDevice(device)
 	, mName(name)
 	, mSize(size)
@@ -23,7 +23,7 @@ D3D12Texture::D3D12Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format
 
 }
 
-void D3D12Texture::Initial(D3D12Backend::D3D12CommandContext* context)
+void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 {
 	if (mFromImageMemory)
 	{

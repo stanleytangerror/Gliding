@@ -1,6 +1,6 @@
 #pragma once
 
-class D3D12RenderTarget;
+class RenderTarget;
 namespace D3D12Backend
 {
 	class GraphicsContext;

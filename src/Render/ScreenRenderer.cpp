@@ -4,17 +4,17 @@
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Device.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
+#include "RenderTarget.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12Resource.h"
 #include "D3D12Backend/D3D12CommandContext.h"
-#include "D3D12Backend/D3D12Geometry.h"
+#include "Geometry.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
+	mQuad = Geometry::GenerateQuad(mRenderModule->GetDevice());
 }
 
 ScreenRenderer::~ScreenRenderer()
@@ -30,7 +30,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 
 void ScreenRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::RenderTargetView* screenRt)
 {
-	std::unique_ptr<D3D12RenderTarget> exposure = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+	std::unique_ptr<RenderTarget> exposure = std::make_unique<RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
 	CalcSceneExposure(context, sceneHdr, exposure->GetUav());
 	ToneMapping(context, sceneHdr, exposure->GetSrv(), screenRt);
@@ -41,7 +41,7 @@ void ScreenRenderer::CalcSceneExposure(D3D12Backend::GraphicsContext* context, D
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
 	const f32 brightMax = 65536.f;
-	std::unique_ptr<D3D12RenderTarget> histogram = std::make_unique<D3D12RenderTarget>(context->GetDevice(), histogramSize, sizeof(u32), DXGI_FORMAT_UNKNOWN, "BrightnessHistogram");
+	std::unique_ptr<RenderTarget> histogram = std::make_unique<RenderTarget>(context->GetDevice(), histogramSize, sizeof(u32), DXGI_FORMAT_UNKNOWN, "BrightnessHistogram");
 
 	{
 		RENDER_EVENT(context, BrightnessHistogram);

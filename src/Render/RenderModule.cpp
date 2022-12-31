@@ -4,7 +4,7 @@
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "D3D12Backend/D3D12Device.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
+#include "RenderTarget.h"
 #include "D3D12Backend/D3D12SwapChain.h"
 
 #if defined(_DEBUG)
@@ -36,7 +36,7 @@ void RenderModule::Initial()
 	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = new D3D12RenderTarget(mDevice, mainPortBackBufferSize, DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = new RenderTarget(mDevice, mainPortBackBufferSize, DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
 }
 
 void RenderModule::TickFrame(Timer* timer)
