@@ -44,7 +44,8 @@ namespace D3D12Backend
 
 	void D3D12CommandContext::Reset()
 	{
-		AssertInThread(mThisCpuThreadId);
+		// TODO: add thread check with current thread + destroy thread (main thread)
+		//AssertInThread(mThisCpuThreadId);
 
 		AssertHResultOk(mCommandAllocator->Reset());
 		AssertHResultOk(mCommandList->Reset(mCommandAllocator, nullptr));
