@@ -1,8 +1,33 @@
 #include "pch.h"
 #include "GuiSystem.h"
+#include <mutex>
 
 namespace WinGui
 {
+	class MessageHub
+	{
+	private:
+		std::vector<Message> sMessages;
+		std::mutex			sMessageMutex;
+
+	public:
+		std::vector<Message> ReadMessages()
+		{
+			std::lock_guard<std::mutex> guard(sMessageMutex);
+			std::vector<Message> result;
+			std::swap(result, sMessages);
+			return result;
+		}
+
+		void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+		{
+			std::lock_guard<std::mutex> guard(sMessageMutex);
+			sMessages.push_back(Message{ u64(hWnd), message, wParam, u64(lParam) });
+		}
+	};
+
+	static MessageHub sMessageHub;
+
 	LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		switch (message)
@@ -14,15 +39,12 @@ namespace WinGui
 		}
 		return 0;
 
-		case WM_PAINT:
-			return 0;
-
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
 
-		//default:
-			//WriteMessage(hWnd, message, wParam, lParam);
+		default:
+			sMessageHub.WriteMessage(hWnd, message, wParam, lParam);
 		}
 
 		// Handle any messages the switch statement didn't.
@@ -70,27 +92,43 @@ namespace WinGui
 
 	GuiSystem::GuiSystem()
 	{
-		mMainWindowInfo.mWindow = PortHandle(CreateWindowInner(1600, 900, L"MainWindow"));
+		mWindowThread = std::make_unique<std::thread>([&]() 
+			{ 
+				mMainWindowInfo.mWindow = PortHandle(CreateWindowInner(1600, 900, L"MainWindow"));
 
-		mDebugWindowInfo.mSize = { 640, 360 };
-		mDebugWindowInfo.mWindow = PortHandle(CreateWindowInner(640, 360, L"DebugWindow"));
+				mDebugWindowInfo.mSize = { 640, 360 };
+				mDebugWindowInfo.mWindow = PortHandle(CreateWindowInner(640, 360, L"DebugWindow"));
+
+				MSG msg = {};
+				while (msg.message != WM_QUIT)
+				{
+					// Process any messages in the queue.
+					if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+					{
+						TranslateMessage(&msg);
+						DispatchMessage(&msg);
+					}
+				}
+			});
+		
 	}
 
-	void GuiSystem::Run()
+	void GuiSystem::PeakAllMessages()
 	{
-		MSG msg = {};
-		while (msg.message != WM_QUIT)
-		{
-			// Process any messages in the queue.
-			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-		}
+		const auto& newMessages = sMessageHub.ReadMessages();
+		mMessages.insert(mMessages.end(), newMessages.begin(), newMessages.end());
+	}
 
-		mMainWindowInfo.mWindow = {};
-		mDebugWindowInfo.mWindow = {};
+	bool GuiSystem::CanDequeueMessage() const
+	{
+		return !mMessages.empty();
+	}
+
+	WinGui::Message GuiSystem::DequeueMessage()
+	{
+		auto msg = mMessages.front();
+		mMessages.erase(mMessages.begin());
+		return msg;
 	}
 }
 
@@ -104,7 +142,18 @@ PortHandle CreateNewWindow(WinGui::GuiSystem* system, const char* name)
 	return 0;
 }
 
-void UpdateWinGuiSystem(WinGui::GuiSystem* system)
+WINGUI_API bool DequeueMessage(WinGui::GuiSystem* system, WinGui::Message* message)
 {
-	system->Run();
+	if (system->CanDequeueMessage())
+	{
+		*message = system->DequeueMessage();
+		return true;
+	}
+
+	return false;
+}
+
+WINGUI_API void FlushMessages(WinGui::GuiSystem* system)
+{
+	system->PeakAllMessages();
 }

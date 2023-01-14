@@ -11,30 +11,38 @@ namespace CSLauncher
         }
 
         private Status mProgramStatus = Status.Initializing;
-        private Thread mWindowThread;
+        IntPtr mGuiSystem;
+        private Thread mGuiThead;
 
         void Initial()
         {
-            mWindowThread = new Thread(WindowThread);
+            mGuiThead = new Thread(GuiThread);
 
             mProgramStatus = Status.Running;
         }
 
         void Run()
         {
-            mWindowThread.Start();
+            mGuiThead.Start();
         }
 
         void Quit()
         {
-            mWindowThread.Join();
+            mGuiThead.Join();
         }
 
-        void WindowThread()
+        void GuiThread()
         {
             var guiSystem = Interop.WinGuiNative.CreateWinGuiSystem();
 
-            Interop.WinGuiNative.UpdateWinGuiSystem(guiSystem);
+            while (true)
+            {
+                Interop.WinGuiNative.FlushMessages(guiSystem);
+                while (Interop.WinGuiNative.DequeueMessage(guiSystem, out var message)) 
+                {
+                    // message handling
+                }
+            }
 
             mProgramStatus = Status.Quitting;
         }
