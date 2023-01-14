@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CSLauncher": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
