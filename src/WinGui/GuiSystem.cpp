@@ -5,7 +5,7 @@
 
 namespace WinGui
 {
-	class MessageHub
+	class WindowMessageQueue
 	{
 	private:
 		std::vector<Message> mMessages;
@@ -25,32 +25,32 @@ namespace WinGui
 			std::lock_guard<std::mutex> guard(mMessageMutex);
 			mMessages.push_back(Message{ u64(hWnd), message, wParam, u64(lParam) });
 		}
-	};
 
-	static MessageHub sMessageHub;
-
-	LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-	{
-		switch (message)
+		LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-		case WM_CREATE:
-		{
-			LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
-		}
-		return 0;
-
-		case WM_DESTROY:
-			PostQuitMessage(0);
+			switch (message)
+			{
+			case WM_CREATE:
+			{
+				LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
+				SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
+			}
 			return 0;
 
-		default:
-			sMessageHub.WriteMessage(hWnd, message, wParam, lParam);
-		}
+			case WM_DESTROY:
+				PostQuitMessage(0);
+				return 0;
 
-		// Handle any messages the switch statement didn't.
-		return DefWindowProc(hWnd, message, wParam, lParam);
-	}
+			default:
+				WriteMessage(hWnd, message, wParam, lParam);
+			}
+
+			// Handle any messages the switch statement didn't.
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	};
+
+	static WindowMessageQueue sMessageHub;
 
 	HWND CreateWindowInner(UINT width, UINT height, const wchar_t* windowTitle)
 	{
@@ -60,7 +60,8 @@ namespace WinGui
 		WNDCLASSEX windowClass = { 0 };
 		windowClass.cbSize = sizeof(WNDCLASSEX);
 		windowClass.style = CS_HREDRAW | CS_VREDRAW;
-		windowClass.lpfnWndProc = WindowProc;
+		const WNDPROC proc = [](HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) { return sMessageHub.WindowProc(hWnd, message, wParam, lParam); };
+		windowClass.lpfnWndProc = proc;
 		windowClass.hInstance = hInstance;
 		windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 		windowClass.lpszClassName = L"WinLauncher";
