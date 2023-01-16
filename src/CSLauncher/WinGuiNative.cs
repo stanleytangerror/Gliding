@@ -17,6 +17,9 @@ namespace Interop
         [DllImport("../WinGui_Debug_x64.dll")]
         public extern static IntPtr CreateWinGuiSystem();
 
+        [DllImport("../WinGui_Debug_x64.dll", CharSet = CharSet.Unicode)]
+        public extern static void CreateNewGuiWindow(IntPtr system, string title, in Interop.Vec2i size);
+
         [DllImport("../WinGui_Debug_x64.dll")]
         public extern static void UpdateWinGuiSystem(IntPtr system);
 

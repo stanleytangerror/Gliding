@@ -1,28 +1,29 @@
 #include "pch.h"
 #include "GuiSystem.h"
 #include <mutex>
+#include "Common/StringUtils.h"
 
 namespace WinGui
 {
 	class MessageHub
 	{
 	private:
-		std::vector<Message> sMessages;
-		std::mutex			sMessageMutex;
+		std::vector<Message> mMessages;
+		std::mutex			 mMessageMutex;
 
 	public:
 		std::vector<Message> ReadMessages()
 		{
-			std::lock_guard<std::mutex> guard(sMessageMutex);
+			std::lock_guard<std::mutex> guard(mMessageMutex);
 			std::vector<Message> result;
-			std::swap(result, sMessages);
+			std::swap(result, mMessages);
 			return result;
 		}
 
 		void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			std::lock_guard<std::mutex> guard(sMessageMutex);
-			sMessages.push_back(Message{ u64(hWnd), message, wParam, u64(lParam) });
+			std::lock_guard<std::mutex> guard(mMessageMutex);
+			mMessages.push_back(Message{ u64(hWnd), message, wParam, u64(lParam) });
 		}
 	};
 
@@ -94,14 +95,21 @@ namespace WinGui
 	{
 		mWindowThread = std::make_unique<std::thread>([&]() 
 			{ 
-				mMainWindowInfo.mWindow = PortHandle(CreateWindowInner(1600, 900, L"MainWindow"));
-
-				mDebugWindowInfo.mSize = { 640, 360 };
-				mDebugWindowInfo.mWindow = PortHandle(CreateWindowInner(640, 360, L"DebugWindow"));
-
 				MSG msg = {};
 				while (msg.message != WM_QUIT)
 				{
+					// process window creation queue
+					{
+						std::lock_guard<std::mutex> guard(mWindowManageMutex);
+
+						for (const auto& info : this->mCreateWindowQueue)
+						{
+							const u64 handle = PortHandle(CreateWindowInner(info.size.x(), info.size.y(), info.title.c_str()));
+							mWindowHandles[handle] = info;
+						}
+						this->mCreateWindowQueue.clear();
+					}
+					
 					// Process any messages in the queue.
 					if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 					{
@@ -110,7 +118,13 @@ namespace WinGui
 					}
 				}
 			});
+	}
+
+	void GuiSystem::CreateNewWindow(const WindowCreationInfo& info)
+	{
+		std::lock_guard<std::mutex> guard(mWindowManageMutex);
 		
+		mCreateWindowQueue.push_back(info);
 	}
 
 	void GuiSystem::PeakAllMessages()
@@ -156,4 +170,9 @@ WINGUI_API bool DequeueMessage(WinGui::GuiSystem* system, WinGui::Message* messa
 WINGUI_API void FlushMessages(WinGui::GuiSystem* system)
 {
 	system->PeakAllMessages();
+}
+
+WINGUI_API void CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2i& size)
+{
+	system->CreateNewWindow({ title, size });
 }

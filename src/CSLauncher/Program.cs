@@ -12,11 +12,15 @@ namespace CSLauncher
 
         private Status mProgramStatus = Status.Initializing;
         IntPtr mGuiSystem;
+        IntPtr mRenderModule;
         private Thread mGuiThead;
+        private Thread mLogicThread;
 
         void Initial()
         {
             mGuiThead = new Thread(GuiThread);
+
+            mLogicThread = new Thread(LogicThread);
 
             mProgramStatus = Status.Running;
         }
@@ -35,6 +39,11 @@ namespace CSLauncher
         {
             var guiSystem = Interop.WinGuiNative.CreateWinGuiSystem();
 
+            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test1", new Interop.Vec2i { x = 1600, y = 800 });
+            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test2", new Interop.Vec2i { x = 1200, y = 600 });
+            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test3", new Interop.Vec2i { x = 900, y = 400 });
+            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test4", new Interop.Vec2i { x = 600, y = 200 });
+
             while (true)
             {
                 Interop.WinGuiNative.FlushMessages(guiSystem);
@@ -45,6 +54,13 @@ namespace CSLauncher
             }
 
             mProgramStatus = Status.Quitting;
+        }
+
+        void LogicThread()
+        {
+            //mRenderModule = Interop.RenderNative.CreateRenderModule();
+
+            //Interop.RenderNative.AdaptWindow(mRenderModule, new Wind)
         }
 
         static void Main(string[] args)

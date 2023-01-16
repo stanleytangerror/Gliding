@@ -3,24 +3,14 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Interp
+namespace Interop
 {
     class RenderNative
     {
-        [StructLayout(LayoutKind.Sequential)]
-        struct Vec2i 
-        {
-            public Int32 x, y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct WindowInfo
-        {
-            public UInt64 mWindowHandle;
-            public Vec2i mSize;
-        }
+        [DllImport("../Render_Debug_x64.dll")]
+        public extern static IntPtr CreateRenderModule();
 
         [DllImport("../Render_Debug_x64.dll")]
-        extern static IntPtr CreateRenderModule();
+        public extern static void AdaptWindow(IntPtr renderModule, WindowInfo windowInfo);
     }
 }
