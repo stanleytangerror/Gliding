@@ -94,13 +94,13 @@ void Application::LogicThread()
 
 	while (!mWindowCreated) {}
 
-	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mWindow);
+	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mNativeHandle);
 
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
 	mRenderModule->Initial();
 
-	while (mMainWindowInfo.mWindow != 0 && mDebugWindowInfo.mWindow != 0)
+	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
 		mTimer->OnStartNewFrame();
 
@@ -183,10 +183,10 @@ void Application::LogicThread()
 void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 {
 	mMainWindowInfo.mSize = { 1600, 900 };
-	mMainWindowInfo.mWindow = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
+	mMainWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
 
 	mDebugWindowInfo.mSize = { 640, 360 };
-	mDebugWindowInfo.mWindow = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
+	mDebugWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
 
 	mWindowCreated = true;
 
@@ -201,8 +201,8 @@ void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 		}
 	}
 
-	mMainWindowInfo.mWindow = {};
-	mDebugWindowInfo.mWindow = {};
+	mMainWindowInfo.mNativeHandle = {};
+	mDebugWindowInfo.mNativeHandle = {};
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

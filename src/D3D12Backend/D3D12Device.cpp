@@ -163,7 +163,7 @@ namespace D3D12Backend
 		SwapChainBuffers* swapChain = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
 
 		mPresentPorts[type].mSize = initWindowSize;
-		mPresentPorts[type].mWindow = PortHandle(windowHandle);
+		mPresentPorts[type].mNativeHandle = PortHandle(windowHandle);
 		mPresentPorts[type].mSwapChain = swapChain;
 	}
 
