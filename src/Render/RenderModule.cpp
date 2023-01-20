@@ -22,9 +22,9 @@ RenderModule::RenderModule()
 	mDevice = new D3D12Backend::D3D12Device;
 }
 
-void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInfo)
+void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
 {
-	mDevice->CreateSwapChain(type, HWND(windowInfo.mWindow), windowInfo.mSize);
+	mDevice->CreateSwapChain(type, HWND(windowInfo.mNativeHandle), windowInfo.mSize);
 }
 
 void RenderModule::Initial()

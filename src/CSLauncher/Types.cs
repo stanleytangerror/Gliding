@@ -9,10 +9,16 @@ namespace Interop
         public Int32 x, y;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct WindowInfo
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct WindowRuntimeInfo
     {
-        public UInt64 mWindowHandle;
+        public UInt64 mNativeHandle;
         public Vec2i mSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowId
+    {
+        public UInt64 mId;
     }
 }

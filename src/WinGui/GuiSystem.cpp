@@ -94,8 +94,10 @@ namespace WinGui
 
 	GuiSystem::GuiSystem()
 	{
-		mWindowThread = std::make_unique<std::thread>([&]() 
-			{ 
+		mWindowThread = std::make_unique<std::thread>([&]()
+			{
+				this->mWindowThreadId = std::this_thread::get_id();
+
 				MSG msg = {};
 				while (msg.message != WM_QUIT)
 				{
@@ -105,8 +107,8 @@ namespace WinGui
 
 						for (const auto& info : this->mCreateWindowQueue)
 						{
-							const u64 handle = PortHandle(CreateWindowInner(info.size.x(), info.size.y(), info.title.c_str()));
-							mWindowHandles[handle] = info;
+							const u64 handle = PortHandle(CreateWindowInner(info.mSize.x(), info.mSize.y(), info.mTitle.c_str()));
+							mWindowMap[info.mWindowId] = WindowRuntimeInfo{ handle, info.mSize };
 						}
 						this->mCreateWindowQueue.clear();
 					}
@@ -121,11 +123,28 @@ namespace WinGui
 			});
 	}
 
-	void GuiSystem::CreateNewWindow(const WindowCreationInfo& info)
+	WindowId GuiSystem::CreateNewWindow(const wchar_t* title, const Vec2i& size)
 	{
 		std::lock_guard<std::mutex> guard(mWindowManageMutex);
 		
-		mCreateWindowQueue.push_back(info);
+		const WindowId windowId = mWindowIdAllocator.Alloc();
+		mCreateWindowQueue.push_back(WindowCreationInfo{ title, size, windowId });
+
+		return windowId;
+	}
+
+	bool GuiSystem::TryGetWindowInfo(const WindowId& windowId, WindowRuntimeInfo* info)
+	{
+		std::lock_guard<std::mutex> guard(mWindowManageMutex);
+		
+		auto it = mWindowMap.find(windowId);
+		if (it != mWindowMap.end())
+		{
+			*info = it->second;
+			return true;
+		}
+		
+		return false;
 	}
 
 	void GuiSystem::PeakAllMessages()
@@ -173,7 +192,12 @@ WINGUI_API void FlushMessages(WinGui::GuiSystem* system)
 	system->PeakAllMessages();
 }
 
-WINGUI_API void CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2i& size)
+WINGUI_API WinGui::WindowId CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2i& size)
 {
-	system->CreateNewWindow({ title, size });
+	return system->CreateNewWindow(title, size);
+}
+
+WINGUI_API bool TryGetGuiWindowInfo(WinGui::GuiSystem* system, const WinGui::WindowId& id, WindowRuntimeInfo* info)
+{
+	return system->TryGetWindowInfo(id, info);
 }

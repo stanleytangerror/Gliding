@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CSLauncher
 {
@@ -11,7 +12,15 @@ namespace CSLauncher
         }
 
         private Status mProgramStatus = Status.Initializing;
-        IntPtr mGuiSystem;
+        
+        private IntPtr GuiSystem
+        {
+            get { return (IntPtr) Interlocked.Read(ref _mGuiSystem); }
+            set { Interlocked.Exchange(ref _mGuiSystem, (long) value); }
+        }
+        private long _mGuiSystem;
+
+
         IntPtr mRenderModule;
         private Thread mGuiThead;
         private Thread mLogicThread;
@@ -28,6 +37,7 @@ namespace CSLauncher
         void Run()
         {
             mGuiThead.Start();
+            mLogicThread.Start();
         }
 
         void Quit()
@@ -38,11 +48,12 @@ namespace CSLauncher
         void GuiThread()
         {
             var guiSystem = Interop.WinGuiNative.CreateWinGuiSystem();
+            GuiSystem = guiSystem;
 
-            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test1", new Interop.Vec2i { x = 1600, y = 800 });
-            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test2", new Interop.Vec2i { x = 1200, y = 600 });
-            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test3", new Interop.Vec2i { x = 900, y = 400 });
-            Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test4", new Interop.Vec2i { x = 600, y = 200 });
+            var id1 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test1", new Interop.Vec2i { x = 1600, y = 800 });
+            var id2 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test2", new Interop.Vec2i { x = 1200, y = 600 });
+            var id3 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test3", new Interop.Vec2i { x = 900, y = 400 });
+            var id4 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test4", new Interop.Vec2i { x = 600, y = 200 });
 
             while (true)
             {
@@ -56,8 +67,23 @@ namespace CSLauncher
             mProgramStatus = Status.Quitting;
         }
 
+        async Task WaitForGuiSystemAsync()
+        {
+            while (GuiSystem == default(IntPtr)) 
+            { 
+                await Task.Delay(10);
+            }
+        }
+
         void LogicThread()
         {
+            WaitForGuiSystemAsync().Wait();
+
+            var guiSystem = GuiSystem;
+            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, new Interop.WindowId { mId = 1 }, out var info))
+            {
+                Console.WriteLine(info.mNativeHandle.ToString());
+            }
             //mRenderModule = Interop.RenderNative.CreateRenderModule();
 
             //Interop.RenderNative.AdaptWindow(mRenderModule, new Wind)

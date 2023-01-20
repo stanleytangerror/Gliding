@@ -22,7 +22,7 @@ class GD_RENDER_API RenderModule
 public:
 	RenderModule();
 
-	void AdaptWindow(PresentPortType type, const WindowInfo& windowInfo);
+	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
 
 	void Initial();
 

@@ -14,9 +14,9 @@ enum class GD_COMMON_API PresentPortType
 	DebugPort
 };
 
-struct GD_COMMON_API WindowInfo
+struct GD_COMMON_API WindowRuntimeInfo
 {
-	PortHandle		mWindow = {};
+	PortHandle		mNativeHandle = {};
 	Vec2i			mSize = {};
 };
 

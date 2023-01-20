@@ -7,7 +7,7 @@ GD_RENDER_API RenderModule* CreateRenderModule()
 	return new RenderModule();
 }
 
-GD_RENDER_API void AdaptWindow(RenderModule* renderModule, const WindowInfo& windowInfo)
+GD_RENDER_API void AdaptWindow(RenderModule* renderModule, const WindowRuntimeInfo& windowInfo)
 {
 	renderModule->AdaptWindow(PresentPortType::MainPort, windowInfo);
 }

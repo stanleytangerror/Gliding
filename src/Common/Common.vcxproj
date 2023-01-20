@@ -17,6 +17,7 @@
     <ClInclude Include="CommonTypes.h" />
     <ClInclude Include="CommonUtils.h" />
     <ClInclude Include="FreeList.h" />
+    <ClInclude Include="IndexAllocator.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Math_inl.h" />
     <ClInclude Include="Pool.h" />
