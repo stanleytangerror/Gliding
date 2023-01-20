@@ -11,7 +11,7 @@ namespace Interop
         public extern static IntPtr CreateRenderModule();
 
         [DllImport("../Render_Debug_x64.dll")]
-        public extern static void AdaptWindow(IntPtr renderModule, WindowRuntimeInfo windowInfo);
+        public extern static void AdaptWindow(IntPtr renderModule, int portType, WindowRuntimeInfo windowInfo);
 
         [DllImport("../Render_Debug_x64.dll")]
         public extern static void InitialRenderModule(IntPtr renderModule);

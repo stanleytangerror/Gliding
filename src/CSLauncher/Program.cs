@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Interop;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +28,9 @@ namespace CSLauncher
         private Thread mGuiThead;
         private Thread mLogicThread;
 
+        WindowId mMainWindowId;
+        WindowId mDebugWindowId;
+
         void Initial()
         {
             mGuiThead = new Thread(GuiThread);
@@ -52,12 +56,11 @@ namespace CSLauncher
         void GuiThread()
         {
             var guiSystem = Interop.WinGuiNative.CreateWinGuiSystem();
-            GuiSystem = guiSystem;
 
-            var id1 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test1", new Interop.Vec2i { x = 1600, y = 800 });
-            var id2 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test2", new Interop.Vec2i { x = 1200, y = 600 });
-            var id3 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test3", new Interop.Vec2i { x = 900, y = 400 });
-            var id4 = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Test4", new Interop.Vec2i { x = 600, y = 200 });
+            mMainWindowId = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Main", new Interop.Vec2i { x = 1600, y = 800 });
+            mDebugWindowId = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Debug", new Interop.Vec2i { x = 1200, y = 600 });
+
+            GuiSystem = guiSystem;
 
             while (true)
             {
@@ -87,11 +90,13 @@ namespace CSLauncher
             Interop.ImGuiIntegrationNative.Initial();
 
             var guiSystem = GuiSystem;
-            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, new Interop.WindowId { mId = 1 }, out var info))
+            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, mMainWindowId, out var info1))
             {
-                //Console.WriteLine(info.mNativeHandle.ToString());
-
-                Interop.RenderNative.AdaptWindow(mRenderModule, info);
+                Interop.RenderNative.AdaptWindow(mRenderModule, 0, info1);
+            }
+            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, mDebugWindowId, out var info2))
+            {
+                Interop.RenderNative.AdaptWindow(mRenderModule, 1, info2);
             }
 
             Interop.RenderNative.InitialRenderModule(mRenderModule);
