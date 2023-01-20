@@ -12,5 +12,14 @@ namespace Interop
 
         [DllImport("../Render_Debug_x64.dll")]
         public extern static void AdaptWindow(IntPtr renderModule, WindowRuntimeInfo windowInfo);
+
+        [DllImport("../Render_Debug_x64.dll")]
+        public extern static void InitialRenderModule(IntPtr renderModule);
+
+        [DllImport("../Render_Debug_x64.dll")]
+        public extern static void RenderThroughRenderModule(IntPtr renderModule);
+
+        [DllImport("../Render_Debug_x64.dll")]
+        public extern static void TickRenderModule(IntPtr renderModule, IntPtr timer);
     }
 }

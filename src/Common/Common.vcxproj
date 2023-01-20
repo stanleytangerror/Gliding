@@ -20,6 +20,7 @@
     <ClInclude Include="IndexAllocator.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Math_inl.h" />
+    <ClInclude Include="NativeUtils.h" />
     <ClInclude Include="Pool.h" />
     <ClInclude Include="Pool_inl.h" />
     <ClInclude Include="PresentPort.h" />
@@ -34,6 +35,7 @@
   <ItemGroup>
     <ClCompile Include="AssertUtils.cpp" />
     <ClCompile Include="CommonPch.cpp" />
+    <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="Profile.cpp" />
     <ClCompile Include="StringUtils.cpp" />
     <ClCompile Include="Texture.cpp" />

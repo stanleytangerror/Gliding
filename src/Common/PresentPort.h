@@ -22,7 +22,7 @@ struct GD_COMMON_API WindowRuntimeInfo
 
 struct GD_COMMON_API PresentPort
 {
-	PortHandle			mWindow = {};
+	PortHandle			mNativeHandle = {};
 	Vec2i				mSize = {};
 	D3D12Backend::SwapChainBuffers*	mSwapChain = nullptr;
 };

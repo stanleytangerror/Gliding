@@ -52,7 +52,7 @@ void RenderModule::Render()
 {
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
+		mRenderDoc->OnStartFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mNativeHandle));
 	}
 
 	mDevice->StartFrame();
@@ -91,7 +91,7 @@ void RenderModule::Render()
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
+		mRenderDoc->OnEndFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mNativeHandle));
 	}
 }
 

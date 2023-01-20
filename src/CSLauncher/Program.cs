@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,6 +23,7 @@ namespace CSLauncher
 
 
         IntPtr mRenderModule;
+        IntPtr mTimer;
         private Thread mGuiThead;
         private Thread mLogicThread;
 
@@ -30,6 +32,8 @@ namespace CSLauncher
             mGuiThead = new Thread(GuiThread);
 
             mLogicThread = new Thread(LogicThread);
+
+            mTimer = Interop.CommonNative.CreateTimer();
 
             mProgramStatus = Status.Running;
         }
@@ -79,18 +83,37 @@ namespace CSLauncher
         {
             WaitForGuiSystemAsync().Wait();
 
+            mRenderModule = Interop.RenderNative.CreateRenderModule();
+            Interop.ImGuiIntegrationNative.Initial();
+
             var guiSystem = GuiSystem;
             if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, new Interop.WindowId { mId = 1 }, out var info))
             {
-                Console.WriteLine(info.mNativeHandle.ToString());
-            }
-            //mRenderModule = Interop.RenderNative.CreateRenderModule();
+                //Console.WriteLine(info.mNativeHandle.ToString());
 
-            //Interop.RenderNative.AdaptWindow(mRenderModule, new Wind)
+                Interop.RenderNative.AdaptWindow(mRenderModule, info);
+            }
+
+            Interop.RenderNative.InitialRenderModule(mRenderModule);
+            while (true)
+            {
+                Interop.CommonNative.TimerOnStartNewFrame(mTimer);
+                Interop.RenderNative.TickRenderModule(mRenderModule, mTimer);
+                Interop.RenderNative.RenderThroughRenderModule(mRenderModule);
+            }
+        }
+
+        static void SetupEnvironment()
+        {
+            var dir = Directory.GetCurrentDirectory();
+            var appDir = dir + @"\..\..\..\..\";
+            Directory.SetCurrentDirectory(appDir);
         }
 
         static void Main(string[] args)
         {
+            SetupEnvironment();
+            
             var program = new Program();
             program.Initial();
             program.Run();
