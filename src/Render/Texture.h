@@ -14,8 +14,8 @@ namespace D3D12Backend
 class GD_RENDER_API Texture
 {
 public:
-	Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content);
-	Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	Texture(const char* filePath, const std::vector<b8>& content);
+	Texture(DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 
 	void							Initial(D3D12Backend::D3D12CommandContext* context);
 
@@ -38,4 +38,9 @@ protected:
 	DXGI_FORMAT				mFormat = DXGI_FORMAT_UNKNOWN;
 
 	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
+};
+
+struct TextureInitializer
+{
+
 };

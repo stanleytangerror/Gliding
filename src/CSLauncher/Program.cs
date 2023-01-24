@@ -23,11 +23,11 @@ namespace CSLauncher
         private long _mGuiSystem;
 
 
-        IntPtr mRenderModule;
-        IntPtr mTimer;
         private Thread mGuiThead;
         private Thread mLogicThread;
 
+        IntPtr mRenderModule;
+        IntPtr mTimer;
         WindowId mMainWindowId;
         WindowId mDebugWindowId;
 
@@ -37,7 +37,7 @@ namespace CSLauncher
 
             mLogicThread = new Thread(LogicThread);
 
-            mTimer = Interop.CommonNative.CreateTimer();
+            mTimer = CommonNative.CreateTimer();
 
             mProgramStatus = Status.Running;
         }
@@ -51,27 +51,31 @@ namespace CSLauncher
         void Quit()
         {
             mGuiThead.Join();
+            mLogicThread.Join();
+        }
+
+        void TriggerQuitting()
+        {
+            mProgramStatus = Status.Quitting;
         }
 
         void GuiThread()
         {
-            var guiSystem = Interop.WinGuiNative.CreateWinGuiSystem();
+            var guiSystem = WinGuiNative.CreateWinGuiSystem();
 
-            mMainWindowId = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Main", new Interop.Vec2i { x = 1600, y = 800 });
-            mDebugWindowId = Interop.WinGuiNative.CreateNewGuiWindow(guiSystem, "Debug", new Interop.Vec2i { x = 1200, y = 600 });
+            mMainWindowId = WinGuiNative.CreateNewGuiWindow(guiSystem, "Main", new Vec2i { x = 1600, y = 400 });
+            mDebugWindowId = WinGuiNative.CreateNewGuiWindow(guiSystem, "Debug", new Vec2i { x = 1200, y = 600 });
 
             GuiSystem = guiSystem;
 
-            while (true)
+            while (mProgramStatus != Status.Quitting)
             {
-                Interop.WinGuiNative.FlushMessages(guiSystem);
-                while (Interop.WinGuiNative.DequeueMessage(guiSystem, out var message)) 
+                WinGuiNative.FlushMessages(guiSystem);
+                while (WinGuiNative.DequeueMessage(guiSystem, out var message))
                 {
                     // message handling
                 }
             }
-
-            mProgramStatus = Status.Quitting;
         }
 
         async Task WaitForGuiSystemAsync()
@@ -86,25 +90,25 @@ namespace CSLauncher
         {
             WaitForGuiSystemAsync().Wait();
 
-            mRenderModule = Interop.RenderNative.CreateRenderModule();
-            Interop.ImGuiIntegrationNative.Initial();
+            mRenderModule = RenderNative.CreateRenderModule();
+            ImGuiIntegrationNative.Initial();
 
             var guiSystem = GuiSystem;
-            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, mMainWindowId, out var info1))
+            if (WinGuiNative.TryGetGuiWindowInfo(guiSystem, mMainWindowId, out var info1))
             {
-                Interop.RenderNative.AdaptWindow(mRenderModule, 0, info1);
+                RenderNative.AdaptWindow(mRenderModule, 0, info1);
             }
-            if (Interop.WinGuiNative.TryGetGuiWindowInfo(guiSystem, mDebugWindowId, out var info2))
+            if (WinGuiNative.TryGetGuiWindowInfo(guiSystem, mDebugWindowId, out var info2))
             {
-                Interop.RenderNative.AdaptWindow(mRenderModule, 1, info2);
+                RenderNative.AdaptWindow(mRenderModule, 1, info2);
             }
 
-            Interop.RenderNative.InitialRenderModule(mRenderModule);
-            while (true)
+            RenderNative.InitialRenderModule(mRenderModule);
+            while (mProgramStatus != Status.Quitting)
             {
-                Interop.CommonNative.TimerOnStartNewFrame(mTimer);
-                Interop.RenderNative.TickRenderModule(mRenderModule, mTimer);
-                Interop.RenderNative.RenderThroughRenderModule(mRenderModule);
+                CommonNative.TimerOnStartNewFrame(mTimer);
+                RenderNative.TickRenderModule(mRenderModule, mTimer);
+                RenderNative.RenderThroughRenderModule(mRenderModule);
             }
         }
 

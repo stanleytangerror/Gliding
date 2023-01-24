@@ -37,6 +37,7 @@ public:
 protected:
 	D3D12Backend::D3D12Device*				mDevice = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
+	std::unique_ptr<RenderResourceManager>	mResourceManager;
 
 	std::unique_ptr<ScreenRenderer>			mScreenRenderer;
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;

@@ -151,6 +151,16 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormUv::GetInputDe
 	};
 }
 
+std::vector<RHI::InputElementDesc> GeometryUtils::VertexPosNormUv::GetInputElementsDesc()
+{
+	return
+	{
+		{ "POSITION", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 0, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 12, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, RHI::PixelFormat::R32G32_FLOAT, 0, 24, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+	};
+}
+
 std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormTanUv::GetInputDesc()
 {
 	return
@@ -161,4 +171,90 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormTanUv::GetInpu
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
+}
+
+std::vector<RHI::InputElementDesc> GeometryUtils::VertexPosNormTanUv::GetInputElementsDesc()
+{
+	return
+	{
+		{ "POSITION", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 0, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 12, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 24, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, RHI::PixelFormat::R32G32B32_FLOAT, 0, 36, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, RHI::PixelFormat::R32G32_FLOAT, 0, 48, RHI::InputClassification::PER_VERTEX_DATA, 0 },
+	};
+}
+
+GeometryData* GeometryData::GenerateQuad()
+{
+	return GeometryData::GenerateGeometryData(
+		std::vector<Vec2f>
+		{
+			Vec2f{ 1.f, -1.f },
+			Vec2f{ 1.f, 1.f },
+			Vec2f{ -1.f, 1.f },
+			Vec2f{ -1.f, -1.f }
+		},
+		std::vector<u16>{ 0, 1, 2, 0, 2, 3 },
+		std::vector<RHI::InputElementDesc>
+		{
+			{ "POSITION", 0, RHI::PixelFormat::R32G32_FLOAT, 0, 0, RHI::InputClassification::PER_VERTEX_DATA, 0 }
+		});
+}
+
+GeometryData* GeometryData::GenerateSphere(i32 subDev)
+{
+	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
+	std::vector<u16> indices;
+
+	const i32 stacks = subDev;
+	const i32 slices = 2 * subDev;
+
+	// z-up
+	for (int i = 0; i <= stacks; i++)
+	{
+		f32 v = f32(i) / f32(stacks);
+		f32 theta = Math::Pi<f32>() * v;
+		for (int j = 0; j < slices; j++)
+		{
+			f32 u = f32(j) / f32(slices);
+			f32 phi = 2.f * Math::Pi<f32>() * u;
+
+			const Vec3f pos = {
+				std::sin(theta) * std::cos(phi),
+				std::sin(theta) * std::sin(phi),
+				std::cos(theta) };
+
+			const Vec3f norm = pos.normalized();
+			const Vec3f tang = Vec3f{ -std::sin(phi), std::cos(phi), 0.f }.normalized();
+			const Vec3f biTang = norm.cross(tang);
+
+			vertices.push_back({ pos, norm, tang, biTang, {u, v} });
+		}
+	}
+
+	// ccw
+	for (int i = 1; i <= stacks; i++)
+	{
+		for (int j = 0; j < slices; j++)
+		{
+			auto Idx = [&](i32 stackIdx, i32 sliceIdx) { return stackIdx * slices + sliceIdx; };
+
+			if (i != stacks)
+			{
+				indices.push_back(Idx(i - 1, j));
+				indices.push_back(Idx(i, j));
+				indices.push_back(Idx(i, (j + 1) % slices));
+			}
+
+			if (i != 1)
+			{
+				indices.push_back(Idx(i - 1, j));
+				indices.push_back(Idx(i, (j + 1) % slices));
+				indices.push_back(Idx(i - 1, (j + 1) % slices));
+			}
+		}
+	}
+
+	return GeometryData::GenerateGeometryData<GeometryUtils::VertexPosNormTanUv>(vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputElementsDesc());
 }

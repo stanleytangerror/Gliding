@@ -2,6 +2,7 @@
 
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Device.h"
+#include "RenderInterface/RenderTypes.h"
 
 struct MeshRawData;
 
@@ -37,6 +38,25 @@ public:
 		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
 };
 
+class GD_RENDER_API GeometryData
+{
+public:
+	std::vector<b8> mVertexData;
+	std::vector<u16> mIndexData;
+	std::vector<RHI::InputElementDesc> mInputDescs;
+
+public:
+	template <typename TVertex>
+	static GeometryData* GenerateGeometryData(
+		const std::vector<TVertex>& vertices,
+		const std::vector<u16>& indices,
+		const std::vector<RHI::InputElementDesc>& inputDescs);
+
+	static GeometryData* GenerateQuad();
+
+	static GeometryData* GenerateSphere(i32 subDev);
+};
+
 namespace GeometryUtils
 {
 	struct VertexPosNormUv
@@ -46,6 +66,7 @@ namespace GeometryUtils
 		Vec2f mUv;
 
 		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
+		static std::vector<RHI::InputElementDesc> GetInputElementsDesc();
 	};
 
 	struct VertexPosNormTanUv
@@ -57,7 +78,8 @@ namespace GeometryUtils
 		Vec2f mUv;
 
 		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
-	};
+		static std::vector<RHI::InputElementDesc> GetInputElementsDesc();
+	}; 
 }
 
 #include "Geometry_inl.h"

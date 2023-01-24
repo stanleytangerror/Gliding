@@ -9,6 +9,24 @@ namespace Interop
         public Int32 x, y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vec2u
+    {
+        public UInt32 x, y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vec2f
+    {
+        public float x, y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vec4f
+    {
+        public float x, y, z, w;
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct WindowRuntimeInfo
     {

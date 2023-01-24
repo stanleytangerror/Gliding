@@ -6,6 +6,7 @@
 #include "D3D12Backend/D3D12Device.h"
 #include "RenderTarget.h"
 #include "D3D12Backend/D3D12SwapChain.h"
+#include "RenderInterface/RenderResource.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -20,6 +21,8 @@ RenderModule::RenderModule()
 #endif
 
 	mDevice = new D3D12Backend::D3D12Device;
+
+	mResourceManager = std::make_unique<RenderResourceManager>(this);
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
@@ -56,6 +59,8 @@ void RenderModule::Render()
 	}
 
 	mDevice->StartFrame();
+
+	mResourceManager->PreRender();
 
 	D3D12Backend::GraphicsContext* context = mDevice->GetGpuQueue(D3D12Backend::D3D12GpuQueueType::Graphic)->AllocGraphicContext();
 	{

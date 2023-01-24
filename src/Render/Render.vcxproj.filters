@@ -7,6 +7,9 @@
     <Filter Include="Source\RenderDoc">
       <UniqueIdentifier>{dfb55959-32d4-4175-a338-28282183fe0c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\RenderInterface">
+      <UniqueIdentifier>{f5f4b39c-975f-499c-8203-bc47ad5d05f9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RenderPch.h">
@@ -57,6 +60,15 @@
     <ClInclude Include="NativeUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="RenderInterface\RenderPass.h">
+      <Filter>Source\RenderInterface</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderInterface\RenderTypes.h">
+      <Filter>Source\RenderInterface</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderInterface\RenderResource.h">
+      <Filter>Source\RenderInterface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderPch.cpp">
@@ -97,6 +109,12 @@
     </ClCompile>
     <ClCompile Include="NativeUtils.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderInterface\RenderPass.cpp">
+      <Filter>Source\RenderInterface</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderInterface\RenderResource.cpp">
+      <Filter>Source\RenderInterface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
