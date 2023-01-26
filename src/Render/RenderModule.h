@@ -4,18 +4,20 @@
 #include "WorldRenderer.h"
 #include "ScreenRenderer.h"
 #include "ImGuiRenderer.h"
+#include "RenderInterface/RenderResource.h"
 #include "Common/PresentPort.h"
 #include "imgui.h"
 
 class ScreenRenderer;
 class RenderDocIntegration;
 class WorldRenderer;
+class RenderResourceManager;
+class ImGuiRenderer;
+class RenderTarget;
 namespace D3D12Backend
 {
-	class RenderTarget;
 	class D3D12Device;
 }
-class ImGuiRenderer;
 
 class GD_RENDER_API RenderModule
 {
@@ -31,6 +33,7 @@ public:
 
 	D3D12Backend::D3D12Device*	GetDevice() const { return mDevice; }
 	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
+	RenderResourceManager*		GetRenderResourceManager() const { return mResourceManager.get(); }
 
 	void				Destroy();
 

@@ -3,6 +3,7 @@
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Device.h"
 #include "RenderInterface/RenderTypes.h"
+#include "RenderInterface/RenderResource.h"
 
 struct MeshRawData;
 
@@ -44,6 +45,8 @@ public:
 	std::vector<b8> mVertexData;
 	std::vector<u16> mIndexData;
 	std::vector<RHI::InputElementDesc> mInputDescs;
+	u32 mVertexCount = 0;
+	u32 mVertexStride = 0;
 
 public:
 	template <typename TVertex>
@@ -56,6 +59,25 @@ public:
 
 	static GeometryData* GenerateSphere(i32 subDev);
 };
+
+struct VertexBufferInitializer : RenderResourceInitializer
+{
+	VertexBufferInitializer(GeometryData* data) : mGeometryData(data) {}
+
+	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+
+	GeometryData* mGeometryData = nullptr;
+};
+
+struct IndexBufferInitializer : RenderResourceInitializer
+{
+	IndexBufferInitializer(GeometryData* data) : mGeometryData(data) {}
+
+	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+
+	GeometryData* mGeometryData = nullptr;
+};
+
 
 namespace GeometryUtils
 {

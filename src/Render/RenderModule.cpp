@@ -4,9 +4,9 @@
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "D3D12Backend/D3D12Device.h"
-#include "RenderTarget.h"
 #include "D3D12Backend/D3D12SwapChain.h"
 #include "RenderInterface/RenderResource.h"
+#include "RenderTarget.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0

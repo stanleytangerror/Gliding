@@ -31,7 +31,7 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 		memcpy((void*)((uintptr_t)fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
 	}
 
-	mFontAtlas = new Texture(device, DXGI_FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas");
+	mFontAtlas = new Texture(DXGI_FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas");
 }
 
 void ImGuiRenderer::TickFrame(Timer* timer)

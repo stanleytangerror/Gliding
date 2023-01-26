@@ -22,13 +22,13 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	auto rtv = std::unique_ptr<D3D12Backend::RenderTargetView>(irradianceMap->CreateRtv()
 		.SetFormat(irradianceMap->GetFormat())
 		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-		.BuildTex2D());
+		.Build());
 
 	auto srv = irradianceMap->CreateSrv()
 		.SetFormat(irradianceMap->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, 1, 0, 0 })
+		.Build();
 
 	RENDER_EVENT(context, GenerateIrradianceMap);
 
@@ -93,13 +93,13 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 	auto rtv = std::unique_ptr<D3D12Backend::RenderTargetView>(integratedBRDF->CreateRtv()
 		.SetFormat(integratedBRDF->GetFormat())
 		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-		.BuildTex2D());
+		.Build());
 
 	auto srv = integratedBRDF->CreateSrv()
 		.SetFormat(integratedBRDF->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, 1, 0, 0 })
+		.Build();
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
 
@@ -164,27 +164,22 @@ std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> E
 			result->CreateRtv()
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-			.SetMipSlice(i)
-			.SetPlaneSlice(0)
-			.BuildTex2D());
+			.SetTexture2D(D3D12_TEX2D_RTV{ (u32)i, 0 })
+			.Build());
 
 		srvs.push_back(
 			result->CreateSrv()
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-			.SetTexture2D_MostDetailedMip(i)
-			.SetTexture2D_MipLevels(1)
-			.SetTexture2D_PlaneSlice(0)
-			.BuildTex2D());
+			.SetTexture2D(D3D12_TEX2D_SRV{ u32(i), 1, 0, 0 })
+			.Build());
 	}
 
 	D3D12Backend::ShaderResourceView* fullSrv = result->CreateSrv()
 		.SetFormat(result->GetFormat())
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MostDetailedMip(0)
-		.SetTexture2D_MipLevels(levelCount)
-		.SetTexture2D_PlaneSlice(0)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, u32(levelCount), 0, 0 })
+		.Build();
 
 	RENDER_EVENT(context, FilterEnvironmentMap);
 

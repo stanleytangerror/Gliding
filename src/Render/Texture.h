@@ -1,15 +1,12 @@
 #pragma once
 
+#include "RenderInterface/RenderResource.h"
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Resource.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "Common/Texture.h"
-
-namespace D3D12Backend
-{
-	class CommitedResource;
-}
+#include <memory>
 
 class GD_RENDER_API Texture
 {
@@ -40,7 +37,13 @@ protected:
 	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
 };
 
-struct TextureInitializer
+class TextureFromFileInitializer : public RenderResourceInitializer
 {
+public:
+	TextureFromFileInitializer(const char* name, const std::vector<b8>& content) : mName(name), mContent(content) {}
 
+	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+
+	std::string mName;
+	std::vector<b8> mContent;
 };

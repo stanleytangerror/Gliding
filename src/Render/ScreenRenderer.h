@@ -1,6 +1,9 @@
 #pragma once
 
 class RenderModule;
+class RenderResourceManager;
+class Geometry;
+
 namespace D3D12Backend
 {
 	class GraphicsContext;
@@ -8,7 +11,6 @@ namespace D3D12Backend
 	class ShaderResourceView;
 	class UnorderedAccessView;
 }
-class Geometry;
 
 class GD_RENDER_API ScreenRenderer
 {
@@ -22,6 +24,8 @@ public:
 private:
 	void CalcSceneExposure(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* input, D3D12Backend::UnorderedAccessView* exposureTex);
 	void ToneMapping(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target);
+
+	void TestPass(D3D12Backend::GraphicsContext* context, RenderResourceManager* resMgr);
 
 private:
 	RenderModule* mRenderModule = nullptr;

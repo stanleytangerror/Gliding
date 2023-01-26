@@ -25,3 +25,13 @@ protected:
 	u64 mAllocedIndex = 1;
 	const std::thread::id mWorkingThreadId;
 };
+
+template <typename Name>
+struct IndexId
+{
+	u64 mId = (~0x0);
+
+	static IndexId FromInt(u64 index) { return { index }; }
+	bool IsValid() const { return mId != (~0x0); }
+	bool operator<(const IndexId& other) const { return mId < other.mId; }
+};

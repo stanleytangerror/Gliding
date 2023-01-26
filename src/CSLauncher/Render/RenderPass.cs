@@ -70,7 +70,7 @@ namespace CSLauncher
 					{ "SceneHdr", new ShaderResourceView {
 						ResourceId = inputTexture.ResourceId,
 						SrvDesc = new ShaderResourceViewDesc{
-							Dimension = ViewDimention.TEXTURE2D,
+							Dimension = ViewDimension.TEXTURE2D,
 							Format = PixelFormat.R8G8B8A8_UNORM_SRGB }
 					} }
 				},
@@ -80,7 +80,7 @@ namespace CSLauncher
 					{
 						ResourceId = outputTexture.ResourceId,
 						RtvDesc = new RenderTargetViewDesc{
-							Dimension = ViewDimention.TEXTURE2D,
+							Dimension = ViewDimension.TEXTURE2D,
 							Format = PixelFormat.R8G8B8A8_UNORM_SRGB }
 					}
 				},

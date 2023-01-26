@@ -29,13 +29,13 @@ RenderTarget::RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_F
 	mSrv = mResource->CreateSrv()
 		.SetFormat(mFormat)
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MipLevels(mipLevelCount)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, (u32) mipLevelCount, 0, 0 })
+		.Build();
 
 	mRtv = mResource->CreateRtv()
 		.SetFormat(mFormat)
 		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-		.BuildTex2D();
+		.Build();
 
 	mUav = mResource->CreateUav()
 		.SetFormat(mFormat)
@@ -64,11 +64,8 @@ RenderTarget::RenderTarget(D3D12Backend::D3D12Device* device, i32 count, i32 str
 	mSrv = mResource->CreateSrv()
 		.SetFormat(mFormat)
 		.SetViewDimension(D3D12Utils::GetSrvDimension(D3D12_RESOURCE_DIMENSION_BUFFER))
-		.SetBuffer_FirstElement(0)
-		.SetBuffer_NumElements(count)
-		.SetBuffer_StructureByteStride(stride)
-		.SetBuffer_Flags(D3D12_BUFFER_SRV_FLAG_NONE)
-		.BuildBuffer();
+		.SetBuffer(D3D12_BUFFER_SRV{ 0, (u32)count, (u32)stride, D3D12_BUFFER_SRV_FLAG_NONE })
+		.Build();
 
 	mUav = mResource->CreateUav()
 		.SetFormat(mFormat)

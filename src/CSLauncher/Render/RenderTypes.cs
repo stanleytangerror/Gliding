@@ -19,7 +19,7 @@ namespace RenderTypes
         Texture3D = 4
     }
 
-    public enum ViewDimention
+    public enum ViewDimension
     {
         UNKNOWN = 0,
         BUFFER = 1,
@@ -216,14 +216,14 @@ namespace RenderTypes
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct ShaderResourceViewDesc
     {
-        public ViewDimention Dimension;
+        public ViewDimension Dimension;
         public PixelFormat Format;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct RenderTargetViewDesc
     {
-        public ViewDimention Dimension;
+        public ViewDimension Dimension;
         public PixelFormat Format;
     }
 

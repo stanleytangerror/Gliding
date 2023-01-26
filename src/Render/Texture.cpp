@@ -46,6 +46,15 @@ void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 	mSrv = mResource->CreateSrv()
 		.SetFormat(mFormat)
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MipLevels(mResource->GetMipLevelCount())
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, mResource->GetMipLevelCount(), 0, 0 })
+		.Build();
+}
+
+std::unique_ptr<D3D12Backend::CommitedResource> TextureFromFileInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+{
+	const TextureFileExt::Enum ext = Utils::GetTextureExtension(mName.c_str());
+	auto resource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
+	NAME_RAW_D3D12_OBJECT(resource->GetD3D12Resource(), mName.c_str());
+
+	return std::unique_ptr<D3D12Backend::CommitedResource>();
 }

@@ -18,6 +18,9 @@ namespace Utils
 	GD_COMMON_API std::vector<b8>	LoadFileContent(const char* path);
 
 	GD_COMMON_API u32 HashBytes(const b8* data, u32 size);
+	
+	template <typename T>
+	u32 HashBytes(const T* data) { return HashBytes(reinterpret_cast<const b8*>(data), sizeof(T)); }
 }
 
 #define DEBUG_PRINT(msg, ...)	(Utils::PrintDebugString(Utils::FormatString(msg "\n", ##__VA_ARGS__ ).c_str()));

@@ -111,6 +111,7 @@
     <ClInclude Include="NativeUtils.h" />
     <ClInclude Include="RenderDoc\RenderDocIntegration.h" />
     <ClInclude Include="RenderInterface\RenderPass.h" />
+    <ClInclude Include="RenderInterface\RenderTypeD3D12Utils.h" />
     <ClInclude Include="RenderInterface\RenderTypes.h" />
     <ClInclude Include="RenderInterface\RenderResource.h" />
     <ClInclude Include="RenderMacros.h" />
@@ -130,7 +131,9 @@
     <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderInterface\RenderPass.cpp" />
-    <ClCompile Include="RenderInterface\RenderResource.cpp" />
+    <ClCompile Include="RenderInterface\RenderResource.cpp">
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</PreprocessToFile>
+    </ClCompile>
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />

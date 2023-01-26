@@ -258,3 +258,55 @@ GeometryData* GeometryData::GenerateSphere(i32 subDev)
 
 	return GeometryData::GenerateGeometryData<GeometryUtils::VertexPosNormTanUv>(vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputElementsDesc());
 }
+
+std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+{
+	auto resource = std::unique_ptr<D3D12Backend::CommitedResource>(
+		D3D12Backend::CommitedResource::Builder()
+		.SetAlignment(0)
+		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		.SetWidth(mGeometryData->mVertexData.size())
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_UNKNOWN)
+		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
+		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
+		.BuildUpload(context->GetDevice()));
+	
+	{
+		u8* pVertexDataBegin = nullptr;
+		CD3DX12_RANGE readRange(0, 0);
+		AssertHResultOk(resource->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+		memcpy(pVertexDataBegin, mGeometryData->mVertexData.data(), mGeometryData->mVertexData.size());
+	}
+
+	return resource;
+}
+
+std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+{
+	auto resource = std::unique_ptr<D3D12Backend::CommitedResource>(
+		D3D12Backend::CommitedResource::Builder()
+		.SetAlignment(0)
+		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		.SetWidth(mGeometryData->mIndexData.size() * sizeof(u16))
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(DXGI_FORMAT_UNKNOWN)
+		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
+		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
+		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
+		.BuildUpload(context->GetDevice()));
+	
+	{
+		u8* pIndexDataBegin = nullptr;
+		CD3DX12_RANGE readRange(0, 0);
+		AssertHResultOk(resource->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
+		memcpy(pIndexDataBegin, mGeometryData->mIndexData.data(), mGeometryData->mIndexData.size() * sizeof(u16));
+	}
+
+	return resource;
+}

@@ -15,7 +15,7 @@ namespace D3D12Backend
 		mRtv = mResource->CreateRtv()
 			.SetFormat(mResource->GetFormat())
 			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-			.BuildTex2D();
+			.Build();
 	}
 
 	void SwapChainBufferResource::PrepareForPresent(D3D12Backend::D3D12CommandContext* context)

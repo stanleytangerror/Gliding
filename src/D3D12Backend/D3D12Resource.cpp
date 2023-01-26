@@ -93,46 +93,49 @@ namespace D3D12Backend
 		return UavBuilder().SetDevice(mDevice).SetResource(this);
 	}
 
-	ShaderResourceView* CommitedResource::SrvBuilder::BuildBuffer()
+	ShaderResourceView* CommitedResource::SrvBuilder::Build()
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 		{
 			desc.Format = mFormat;
 			desc.ViewDimension = mViewDimension;
 			desc.Shader4ComponentMapping = mShader4ComponentMapping;
-			desc.Buffer.FirstElement = mBuffer_FirstElement;
-			desc.Buffer.NumElements = mBuffer_NumElements;
-			desc.Buffer.StructureByteStride = mBuffer_StructureByteStride;
-			desc.Buffer.Flags = mBuffer_Flags;
+			switch (mViewDimension)
+			{
+			case D3D12_SRV_DIMENSION_BUFFER							  : desc.Buffer							 = mBuffer						   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE1D						  : desc.Texture1D						 = mTexture1D					   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE1DARRAY					  : desc.Texture1DArray					 = mTexture1DArray				   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE2D						  : desc.Texture2D						 = mTexture2D					   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE2DARRAY					  : desc.Texture2DArray					 = mTexture2DArray				   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE2DMS					  : desc.Texture2DMS					 = mTexture2DMS					   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY				  : desc.Texture2DMSArray				 = mTexture2DMSArray			   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURE3D						  : desc.Texture3D						 = mTexture3D					   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURECUBE					  : desc.TextureCube					 = mTextureCube					   ; break;
+			case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY				  : desc.TextureCubeArray				 = mTextureCubeArray			   ; break;
+			case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE: desc.RaytracingAccelerationStructure = mRaytracingAccelerationStructure; break;
+			}
 		}
-
+	
 		return new ShaderResourceView(mDevice, mResource, desc);
 	}
 
-	ShaderResourceView* CommitedResource::SrvBuilder::BuildTex2D()
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Shader4ComponentMapping = mShader4ComponentMapping;
-			desc.Texture2D.MostDetailedMip = mTexture2D_MostDetailedMip;
-			desc.Texture2D.MipLevels = mTexture2D_MipLevels;
-			desc.Texture2D.PlaneSlice = mTexture2D_PlaneSlice;
-			desc.Texture2D.ResourceMinLODClamp = mTexture2D_ResourceMinLODClamp;
-		}
-
-		return new ShaderResourceView(mDevice, mResource, desc);
-	}
-
-	RenderTargetView* CommitedResource::RtvBuilder::BuildTex2D()
+	RenderTargetView* CommitedResource::RtvBuilder::Build()
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC desc = {};
 		{
 			desc.Format = mFormat;
 			desc.ViewDimension = mViewDimension;
-			desc.Texture2D.MipSlice = mMipSlice;
-			desc.Texture2D.PlaneSlice = mPlaneSlice;
+			switch (mViewDimension)
+			{
+			case D3D12_RTV_DIMENSION_BUFFER							  : desc.Buffer							 = mBuffer						   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE1D						  : desc.Texture1D						 = mTexture1D					   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE1DARRAY					  : desc.Texture1DArray					 = mTexture1DArray				   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE2D						  : desc.Texture2D						 = mTexture2D					   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE2DARRAY					  : desc.Texture2DArray					 = mTexture2DArray				   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE2DMS					  : desc.Texture2DMS					 = mTexture2DMS					   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY				  : desc.Texture2DMSArray				 = mTexture2DMSArray			   ; break;
+			case D3D12_RTV_DIMENSION_TEXTURE3D						  : desc.Texture3D						 = mTexture3D					   ; break;
+			}
 		}
 
 		return new RenderTargetView(mDevice, mResource, desc);

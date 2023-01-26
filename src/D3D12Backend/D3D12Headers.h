@@ -25,3 +25,7 @@ namespace D3D12Backend
 #define RENDER_EVENT(context, format)\
 	D3D12Backend::D3D12ScopedEvent _D3D12ScopedEvent_##_FILE_##_LINE_NO_(context->GetCommandList(), #format);\
 	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
+
+#define RENDER_EVENT_STR(context, str)\
+	D3D12Backend::D3D12ScopedEvent _D3D12ScopedEvent_##_FILE_##_LINE_NO_(context->GetCommandList(), str);\
+	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(str);

@@ -5,13 +5,16 @@
 #include "RenderResource.h"
 #include <string>
 #include <map>
+#include <vector>
+
+class RenderModule;
 
 struct GraphicProgram
 {
-	std::wstring RsName;
-	std::wstring RsEntry;
-	std::wstring VsName;
-	std::wstring PsName;
+	std::string RsName;
+	std::string RsEntry;
+	std::string VsName;
+	std::string PsName;
 };
 
 struct VertexBufferView
@@ -21,7 +24,7 @@ struct VertexBufferView
 };
 
 
-class IndexBufferView
+struct IndexBufferView
 {
 	ResourceId ResourceId;
 	RHI::IndexBufferViewDesc Desc;
@@ -74,6 +77,7 @@ struct RenderTargetView
 struct InputPrimitiveView
 {
 	std::vector<VertexBufferView> Vbvs;
+	std::vector<RHI::InputElementDesc> InputElements;
 	IndexBufferView Ibv;
 	RHI::IndexedInstancedParam Param;
 };
@@ -89,6 +93,16 @@ public:
 	std::vector<RenderTargetView> Rtvs;
 	RHI::ViewPort ViewPort;
 	RHI::Rect ScissorRect;
+};
 
-	static RenderPass GenerateTestRenderPass(class RenderResourceManager* resMgr);
+class RenderPassManager
+{
+public:
+	RenderPassManager(RenderModule* renderModule) : mRenderModule(renderModule) {}
+
+	void ParseAllPassses();
+
+private:
+	RenderModule* mRenderModule = nullptr;
+	std::vector<RenderPass> mPasses;
 };

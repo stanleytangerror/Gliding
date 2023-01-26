@@ -24,7 +24,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mQuad = Geometry::GenerateQuad(device);
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = new Texture(device, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	mSkyTexture = new Texture(skyTexPath, Utils::LoadFileContent(skyTexPath));
 	mPanoramicSkySampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
@@ -58,13 +58,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-			.SetTexture2D_MipLevels(1)
-			.BuildTex2D();
+			.SetTexture2D(D3D12_TEX2D_SRV{ 0, 1, 0, 0 })
+			.Build();
 		
 		mGBufferRtvs[i] = mGBuffers[i]->CreateRtv()
 			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-			.BuildTex2D();
+			.Build();
 	}
 
 	mMainDepth = D3D12Backend::CreateCommitedResourceTex2D(
@@ -84,8 +84,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mMainDepthSrv = mMainDepth->CreateSrv()
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
 		.SetFormat(DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, 1, 0, 0 })
+		.Build();
 
 	mShadowMask = new RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
@@ -118,8 +118,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	mLightViewDepthSrv = mLightViewDepth->CreateSrv()
 		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
 		.SetFormat(DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+		.SetTexture2D(D3D12_TEX2D_SRV{ 0, 1, 0, 0 })
+		.Build();
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);

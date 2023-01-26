@@ -4,12 +4,15 @@
 #include "D3D12Backend/D3D12Headers.h"
 #include "D3D12Backend/D3D12Device.h"
 #include "D3D12Backend/D3D12PipelinePass.h"
-#include "RenderTarget.h"
 #include "D3D12Backend/D3D12ResourceView.h"
 #include "D3D12Backend/D3D12Resource.h"
 #include "D3D12Backend/D3D12CommandContext.h"
-#include "Geometry.h"
 #include "D3D12Backend/D3D12ResourceView.h"
+#include "RenderInterface/RenderPass.h"
+#include "RenderInterface/RenderResource.h"
+#include "RenderTarget.h"
+#include "Geometry.h"
+#include "Texture.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
@@ -131,4 +134,86 @@ void ScreenRenderer::ToneMapping(D3D12Backend::GraphicsContext* context, D3D12Ba
 	ldrScreenPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
 
 	ldrScreenPass.Draw();
+}
+
+void ScreenRenderer::TestPass(D3D12Backend::GraphicsContext* context, RenderResourceManager* resMgr)
+{
+	auto targetSize = Vec2i{ 1600, 900 };
+
+	GeometryData* quad = GeometryData::GenerateQuad();
+	auto inputVbResId = resMgr->CreateNamedReadonlyResource("QuadVB", new VertexBufferInitializer(quad));
+	auto inputIbResId = resMgr->CreateNamedReadonlyResource("QuadIB", new IndexBufferInitializer(quad));
+
+	const char* texFile = "C:\\Users\\MyComputer\\Desktop\\sky_pano.jpg";
+	const auto& texContent = Utils::LoadFileContent(texFile);
+	auto inputResId = resMgr->CreateNamedReadonlyResource(texFile, new TextureFromFileInitializer(texFile, texContent));
+
+	auto outputResId = resMgr->CreateSwapChainResource();
+
+	auto inputPrimitive = InputPrimitiveView
+	{
+		std::vector<VertexBufferView>{
+		{
+			inputVbResId,
+			RHI::VertexBufferViewDesc{ 0, (u32)quad->mVertexData.size(), quad->mVertexStride }
+		}},
+		quad->mInputDescs,
+		IndexBufferView
+		{
+			inputIbResId,
+			RHI::IndexBufferViewDesc{ 0, (u32)quad->mIndexData.size(), RHI::PixelFormat::R16_UINT }
+		},
+		RHI::IndexedInstancedParam{ (u32)quad->mIndexData.size(), 1 }
+	};
+
+	auto pass = RenderPass
+	{
+		"ToneMapping",
+		GraphicProgram
+		{
+			"res/RootSignature/RootSignature.hlsl",
+			"GraphicsRS",
+			"res/Shader/ToneMapping.hlsl",
+			"res/Shader/ToneMapping.hlsl",
+		},
+		inputPrimitive,
+		std::map<std::string, ConstantBufferValue>
+		{
+			{ "RtSize", ConstantBufferValue{ Vec4f{ (f32)targetSize.x(), (f32)targetSize.y(), 1.0f / targetSize.x(), 1.0f / targetSize.y() } } },
+			{ "ExposureInfo", ConstantBufferValue{ Vec4f{ -4.0f, 0.0f, 0.0f, 0.0f } } }
+		},
+		std::map<std::string, ShaderResourceView>
+		{
+			{ "SceneHdr", ShaderResourceView {
+				inputResId,
+				RHI::ShaderResourceViewDesc{
+					RHI::ViewDimension::TEXTURE2D,
+					RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
+				}
+			} }
+		},
+		std::vector<RenderTargetView>
+		{
+			RenderTargetView
+			{
+				outputResId,
+				RHI::RenderTargetViewDesc {
+					RHI::ViewDimension::TEXTURE2D,
+					RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
+				}
+			}
+		},
+		RHI::ViewPort
+		{
+			Vec2f { 0.0f, 0.0f },
+			Vec2f { targetSize.x(), targetSize.y() },
+			Vec2f { 0.0f, 1.0f },
+		},
+		RHI::Rect
+		{
+			Vec2f { 0.0f, 0.0f },
+			Vec2f { targetSize.x(), targetSize.y() },
+		}
+	};
+
 }

@@ -17,7 +17,7 @@ namespace RHI
         Texture3D = 4
     };
 
-    enum class ViewDimention
+    enum class ViewDimension
     {
         UNKNOWN = 0,
         BUFFER = 1,
@@ -192,18 +192,132 @@ namespace RHI
         u16 MipLevels;
     };
 
+    namespace SRV
+    {
+        struct BufferViewDesc
+        {
+            u64 FirstElement;
+            u32 NumElements;
+            u32 StructureByteStride;
+            enum Flag { None = 0, Raw = 1 } Flags;
+        };
+
+        struct Texture1DView
+        {
+            u32 MostDetailedMip;
+            u32 MipLevels;
+            f32 MinLODClamp;
+        };
+
+        struct ArrayView
+        {
+            u32 FirstArraySlice;
+            u32 ArraySize;
+        };
+
+        struct Texture1DArrayView : Texture1DView, ArrayView {};
+
+        struct Texture2DView : Texture1DView
+        {
+            u32 PlaneSlice;
+        };
+
+        struct Texture2DArrayView : Texture2DView, ArrayView {};
+
+        struct Texture3DView : Texture1DView {};
+
+        struct TextureCubeView : Texture1DView {};
+
+        struct TextureCubeArrayView : TextureCubeView
+        {
+            u32 First2DArrayFace;
+            u32 NumCubes;
+        };
+
+        struct Texture2DMSView {};
+
+        struct Texture2DMSArrayView : ArrayView {};
+
+        struct RaytracingAccelerationStructureView
+        {
+            u64 GpuVirtualAddress;
+        };
+    }
+
+    namespace RTV
+    {
+        struct BufferViewDesc
+        {
+            u64 FirstElement;
+            u32 NumElements;
+        };
+
+        struct Texture1DView
+        {
+            u32 MipSlice;
+        };
+
+        struct ArrayView
+        {
+            u32 FirstArraySlice;
+            u32 ArraySize;
+        };
+
+        struct Texture1DArrayView : Texture1DView, ArrayView {};
+
+        struct Texture2DView : Texture1DView
+        {
+            u32 PlaneSlice;
+        };
+
+        struct Texture2DArrayView : Texture2DView, ArrayView {};
+
+        struct Texture3DView : Texture1DView 
+        {
+            u32 FirstWSlice;
+            u32 WSize;
+        };
+
+        struct Texture2DMSView {};
+
+        struct Texture2DMSArrayView : ArrayView {};
+    }
 
     struct ShaderResourceViewDesc
     {
-        ViewDimention Dimension;
+        ViewDimension Dimension;
         PixelFormat Format;
+        union
+        {
+            SRV::BufferViewDesc      Buffer							;
+            SRV::Texture1DView       Texture1D						;
+            SRV::Texture1DArrayView  Texture1DArray					;
+            SRV::Texture2DView       Texture2D						;
+            SRV::Texture2DArrayView  Texture2DArray					;
+            SRV::Texture2DMSView     Texture2DMS					   ;
+            SRV::Texture2DMSArrayView  Texture2DMSArray				;
+            SRV::Texture3DView       Texture3D						;
+            SRV::TextureCubeView     TextureCube					   ;
+            SRV::TextureCubeArrayView  TextureCubeArray				;
+            SRV::RaytracingAccelerationStructureView RaytracingAccelerationStructure;
+        };
     };
-
 
     struct RenderTargetViewDesc
     {
-        ViewDimention Dimension;
+        ViewDimension Dimension;
         PixelFormat Format;
+        union
+        {
+            RTV::BufferViewDesc      Buffer							;
+            RTV::Texture1DView       Texture1D						;
+            RTV::Texture1DArrayView  Texture1DArray					;
+            RTV::Texture2DView       Texture2D						;
+            RTV::Texture2DArrayView  Texture2DArray					;
+            RTV::Texture2DMSView     Texture2DMS					   ;
+            RTV::Texture2DMSArrayView  Texture2DMSArray				;
+            RTV::Texture3DView       Texture3D						;
+        };
     };
 
 

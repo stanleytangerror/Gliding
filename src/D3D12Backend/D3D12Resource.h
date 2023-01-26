@@ -79,18 +79,20 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(SrvBuilder, DXGI_FORMAT, Format);
 			CONTINOUS_SETTER(SrvBuilder, D3D12_SRV_DIMENSION, ViewDimension);
 			CONTINOUS_SETTER_VALUE(SrvBuilder, u32, Shader4ComponentMapping, D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING);
-			CONTINOUS_SETTER(SrvBuilder, u64, Buffer_FirstElement);
-			CONTINOUS_SETTER(SrvBuilder, u32, Buffer_NumElements);
-			CONTINOUS_SETTER(SrvBuilder, u32, Buffer_StructureByteStride);
-			CONTINOUS_SETTER(SrvBuilder, D3D12_BUFFER_SRV_FLAGS, Buffer_Flags);
-			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_MostDetailedMip);
-			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_MipLevels);
-			CONTINOUS_SETTER(SrvBuilder, u32, Texture2D_PlaneSlice);
-			CONTINOUS_SETTER(SrvBuilder, f32, Texture2D_ResourceMinLODClamp);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_BUFFER_SRV, Buffer);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX1D_SRV, Texture1D);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX1D_ARRAY_SRV, Texture1DArray);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX2D_SRV, Texture2D);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX2D_ARRAY_SRV, Texture2DArray);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX2DMS_SRV, Texture2DMS);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX2DMS_ARRAY_SRV, Texture2DMSArray);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEX3D_SRV, Texture3D);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEXCUBE_SRV, TextureCube);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_TEXCUBE_ARRAY_SRV, TextureCubeArray);
+			CONTINOUS_SETTER(SrvBuilder, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV, RaytracingAccelerationStructure);
 
 		public:
-			D3D12Backend::ShaderResourceView* BuildBuffer();
-			D3D12Backend::ShaderResourceView* BuildTex2D();
+			D3D12Backend::ShaderResourceView* Build();
 		};
 
 		class GD_D3D12BACKEND_API RtvBuilder
@@ -99,11 +101,17 @@ namespace D3D12Backend
 			CONTINOUS_SETTER(RtvBuilder, CommitedResource*, Resource);
 			CONTINOUS_SETTER(RtvBuilder, DXGI_FORMAT, Format);
 			CONTINOUS_SETTER(RtvBuilder, D3D12_RTV_DIMENSION, ViewDimension);
-			CONTINOUS_SETTER(RtvBuilder, u32, MipSlice);
-			CONTINOUS_SETTER(RtvBuilder, u32, PlaneSlice);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_BUFFER_RTV, Buffer);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX1D_RTV, Texture1D);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX1D_ARRAY_RTV, Texture1DArray);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX2D_RTV, Texture2D);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX2D_ARRAY_RTV, Texture2DArray);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX2DMS_RTV, Texture2DMS);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX2DMS_ARRAY_RTV, Texture2DMSArray);
+			CONTINOUS_SETTER(RtvBuilder, D3D12_TEX3D_RTV, Texture3D);
 
 		public:
-			D3D12Backend::RenderTargetView* BuildTex2D();
+			D3D12Backend::RenderTargetView* Build();
 		};
 
 		class GD_D3D12BACKEND_API DsvBuilder
