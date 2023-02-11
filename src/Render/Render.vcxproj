@@ -121,6 +121,7 @@
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="RenderUtils.h" />
     <ClInclude Include="ScreenRenderer.h" />
+    <ClInclude Include="TestRender.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="WorldRenderer.h" />
   </ItemGroup>
@@ -140,6 +141,7 @@
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="RenderUtils.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
+    <ClCompile Include="TestRender.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="WorldRenderer.cpp" />
   </ItemGroup>

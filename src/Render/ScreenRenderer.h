@@ -2,6 +2,7 @@
 
 class RenderModule;
 class RenderResourceManager;
+class RenderPassManager;
 class Geometry;
 
 namespace D3D12Backend
@@ -24,8 +25,6 @@ public:
 private:
 	void CalcSceneExposure(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* input, D3D12Backend::UnorderedAccessView* exposureTex);
 	void ToneMapping(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sceneHdr, D3D12Backend::ShaderResourceView* exposure, D3D12Backend::RenderTargetView* target);
-
-	void TestPass(D3D12Backend::GraphicsContext* context, RenderResourceManager* resMgr);
 
 private:
 	RenderModule* mRenderModule = nullptr;

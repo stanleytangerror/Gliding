@@ -29,9 +29,13 @@ protected:
 template <typename Name>
 struct IndexId
 {
-	u64 mId = (~0x0);
+	u64 mId = msInvalidId;
 
 	static IndexId FromInt(u64 index) { return { index }; }
-	bool IsValid() const { return mId != (~0x0); }
+	static IndexId InvalidId() { return { msInvalidId }; }
+	bool IsValid() const { return mId != msInvalidId; }
 	bool operator<(const IndexId& other) const { return mId < other.mId; }
+
+private:
+	static const u64 msInvalidId = (~0x0);
 };

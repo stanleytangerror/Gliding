@@ -7,6 +7,16 @@ constexpr DXGI_FORMAT ToDxgiFormat(RHI::PixelFormat format) { return DXGI_FORMAT
 
 constexpr D3D12_INPUT_CLASSIFICATION ToInputClassification(RHI::InputClassification c) { return D3D12_INPUT_CLASSIFICATION(c); }
 
+constexpr D3D12_RESOURCE_DIMENSION ToResourceDimension(RHI::ResourceDimention d) { return D3D12_RESOURCE_DIMENSION(d); }
+
+constexpr D3D12_RESOURCE_FLAGS ToResourceFlags(u32 f) { return D3D12_RESOURCE_FLAGS(f); }
+
+constexpr D3D12_FILTER ToFilter(RHI::FilterType f) { return D3D12_FILTER(f); }
+
+constexpr D3D12_TEXTURE_ADDRESS_MODE ToRextureAddressMode(RHI::TextureAddressMode m) { return D3D12_TEXTURE_ADDRESS_MODE(m); }
+
+constexpr D3D12_COMPARISON_FUNC ToComparisonFunc(RHI::ComparisonFunc f) { return D3D12_COMPARISON_FUNC(f); }
+
 inline D3D12_INPUT_ELEMENT_DESC ToInputElementDesc(const RHI::InputElementDesc& desc)
 {
 	return D3D12_INPUT_ELEMENT_DESC

@@ -4,14 +4,15 @@
 #include "WorldRenderer.h"
 #include "ScreenRenderer.h"
 #include "ImGuiRenderer.h"
+#include "TestRender.h"
 #include "RenderInterface/RenderResource.h"
+#include "RenderInterface/RenderPass.h"
 #include "Common/PresentPort.h"
 #include "imgui.h"
 
 class ScreenRenderer;
 class RenderDocIntegration;
 class WorldRenderer;
-class RenderResourceManager;
 class ImGuiRenderer;
 class RenderTarget;
 namespace D3D12Backend
@@ -41,12 +42,14 @@ protected:
 	D3D12Backend::D3D12Device*				mDevice = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 	std::unique_ptr<RenderResourceManager>	mResourceManager;
+	std::unique_ptr<RenderPassManager>		mRenderPassManager;
 
 	std::unique_ptr<ScreenRenderer>			mScreenRenderer;
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
+	std::unique_ptr<TestRenderer>			mTestRenderer;
 
-	RenderTarget*		mSceneHdrRt = nullptr;
+	ResourceId								mSceneHdrId;
 
 public:
 	ImDrawData*								mUiData = nullptr;

@@ -15,6 +15,7 @@ struct GraphicProgram
 	std::string RsEntry;
 	std::string VsName;
 	std::string PsName;
+	std::vector<RHI::ProgramMacro> Macros;
 };
 
 struct VertexBufferView
@@ -82,6 +83,11 @@ struct InputPrimitiveView
 	RHI::IndexedInstancedParam Param;
 };
 
+struct SamplerView
+{
+	SamplerId SamplerId;
+};
+
 class RenderPass
 {
 public:
@@ -90,17 +96,29 @@ public:
 	InputPrimitiveView InputPrimitive;
 	std::map<std::string, ConstantBufferValue> ConstBuffers;
 	std::map<std::string, ShaderResourceView> Srvs;
+	std::map<std::string, SamplerView> Samplers;
 	std::vector<RenderTargetView> Rtvs;
 	RHI::ViewPort ViewPort;
 	RHI::Rect ScissorRect;
 };
+
+namespace D3D12Backend
+{
+	class GraphicsContext;
+}
 
 class RenderPassManager
 {
 public:
 	RenderPassManager(RenderModule* renderModule) : mRenderModule(renderModule) {}
 
-	void ParseAllPassses();
+	void AddPass(const RenderPass& pass);
+
+	void ParseAllPassses(D3D12Backend::GraphicsContext* context);
+
+private:
+	bool CheckRequiredResourceReady(const RenderPass& pass);
+	void ParseRenderPass(const RenderPass& pass, D3D12Backend::GraphicsContext* context);
 
 private:
 	RenderModule* mRenderModule = nullptr;

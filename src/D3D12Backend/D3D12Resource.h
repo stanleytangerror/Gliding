@@ -2,6 +2,7 @@
 
 #include "D3D12Headers.h"
 #include "D3D12CommandContext.h"
+#include "Common/RenderInterfaces.h"
 
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
@@ -28,7 +29,7 @@ namespace D3D12Backend
 	class UnorderedAccessView;
 	class DepthStencilView;
 
-	class GD_D3D12BACKEND_API IResource
+	class GD_D3D12BACKEND_API IResource : RHI::ResourceObject
 	{
 	public:
 		virtual void Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;

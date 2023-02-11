@@ -25,6 +25,7 @@
     <ClInclude Include="Pool_inl.h" />
     <ClInclude Include="PresentPort.h" />
     <ClInclude Include="Profile.h" />
+    <ClInclude Include="RenderInterfaces.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />

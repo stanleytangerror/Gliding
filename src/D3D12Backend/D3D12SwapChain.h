@@ -21,6 +21,7 @@ namespace D3D12Backend
 
 		D3D12Backend::RenderTargetView* GetRtv() const { return mRtv; }
 		Vec3i					GetSize() const;
+		D3D12Backend::CommitedResource* GetResource() const { return mResource; }
 
 	protected:
 		D3D12Backend::CommitedResource* mResource = nullptr;

@@ -11,7 +11,8 @@ namespace D3D12Backend
 enum class GD_COMMON_API PresentPortType
 {
 	MainPort,
-	DebugPort
+	DebugPort,
+	Size
 };
 
 struct GD_COMMON_API WindowRuntimeInfo

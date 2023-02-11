@@ -164,6 +164,80 @@ namespace RHI
         FORCE_UINT = 0xffffffff
     };
 
+    enum class ResourceFlags
+    {
+        NONE = 0,
+        ALLOW_RENDER_TARGET = 0x1,
+        ALLOW_DEPTH_STENCIL = 0x2,
+        ALLOW_UNORDERED_ACCESS = 0x4,
+        DENY_SHADER_RESOURCE = 0x8,
+        ALLOW_CROSS_ADAPTER = 0x10,
+        ALLOW_SIMULTANEOUS_ACCESS = 0x20,
+        VIDEO_DECODE_REFERENCE_ONLY = 0x40,
+        VIDEO_ENCODE_REFERENCE_ONLY = 0x80
+    };
+
+    enum class FilterType
+    {
+		MIN_MAG_MIP_POINT = 0,
+		MIN_MAG_POINT_MIP_LINEAR = 0x1,
+		MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
+		MIN_POINT_MAG_MIP_LINEAR = 0x5,
+		MIN_LINEAR_MAG_MIP_POINT = 0x10,
+		MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
+		MIN_MAG_LINEAR_MIP_POINT = 0x14,
+		MIN_MAG_MIP_LINEAR = 0x15,
+		ANISOTROPIC = 0x55,
+		COMPARISON_MIN_MAG_MIP_POINT = 0x80,
+		COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
+		COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
+		COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
+		COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
+		COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
+		COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
+		COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
+		COMPARISON_ANISOTROPIC = 0xd5,
+		MINIMUM_MIN_MAG_MIP_POINT = 0x100,
+		MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
+		MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
+		MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
+		MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
+		MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
+		MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
+		MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
+		MINIMUM_ANISOTROPIC = 0x155,
+		MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
+		MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
+		MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
+		MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
+		MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
+		MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
+		MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
+		MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
+		MAXIMUM_ANISOTROPIC = 0x1d5
+    };
+
+    enum class TextureAddressMode
+    {
+		WRAP = 1,
+		MIRROR = 2,
+		CLAMP = 3,
+		BORDER = 4,
+		MIRROR_ONCE = 5
+    };
+
+    enum class ComparisonFunc
+    {
+		NEVER = 1,
+		LESS = 2,
+		EQUAL = 3,
+		LESS_EQUAL = 4,
+		GREATER = 5,
+		NOT_EQUAL = 6,
+		GREATER_EQUAL = 7,
+		ALWAYS = 8
+    };
+
     struct ViewPort
     {
         Vec2f LeftTop;
@@ -175,6 +249,12 @@ namespace RHI
     {
         Vec2f LeftTop;
         Vec2f RightBottom;
+    };
+
+    struct ProgramMacro
+    {
+        std::string Name;
+        std::string Definition;
     };
 
     struct ResourceSize
@@ -190,6 +270,7 @@ namespace RHI
         PixelFormat Format;
         ResourceSize Size;
         u16 MipLevels;
+        u32 Flags; // ResourceFlags
     };
 
     namespace SRV
@@ -352,5 +433,18 @@ namespace RHI
         u32 AlignedByteOffset;
         InputClassification InputSlotClass;
         u32 InstanceDataStepRate;
+    };
+
+    struct SamplerDesc
+    {
+        FilterType Filter;
+		TextureAddressMode AddressU;
+		TextureAddressMode AddressV;
+		TextureAddressMode AddressW;
+        ComparisonFunc CompFunc;
+        f32 MipLODBias;
+        u32 MaxAnisotropy;
+        Vec4f BorderColor;
+        Vec2f LODRange;
     };
 }

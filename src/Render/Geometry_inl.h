@@ -20,6 +20,6 @@ inline GeometryData* GeometryData::GenerateGeometryData(
 	const std::vector<RHI::InputElementDesc>& inputDescs)
 {
 	std::vector<b8> vertexData(vertices.size() * sizeof(TVertex));
-	std::copy(reinterpret_cast<const b8*>(&*vertices.begin()), reinterpret_cast<const b8*>(&*vertices.end()), vertexData.data());
+	std::copy(reinterpret_cast<const b8*>(vertices.data()), reinterpret_cast<const b8*>(vertices.data() + vertices.size()), vertexData.data());
 	return new GeometryData{ vertexData, indices, inputDescs, u32(vertices.size()), sizeof(TVertex) };
 }

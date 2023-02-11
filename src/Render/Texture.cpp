@@ -56,5 +56,5 @@ std::unique_ptr<D3D12Backend::CommitedResource> TextureFromFileInitializer::Init
 	auto resource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
 	NAME_RAW_D3D12_OBJECT(resource->GetD3D12Resource(), mName.c_str());
 
-	return std::unique_ptr<D3D12Backend::CommitedResource>();
+	return resource;
 }

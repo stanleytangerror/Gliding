@@ -261,8 +261,7 @@ GeometryData* GeometryData::GenerateSphere(i32 subDev)
 
 std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
-	auto resource = std::unique_ptr<D3D12Backend::CommitedResource>(
-		D3D12Backend::CommitedResource::Builder()
+	auto resource = D3D12Backend::CommitedResource::Builder()
 		.SetAlignment(0)
 		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
 		.SetWidth(mGeometryData->mVertexData.size())
@@ -273,7 +272,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initial
 		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
 		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
 		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-		.BuildUpload(context->GetDevice()));
+		.BuildUpload(context->GetDevice());
 	
 	{
 		u8* pVertexDataBegin = nullptr;
@@ -282,13 +281,12 @@ std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initial
 		memcpy(pVertexDataBegin, mGeometryData->mVertexData.data(), mGeometryData->mVertexData.size());
 	}
 
-	return resource;
+	return std::unique_ptr<D3D12Backend::CommitedResource>(resource);
 }
 
 std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
-	auto resource = std::unique_ptr<D3D12Backend::CommitedResource>(
-		D3D12Backend::CommitedResource::Builder()
+	auto resource = D3D12Backend::CommitedResource::Builder()
 		.SetAlignment(0)
 		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
 		.SetWidth(mGeometryData->mIndexData.size() * sizeof(u16))
@@ -299,7 +297,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initiali
 		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
 		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
 		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-		.BuildUpload(context->GetDevice()));
+		.BuildUpload(context->GetDevice());
 	
 	{
 		u8* pIndexDataBegin = nullptr;
@@ -308,5 +306,5 @@ std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initiali
 		memcpy(pIndexDataBegin, mGeometryData->mIndexData.data(), mGeometryData->mIndexData.size() * sizeof(u16));
 	}
 
-	return resource;
+	return std::unique_ptr<D3D12Backend::CommitedResource>(resource);
 }

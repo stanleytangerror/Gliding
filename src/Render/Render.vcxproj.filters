@@ -72,6 +72,9 @@
     <ClInclude Include="RenderInterface\RenderTypeD3D12Utils.h">
       <Filter>Source\RenderInterface</Filter>
     </ClInclude>
+    <ClInclude Include="TestRender.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderPch.cpp">
@@ -118,6 +121,9 @@
     </ClCompile>
     <ClCompile Include="RenderInterface\RenderResource.cpp">
       <Filter>Source\RenderInterface</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
