@@ -47,7 +47,7 @@ ResourceId RenderResourceManager::CreateTransientResource(const RHI::CommitedRes
 	return mTransientHash2ResourceId[hash];
 }
 
-D3D12Backend::CommitedResource* RenderResourceManager::GetResource(ResourceId resourceId) const
+RHI::ResourceObject* RenderResourceManager::GetResource(ResourceId resourceId) const
 {
 	auto resource = GetNamedReadonlyResource(resourceId);
 	if (resource) { return resource; }
@@ -59,20 +59,20 @@ D3D12Backend::CommitedResource* RenderResourceManager::GetResource(ResourceId re
 	return resource;
 }
 
-D3D12Backend::CommitedResource* RenderResourceManager::GetNamedReadonlyResource(ResourceId resourceId) const
+RHI::ResourceObject* RenderResourceManager::GetNamedReadonlyResource(ResourceId resourceId) const
 {
 	auto it = mNamedReadonlyResources.find(resourceId);
 	return it != mNamedReadonlyResources.end() ? it->second.get() : nullptr;
 }
 
-D3D12Backend::CommitedResource* RenderResourceManager::GetTransientResource(ResourceId resourceId) const
+RHI::ResourceObject* RenderResourceManager::GetTransientResource(ResourceId resourceId) const
 {
 	auto it = mTransientResources.find(resourceId);
 	return it != mTransientResources.end() ? it->second.get() : nullptr;
 }
 
 
-D3D12Backend::CommitedResource* RenderResourceManager::GetSwapChainResource(ResourceId resourceId) const
+RHI::ResourceObject* RenderResourceManager::GetSwapChainResource(ResourceId resourceId) const
 {
 	auto it = mSwapChainResources.find(resourceId);
 	return it != mSwapChainResources.end() ? it->second : nullptr;
@@ -80,8 +80,7 @@ D3D12Backend::CommitedResource* RenderResourceManager::GetSwapChainResource(Reso
 
 ViewId RenderResourceManager::CreateSrv(ResourceId resourceId, const RHI::ShaderResourceViewDesc& desc)
 {
-	auto it = mNamedReadonlyResources.find(resourceId);
-	if (it != mNamedReadonlyResources.end())
+	if (RHI::ResourceObject* resource = GetResource(resourceId))
 	{
 		auto h = Utils::HashBytes(&desc);
 		if (mSrvHash2ViewId.find(h) != mSrvHash2ViewId.end())
@@ -89,9 +88,7 @@ ViewId RenderResourceManager::CreateSrv(ResourceId resourceId, const RHI::Shader
 			return mSrvHash2ViewId[h];
 		}
 
-		D3D12Backend::CommitedResource* resource = it->second.get();
-
-		auto& builder = resource->CreateSrv()
+		auto& builder = ((D3D12Backend::CommitedResource*)resource)->CreateSrv()
 			.SetFormat(ToDxgiFormat(desc.Format))
 			.SetViewDimension(ToSrvDimension(desc.Dimension));
 
@@ -124,8 +121,7 @@ ViewId RenderResourceManager::CreateSrv(ResourceId resourceId, const RHI::Shader
 
 ViewId RenderResourceManager::CreateRtv(ResourceId resourceId, const RHI::RenderTargetViewDesc& desc)
 {
-	auto it = mNamedReadonlyResources.find(resourceId);
-	if (it != mNamedReadonlyResources.end())
+	if (RHI::ResourceObject* resource = GetResource(resourceId))
 	{
 		auto h = Utils::HashBytes(&desc);
 		if (mRtvHash2ViewId.find(h) != mRtvHash2ViewId.end())
@@ -133,9 +129,7 @@ ViewId RenderResourceManager::CreateRtv(ResourceId resourceId, const RHI::Render
 			return mRtvHash2ViewId[h];
 		}
 
-		D3D12Backend::CommitedResource* resource = it->second.get();
-
-		auto& builder = resource->CreateRtv()
+		auto& builder = ((D3D12Backend::CommitedResource*)resource)->CreateRtv()
 			.SetFormat(ToDxgiFormat(desc.Format))
 			.SetViewDimension(ToRtvDimension(desc.Dimension));
 
@@ -232,7 +226,7 @@ TransientResourceInitializer::TransientResourceInitializer(const RHI::CommitedRe
 
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> TransientResourceInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+std::unique_ptr<RHI::ResourceObject> TransientResourceInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
 	auto result = D3D12Backend::CommitedResource::Builder()
 		.SetDimention(ToResourceDimension(mDesc.Dimension))
@@ -247,7 +241,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> TransientResourceInitializer::In
 		.BuildDefault(context->GetDevice());
 
 	Assert(result != nullptr);
-	return std::unique_ptr<D3D12Backend::CommitedResource>(result);
+	return std::unique_ptr<RHI::ResourceObject>(result);
 }
 
 SamplerInitializer::SamplerInitializer(const RHI::SamplerDesc& desc)

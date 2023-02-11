@@ -64,7 +64,7 @@ struct VertexBufferInitializer : RenderResourceInitializer
 {
 	VertexBufferInitializer(GeometryData* data) : mGeometryData(data) {}
 
-	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+	std::unique_ptr<RHI::ResourceObject> Initialize(D3D12Backend::D3D12CommandContext* context) override;
 
 	GeometryData* mGeometryData = nullptr;
 };
@@ -73,7 +73,7 @@ struct IndexBufferInitializer : RenderResourceInitializer
 {
 	IndexBufferInitializer(GeometryData* data) : mGeometryData(data) {}
 
-	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+	std::unique_ptr<RHI::ResourceObject> Initialize(D3D12Backend::D3D12CommandContext* context) override;
 
 	GeometryData* mGeometryData = nullptr;
 };

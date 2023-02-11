@@ -29,7 +29,7 @@ namespace D3D12Backend
 	class UnorderedAccessView;
 	class DepthStencilView;
 
-	class GD_D3D12BACKEND_API IResource : RHI::ResourceObject
+	class GD_D3D12BACKEND_API IResource : public RHI::ResourceObject
 	{
 	public:
 		virtual void Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;

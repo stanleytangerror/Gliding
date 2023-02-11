@@ -2,7 +2,7 @@
 
 namespace RHI
 {
-	class ResourceObject
+	class GD_COMMON_API ResourceObject
 	{
 
 	};

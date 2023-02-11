@@ -50,10 +50,9 @@ void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 		.Build();
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> TextureFromFileInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+std::unique_ptr<RHI::ResourceObject> TextureFromFileInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
-	const TextureFileExt::Enum ext = Utils::GetTextureExtension(mName.c_str());
-	auto resource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
+	auto resource = D3D12Utils::CreateTextureFromImageMemory(context, mExt, mContent);
 	NAME_RAW_D3D12_OBJECT(resource->GetD3D12Resource(), mName.c_str());
 
 	return resource;

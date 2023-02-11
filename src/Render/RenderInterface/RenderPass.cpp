@@ -124,13 +124,13 @@ void RenderPassManager::ParseRenderPass(const RenderPass& pass, D3D12Backend::Gr
 	std::transform(pass.InputPrimitive.Vbvs.begin(), pass.InputPrimitive.Vbvs.end(),
 		devicePass.mVbvs.begin(), [resMgr](const VertexBufferView& v)
 		{
-			D3D12Backend::CommitedResource* resource = resMgr->GetResource(v.ResourceId);
+			D3D12Backend::CommitedResource* resource = (D3D12Backend::CommitedResource * )resMgr->GetResource(v.ResourceId);
 			auto location = resource->GetD3D12Resource()->GetGPUVirtualAddress() + v.Desc.Offset;
-			return D3D12_VERTEX_BUFFER_VIEW{ v.Desc.Size, v.Desc.Size, v.Desc.Stride };
+			return D3D12_VERTEX_BUFFER_VIEW{ location, v.Desc.Size, v.Desc.Stride };
 		});
 
 	const auto& ibv = pass.InputPrimitive.Ibv;
-	D3D12Backend::CommitedResource* ibRes = resMgr->GetResource(ibv.ResourceId);
+	D3D12Backend::CommitedResource* ibRes = (D3D12Backend::CommitedResource*)resMgr->GetResource(ibv.ResourceId);
 	auto ibLocation = ibRes->GetD3D12Resource()->GetGPUVirtualAddress() + ibv.Desc.Offset;
 	devicePass.mIbv = D3D12_INDEX_BUFFER_VIEW{ ibLocation, ibv.Desc.Size, ToDxgiFormat(ibv.Desc.Format) };
 

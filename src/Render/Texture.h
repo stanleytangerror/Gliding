@@ -40,10 +40,11 @@ protected:
 class TextureFromFileInitializer : public RenderResourceInitializer
 {
 public:
-	TextureFromFileInitializer(const char* name, const std::vector<b8>& content) : mName(name), mContent(content) {}
+	TextureFromFileInitializer(const char* name, TextureFileExt::Enum ext, const std::vector<b8>& content) : mName(name), mExt(ext), mContent(content) {}
 
-	std::unique_ptr<D3D12Backend::CommitedResource> Initialize(D3D12Backend::D3D12CommandContext* context) override;
+	std::unique_ptr<RHI::ResourceObject> Initialize(D3D12Backend::D3D12CommandContext* context) override;
 
 	std::string mName;
+	TextureFileExt::Enum mExt;
 	std::vector<b8> mContent;
 };

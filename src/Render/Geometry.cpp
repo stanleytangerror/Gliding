@@ -259,7 +259,7 @@ GeometryData* GeometryData::GenerateSphere(i32 subDev)
 	return GeometryData::GenerateGeometryData<GeometryUtils::VertexPosNormTanUv>(vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputElementsDesc());
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+std::unique_ptr<RHI::ResourceObject> VertexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
 	auto resource = D3D12Backend::CommitedResource::Builder()
 		.SetAlignment(0)
@@ -281,10 +281,10 @@ std::unique_ptr<D3D12Backend::CommitedResource> VertexBufferInitializer::Initial
 		memcpy(pVertexDataBegin, mGeometryData->mVertexData.data(), mGeometryData->mVertexData.size());
 	}
 
-	return std::unique_ptr<D3D12Backend::CommitedResource>(resource);
+	return std::unique_ptr<RHI::ResourceObject>(resource);
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
+std::unique_ptr<RHI::ResourceObject> IndexBufferInitializer::Initialize(D3D12Backend::D3D12CommandContext* context)
 {
 	auto resource = D3D12Backend::CommitedResource::Builder()
 		.SetAlignment(0)
@@ -306,5 +306,5 @@ std::unique_ptr<D3D12Backend::CommitedResource> IndexBufferInitializer::Initiali
 		memcpy(pIndexDataBegin, mGeometryData->mIndexData.data(), mGeometryData->mIndexData.size() * sizeof(u16));
 	}
 
-	return std::unique_ptr<D3D12Backend::CommitedResource>(resource);
+	return std::unique_ptr<RHI::ResourceObject>(resource);
 }

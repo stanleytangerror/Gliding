@@ -20,7 +20,7 @@ void TestRenderer::TestRender(RenderPassManager* passMgr, RenderResourceManager*
 	// declare resources
 	auto inputVbResId = resMgr->CreateNamedReadonlyResource("QuadVB", new VertexBufferInitializer(mQuadGeoData));
 	auto inputIbResId = resMgr->CreateNamedReadonlyResource("QuadIB", new IndexBufferInitializer(mQuadGeoData));
-	auto inputResId = resMgr->CreateNamedReadonlyResource("TestTex", new TextureFromFileInitializer("TestTex", mTextureData));
+	auto inputResId = resMgr->CreateNamedReadonlyResource("TestTex", new TextureFromFileInitializer("TestTex", TextureFileExt::DDS, mTextureData));
 	auto outputResId = resMgr->CreateSwapChainResource(PresentPortType::MainPort);
 	auto samplerId = resMgr->CreateSampler(RHI::SamplerDesc
 		{
@@ -48,6 +48,25 @@ void TestRenderer::TestRender(RenderPassManager* passMgr, RenderResourceManager*
 		RHI::IndexedInstancedParam{ (u32)mQuadGeoData->mIndexData.size(), 1 }
 	};
 
+
+	// construct views
+	auto texSrvDesc = RHI::ShaderResourceViewDesc{
+		RHI::ViewDimension::TEXTURE2D,
+		RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
+	};
+	texSrvDesc.Texture2D = RHI::SRV::Texture2DView{
+						RHI::SRV::Texture1DView {0, 1, 0},
+						0
+	};
+
+	auto rtRtvDesc = RHI::RenderTargetViewDesc{
+					RHI::ViewDimension::TEXTURE2D,
+					RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
+	};
+	rtRtvDesc.Texture2D = RHI::RTV::Texture2DView{
+		0, 0
+	};
+
 	// construct pass
 	auto pass = RenderPass
 	{
@@ -70,10 +89,7 @@ void TestRenderer::TestRender(RenderPassManager* passMgr, RenderResourceManager*
 		{
 			{ "SourceTex", ShaderResourceView {
 				inputResId,
-				RHI::ShaderResourceViewDesc{
-					RHI::ViewDimension::TEXTURE2D,
-					RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
-				}
+				texSrvDesc
 			} }
 		},
 		std::map<std::string, SamplerView>
@@ -85,10 +101,7 @@ void TestRenderer::TestRender(RenderPassManager* passMgr, RenderResourceManager*
 			RenderTargetView
 			{
 				outputResId,
-				RHI::RenderTargetViewDesc {
-					RHI::ViewDimension::TEXTURE2D,
-					RHI::PixelFormat::R8G8B8A8_UNORM_SRGB
-				}
+				rtRtvDesc
 			}
 		},
 		RHI::ViewPort
