@@ -163,7 +163,7 @@ RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* s
 	{
 		if (texRawData)
 		{
-			textures[texPath] = new Texture(device, texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new Texture(texPath.c_str(), texRawData->mRawData);
 		}
 	}
 	std::map<TextureSamplerType, D3D12Backend::SamplerView*> samplers;

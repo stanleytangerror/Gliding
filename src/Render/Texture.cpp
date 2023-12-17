@@ -2,19 +2,16 @@
 #include "Texture.h"
 #include "RenderTarget.h"
 
-Texture::Texture(D3D12Backend::D3D12Device* device, const char* filePath, const std::vector<b8>& content)
-	: mDevice(device)
-	, mName(filePath)
+Texture::Texture(const char* filePath, const std::vector<b8>& content)
+	: mName(filePath)
 	, mContent(content)
 	, mFromImageMemory(true)
 {
 
 }
 
-Texture::Texture(D3D12Backend::D3D12Device* device, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
-	: mDevice(device)
-	, mName(name)
-	, mSize(size)
+Texture::Texture(DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+	: mSize(size)
 	, mContent(content)
 	, mMipLevelCount(mipLevel)
 	, mFormat(format)
