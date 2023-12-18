@@ -61,6 +61,9 @@
     <ClInclude Include="NativeUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="GraphicsInfrastructure.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

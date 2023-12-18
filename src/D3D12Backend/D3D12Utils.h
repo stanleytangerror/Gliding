@@ -2,6 +2,7 @@
 
 #include "D3D12Headers.h"
 #include "Common/Texture.h"
+#include "Common/GraphicsInfrastructure.h"
 
 namespace D3D12Backend
 {
@@ -11,6 +12,9 @@ namespace D3D12Backend
 
 namespace D3D12Utils
 {
+	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
+	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
+
 	void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter);
 	
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
