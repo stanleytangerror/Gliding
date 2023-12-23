@@ -39,3 +39,27 @@ protected:
 
 	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
 };
+
+class GD_RENDER_API FileTexture
+{
+public:
+	FileTexture(const char* filePath, const std::vector<b8>& content);
+
+protected:
+	std::vector<b8>	const			mContent;
+	std::string const				mFilePath;
+	TextureFileExt::Enum const		mTextureExtension;
+};
+
+class GD_RENDER_API InMemoryTexture
+{
+public:
+	InMemoryTexture(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+
+protected:
+	std::vector<b8>	const	mContent;
+	std::string	const		mName;
+	Vec3i const				mSize = {};
+	i32 const				mMipLevelCount = 1;
+	GI::Format::Enum const	mFormat = GI::Format::FORMAT_UNKNOWN;
+};

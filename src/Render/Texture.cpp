@@ -48,3 +48,22 @@ void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 		.SetTexture2D_MipLevels(mResource->GetMipLevelCount())
 		.BuildTex2D();
 }
+
+FileTexture::FileTexture(const char* filePath, const std::vector<b8>& content)
+	: mFilePath(filePath)
+	, mContent(content)
+	, mTextureExtension(Utils::GetTextureExtension(filePath))
+{
+
+}
+
+InMemoryTexture::InMemoryTexture(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+	: mSize(size)
+	, mContent(content)
+	, mName(name)
+	, mMipLevelCount(mipLevel)
+	, mFormat(format)
+	
+{
+
+}
