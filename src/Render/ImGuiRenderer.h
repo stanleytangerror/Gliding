@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/GraphicsInfrastructure.h"
+
 class Timer;
 class RenderModule;
 namespace D3D12Backend
@@ -23,5 +25,5 @@ protected:
 	RenderModule*		mRenderModule = nullptr;
 	D3D12Backend::SamplerView*	mImGuiSampler = nullptr;
 
-	Texture*		mFontAtlas = nullptr;
+	InMemoryTexture*		mFontAtlas = nullptr;
 };

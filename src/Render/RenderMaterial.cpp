@@ -3,13 +3,13 @@
 #include "D3D12Backend/D3D12CommandContext.h"
 #include "Texture.h"
 
-void RenderMaterial::UpdateGpuResources(D3D12Backend::D3D12CommandContext* context)
+void RenderMaterial::UpdateGpuResources(GI::IGraphicInfra* infra)
 {
 	for (const auto& slot : mMatAttriSlots)
 	{
 		if (slot.mTexture && !slot.mTexture->IsD3DResourceReady())
 		{
-			slot.mTexture->Initial(context);
+			slot.mTexture->CreateAndInitialResource(infra);
 		}
 	}
 }
@@ -31,10 +31,10 @@ bool RenderMaterial::IsGpuResourceReady() const
 }
 
 RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
-	const MaterialRawData* matRawData,
-	const SceneRawData* sceneRawData,
-	const std::map<std::string, Texture*>& textures,
-	const std::map<TextureSamplerType, D3D12Backend::SamplerView*>& samplers)
+		const MaterialRawData* matRawData,
+		const SceneRawData* sceneRawData,
+		const std::map<std::string, FileTexture*>& textures,
+		const std::map<TextureSamplerType, GI::SamplerDesc>& samplers)
 {
 	RenderMaterial* result = new RenderMaterial;
 
@@ -49,7 +49,7 @@ RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
 			attr.mTexture = (itt != textures.end() ? itt->second : nullptr);
 
 			auto its = samplers.find(slotInfo.mSamplerType);
-			attr.mSampler = (its != samplers.end() ? its->second : nullptr);
+			attr.mSampler = (its != samplers.end() ? its->second : GI::SamplerDesc());
 		}
 	}
 

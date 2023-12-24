@@ -1,16 +1,48 @@
 #include "RenderPch.h"
 #include "Geometry.h"
 #include "D3D12Backend/D3D12Resource.h"
+#include "Common/GraphicsInfrastructure.h"
 
-Geometry::Geometry(D3D12Backend::D3D12Device* device)
-	: mDevice(device)
+void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 {
+	mVb = infra->CreateMemoryResource(
+		GI::MemoryResourceDesc()
+		.SetAlignment(0)
+		.SetDimension(GI::ResourceDimension::BUFFER)
+		.SetWidth(mVertices.size())
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(GI::Format::FORMAT_UNKNOWN)
+		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetFlags(GI::ResourceFlags::NONE)
+		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+		.SetHeapType(GI::HeapType::UPLOAD));
 
+	infra->CopyToUploadMemoryResource(mVb.get(), mVertices);
+
+	mIb = infra->CreateMemoryResource(
+		GI::MemoryResourceDesc()
+		.SetAlignment(0)
+		.SetDimension(GI::ResourceDimension::BUFFER)
+		.SetWidth(mIndices.size() * sizeof(u16))
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(GI::Format::FORMAT_UNKNOWN)
+		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetFlags(GI::ResourceFlags::NONE)
+		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+		.SetHeapType(GI::HeapType::UPLOAD));
+
+	std::vector<b8> buf(mIndices.size() * sizeof(u16));
+	std::memcpy(buf.data(), mIndices.data(), buf.size());
+	infra->CopyToUploadMemoryResource(mIb.get(), buf);
 }
 
-Geometry* Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
+Geometry* Geometry::GenerateQuad()
 {
-	return Geometry::GenerateGeometry<Vec2f>(device,
+	return Geometry::GenerateGeometry<Vec2f>(
 		{
 			Vec2f{ 1.f, -1.f },
 			Vec2f{ 1.f, 1.f },
@@ -18,11 +50,18 @@ Geometry* Geometry::GenerateQuad(D3D12Backend::D3D12Device* device)
 			Vec2f{ -1.f, -1.f } },
 		{ 0, 1, 2, 0, 2, 3 },
 		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			GI::InputElementDesc()
+				.SetSemanticName("POSITION")
+				.SetSemanticIndex(0)
+				.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
+				.SetInputSlot(0)
+				.SetAlignedByteOffset(0)
+				.SetInputSlotClass(GI::InputClassification::PER_VERTEX_DATA)
+				.SetInstanceDataStepRate(0)
 		});
 }
 
-Geometry* Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev)
+Geometry* Geometry::GenerateSphere(i32 subDev)
 {
 	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
 	std::vector<u16> indices;
@@ -80,85 +119,62 @@ Geometry* Geometry::GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev
 }
 
 
-Geometry* Geometry::GenerateGeometry(D3D12Backend::D3D12Device* device, const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs)
+Geometry* Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<GI::InputElementDesc>& inputDescs)
 {
-	Geometry* result = new Geometry(device);
+	Geometry* result = new Geometry;
 
-	result->mVb = std::unique_ptr<D3D12Backend::CommitedResource>(
-		D3D12Backend::CommitedResource::Builder()
-		.SetAlignment(0)
-		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
-		.SetWidth(vertices.size())
-		.SetHeight(1)
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(DXGI_FORMAT_UNKNOWN)
-		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
-		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
-		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-		.BuildUpload(device));
-
-	result->mIb = std::unique_ptr<D3D12Backend::CommitedResource>(
-		D3D12Backend::CommitedResource::Builder()
-		.SetAlignment(0)
-		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
-		.SetWidth(indices.size() * sizeof(u16))
-		.SetHeight(1)
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(DXGI_FORMAT_UNKNOWN)
-		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
-		.SetFlags(D3D12_RESOURCE_FLAG_NONE)
-		.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-		.BuildUpload(device)); 
-
-	{
-		u8* pVertexDataBegin = nullptr;
-		CD3DX12_RANGE readRange(0, 0);
-		AssertHResultOk(result->mVb->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-		memcpy(pVertexDataBegin, vertices.data(), vertices.size());
-	}
-
-	{
-		u8* pIndexDataBegin = nullptr;
-		CD3DX12_RANGE readRange(0, 0);
-		AssertHResultOk(result->mIb->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
-		memcpy(pIndexDataBegin, indices.data(), indices.size() * sizeof(u16));
-	}
-
-	result->mInputDescs = inputDescs;
-
-	result->mVbv.BufferLocation = result->mVb->GetD3D12Resource()->GetGPUVirtualAddress();
-	result->mVbv.StrideInBytes = vertexStride;
-	result->mVbv.SizeInBytes = u32(vertices.size());
-
-	result->mIbv.BufferLocation = result->mIb->GetD3D12Resource()->GetGPUVirtualAddress();
-	result->mIbv.SizeInBytes = u32(indices.size() * sizeof(u16));
-	result->mIbv.Format = DXGI_FORMAT_R16_UINT;
+	result->mVertices = vertices;
+	result->mVertexStride = vertexStride;
+	result->mIndices = indices;
+	result->mVertexElementDescs = inputDescs;
 
 	return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormUv::GetInputDesc()
+std::vector<GI::InputElementDesc> GeometryUtils::VertexPosNormUv::GetInputDesc()
 {
 	return
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		GI::InputElementDesc()
+				.SetSemanticName("POSITION")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(0),
+		GI::InputElementDesc()
+				.SetSemanticName("NORMAL")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(12),
+		GI::InputElementDesc()
+				.SetSemanticName("TEXCOORD")
+				.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
+				.SetAlignedByteOffset(24)
 	};
 }
 
-std::vector<D3D12_INPUT_ELEMENT_DESC> GeometryUtils::VertexPosNormTanUv::GetInputDesc()
+std::vector<GI::InputElementDesc> GeometryUtils::VertexPosNormTanUv::GetInputDesc()
 {
 	return
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		GI::InputElementDesc()
+				.SetSemanticName("POSITION")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(0),
+		GI::InputElementDesc()
+				.SetSemanticName("NORMAL")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(12),
+		GI::InputElementDesc()
+				.SetSemanticName("TANGENT")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(24),
+		GI::InputElementDesc()
+				.SetSemanticName("BINORMAL")
+				.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+				.SetAlignedByteOffset(36),
+		GI::InputElementDesc()
+				.SetSemanticName("TEXCOORD")
+				.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
+				.SetAlignedByteOffset(48)
 	};
 }

@@ -127,7 +127,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	mTestModel = RenderUtils::FromSceneRawData(device, sceneRawData);
+	mTestModel = RenderUtils::FromSceneRawData(mRenderModule->GetGraphicsInfra(), sceneRawData);
 	//mTestModel = RenderUtils::GenerateMaterialProbes(device);
 
 	//mTestModel->mRelTransform = UniScalingf(10.f);
@@ -196,9 +196,13 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 		mTestModel->ForEach([&](auto& node)
 			{
+				if (auto& geo = node.mContent.first)
+				{
+					geo->CreateAndInitialResource(mRenderModule->GetGraphicsInfra());
+				}
 				if (auto& mat = node.mContent.second)
 				{
-					mat->UpdateGpuResources(context);
+					mat->UpdateGpuResources(mRenderModule->GetGraphicsInfra());
 				}
 			});
 	}
@@ -531,6 +535,104 @@ void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* co
 	}
 
 	gbufferPass.Draw();
+}
+
+void WorldRenderer::RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext* context,
+	Geometry* geometry, RenderMaterial* material,
+	const Transformf& transform,
+	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
+	const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView,
+	const Vec2i& targetSize)
+{
+	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
+
+	GI::GraphicsPass gbufferPass;
+
+	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
+	gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
+	gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
+
+	gbufferPass.mRasterizerDesc
+		.SetCullMode(GI::CullMode::NONE);
+
+	gbufferPass.mDepthStencilDesc
+		.SetDepthEnable(true)
+		.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
+		.SetStencilEnable(true)
+		.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene)
+		.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject)
+		.SetFrontFace(GI::DepthStencilDesc::StencilOpDesc()
+			.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+			.SetStencilFailOp(GI::StencilOp::KEEP)
+			.SetStencilPassOp(GI::StencilOp::REPLACE)
+			.SetStencilFunc(GI::ComparisonFunction::ALWAYS))
+		.SetBackFace(GI::DepthStencilDesc::StencilOpDesc()
+			.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+			.SetStencilFailOp(GI::StencilOp::KEEP)
+			.SetStencilPassOp(GI::StencilOp::REPLACE)
+			.SetStencilFunc(GI::ComparisonFunction::ALWAYS));
+
+	gbufferPass.mInputLayout = geometry->mVertexElementDescs;
+
+	for (i32 i = 0; i < gbufferRtvs.size(); ++i)
+	{
+		gbufferPass.mRtvs[i] = gbufferRtvs[i];
+	}
+	gbufferPass.mDsv = depthView;
+
+	gbufferPass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(targetSize.x()).SetHeight(targetSize.y());
+	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+
+	gbufferPass.mVbvs.push_back(
+		GI::VbvDesc()
+		.SetResource(geometry->mVb.get())
+		.SetSizeInBytes(geometry->mVertices.size())
+		.SetStrideInBytes(geometry->mVertexStride)
+	);
+	gbufferPass.mIbv = GI::IbvDesc()
+		.SetResource(geometry->mIb.get())
+		.SetSizeInBytes(geometry->mIndices.size() * sizeof(u16))
+		.SetFormat(GI::Format::FORMAT_R16_UINT);
+	gbufferPass.mIndexCount = geometry->mIndices.size();
+
+	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+	gbufferPass.AddCbVar("worldMat", transform.matrix());
+	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
+	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+
+	const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
+	{
+		{ TextureUsage_Normal,			 "Normal" },
+		{ TextureUsage_Metalness,		 "Metallic" },
+		{ TextureUsage_BaseColor,		 "BaseColor" },
+		{ TextureUsage_Roughness,		 "Roughness" },
+	};
+
+	for (const auto& [usage, paramName] : semanticSlots)
+	{
+		const auto& attr = material->mMatAttriSlots[usage];
+		if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
+		{
+			gbufferPass.mShaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
+
+			auto res = attr.mTexture->GetResource();
+			gbufferPass.AddSrv((paramName + "Tex").c_str(),
+				GI::SrvDesc()
+				.SetResource(res)
+				.SetFormat(res->GetFormat())
+				.SetViewDimension(GI::GetSrvDimension(res->GetDimension()))
+				.SetTexture2D_MipLevels(res->GetMipLevelCount())
+			);
+			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
+		}
+		else
+		{
+			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), attr.mConstantValue);
+		}
+	}
 }
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context, Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)

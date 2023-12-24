@@ -27,7 +27,7 @@ void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 		const TextureFileExt::Enum ext = Utils::GetTextureExtension(mName.c_str());
 		mResource = D3D12Utils::CreateTextureFromImageMemory(context, ext, mContent);
 
-		mFormat = D3D12Utils::ToGiFormat(mResource->GetFormat());
+		mFormat = mResource->GetFormat();
 		mMipLevelCount = mResource->GetMipLevelCount();
 		mSize = mResource->GetSize();
 	}
@@ -49,21 +49,34 @@ void Texture::Initial(D3D12Backend::D3D12CommandContext* context)
 		.BuildTex2D();
 }
 
-FileTexture::FileTexture(const char* filePath, const std::vector<b8>& content)
+FileTexture::FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const std::vector<b8>& content)
 	: mFilePath(filePath)
 	, mContent(content)
 	, mTextureExtension(Utils::GetTextureExtension(filePath))
+	, mImage(infra->CreateFromImageMemory(Utils::GetTextureExtension(filePath), mContent))
 {
 
 }
 
-InMemoryTexture::InMemoryTexture(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+{
+	auto res = infra->CreateMemoryResource(*mImage.get()));
+	std::swap(mResource, res);
+}
+
+InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 	: mSize(size)
 	, mContent(content)
 	, mName(name)
 	, mMipLevelCount(mipLevel)
 	, mFormat(format)
-	
+	, mImage(infra->CreateFromScratch(mFormat, content, size, mipLevel, name))
 {
 
+}
+
+void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+{
+	auto res = infra->CreateMemoryResource(*mImage.get()));
+	std::swap(mResource, res);
 }

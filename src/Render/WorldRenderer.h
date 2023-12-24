@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/TransformHierarchy.h"
+#include "Common/GraphicsInfrastructure.h"
 
 class RenderModule;
 class Geometry;
@@ -41,6 +42,13 @@ private:
 		const Transformf& transform, 
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 		const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRts, D3D12Backend::DepthStencilView* depthView);
+
+	static void RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext* context,
+		Geometry* geometry, RenderMaterial* material,
+		const Transformf& transform,
+		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
+		const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView,
+		const Vec2i& targetSize);
 
 	static void RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context,
 		Geometry* geometry, RenderMaterial* material,

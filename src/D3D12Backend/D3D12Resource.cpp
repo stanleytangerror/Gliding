@@ -4,7 +4,7 @@
 
 namespace D3D12Backend
 {
-	CommitedResource* CommitedResource::Builder::Build(D3D12Device* device, D3D12_HEAP_TYPE heapType)
+	CommitedResource* CommitedResource::Builder::Build(D3D12Device* device, GI::HeapType::Enum heapType)
 	{
 		CommitedResource* result = new CommitedResource;
 
@@ -23,7 +23,7 @@ namespace D3D12Backend
 		}
 
 		ID3D12Resource* resource = nullptr;
-		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(heapType);
+		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE(heapType));
 		AssertHResultOk(device->GetDevice()->CreateCommittedResource(
 			&heapProp,
 			D3D12_HEAP_FLAG_NONE,
@@ -39,6 +39,7 @@ namespace D3D12Backend
 		result->mSize = { (i32)mWidth, (i32)mHeight, mDepthOrArraySize };
 		result->mDesc = desc;
 		result->mState = mInitState;
+		result->mHeapType = heapType;
 
 		return result;
 	}

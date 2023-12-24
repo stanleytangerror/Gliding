@@ -10,17 +10,19 @@
 #define CONTINOUS_SETTER(Class, Type, Name) \
 	protected:	Type m##Name = {}; \
 	public:		using CAT(Temp, __LINE__) = Type; \
-				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this; }
+				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this; } \
+                CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
 #define CONTINOUS_SETTER_VALUE(Class, Type, Name, DefValue)	\
 	protected:	Type m##Name = (DefValue); \
 	public:		using CAT(Temp, __LINE__) = Type; \
-				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  }
+				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  } \
+                CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
 
 namespace GI 
 {
-    struct Format
+    struct GD_COMMON_API Format
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             FORMAT_UNKNOWN = 0,
             FORMAT_R32G32B32A32_TYPELESS = 1,
@@ -152,9 +154,32 @@ namespace GI
         };
     };
 
-    struct Filter
+    struct GD_COMMON_API ResourceDimension
     {
-        enum Enum
+        enum GD_COMMON_API Enum
+        {
+            UNKNOWN = 0,
+            BUFFER = 1,
+            TEXTURE1D = 2,
+            TEXTURE2D = 3,
+            TEXTURE3D = 4
+        };
+    };
+
+    struct GD_COMMON_API HeapType
+    {
+        enum GD_COMMON_API Enum
+        {
+            DEFAULT = 1,
+            UPLOAD = 2,
+            READBACK = 3,
+            CUSTOM = 4
+        };
+    };
+
+    struct GD_COMMON_API Filter
+    {
+        enum GD_COMMON_API Enum
         {
             MIN_MAG_MIP_POINT = 0,
             MIN_MAG_POINT_MIP_LINEAR = 0x1,
@@ -195,9 +220,70 @@ namespace GI
         };
     };
 
-    struct TextureAddressMode
+    struct GD_COMMON_API TextureLayout
     {
-        enum Enum
+        enum GD_COMMON_API Enum
+        {
+            LAYOUT_UNKNOWN = 0,
+            LAYOUT_ROW_MAJOR = 1,
+            LAYOUT_64KB_UNDEFINED_SWIZZLE = 2,
+            LAYOUT_64KB_STANDARD_SWIZZLE = 3
+        };
+    };
+
+    struct GD_COMMON_API ResourceFlags
+    {
+        enum GD_COMMON_API Enum
+        {
+            NONE = 0,
+            ALLOW_RENDER_TARGET = 0x1,
+            ALLOW_DEPTH_STENCIL = 0x2,
+            ALLOW_UNORDERED_ACCESS = 0x4,
+            DENY_SHADER_RESOURCE = 0x8,
+            ALLOW_CROSS_ADAPTER = 0x10,
+            ALLOW_SIMULTANEOUS_ACCESS = 0x20,
+            VIDEO_DECODE_REFERENCE_ONLY = 0x40,
+            VIDEO_ENCODE_REFERENCE_ONLY = 0x80
+        };
+    };
+
+    struct GD_COMMON_API ResourceState
+    {
+        enum GD_COMMON_API Enum
+        {
+            STATE_COMMON = 0,
+            STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1,
+            STATE_INDEX_BUFFER = 0x2,
+            STATE_RENDER_TARGET = 0x4,
+            STATE_UNORDERED_ACCESS = 0x8,
+            STATE_DEPTH_WRITE = 0x10,
+            STATE_DEPTH_READ = 0x20,
+            STATE_NON_PIXEL_SHADER_RESOURCE = 0x40,
+            STATE_PIXEL_SHADER_RESOURCE = 0x80,
+            STATE_STREAM_OUT = 0x100,
+            STATE_INDIRECT_ARGUMENT = 0x200,
+            STATE_COPY_DEST = 0x400,
+            STATE_COPY_SOURCE = 0x800,
+            STATE_RESOLVE_DEST = 0x1000,
+            STATE_RESOLVE_SOURCE = 0x2000,
+            STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x400000,
+            STATE_SHADING_RATE_SOURCE = 0x1000000,
+            STATE_GENERIC_READ = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
+            STATE_ALL_SHADER_RESOURCE = (0x40 | 0x80),
+            STATE_PRESENT = 0,
+            STATE_PREDICATION = 0x200,
+            STATE_VIDEO_DECODE_READ = 0x10000,
+            STATE_VIDEO_DECODE_WRITE = 0x20000,
+            STATE_VIDEO_PROCESS_READ = 0x40000,
+            STATE_VIDEO_PROCESS_WRITE = 0x80000,
+            STATE_VIDEO_ENCODE_READ = 0x200000,
+            STATE_VIDEO_ENCODE_WRITE = 0x800000
+        };
+    };
+
+    struct GD_COMMON_API TextureAddressMode
+    {
+        enum GD_COMMON_API Enum
         {
             WRAP = 1,
             MIRROR = 2,
@@ -207,18 +293,18 @@ namespace GI
         };
     };
 
-    struct InputClassification
+    struct GD_COMMON_API InputClassification
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             PER_VERTEX_DATA = 0,
             PER_INSTANCE_DATA = 1
         };
     };
 
-    struct SrvDimension
+    struct GD_COMMON_API SrvDimension
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             UNKNOWN = 0,
             BUFFER = 1,
@@ -235,9 +321,9 @@ namespace GI
         };
     };
 
-    struct RtvDimension
+    struct GD_COMMON_API RtvDimension
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             UNKNOWN = 0,
             BUFFER = 1,
@@ -251,9 +337,9 @@ namespace GI
         };
     };
 
-    struct UavDimension
+    struct GD_COMMON_API UavDimension
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             UNKNOWN = 0,
             BUFFER = 1,
@@ -265,9 +351,9 @@ namespace GI
         };
     };
 
-    struct DsvDimension
+    struct GD_COMMON_API DsvDimension
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             UNKNOWN = 0,
             TEXTURE1D = 1,
@@ -279,9 +365,9 @@ namespace GI
         };
     };
 
-    struct ComparisonFunction
+    struct GD_COMMON_API ComparisonFunction
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             NEVER = 1,
             LESS = 2,
@@ -294,9 +380,9 @@ namespace GI
         };
     };
 
-    struct StencilOp
+    struct GD_COMMON_API StencilOp
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             KEEP = 1,
             ZERO = 2,
@@ -309,9 +395,9 @@ namespace GI
         };
     };
 
-    struct CullMode
+    struct GD_COMMON_API CullMode
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             NONE = 1,
             FRONT = 2,
@@ -319,9 +405,9 @@ namespace GI
         };
     };
 
-    struct DsvFlag
+    struct GD_COMMON_API DsvFlag
     {
-        enum Enum
+        enum GD_COMMON_API Enum
         {
             NONE = 0,
             READ_ONLY_DEPTH = 0x1,
@@ -329,21 +415,53 @@ namespace GI
         };
     };
 
-    struct Viewport
+    constexpr SrvDimension::Enum GetSrvDimension(ResourceDimension::Enum dim)
     {
-        f32 TopLeftX;
-        f32 TopLeftY;
-        f32 Width;
-        f32 Height;
-        f32 MinDepth;
-        f32 MaxDepth;
+        switch (dim)
+        {
+        case ResourceDimension::UNKNOWN:  return SrvDimension::UNKNOWN;
+        case ResourceDimension::BUFFER:   return SrvDimension::BUFFER;
+        case ResourceDimension::TEXTURE1D:return SrvDimension::TEXTURE1D;
+        case ResourceDimension::TEXTURE2D:return SrvDimension::TEXTURE2D;
+        case ResourceDimension::TEXTURE3D:return SrvDimension::TEXTURE3D;
+        default:Assert(false); return SrvDimension::UNKNOWN;
+        }
+    }
+
+    constexpr UavDimension::Enum GetUavDimension(ResourceDimension::Enum dim)
+    {
+        switch (dim)
+        {
+        case ResourceDimension::UNKNOWN:  return UavDimension::UNKNOWN;
+        case ResourceDimension::BUFFER:   return UavDimension::BUFFER;
+        case ResourceDimension::TEXTURE1D:return UavDimension::TEXTURE1D;
+        case ResourceDimension::TEXTURE2D:return UavDimension::TEXTURE2D;
+        case ResourceDimension::TEXTURE3D:return UavDimension::TEXTURE3D;
+        default:Assert(false); return UavDimension::UNKNOWN;
+        }
+    }
+
+    struct GD_COMMON_API Viewport
+    {
+        CONTINOUS_SETTER(Viewport, f32, TopLeftX);
+        CONTINOUS_SETTER(Viewport, f32, TopLeftY);
+        CONTINOUS_SETTER(Viewport, f32, Width);
+        CONTINOUS_SETTER(Viewport, f32, Height);
+        CONTINOUS_SETTER_VALUE(Viewport, f32, MinDepth, 0.0f);
+        CONTINOUS_SETTER_VALUE(Viewport, f32, MaxDepth, 1.0f);
     };
+
+    class IGraphicMemoryResource;
 
     struct GD_COMMON_API SrvDesc
     {
+        using ShaderComponentMapping4 = std::array<bool, 4>;
+        static ShaderComponentMapping4 FullMapping() { return { true, true, true, true }; };
+
+        CONTINOUS_SETTER(SrvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(SrvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(SrvDesc, SrvDimension::Enum, ViewDimension);
-        CONTINOUS_SETTER_VALUE(SrvDesc, u32, Shader4ComponentMapping, D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING);
+        CONTINOUS_SETTER_VALUE(SrvDesc, ShaderComponentMapping4, Shader4ComponentMapping, FullMapping());
         CONTINOUS_SETTER(SrvDesc, u64, Buffer_FirstElement);
         CONTINOUS_SETTER(SrvDesc, u32, Buffer_NumElements);
         CONTINOUS_SETTER(SrvDesc, u32, Buffer_StructureByteStride);
@@ -356,6 +474,7 @@ namespace GI
 
     struct GD_COMMON_API RtvDesc
     {
+        CONTINOUS_SETTER(RtvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(RtvDesc, RtvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(RtvDesc, u32, MipSlice);
@@ -364,6 +483,7 @@ namespace GI
 
     struct GD_D3D12BACKEND_API DsvDesc
     {
+        CONTINOUS_SETTER(DsvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(DsvDesc, bool, Enabled);
         CONTINOUS_SETTER(DsvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(DsvDesc, DsvDimension::Enum, ViewDimension);
@@ -373,6 +493,7 @@ namespace GI
 
     struct GD_D3D12BACKEND_API UavDesc
     {
+        CONTINOUS_SETTER(UavDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(UavDesc, UavDimension, ViewDimension);
         CONTINOUS_SETTER(UavDesc, u64, Buffer_FirstElement);
         CONTINOUS_SETTER(UavDesc, u32, Buffer_NumElements);
@@ -389,10 +510,10 @@ namespace GI
         
         CONTINOUS_SETTER(SamplerDesc, Filter::Enum, Filter);
         CONTINOUS_SETTER(SamplerDesc, AddrMode3, Address);
-        CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MipLODBias, D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING);
-        CONTINOUS_SETTER(SamplerDesc, u32, MaxAnisotropy);
-        CONTINOUS_SETTER(SamplerDesc, u32, ComparisonFunc);
-        CONTINOUS_SETTER(SamplerDesc, Vec4f, BorderColor);
+        CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MipLODBias, 0.0f);
+        CONTINOUS_SETTER_VALUE(SamplerDesc, u32, MaxAnisotropy, 0);
+        CONTINOUS_SETTER_VALUE(SamplerDesc, u32, ComparisonFunc, 0);
+        CONTINOUS_SETTER_VALUE(SamplerDesc, Vec4f, BorderColor, Vec4f::Zero());
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MinLOD, 0);
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MaxLOD, std::numeric_limits<f32>::max());
     };
@@ -400,24 +521,26 @@ namespace GI
     struct GD_COMMON_API InputElementDesc
     {
         CONTINOUS_SETTER(InputElementDesc, const char*, SemanticName);
-        CONTINOUS_SETTER(InputElementDesc, u32, SemanticIndex);
+        CONTINOUS_SETTER_VALUE(InputElementDesc, u32, SemanticIndex, 0);
         CONTINOUS_SETTER(InputElementDesc, Format::Enum, Format);
-        CONTINOUS_SETTER(InputElementDesc, u32, InputSlot);
+        CONTINOUS_SETTER_VALUE(InputElementDesc, u32, InputSlot, 0);
         CONTINOUS_SETTER(InputElementDesc, u32, AlignedByteOffset);
-        CONTINOUS_SETTER(InputElementDesc, InputClassification::Enum, InputSlotClass);
-        CONTINOUS_SETTER(InputElementDesc, u32, InstanceDataStepRate);
+        CONTINOUS_SETTER_VALUE(InputElementDesc, InputClassification::Enum, InputSlotClass, InputClassification::PER_VERTEX_DATA);
+        CONTINOUS_SETTER_VALUE(InputElementDesc, u32, InstanceDataStepRate, 0);
     };
 
     struct GD_COMMON_API VbvDesc
     {
+        CONTINOUS_SETTER(VbvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(VbvDesc, i32, SizeInBytes);
         CONTINOUS_SETTER(VbvDesc, i32, StrideInBytes);
     };
 
     struct GD_COMMON_API IbvDesc
     {
+        CONTINOUS_SETTER(IbvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(IbvDesc, i32, SizeInBytes);
-        CONTINOUS_SETTER_VALUE(IbvDesc, Format::Enum, StrideInBytes, Format::FORMAT_R16_UINT);
+        CONTINOUS_SETTER_VALUE(IbvDesc, Format::Enum, Format, Format::FORMAT_R16_UINT);
     };
 
     struct GD_COMMON_API ShaderMacro
@@ -428,66 +551,126 @@ namespace GI
 
     struct GD_COMMON_API RasterizerDesc
     {
-        CONTINOUS_SETTER(RasterizerDesc, bool, FillSolidRatherThanWireframe);
-        CONTINOUS_SETTER(RasterizerDesc, CullMode, CullMode);
-        CONTINOUS_SETTER(RasterizerDesc, bool, FrontCounterClockwise);
-        CONTINOUS_SETTER(RasterizerDesc, i32, DepthBias);
-        CONTINOUS_SETTER(RasterizerDesc, f32, DepthBiasClamp);
-        CONTINOUS_SETTER(RasterizerDesc, f32, SlopeScaledDepthBias);
-        CONTINOUS_SETTER(RasterizerDesc, bool, DepthClipEnable);
-        CONTINOUS_SETTER(RasterizerDesc, bool, MultisampleEnable);
-        CONTINOUS_SETTER(RasterizerDesc, bool, AntialiasedLineEnable);
-        CONTINOUS_SETTER(RasterizerDesc, i32, ForcedSampleCount);
-        CONTINOUS_SETTER(RasterizerDesc, bool, ConservativeRaster);
+        // default value see CD3DX12_RASTERIZER_DESC(CD3DX12_DEFAULT)
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, FillSolidRatherThanWireframe, true);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, CullMode::Enum, CullMode, CullMode::BACK);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, FrontCounterClockwise, false);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, i32, DepthBias, 0);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, f32, DepthBiasClamp, 0.0f);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, f32, SlopeScaledDepthBias, 0.0f);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, DepthClipEnable, true);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, MultisampleEnable, false);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, AntialiasedLineEnable, false);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, i32, ForcedSampleCount, 0);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, ConservativeRaster, false);
     };
 
     struct GD_COMMON_API DepthStencilDesc
     {
-        CONTINOUS_SETTER(DepthStencilDesc, bool, DepthEnable);
-        CONTINOUS_SETTER(DepthStencilDesc, bool, DepthWriteAllRatherThanZero);
-        CONTINOUS_SETTER(DepthStencilDesc, ComparisonFunction::Enum, DepthFunc);
-        CONTINOUS_SETTER(DepthStencilDesc, bool, StencilEnable);
-        CONTINOUS_SETTER(DepthStencilDesc, u8, StencilReadMask);
-        CONTINOUS_SETTER(DepthStencilDesc, u8, StencilWriteMask);
+        // default value see CD3DX12_DEPTH_STENCIL_DESC( CD3DX12_DEFAULT )
 
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, FrontFace_StencilFailOp);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, FrontFace_StencilDepthFailOp);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, FrontFace_StencilPassOp);
-        CONTINOUS_SETTER(DepthStencilDesc, ComparisonFunction::Enum, FrontFace_StencilFunc);
+        struct GD_COMMON_API StencilOpDesc
+        {
+            CONTINOUS_SETTER_VALUE(StencilOpDesc, StencilOp::Enum, StencilFailOp, StencilOp::KEEP);
+            CONTINOUS_SETTER_VALUE(StencilOpDesc, StencilOp::Enum, StencilDepthFailOp, StencilOp::KEEP);
+            CONTINOUS_SETTER_VALUE(StencilOpDesc, StencilOp::Enum, StencilPassOp, StencilOp::KEEP);
+            CONTINOUS_SETTER_VALUE(StencilOpDesc, ComparisonFunction::Enum, StencilFunc, ComparisonFunction::ALWAYS);
+        };
 
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, BackFace_StencilFailOp);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, BackFace_StencilDepthFailOp);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOp::Enum, BackFace_StencilPassOp);
-        CONTINOUS_SETTER(DepthStencilDesc, ComparisonFunction::Enum, BackFace_StencilFunc);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, bool, DepthEnable, true);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, bool, DepthWriteAllRatherThanZero, true);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, ComparisonFunction::Enum, DepthFunc, ComparisonFunction::LESS);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, bool, StencilEnable, false);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, u8, StencilReadMask, 0xff);
+        CONTINOUS_SETTER_VALUE(DepthStencilDesc, u8, StencilWriteMask, 0xff);
+        CONTINOUS_SETTER(DepthStencilDesc, StencilOpDesc, FrontFace);
+        CONTINOUS_SETTER(DepthStencilDesc, StencilOpDesc, BackFace);
     };
 
-    template <typename T>
-    inline std::vector<byte> ToGpuConstBufferParamData(const T& var)
+    constexpr ComparisonFunction::Enum ToDepthCompareFunc(const Math::ValueCompareState& state)
     {
-        std::vector<byte> result(sizeof(T), 0);
+        if (state == Math::ValueCompareState_Equal) return ComparisonFunction::EQUAL;
+        if (state == Math::ValueCompareState_Less) return ComparisonFunction::LESS;
+        if (state == Math::ValueCompareState_Greater) return ComparisonFunction::GREATER;
+        if (state == (Math::ValueCompareState_Equal | Math::ValueCompareState_Less)) return ComparisonFunction::LESS_EQUAL;
+        if (state == (Math::ValueCompareState_Equal | Math::ValueCompareState_Greater)) return ComparisonFunction::GREATER_EQUAL;
+        if (state == (Math::ValueCompareState_Less | Math::ValueCompareState_Greater)) return ComparisonFunction::NOT_EQUAL;
+
+        Assert(false);
+        return ComparisonFunction::ALWAYS;
+    }
+
+    template <typename T>
+    inline std::vector<b8> ToGpuConstBufferParamData(const T& var)
+    {
+        std::vector<b8> result(sizeof(T), b8{});
         memcpy(result.data(), &var, sizeof(T));
         return result;
     }
 
     template <>
-    inline std::vector<byte> ToGpuConstBufferParamData(const Mat33f& var)
+    inline std::vector<b8> ToGpuConstBufferParamData(const Mat33f& var)
     {
-        std::vector<byte> result(sizeof(f32) * (4 + 4 + 3), 0);
+        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), b8{});
         Assert(false);
         return result;
     }
 
 
     template <>
-    inline std::vector<byte> ToGpuConstBufferParamData(const std::vector<f32>& var)
+    inline std::vector<b8> ToGpuConstBufferParamData(const std::vector<f32>& var)
     {
         const auto size = var.size() * sizeof(f32);
 
-        std::vector<byte> result(size, 0);
+        std::vector<b8> result(size, b8{});
         memcpy_s(result.data(), size, var.data(), size);
         return result;
     }
 
+    class GD_COMMON_API IGraphicMemoryResource
+    {
+    public:
+        virtual HeapType::Enum          GetHeapType() const = 0;
+        virtual ResourceDimension::Enum GetDimension() const = 0;
+        virtual Format::Enum            GetFormat() const = 0;
+        virtual u16                     GetMipLevelCount() const = 0;
+    };
+
+    class GD_COMMON_API MemoryResourceDesc
+    {
+        CONTINOUS_SETTER(MemoryResourceDesc, HeapType::Enum, HeapType);
+        CONTINOUS_SETTER(MemoryResourceDesc, ResourceDimension::Enum, Dimension);
+        CONTINOUS_SETTER(MemoryResourceDesc, u64, Alignment);
+        CONTINOUS_SETTER(MemoryResourceDesc, u64, Width);
+        CONTINOUS_SETTER(MemoryResourceDesc, u32, Height);
+        CONTINOUS_SETTER(MemoryResourceDesc, u16, DepthOrArraySize);
+        CONTINOUS_SETTER(MemoryResourceDesc, u16, MipLevels);
+        CONTINOUS_SETTER(MemoryResourceDesc, Format::Enum, Format);
+        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Count, 1); // see D3D12_RESOURCE_DESC.SampleDesc
+        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Quality, 0);
+        CONTINOUS_SETTER(MemoryResourceDesc, TextureLayout::Enum, Layout);
+        CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlags::Enum, Flags);
+        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
+        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
+    };
+
+    class GD_COMMON_API IImage
+    {
+    public:
+        virtual MemoryResourceDesc GetResourceDesc() const = 0;
+    };
+
+    class GD_COMMON_API IGraphicsInfra
+    {
+    public:
+        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
+        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+
+        virtual void                                        CopyToUploadMemoryResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
+
+        virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const = 0;
+        virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
+    };
 
     class GD_COMMON_API GraphicsPass
     {
@@ -523,10 +706,10 @@ namespace GI
         std::vector<ShaderMacro>	                mShaderMacros;
 
     public:
-        std::map<u8, RtvDesc>               		mRtvs;
+        std::array<RtvDesc, 8>               		mRtvs;
         DsvDesc                                     mDsv;
 
-        std::vector<InputElementDesc>               mVbElements;
+        std::vector<InputElementDesc>               mInputLayout;
 
         RasterizerDesc                              mRasterizerDesc;
         DepthStencilDesc                            mDepthStencilDesc;
@@ -543,7 +726,7 @@ namespace GI
         u32     									mStencilRef = 0;
 
     protected:
-        std::map<std::string, std::vector<byte>>	mCbParams;
+        std::map<std::string, std::vector<b8>>      mCbParams;
         std::map<std::string, SrvDesc>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
     };

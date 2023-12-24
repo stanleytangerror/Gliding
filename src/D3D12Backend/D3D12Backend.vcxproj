@@ -106,6 +106,7 @@
     <ClCompile Include="D3D12Device.cpp" />
     <ClCompile Include="D3D12GpuEvent.cpp" />
     <ClCompile Include="D3D12GpuQueue.cpp" />
+    <ClCompile Include="D3D12GraphicsInfra.cpp" />
     <ClCompile Include="D3D12PipelinePass.cpp" />
     <ClCompile Include="D3D12PipelineState.cpp" />
     <ClCompile Include="D3D12Resource.cpp" />
@@ -125,6 +126,7 @@
     <ClInclude Include="D3D12Device.h" />
     <ClInclude Include="D3D12GpuEvent.h" />
     <ClInclude Include="D3D12GpuQueue.h" />
+    <ClInclude Include="D3D12GraphicsInfra.h" />
     <ClInclude Include="D3D12Headers.h" />
     <ClInclude Include="D3D12PipelinePass.h" />
     <ClInclude Include="D3D12PipelineState.h" />

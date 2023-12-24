@@ -12,27 +12,25 @@
 
 namespace
 {
-	D3D12_SAMPLER_DESC ToD3DSamplerDesc(const TextureSamplerType& type)
+	GI::SamplerDesc ToSamplerDesc(const TextureSamplerType& type)
 	{
-		D3D12_SAMPLER_DESC result = {};
-
 		auto mapType = [](SamplerAddrMode mode)
 		{
 			switch (mode)
 			{
-			case TextureSamplerType_Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			case TextureSamplerType_Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case TextureSamplerType_Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			case TextureSamplerType_Clamp: return GI::TextureAddressMode::CLAMP;
+			case TextureSamplerType_Mirror: return GI::TextureAddressMode::MIRROR;
+			case TextureSamplerType_Wrap: return GI::TextureAddressMode::WRAP;
 			case TextureSamplerType_Decal:
-			default:  Assert(false); return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			default:  Assert(false); return GI::TextureAddressMode::WRAP;
 			}
 		};
 
-		result.AddressU = mapType(type[0]);
-		result.AddressV = mapType(type[1]);
-		result.AddressW = mapType(type[2]);
-
-		return result;
+		return GI::SamplerDesc()
+			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+			.SetAddress({ mapType(type[0]),
+					mapType(type[1]),
+					mapType(type[2]) });
 	}
 }
 
@@ -152,24 +150,24 @@ void RenderUtils::GaussianBlur(D3D12Backend::GraphicsContext* context, D3D12Back
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData)
+RenderUtils::FromSceneRawData(GI::IGraphicInfra* infra, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	std::map<std::string, Texture*> textures;
+	std::map<std::string, FileTexture*> textures;
 	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
 	{
 		if (texRawData)
 		{
-			textures[texPath] = new Texture(texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new FileTexture(infra, texPath.c_str(), texRawData->mRawData);
 		}
 	}
-	std::map<TextureSamplerType, D3D12Backend::SamplerView*> samplers;
+	std::map<TextureSamplerType, GI::SamplerDesc> samplers;
 	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
 	{
-		samplers[samplerType] = new D3D12Backend::SamplerView(device, ToD3DSamplerDesc(samplerType));
+		samplers[samplerType] = ToSamplerDesc(samplerType);
 	}
 
 	std::vector<std::shared_ptr<RenderMaterial>> materials;
@@ -234,7 +232,7 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 	const u32 vertexTotalStride = std::accumulate(vertexData.begin(), vertexData.end(), 0, [](u32 a, const auto& p) { return a + p.first.mStrideInBytes; });
 
 	std::vector<b8> vertices(vertexTotalStride * vertexCount, b8(0));
-	std::vector<D3D12_INPUT_ELEMENT_DESC> inputDesc;
+	std::vector<GI::InputElementDesc> inputDesc;
 
 	static const char* names[] =
 	{
@@ -246,12 +244,12 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 		"COLOR"
 	};
 
-	static const DXGI_FORMAT formats[] =
+	static const GI::Format::Enum formats[] =
 	{
-		DXGI_FORMAT_R32_FLOAT,
-		DXGI_FORMAT_R32G32_FLOAT,
-		DXGI_FORMAT_R32G32B32_FLOAT,
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		GI::Format::FORMAT_R32_FLOAT,
+		GI::Format::FORMAT_R32G32_FLOAT,
+		GI::Format::FORMAT_R32G32B32_FLOAT,
+		GI::Format::FORMAT_R32G32B32A32_FLOAT,
 	};
 
 	u32 vertexStride = 0;
@@ -260,14 +258,12 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 		const VertexAttriMeta& meta = p.first;
 		const std::vector<VertexAttriRawData>& attrData = p.second;
 
-		inputDesc.push_back(D3D12_INPUT_ELEMENT_DESC{
-			names[meta.mType],
-			meta.mChannelIndex,
-			formats[meta.mStrideInBytes / sizeof(f32)],
-			meta.mChannelIndex,
-			vertexStride,
-			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-			0 });
+		inputDesc.push_back(GI::InputElementDesc()
+			.SetSemanticName(names[meta.mType])
+			.SetSemanticIndex(meta.mChannelIndex)
+			.SetFormat(formats[meta.mStrideInBytes / sizeof(f32)])
+			.SetInputSlot(meta.mChannelIndex)
+			.SetAlignedByteOffset(vertexStride));
 
 		b8* target = vertices.data() + vertexStride;
 		for (i32 i = 0; i < vertexCount; i += 1, target += vertexTotalStride)

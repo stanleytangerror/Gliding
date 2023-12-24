@@ -37,7 +37,7 @@ namespace D3D12Backend
 		virtual std::string GetName() const { return {}; }
 	};
 
-	class GD_D3D12BACKEND_API CommitedResource : public IResource
+	class GD_D3D12BACKEND_API CommitedResource : public IResource, public GI::IGraphicMemoryResource
 	{
 	public:
 		class GD_D3D12BACKEND_API Builder
@@ -56,10 +56,10 @@ namespace D3D12Backend
 			CONTINOUS_SETTER_VALUE(Builder, D3D12_RESOURCE_STATES, InitState, D3D12_RESOURCE_STATE_COMMON);
 
 		public:
-			CommitedResource* Build(D3D12Device* device, D3D12_HEAP_TYPE heapType);
-			CommitedResource* BuildUpload(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_UPLOAD); }
-			CommitedResource* BuildDefault(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_DEFAULT); }
-			CommitedResource* BuildReadback(D3D12Device* device) { return Build(device, D3D12_HEAP_TYPE_READBACK); }
+			CommitedResource* Build(D3D12Device* device, GI::HeapType::Enum heapType);
+			CommitedResource* BuildUpload(D3D12Device* device) { return Build(device, GI::HeapType::UPLOAD); }
+			CommitedResource* BuildDefault(D3D12Device* device) { return Build(device, GI::HeapType::DEFAULT); }
+			CommitedResource* BuildReadback(D3D12Device* device) { return Build(device, GI::HeapType::READBACK); }
 		};
 
 		class GD_D3D12BACKEND_API Possessor
@@ -142,9 +142,12 @@ namespace D3D12Backend
 		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource* GetD3D12Resource() const override { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }
-		DXGI_FORMAT					GetFormat() const { return mDesc.Format; } // TODO override?
-		u16							GetMipLevelCount() const { return mDesc.MipLevels; } // TODO override?
+		GI::Format::Enum			GetFormat() const override { return D3D12Utils::ToGiFormat(mDesc.Format); }
+		u16							GetMipLevelCount() const override { return mDesc.MipLevels; }
 		D3D12_RESOURCE_STATES		GetState() const { return mState; }
+
+		GI::HeapType::Enum			GetHeapType() const { return mHeapType; }
+		GI::ResourceDimension::Enum	GetDimension() const { return GI::ResourceDimension::Enum(mDesc.Dimension); }
 		
 		SrvBuilder					CreateSrv();
 		RtvBuilder					CreateRtv();
@@ -152,11 +155,12 @@ namespace D3D12Backend
 		UavBuilder					CreateUav();
 
 	protected:
-		D3D12Device* mDevice = nullptr;
-		ID3D12Resource* mResource = nullptr;
+		D3D12Device*				mDevice = nullptr;
+		ID3D12Resource*				mResource = nullptr;
 		Vec3i						mSize = {};
 		D3D12_RESOURCE_DESC			mDesc = {};
 		D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
+		GI::HeapType::Enum			mHeapType = {};
 	};
 
 	GD_D3D12BACKEND_API CommitedResource* CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels = 1);

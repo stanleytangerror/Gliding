@@ -6,6 +6,7 @@
 #include "D3D12Backend/D3D12Device.h"
 #include "RenderTarget.h"
 #include "D3D12Backend/D3D12SwapChain.h"
+#include "D3D12Backend/D3D12GraphicsInfra.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -20,6 +21,7 @@ RenderModule::RenderModule()
 #endif
 
 	mDevice = new D3D12Backend::D3D12Device;
+	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra(mDevice);
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)

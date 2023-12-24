@@ -5,8 +5,13 @@
 #include "ScreenRenderer.h"
 #include "ImGuiRenderer.h"
 #include "Common/PresentPort.h"
+#include "Common/GraphicsInfrastructure.h"
 #include "imgui.h"
 
+namespace GI
+{
+	class IGraphicInfra;
+}
 class ScreenRenderer;
 class RenderDocIntegration;
 class WorldRenderer;
@@ -30,11 +35,13 @@ public:
 	void Render();
 
 	D3D12Backend::D3D12Device*	GetDevice() const { return mDevice; }
+	GI::IGraphicInfra*			GetGraphicsInfra() const { return mGraphicInfra; }
 	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
 
 	void				Destroy();
 
 protected:
+	GI::IGraphicInfra*						mGraphicInfra = nullptr;
 	D3D12Backend::D3D12Device*				mDevice = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
