@@ -34,44 +34,41 @@ namespace
 	}
 }
 
-void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context,
-	D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
-	D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary)
+void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
+	const GI::RtvDesc& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
+	const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
-	static Geometry* quad = Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* quad = Geometry::GenerateQuad();
+	if (!quad->IsGraphicsResourceReady()) { quad->CreateAndInitialResource(infra); }
 
-	D3D12Backend::GraphicsPass pass(context);
+	GI::GraphicsPass pass;
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 	pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
+	pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { quad->mInputDescs.data(), u32(quad->mInputDescs.size()) };
-	}
+	pass.mRasterizerDesc.SetCullMode(GI::CullMode::NONE);
 
-	const Vec3i& targetSize = target->GetResource()->GetSize();
-	pass.mRts[0] = target;
-	pass.mViewPort = CD3DX12_VIEWPORT(targetOffset.x(), targetOffset.y(), targetRect.x(), targetRect.y());
+	pass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(false);
+
+	pass.mInputLayout = quad->mVertexElementDescs;
+
+	const Vec3i& targetSize = target->GetResource()->GetDimSize();
+	pass.mRtvs[0] = target;
+	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(quad->mVbv);
-	pass.mIbv = quad->mIbv;
-	pass.mIndexCount = quad->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(quad->GetVbvDesc());
+	pass.mIbv = quad->GetIbvDesc();
+	pass.mIndexCount = quad->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
 	pass.AddSrv("SourceTex", source);
 	pass.AddSampler("SourceTexSampler", sourceSampler);
-
-	pass.Draw();
 }
 
 void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler)

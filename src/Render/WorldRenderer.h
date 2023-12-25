@@ -5,7 +5,7 @@
 
 class RenderModule;
 class Geometry;
-class Texture;
+class FileTexture;
 class RenderTarget;
 namespace D3D12Backend
 {
@@ -38,12 +38,6 @@ private:
 	void DeferredLighting(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target);
 
 	static void RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context,
-		Geometry* geometry, RenderMaterial* material, 
-		const Transformf& transform, 
-		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
-		const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRts, D3D12Backend::DepthStencilView* depthView);
-
-	static void RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext* context,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
@@ -54,7 +48,8 @@ private:
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
-		D3D12Backend::DepthStencilView* depthView);
+		const GI::DsvDesc& depthView,
+		const Vec2i& targetSize);
 
 	static void RenderShadowMask(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* shadowMask,
@@ -70,7 +65,7 @@ private:
 	Geometry* mQuad = nullptr;
 	Geometry* mSphere = nullptr;
 
-	Texture* mSkyTexture = nullptr;
+	FileTexture* mSkyTexture = nullptr;
 	RenderTarget* mPanoramicSkyRt = nullptr;
 	D3D12Backend::SamplerView* mPanoramicSkySampler = nullptr;
 	f32	mSkyLightIntensity = 50.f;

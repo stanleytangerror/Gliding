@@ -142,6 +142,7 @@ namespace D3D12Backend
 		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
 		ID3D12Resource* GetD3D12Resource() const override { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }
+		Vec3i						GetDimSize() const override { return mSize; }
 		GI::Format::Enum			GetFormat() const override { return D3D12Utils::ToGiFormat(mDesc.Format); }
 		u16							GetMipLevelCount() const override { return mDesc.MipLevels; }
 		D3D12_RESOURCE_STATES		GetState() const { return mState; }

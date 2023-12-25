@@ -10,6 +10,11 @@ class GD_RENDER_API Geometry
 public:
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
 
+	bool IsGraphicsResourceReady() const { return !mVb || !mIb; };
+
+	GI::VbvDesc	GetVbvDesc() const;
+	GI::IbvDesc	GetIbvDesc() const;
+
 public:
 	std::vector<b8>		mVertices;
 	i32					mVertexStride = 0;

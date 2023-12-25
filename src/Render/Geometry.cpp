@@ -40,6 +40,22 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 	infra->CopyToUploadMemoryResource(mIb.get(), buf);
 }
 
+GI::VbvDesc	Geometry::GetVbvDesc() const
+{
+	return GI::VbvDesc()
+		.SetResource(mVb.get())
+		.SetSizeInBytes(mVertices.size())
+		.SetStrideInBytes(mVertexStride);
+}
+
+GI::IbvDesc	Geometry::GetIbvDesc() const
+{
+	return GI::IbvDesc()
+		.SetResource(mIb.get())
+		.SetSizeInBytes(mIndices.size() * sizeof(u16))
+		.SetFormat(GI::Format::FORMAT_R16_UINT);
+}
+
 Geometry* Geometry::GenerateQuad()
 {
 	return Geometry::GenerateGeometry<Vec2f>(
@@ -117,7 +133,6 @@ Geometry* Geometry::GenerateSphere(i32 subDev)
 
 	return Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(device, vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
 }
-
 
 Geometry* Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<GI::InputElementDesc>& inputDescs)
 {

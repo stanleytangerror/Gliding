@@ -3,12 +3,7 @@
 #include "World/Scene.h"
 #include "Common/GraphicsInfrastructure.h"
 
-class Texture;
-namespace D3D12Backend
-{
-	class D3D12CommandContext;
-	class SamplerView;
-}
+class FileTexture;
 
 struct RenderMaterial
 {

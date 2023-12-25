@@ -1,5 +1,9 @@
 #pragma once
 
+#include "AssertUtils.h"
+#include "Math.h"
+#include "Texture.h"
+
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
 
@@ -441,6 +445,19 @@ namespace GI
         }
     }
 
+    constexpr RtvDimension::Enum GetRtvDimension(ResourceDimension::Enum dim)
+    {
+        switch (dim)
+        {
+        case ResourceDimension::UNKNOWN:  return RtvDimension::UNKNOWN;
+        case ResourceDimension::BUFFER:   return RtvDimension::BUFFER;
+        case ResourceDimension::TEXTURE1D:return RtvDimension::TEXTURE1D;
+        case ResourceDimension::TEXTURE2D:return RtvDimension::TEXTURE2D;
+        case ResourceDimension::TEXTURE3D:return RtvDimension::TEXTURE3D;
+        default:Assert(false); return RtvDimension::UNKNOWN;
+        }
+    }
+
     struct GD_COMMON_API Viewport
     {
         CONTINOUS_SETTER(Viewport, f32, TopLeftX);
@@ -477,11 +494,11 @@ namespace GI
         CONTINOUS_SETTER(RtvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(RtvDesc, RtvDimension::Enum, ViewDimension);
-        CONTINOUS_SETTER(RtvDesc, u32, MipSlice);
-        CONTINOUS_SETTER(RtvDesc, u32, PlaneSlice);
+        CONTINOUS_SETTER(RtvDesc, u32, Texture2D_MipSlice);
+        CONTINOUS_SETTER(RtvDesc, u32, Texture2D_PlaneSlice);
     };
 
-    struct GD_D3D12BACKEND_API DsvDesc
+    struct GD_COMMON_API DsvDesc
     {
         CONTINOUS_SETTER(DsvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(DsvDesc, bool, Enabled);
@@ -491,7 +508,7 @@ namespace GI
         CONTINOUS_SETTER(DsvDesc, u32, MipSlice);
     };
 
-    struct GD_D3D12BACKEND_API UavDesc
+    struct GD_COMMON_API UavDesc
     {
         CONTINOUS_SETTER(UavDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(UavDesc, UavDimension, ViewDimension);
@@ -632,8 +649,14 @@ namespace GI
     public:
         virtual HeapType::Enum          GetHeapType() const = 0;
         virtual ResourceDimension::Enum GetDimension() const = 0;
+        virtual Vec3i                   GetDimSize() const = 0;
         virtual Format::Enum            GetFormat() const = 0;
         virtual u16                     GetMipLevelCount() const = 0;
+    };
+
+    class GD_COMMON_API ResouceViewUtils
+    {
+        static GI::RtvDesc CreateFullRtv(const IGraphicMemoryResource* resource, GI::Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice);
     };
 
     class GD_COMMON_API MemoryResourceDesc

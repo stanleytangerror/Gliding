@@ -1,6 +1,5 @@
 #include "RenderPch.h"
 #include "RenderMaterial.h"
-#include "D3D12Backend/D3D12CommandContext.h"
 #include "Texture.h"
 
 void RenderMaterial::UpdateGpuResources(GI::IGraphicInfra* infra)

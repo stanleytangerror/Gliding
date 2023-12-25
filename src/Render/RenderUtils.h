@@ -17,9 +17,9 @@ struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(D3D12Backend::GraphicsContext* context,
-		D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
-		D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
+	void CopyTexture(GI::IGraphicsInfra* infra,
+		const GI::RtvDesc& target, const Vec2f& targetOffset, const Vec2f& targetRect,
+		const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
 	void CopyTexture(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* target, 

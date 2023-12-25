@@ -90,5 +90,8 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="NativeUtils.cpp" />
+    <ClCompile Include="GraphicsInfrastructure.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

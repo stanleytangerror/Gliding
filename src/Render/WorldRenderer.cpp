@@ -19,12 +19,13 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	, mRenderSize(renderSize)
 {
 	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
+	auto infra = mRenderModule->GetGraphicsInfra();
 
-	mSphere = Geometry::GenerateSphere(device, 40);
-	mQuad = Geometry::GenerateQuad(device);
+	mSphere = Geometry::GenerateSphere(40);
+	mQuad = Geometry::GenerateQuad();
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = new Texture(skyTexPath, Utils::LoadFileContent(skyTexPath));
+	mSkyTexture = new FileTexture(infra, skyTexPath, Utils::LoadFileContent(skyTexPath));
 	mPanoramicSkySampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mLightingSceneSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
 	mNoMipMapLinearSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
@@ -162,19 +163,31 @@ void WorldRenderer::TickFrame(Timer* timer)
 
 void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
 {
+	auto infra = mRenderModule->GetGraphicsInfra();
+
 	{
 		RENDER_EVENT(context, UpdateResources);
 
+		if (!mQuad->IsGraphicsResourceReady())
+		{
+			mQuad->CreateAndInitialResource(infra);
+		}
+
+		if (!mSphere->IsGraphicsResourceReady())
+		{
+			mSphere->CreateAndInitialResource(infra);
+		}
+
 		if (!mSkyTexture->IsD3DResourceReady())
 		{
-			mSkyTexture->Initial(context);
+			mSkyTexture->CreateAndInitialResource(infra);
 
-			const auto& srcSize = mSkyTexture->GetSize();
+			const auto& srcSize = mSkyTexture->GetResource()->GetDimSize();
 			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
 			mPanoramicSkyRt = new RenderTarget(context->GetDevice(), skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
-			RenderUtils::CopyTexture(context, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
+			RenderUtils::CopyTexture(infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
 			mIrradianceMap = irradMap;
@@ -453,91 +466,7 @@ void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backe
 	pass.Draw();
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context, 
-	Geometry* geometry, RenderMaterial* material, 
-	const Transformf& transform, 
-	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj, 
-	const std::array<D3D12Backend::RenderTargetView*, 3>& gbufferRtvs, D3D12Backend::DepthStencilView* depthView)
-{
-	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
-	
-	D3D12Backend::GraphicsPass gbufferPass(context);
-
-	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
-	gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
-
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = gbufferPass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
-		desc.DepthStencilState.StencilEnable = true;
-		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_Scene;
-		desc.DepthStencilState.StencilWriteMask = RenderUtils::WorldStencilMask_OpaqueObject;
-		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-		desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
-	}
-
-	for (i32 i = 0; i < gbufferRtvs.size(); ++i)
-	{
-		gbufferPass.mRts[i] = gbufferRtvs[i];
-	}
-	gbufferPass.mDs = depthView;
-
-	const Vec3i& targetSize = gbufferRtvs[0]->GetResource()->GetSize();
-	gbufferPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
-	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
-
-	gbufferPass.mVbvs.clear();
-	gbufferPass.mVbvs.push_back(geometry->mVbv);
-	gbufferPass.mIbv = geometry->mIbv;
-	gbufferPass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
-
-	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-
-	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
-	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
-
-	const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
-	{
-		{ TextureUsage_Normal,			 "Normal" },
-		{ TextureUsage_Metalness,		 "Metallic" },
-		{ TextureUsage_BaseColor,		 "BaseColor" },
-		{ TextureUsage_Roughness,		 "Roughness" },
-	};
-
-	for (const auto& [usage, paramName] : semanticSlots)
-	{
-		const auto& attr = material->mMatAttriSlots[usage];
-		if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
-		{
-			gbufferPass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ paramName + "_USE_MAP", "" });
-
-			gbufferPass.AddSrv((paramName + "Tex").c_str(), attr.mTexture->GetSrv());
-			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
-		}
-		else
-		{
-			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), attr.mConstantValue);
-		}
-	}
-
-	gbufferPass.Draw();
-}
-
-void WorldRenderer::RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext* context,
+void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
@@ -585,16 +514,9 @@ void WorldRenderer::RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext*
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	gbufferPass.mVbvs.push_back(
-		GI::VbvDesc()
-		.SetResource(geometry->mVb.get())
-		.SetSizeInBytes(geometry->mVertices.size())
-		.SetStrideInBytes(geometry->mVertexStride)
-	);
-	gbufferPass.mIbv = GI::IbvDesc()
-		.SetResource(geometry->mIb.get())
-		.SetSizeInBytes(geometry->mIndices.size() * sizeof(u16))
-		.SetFormat(GI::Format::FORMAT_R16_UINT);
+	gbufferPass.mVbvs.push_back(geometry->GetVbvDesc());
+	gbufferPass.mIbv = geometry->GetIbvDesc();
+
 	gbufferPass.mIndexCount = geometry->mIndices.size();
 
 	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -635,40 +557,45 @@ void WorldRenderer::RenderGeometryWithMaterialNew(D3D12Backend::GraphicsContext*
 	}
 }
 
-void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContext* context, Geometry* geometry, RenderMaterial* material, const Transformf& transform, const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj, D3D12Backend::DepthStencilView* depthView)
+void WorldRenderer::RenderGeometryDepthWithMaterial(
+	D3D12Backend::GraphicsContext* context,
+	Geometry* geometry, RenderMaterial* material,
+	const Transformf& transform,
+	const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
+	const GI::DsvDesc& depthView,
+	const Vec2i& targetSize)
 {
 	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
 
-	D3D12Backend::GraphicsPass pass(context);
+	GI::GraphicsPass pass;
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
 	pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.RasterizerState.DepthBias = 10000;
-		desc.RasterizerState.SlopeScaledDepthBias = 10;
-		desc.DepthStencilState.DepthEnable = true;
-		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
-	}
+	pass.mRasterizerDesc
+		.SetCullMode(GI::CullMode::NONE)
+		.SetDepthBias(10000)
+		.SetSlopeScaledDepthBias(10);
 
-	pass.mDs = depthView;
+	pass.mDepthStencilDesc
+		.SetDepthEnable(true)
+		.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
+		.SetStencilEnable(false);
 
-	const Vec3i& targetSize = depthView->GetResource()->GetSize();
-	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mInputLayout = geometry->mVertexElementDescs;
+
+	pass.mDsv = depthView;
+
+	const Vec3i& targetSize = depthView->GetResource()->GetDimSize();
+	pass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->mVbv);
-	pass.mIbv = geometry->mIbv;
-	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(geometry->GetVbvDesc());
+	pass.mIbv = geometry->GetIbvDesc();
+	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
@@ -681,11 +608,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(D3D12Backend::GraphicsContex
 	const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
 	if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
 	{
-		pass.AddSrv(paramName, attr.mTexture->GetSrv());
+		pass.AddSrv(paramName, attr.mTexture->GetResource()->GetSrv());
 		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), attr.mSampler);
 	}
-
-	pass.Draw();
 }
 
 void WorldRenderer::RenderShadowMask(D3D12Backend::GraphicsContext* context, 
