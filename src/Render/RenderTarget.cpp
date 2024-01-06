@@ -1,81 +1,76 @@
 #include "RenderPch.h"
 #include "RenderTarget.h"
-#include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12Device.h"
 
-RenderTarget::RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name)
-	: RenderTarget(device, size, format, 1, name)
+RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, const char* name)
+	: RenderTarget(infra, size, format, 1, name)
 {
 }
 
-RenderTarget::RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name)
-	: mDevice(device)
-	, mSize(size)
+RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, i32 mipLevelCount, const char* name)
+	: mSize(size)
 	, mMipLevelCount(mipLevelCount)
 	, mFormat(format)
 {
-	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
-		.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-		.SetFormat(mFormat)
-		.SetMipLevels(mipLevelCount)
+	mResource = infra->CreateMemoryResource(
+		GI::MemoryResourceDesc()
+		.SetAlignment(0)
+		.SetDimension(GI::ResourceDimension::TEXTURE2D)
 		.SetWidth(mSize.x())
 		.SetHeight(mSize.y())
 		.SetDepthOrArraySize(mSize.z())
+		.SetMipLevels(mMipLevelCount)
+		.SetFormat(mFormat)
+		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
+		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
 		.SetName(name)
-		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-		.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-		.BuildDefault(device));
+		.SetHeapType(GI::HeapType::DEFAULT));
 
-	mSrv = mResource->CreateSrv()
+	mRtv.SetResource(mResource.get())
 		.SetFormat(mFormat)
-		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetTexture2D_MipLevels(mipLevelCount)
-		.BuildTex2D();
+		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 
-	mRtv = mResource->CreateRtv()
+	mUav.SetResource(mResource.get())
 		.SetFormat(mFormat)
-		.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-		.BuildTex2D();
+		.SetViewDimension(GI::UavDimension::TEXTURE2D);
 
-	mUav = mResource->CreateUav()
+	mSrv.SetResource(mResource.get())
 		.SetFormat(mFormat)
-		.SetViewDimension(D3D12_UAV_DIMENSION_TEXTURE2D)
-		.BuildTex2D();
+		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		.SetTexture2D_MipLevels(u32(mMipLevelCount));
 }
 
-RenderTarget::RenderTarget(D3D12Backend::D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name)
-	: mDevice(device)
-	, mSize(count * stride, 1, 1)
+RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI::Format::Enum format, const char* name)
+	: mSize(count * stride, 1, 1)
 	, mFormat(format)
 {
-	mResource = std::unique_ptr< D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Builder()
-		.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
-		.SetFormat(mFormat)
-		.SetMipLevels(1)
+	mResource = infra->CreateMemoryResource(
+		GI::MemoryResourceDesc()
+		.SetAlignment(0)
+		.SetDimension(GI::ResourceDimension::BUFFER)
 		.SetWidth(mSize.x())
 		.SetHeight(mSize.y())
 		.SetDepthOrArraySize(mSize.z())
+		.SetMipLevels(1)
+		.SetFormat(mFormat)
+		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
+		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
 		.SetName(name)
-		.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
-		.SetFlags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-		.SetInitState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-		.BuildDefault(device));
+		.SetHeapType(GI::HeapType::DEFAULT));
 
-	mSrv = mResource->CreateSrv()
+	mUav.SetResource(mResource.get())
 		.SetFormat(mFormat)
-		.SetViewDimension(D3D12Utils::GetSrvDimension(D3D12_RESOURCE_DIMENSION_BUFFER))
+		.SetViewDimension(GI::UavDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
 		.SetBuffer_NumElements(count)
-		.SetBuffer_StructureByteStride(stride)
-		.SetBuffer_Flags(D3D12_BUFFER_SRV_FLAG_NONE)
-		.BuildBuffer();
+		.SetBuffer_StructureByteStride(u32(stride))
+		.SetBuffer_FlagRawRatherThanNone(false);
 
-	mUav = mResource->CreateUav()
+	mSrv.SetResource(mResource.get())
 		.SetFormat(mFormat)
-		.SetViewDimension(D3D12_UAV_DIMENSION_BUFFER)
+		.SetViewDimension(GI::SrvDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
 		.SetBuffer_NumElements(count)
-		.SetBuffer_StructureByteStride(stride)
-		.SetBuffer_Flags(D3D12_BUFFER_UAV_FLAG_NONE)
-		.BuildBuffer();
+		.SetBuffer_FlagRawRatherThanNone(false);
 }

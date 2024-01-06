@@ -235,7 +235,7 @@ namespace GI
         };
     };
 
-    struct GD_COMMON_API ResourceFlags
+    struct GD_COMMON_API ResourceFlag
     {
         enum GD_COMMON_API Enum
         {
@@ -249,6 +249,8 @@ namespace GI
             VIDEO_DECODE_REFERENCE_ONLY = 0x40,
             VIDEO_ENCODE_REFERENCE_ONLY = 0x80
         };
+
+        using Flags = u32;
     };
 
     struct GD_COMMON_API ResourceState
@@ -511,7 +513,8 @@ namespace GI
     struct GD_COMMON_API UavDesc
     {
         CONTINOUS_SETTER(UavDesc, const IGraphicMemoryResource*, Resource);
-        CONTINOUS_SETTER(UavDesc, UavDimension, ViewDimension);
+        CONTINOUS_SETTER(UavDesc, Format::Enum, Format);
+        CONTINOUS_SETTER(UavDesc, UavDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(UavDesc, u64, Buffer_FirstElement);
         CONTINOUS_SETTER(UavDesc, u32, Buffer_NumElements);
         CONTINOUS_SETTER(UavDesc, u32, Buffer_StructureByteStride);
@@ -672,7 +675,7 @@ namespace GI
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Count, 1); // see D3D12_RESOURCE_DESC.SampleDesc
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Quality, 0);
         CONTINOUS_SETTER(MemoryResourceDesc, TextureLayout::Enum, Layout);
-        CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlags::Enum, Flags);
+        CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlag::Flags, Flags);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
     };

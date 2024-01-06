@@ -26,25 +26,32 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
 	mSkyTexture = new FileTexture(infra, skyTexPath, Utils::LoadFileContent(skyTexPath));
-	mPanoramicSkySampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mLightingSceneSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mNoMipMapLinearSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	mFilteredEnvMapSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
-	
-	mBRDFIntegrationMapSampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP });
 
-	{
-		D3D12_SAMPLER_DESC samplerDesc = {};
-		{
-			samplerDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-			std::fill_n(samplerDesc.BorderColor, Utils::GetArrayLength(samplerDesc.BorderColor), mSunLight->mLightViewProj.GetFarPlaneDeviceDepth());
-			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		}
-		mNoMipMapLinearDepthCmpSampler = new D3D12Backend::SamplerView(device, samplerDesc);
-	}
+	mPanoramicSkySampler
+		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+
+	mLightingSceneSampler
+		.SetFilter(GI::Filter::MIN_MAG_POINT_MIP_LINEAR)
+		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+	mNoMipMapLinearSampler
+		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+	mFilteredEnvMapSampler
+		.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP });
+
+	mBRDFIntegrationMapSampler
+		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+		.SetAddress({ GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP });
+
+	const f32 farPlaneDeviceDepth = mSunLight->mLightViewProj.GetFarPlaneDeviceDepth();
+		
+	mNoMipMapLinearDepthCmpSampler
+		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+		.SetAddress({ GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER })
+		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
+		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
 
 	for (i32 i = 0; i < mGBuffers.size(); ++i)
 	{

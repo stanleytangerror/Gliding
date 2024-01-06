@@ -11,7 +11,6 @@ namespace D3D12Backend
 {
 	class GraphicsContext;
 	class CommitedResource;
-	class SamplerView;
 	class ShaderResourceView;
 	class RenderTargetView;
 	class UnorderedAccessView;
@@ -53,8 +52,8 @@ private:
 
 	static void RenderShadowMask(D3D12Backend::GraphicsContext* context,
 		D3D12Backend::RenderTargetView* shadowMask,
-		D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
-		D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,
+		D3D12Backend::ShaderResourceView* lightViewDepth, GI::SamplerDesc lightViewDepthSampler,
+		D3D12Backend::ShaderResourceView* cameraViewDepth, GI::SamplerDesc cameraViewDepthSampler,
 		const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 		const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans);
 
@@ -67,23 +66,23 @@ private:
 
 	FileTexture* mSkyTexture = nullptr;
 	RenderTarget* mPanoramicSkyRt = nullptr;
-	D3D12Backend::SamplerView* mPanoramicSkySampler = nullptr;
+	GI::SamplerDesc mPanoramicSkySampler;
 	f32	mSkyLightIntensity = 50.f;
 
-	D3D12Backend::SamplerView* mLightingSceneSampler = nullptr;
-	D3D12Backend::SamplerView* mNoMipMapLinearSampler = nullptr;
-	D3D12Backend::SamplerView* mNoMipMapLinearDepthCmpSampler = nullptr;
+	GI::SamplerDesc mLightingSceneSampler;
+	GI::SamplerDesc mNoMipMapLinearSampler;
+	GI::SamplerDesc mNoMipMapLinearDepthCmpSampler;
 
 	D3D12Backend::CommitedResource* mBRDFIntegrationMap = nullptr;
 	D3D12Backend::ShaderResourceView* mBRDFIntegrationMapSrv = nullptr;
-	D3D12Backend::SamplerView* mBRDFIntegrationMapSampler = nullptr;
+	GI::SamplerDesc mBRDFIntegrationMapSampler;
 
 	D3D12Backend::CommitedResource* mIrradianceMap = nullptr;
 	D3D12Backend::ShaderResourceView* mIrradianceMapSrv = nullptr;
 
 	D3D12Backend::CommitedResource* mFilteredEnvMap = nullptr;
 	D3D12Backend::ShaderResourceView* mFilteredEnvMapSrv = nullptr;
-	D3D12Backend::SamplerView* mFilteredEnvMapSampler = nullptr;
+	GI::SamplerDesc mFilteredEnvMapSampler;
 
 	DirectionalLight* mSunLight = nullptr;
 

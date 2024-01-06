@@ -11,7 +11,6 @@ namespace D3D12Backend
 	class GraphicsContext;
 }
 struct ImDrawData;
-class Texture;
 
 class ImGuiRenderer
 {

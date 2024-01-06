@@ -1,7 +1,5 @@
 #include "RenderPch.h"
 #include "Geometry.h"
-#include "D3D12Backend/D3D12Resource.h"
-#include "Common/GraphicsInfrastructure.h"
 
 void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 {
@@ -15,7 +13,7 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 		.SetMipLevels(1)
 		.SetFormat(GI::Format::FORMAT_UNKNOWN)
 		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-		.SetFlags(GI::ResourceFlags::NONE)
+		.SetFlags(GI::ResourceFlag::NONE)
 		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 		.SetHeapType(GI::HeapType::UPLOAD));
 
@@ -31,7 +29,7 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 		.SetMipLevels(1)
 		.SetFormat(GI::Format::FORMAT_UNKNOWN)
 		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-		.SetFlags(GI::ResourceFlags::NONE)
+		.SetFlags(GI::ResourceFlag::NONE)
 		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 		.SetHeapType(GI::HeapType::UPLOAD));
 
