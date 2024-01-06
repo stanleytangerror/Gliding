@@ -3,13 +3,11 @@
 #include "World/Scene.h"
 #include "Common/GraphicsInfrastructure.h"
 
-class FileTexture;
-
 struct RenderMaterial
 {
 	struct MaterialAttriSlot
 	{
-		FileTexture* mTexture = nullptr;
+		class FileTexture* mTexture = nullptr;
 		GI::SamplerDesc mSampler;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};

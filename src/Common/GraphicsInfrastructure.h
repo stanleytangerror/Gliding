@@ -666,7 +666,7 @@ namespace GI
     {
         CONTINOUS_SETTER(MemoryResourceDesc, HeapType::Enum, HeapType);
         CONTINOUS_SETTER(MemoryResourceDesc, ResourceDimension::Enum, Dimension);
-        CONTINOUS_SETTER(MemoryResourceDesc, u64, Alignment);
+        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, Alignment, 0);
         CONTINOUS_SETTER(MemoryResourceDesc, u64, Width);
         CONTINOUS_SETTER(MemoryResourceDesc, u32, Height);
         CONTINOUS_SETTER(MemoryResourceDesc, u16, DepthOrArraySize);

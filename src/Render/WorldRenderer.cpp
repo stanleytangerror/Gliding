@@ -55,47 +55,60 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 
 	for (i32 i = 0; i < mGBuffers.size(); ++i)
 	{
-		mGBuffers[i] = D3D12Backend::CreateCommitedResourceTex2D(
-			device,
-			{ mRenderSize.x(), mRenderSize.y(), 1 },
-			DXGI_FORMAT_R16G16B16A16_UNORM,
-			D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			Utils::FormatString("GBuffer%d", i).c_str());
+		mGBuffers[i] = infra->CreateMemoryResource(
+			GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::TEXTURE2D)
+			.SetWidth(mRenderSize.x())
+			.SetHeight(mRenderSize.y())
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
+			.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
+			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
+			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-		mGBufferSrvs[i] = mGBuffers[i]->CreateSrv()
-			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
-			.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-			.SetTexture2D_MipLevels(1)
-			.BuildTex2D();
+		mGBufferSrvs[i] =
+			GI::SrvDesc()
+			.SetResource(mGBuffers[i].get())
+			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
+			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+			.SetTexture2D_MipLevels(1); 
 		
-		mGBufferRtvs[i] = mGBuffers[i]->CreateRtv()
-			.SetFormat(DXGI_FORMAT_R16G16B16A16_UNORM)
-			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-			.BuildTex2D();
+		mGBufferRtvs[i] = GI::RtvDesc()
+			.SetResource(mGBuffers[i].get())
+			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
+			.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 	}
 
-	mMainDepth = D3D12Backend::CreateCommitedResourceTex2D(
-		device,
-		{ mRenderSize.x(), mRenderSize.y(), 1 },
-		DXGI_FORMAT_R32G8X24_TYPELESS,
-		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		"SceneDDepthStencil");
+	mMainDepth = infra->CreateMemoryResource(
+			GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::TEXTURE2D)
+			.SetWidth(mRenderSize.x())
+			.SetHeight(mRenderSize.y())
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(GI::Format::FORMAT_R32G8X24_TYPELESS)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
+			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
+			.SetName("SceneDDepthStencil")
+			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-	mMainDepthDsv = mMainDepth->CreateDsv()
-		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
-		.SetFormat(DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
-		.SetFlags(D3D12_DSV_FLAG_NONE)
-		.BuildTex2D();
+	mMainDepthDsv = GI::DsvDesc()
+		.SetResource(mMainDepth.get())
+		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+		.SetFormat(GI::Format::FORMAT_D32_FLOAT_S8X24_UINT)
+		.SetFlags(GI::DsvFlag::NONE);
 
-	mMainDepthSrv = mMainDepth->CreateSrv()
-		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetFormat(DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+	mMainDepthSrv = GI::SrvDesc()
+		.SetResource(mMainDepth.get())
+		.SetFormat(GI::Format::FORMAT_R32_FLOAT_X8X24_TYPELESS)
+		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		.SetTexture2D_MipLevels(1); 
 
-	mShadowMask = new RenderTarget(device, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
+	mShadowMask = new RenderTarget(infra, { mRenderSize.x(), mRenderSize.y(), 1 }, DXGI_FORMAT_R16_FLOAT, "ShadowMask");
 
 	mSunLight = new DirectionalLight;
 	{
@@ -109,25 +122,31 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 		mSunLight->mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mLightViewDepth = D3D12Backend::CreateCommitedResourceTex2D(
-		device,
-		{ mRenderSize.x(), mRenderSize.y(), 1 },
-		DXGI_FORMAT_R24G8_TYPELESS,
-		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		"LightViewDepth");
+	mLightViewDepth = infra->CreateMemoryResource(
+			GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::TEXTURE2D)
+			.SetWidth(mRenderSize.x())
+			.SetHeight(mRenderSize.y())
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(GI::Format::FORMAT_R24G8_TYPELESS)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
+			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
+			.SetName("LightViewDepth")
+			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-	mLightViewDepthDsv = mLightViewDepth->CreateDsv()
-		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
-		.SetFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
-		.SetFlags(D3D12_DSV_FLAG_NONE)
-		.BuildTex2D();
+	mLightViewDepthDsv = GI::DsvDesc()
+		.SetResource(mLightViewDepth.get())
+		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+		.SetFormat(GI::Format::FORMAT_D24_UNORM_S8_UINT)
+		.SetFlags(GI::DsvFlag::NONE);
 
-	mLightViewDepthSrv = mLightViewDepth->CreateSrv()
-		.SetViewDimension(D3D12_SRV_DIMENSION_TEXTURE2D)
-		.SetFormat(DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-		.SetTexture2D_MipLevels(1)
-		.BuildTex2D();
+	mLightViewDepthSrv = GI::SrvDesc()
+		.SetResource(mLightViewDepth.get())
+		.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
+		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		.SetTexture2D_MipLevels(1);
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
@@ -156,11 +175,6 @@ WorldRenderer::~WorldRenderer()
 	Utils::SafeDelete(mSphere);
 	Utils::SafeDelete(mSkyTexture);
 	Utils::SafeDelete(mPanoramicSkyRt);
-	Utils::SafeDelete(mMainDepth);
-	for (auto& rt : mGBuffers)
-	{
-		Utils::SafeDelete(rt);
-	}
 }
 
 void WorldRenderer::TickFrame(Timer* timer)
@@ -168,12 +182,12 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::Render(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
 	auto infra = mRenderModule->GetGraphicsInfra();
 
 	{
-		RENDER_EVENT(context, UpdateResources);
+		RENDER_EVENT(infra, UpdateResources);
 
 		if (!mQuad->IsGraphicsResourceReady())
 		{
@@ -191,25 +205,25 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 			const auto& srcSize = mSkyTexture->GetResource()->GetDimSize();
 			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
-			mPanoramicSkyRt = new RenderTarget(context->GetDevice(), skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
+			mPanoramicSkyRt = new RenderTarget(infra, skyRtSize, DXGI_FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
-			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(context, mPanoramicSkyRt->GetSrv(), 8, 10);
+			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(infra, mPanoramicSkyRt->GetSrv(), 8, 10);
 			mIrradianceMap = irradMap;
 			mIrradianceMapSrv = irradMapSrv;
 
-			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(context, mPanoramicSkyRt->GetSrv(), 1024);
+			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(infra, mPanoramicSkyRt->GetSrv(), 1024);
 			mFilteredEnvMap = filterEnvMap;
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
-			RenderUtils::GaussianBlur(context, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
+			RenderUtils::GaussianBlur(infra, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
 		}
 
 		if (!mBRDFIntegrationMap)
 		{
-			auto [map, srv] = EnvironmentMap::GenerateIntegratedBRDF(context, 1024);
+			auto [map, srv] = EnvironmentMap::GenerateIntegratedBRDF(infra, 1024);
 			mBRDFIntegrationMap = map;
 			mBRDFIntegrationMapSrv = srv;
 		}
@@ -230,11 +244,11 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 	//////////////////////////////////////////////////////////////////////////
 
 	{
-		RENDER_EVENT(context, LightViewDepth);
+		RENDER_EVENT(infra, LightViewDepth);
 
 		const Vec3i& rtSize = target->GetResource()->GetSize();
 
-		mLightViewDepthDsv->Clear(context, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
+		mLightViewDepthDsv->Clear(infra, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -243,7 +257,7 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryDepthWithMaterial(context, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthDsv);
+					RenderGeometryDepthWithMaterial(infra, geo, mat, node.mAbsTransform, mSunLight->mWorldTransform, mSunLight->mLightViewProj, mLightViewDepthDsv);
 				}
 			});
 	}
@@ -251,13 +265,13 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 	//////////////////////////////////////////////////////////////////////////
 
 	{
-		RENDER_EVENT(context, GBuffer);
+		RENDER_EVENT(infra, GBuffer);
 
 		for (const auto& rt : mGBufferRtvs)
 		{
-			rt->Clear(context, { 0.f, 0.f, 0.f, 1.f });
+			rt->Clear(infra, { 0.f, 0.f, 0.f, 1.f });
 		}
-		mMainDepthDsv->Clear(context, mCameraProj.GetFarPlaneDeviceDepth(), 0);
+		mMainDepthDsv->Clear(infra, mCameraProj.GetFarPlaneDeviceDepth(), 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -266,20 +280,20 @@ void WorldRenderer::Render(D3D12Backend::GraphicsContext* context, D3D12Backend:
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryWithMaterial(context, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRtvs, mMainDepthDsv);
+					RenderGeometryWithMaterial(infra, geo, mat, node.mAbsTransform, mCameraTrans, mCameraProj, mGBufferRtvs, mMainDepthDsv);
 				}
 			});
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(context, mShadowMask->GetRtv(), mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler,
+	RenderShadowMask(infra, mShadowMask->GetRtv(), mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler,
 		mSunLight->mLightViewProj, mSunLight->mWorldTransform, mCameraProj, mCameraTrans);
-	DeferredLighting(context, target);
-	RenderSky(context, target, mMainDepthDsv);
+	DeferredLighting(infra, target);
+	RenderSky(infra, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderGBufferChannels(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -298,41 +312,41 @@ void WorldRenderer::RenderGBufferChannels(D3D12Backend::GraphicsContext* context
 	{
 		const auto& [idx, unary] = gbufferSemantics[i];
 
-		RenderUtils::CopyTexture(context, 
+		RenderUtils::CopyTexture(infra, 
 			target, { i * width, 0.f }, { width, height }, 
 			mGBufferSrvs[idx], mNoMipMapLinearSampler, unary);
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
-	RenderUtils::CopyTexture(context,
+	RenderUtils::CopyTexture(infra,
 		target, { 0.f, targetSize.y() - height }, { width, height },
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
 	const Vec3i& targetSize = target->GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
-	RenderUtils::CopyTexture(context,
+	RenderUtils::CopyTexture(infra,
 		target, { 0.f, size }, { size, size },
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target)
+void WorldRenderer::DeferredLighting(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
-	RENDER_EVENT(context, DeferredLighting);
+	RENDER_EVENT(infra, DeferredLighting);
 
 	const auto& dsSize = mMainDepth->GetSize();
 
 	auto tmpDepth = std::unique_ptr<D3D12Backend::CommitedResource>(D3D12Backend::CreateCommitedResourceTex2D(
-		context->GetDevice(),
+		infra->GetDevice(),
 		dsSize,
 		mMainDepth->GetFormat(),
 		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
@@ -346,9 +360,9 @@ void WorldRenderer::DeferredLighting(D3D12Backend::GraphicsContext* context, D3D
 		.SetFlags(D3D12_DSV_FLAG_NONE)
 		.BuildTex2D());
 
-	context->CopyResource(tmpDepth.get(), mMainDepth);
+	infra->CopyResource(tmpDepth.get(), mMainDepth);
 
-	D3D12Backend::GraphicsPass lightingPass(context);
+	D3D12Backend::GraphicsPass lightingPass(infra);
 
 	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
@@ -415,13 +429,13 @@ void WorldRenderer::DeferredLighting(D3D12Backend::GraphicsContext* context, D3D
 	lightingPass.Draw();
 }
 
-void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::DepthStencilView* depth) const
+void WorldRenderer::RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& target, D3D12Backend::DepthStencilView* depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
-	RENDER_EVENT(context, Sky);
+	RENDER_EVENT(infra, Sky);
 
-	D3D12Backend::GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(infra);
 
 	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -473,7 +487,7 @@ void WorldRenderer::RenderSky(D3D12Backend::GraphicsContext* context, D3D12Backe
 	pass.Draw();
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* context,
+void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
@@ -565,7 +579,7 @@ void WorldRenderer::RenderGeometryWithMaterial(D3D12Backend::GraphicsContext* co
 }
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(
-	D3D12Backend::GraphicsContext* context,
+	GI::IGraphicInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
@@ -620,18 +634,18 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	}
 }
 
-void WorldRenderer::RenderShadowMask(D3D12Backend::GraphicsContext* context, 
-	D3D12Backend::RenderTargetView* shadowMask, 
+void WorldRenderer::RenderShadowMask(GI::IGraphicInfra* infra, 
+	const GI::RtvDesc& shadowMask, 
 	D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
 	D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,
 	const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 	const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans)
 {
-	RENDER_EVENT(context, ShadowMask);
+	RENDER_EVENT(infra, ShadowMask);
 
-	static Geometry* geometry = Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* geometry = Geometry::GenerateQuad(infra->GetDevice());
 
-	D3D12Backend::GraphicsPass pass(context);
+	D3D12Backend::GraphicsPass pass(infra);
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
