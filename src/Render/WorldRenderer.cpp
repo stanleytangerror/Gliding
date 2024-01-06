@@ -1,11 +1,7 @@
 #include "RenderPch.h"
 #include "WorldRenderer.h"
 #include "RenderModule.h"
-#include "D3D12Backend/D3D12Device.h"
-#include "D3D12Backend/D3D12PipelinePass.h"
 #include "RenderTarget.h"
-#include "D3D12Backend/D3D12ResourceView.h"
-#include "D3D12Backend/D3D12Resource.h"
 #include "Geometry.h"
 #include "Texture.h"
 #include "World/Scene.h"
@@ -18,7 +14,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
 {
-	D3D12Backend::D3D12Device* device = mRenderModule->GetDevice();
 	auto infra = mRenderModule->GetGraphicsInfra();
 
 	mSphere = Geometry::GenerateSphere(40);
@@ -246,7 +241,7 @@ void WorldRenderer::Render(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 	{
 		RENDER_EVENT(infra, LightViewDepth);
 
-		const Vec3i& rtSize = target->GetResource()->GetSize();
+		const Vec3i& rtSize = target.GetResource()->GetDimSize();
 
 		mLightViewDepthDsv->Clear(infra, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), 0);
 
@@ -304,7 +299,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicInfra* infra, const GI::Rt
 		{ 2, "float4(LinearToSrgb(color.zzz), 1)" },		// Reflection,
 	};
 	
-	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const Vec3i& targetSize = target.GetResource()->GetDimSize();
 	const f32 width = f32(targetSize.x()) / Utils::GetArrayLength(gbufferSemantics);
 	const f32 height = width / targetSize.x() * targetSize.y();
 
@@ -320,7 +315,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicInfra* infra, const GI::Rt
 
 void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
-	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const Vec3i& targetSize = target.GetResource()->GetDimSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
@@ -331,7 +326,7 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicInfra* infra, const GI::
 
 void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target)
 {
-	const Vec3i& targetSize = target->GetResource()->GetSize();
+	const Vec3i& targetSize = target.GetResource()->GetDimSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
 	RenderUtils::CopyTexture(infra,
@@ -343,60 +338,64 @@ void WorldRenderer::DeferredLighting(GI::IGraphicInfra* infra, const GI::RtvDesc
 {
 	RENDER_EVENT(infra, DeferredLighting);
 
-	const auto& dsSize = mMainDepth->GetSize();
+	const auto& dsSize = mMainDepth->GetDimSize();
 
-	auto tmpDepth = std::unique_ptr<D3D12Backend::CommitedResource>(D3D12Backend::CreateCommitedResourceTex2D(
-		infra->GetDevice(),
-		dsSize,
-		mMainDepth->GetFormat(),
-		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		"TempDepthRt")); 
+	auto tmpDepth = infra->CreateMemoryResource(
+			GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::TEXTURE2D)
+			.SetWidth(dsSize.x())
+			.SetHeight(dsSize.y())
+			.SetDepthOrArraySize(dsSize.z())
+			.SetMipLevels(1)
+			.SetFormat(mMainDepth->GetFormat())
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
+			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
+			.SetName("TempDepthRt")
+			.SetHeapType(GI::HeapType::DEFAULT));
 
-	auto tmpDepthDsv = std::unique_ptr<D3D12Backend::DepthStencilView>(
-		tmpDepth->CreateDsv()
-		.SetViewDimension(D3D12_DSV_DIMENSION_TEXTURE2D)
-		.SetFormat(mMainDepthDsv->GetFormat())
-		.SetFlags(D3D12_DSV_FLAG_NONE)
-		.BuildTex2D());
+	auto tmpDepthDsv = GI::DsvDesc()
+		.SetResource(tmpDepth)
+		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+		.SetFormat(mMainDepthDsv.GetFormat())
+		.SetFlags(GI::DsvFlag::NONE);
 
 	infra->CopyResource(tmpDepth.get(), mMainDepth);
 
-	D3D12Backend::GraphicsPass lightingPass(infra);
+	GI::GraphicsPass lightingPass;
 
 	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
 	lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = lightingPass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = true;
-		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_OpaqueObject;
-		desc.DepthStencilState.StencilWriteMask = 0;
-		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
-	}
+	lightingPass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(true)
+		.SetStencilReadMask(RenderUtils::WorldStencilMask_OpaqueObject)
+		.SetStencilWriteMask(0);
+	lightingPass.mDepthStencilDesc.FrontFace
+		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+		.SetStencilPassOp(GI::StencilOp::KEEP)
+		.SetStencilFailOp(GI::StencilOp::KEEP);
+	lightingPass.mDepthStencilDesc.BackFace
+		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+		.SetStencilPassOp(GI::StencilOp::KEEP)
+		.SetStencilFailOp(GI::StencilOp::KEEP);
 
-	const Vec3i& targetSize = target->GetResource()->GetSize();
-	lightingPass.mRts[0] = target;
-	lightingPass.mDs = tmpDepthDsv.get();
-	lightingPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	lightingPass.mInputLayout = mQuad->mVertexElementDescs;
+
+	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	lightingPass.mRtvs[0] = target;
+	lightingPass.mDsv = tmpDepthDsv;
+	lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	lightingPass.mVbvs.clear();
-	lightingPass.mVbvs.push_back(mQuad->mVbv);
-	lightingPass.mIbv = mQuad->mIbv;
-	lightingPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
+	lightingPass.mVbvs.push_back(mQuad->GetVbvDesc());
+	lightingPass.mIbv = mQuad->GetIbvDesc();
+	lightingPass.mIndexCount = mQuad->mIndices.size();
 
 	lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 	lightingPass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
@@ -426,16 +425,16 @@ void WorldRenderer::DeferredLighting(GI::IGraphicInfra* infra, const GI::RtvDesc
 	lightingPass.AddCbVar("LightDir", mSunLight->mWorldTransform.CamDirInWorldSpace());
 	lightingPass.AddCbVar("LightColor", (mSunLight->mLightColor * mSunLight->mLightIntensity).eval());
 
-	lightingPass.Draw();
+	//TODO lightingPass.Draw();
 }
 
-void WorldRenderer::RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& target, D3D12Backend::DepthStencilView* depth) const
+void WorldRenderer::RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& target, const GI::DsvDesc& depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
 	RENDER_EVENT(infra, Sky);
 
-	D3D12Backend::GraphicsPass pass(infra);
+	GI::GraphicsPass pass(infra);
 
 	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -445,36 +444,35 @@ void WorldRenderer::RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& targe
 	pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
 	pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = true;
-		desc.DepthStencilState.StencilReadMask = RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky);
-		desc.DepthStencilState.StencilWriteMask = RenderUtils::WorldStencilMask_Sky;
-		desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-		desc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-		desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-		desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-		desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
-	}
+	pass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(true)
+		.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky))
+		.SetStencilWriteMask(RenderUtils::WorldStencilMask_Sky);
+	pass.mDepthStencilDesc.FrontFace
+		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+		.SetStencilPassOp(GI::StencilOp::REPLACE)
+		.SetStencilFailOp(GI::StencilOp::KEEP);
+	pass.mDepthStencilDesc.BackFace
+		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+		.SetStencilPassOp(GI::StencilOp::REPLACE)
+		.SetStencilFailOp(GI::StencilOp::KEEP);
 
-	pass.mRts[0] = target;
-	pass.mDs = depth;
-	const Vec3i& targetSize = target->GetResource()->GetSize();
-	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	pass.mInputLayout = geometry->mVertexElementDescs;
+
+	pass.mRtvs[0] = target;
+	pass.mDsv = depth;
+	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = 0;
 
 	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->mVbv);
-	pass.mIbv = geometry->mIbv;
-	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(geometry->GetVbvDesc());
+	pass.mIbv = geometry->GetIbvDesc();
+	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 	pass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
@@ -484,7 +482,7 @@ void WorldRenderer::RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& targe
 	pass.AddSrv("PanoramicSky", mPanoramicSkyRt->GetSrv());
 	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 
-	pass.Draw();
+	//TODO pass.Draw();
 }
 
 void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicInfra* infra,
@@ -511,17 +509,17 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicInfra* infra,
 		.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
 		.SetStencilEnable(true)
 		.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene)
-		.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject)
-		.SetFrontFace(GI::DepthStencilDesc::StencilOpDesc()
-			.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-			.SetStencilFailOp(GI::StencilOp::KEEP)
-			.SetStencilPassOp(GI::StencilOp::REPLACE)
-			.SetStencilFunc(GI::ComparisonFunction::ALWAYS))
-		.SetBackFace(GI::DepthStencilDesc::StencilOpDesc()
-			.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-			.SetStencilFailOp(GI::StencilOp::KEEP)
-			.SetStencilPassOp(GI::StencilOp::REPLACE)
-			.SetStencilFunc(GI::ComparisonFunction::ALWAYS));
+		.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject);
+	gbufferPass.mDepthStencilDesc.FrontFace
+		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+		.SetStencilFailOp(GI::StencilOp::KEEP)
+		.SetStencilPassOp(GI::StencilOp::REPLACE)
+		.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
+	gbufferPass.mDepthStencilDesc.BackFace
+		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+		.SetStencilFailOp(GI::StencilOp::KEEP)
+		.SetStencilPassOp(GI::StencilOp::REPLACE)
+		.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
 
 	gbufferPass.mInputLayout = geometry->mVertexElementDescs;
 
@@ -531,7 +529,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicInfra* infra,
 	}
 	gbufferPass.mDsv = depthView;
 
-	gbufferPass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(targetSize.x()).SetHeight(targetSize.y());
+	gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
@@ -609,8 +607,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 	pass.mDsv = depthView;
 
-	const Vec3i& targetSize = depthView->GetResource()->GetDimSize();
-	pass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(targetSize.x()).SetHeight(targetSize.y());
+	const Vec3i& targetSize = depthView.GetResource()->GetDimSize();
+	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
@@ -636,42 +634,42 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 void WorldRenderer::RenderShadowMask(GI::IGraphicInfra* infra, 
 	const GI::RtvDesc& shadowMask, 
-	D3D12Backend::ShaderResourceView* lightViewDepth, D3D12Backend::SamplerView* lightViewDepthSampler,
-	D3D12Backend::ShaderResourceView* cameraViewDepth, D3D12Backend::SamplerView* cameraViewDepthSampler,
+	const GI::SrvDesc& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
+	const GI::SrvDesc& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler,
 	const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 	const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans)
 {
 	RENDER_EVENT(infra, ShadowMask);
 
-	static Geometry* geometry = Geometry::GenerateQuad(infra->GetDevice());
+	static Geometry* geometry = Geometry::GenerateQuad();
+	if (!geometry->IsGraphicsResourceReady())
+	{
+		geometry->CreateAndInitialResource(infra);
+	}
 
-	D3D12Backend::GraphicsPass pass(infra);
+	GI::GraphicsPass pass;
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
 	pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.DepthFunc = D3D12Utils::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare());
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { geometry->mInputDescs.data(), u32(geometry->mInputDescs.size()) };
-	}
+	pass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(false);
+	
+	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRts[0] = shadowMask;
+	pass.mRtvs[0] = shadowMask;
 
-	const Vec3i& targetSize = shadowMask->GetResource()->GetSize();
-	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	const Vec3i& targetSize = shadowMask.GetResource()->GetDimSize();
+	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 
 	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->mVbv);
-	pass.mIbv = geometry->mIbv;
-	pass.mIndexCount = geometry->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(geometry->GetVbvDesc());
+	pass.mIbv = geometry->GetIbvDesc();
+	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddSrv("LightViewDepth", lightViewDepth);
 	pass.AddSampler("LightViewDepthSampler", lightViewDepthSampler);
@@ -689,5 +687,5 @@ void WorldRenderer::RenderShadowMask(GI::IGraphicInfra* infra,
 	pass.AddCbVar("LightViewMat", lightViewTrans.ComputeViewMatrix());
 	pass.AddCbVar("LightProjMat", lightViewProj.ComputeProjectionMatrix());
 
-	pass.Draw();
+	//TODO pass.Draw();
 }

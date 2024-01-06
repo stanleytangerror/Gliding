@@ -57,7 +57,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
 
-	pass.mRasterizerDesc.SetCullMode(GI::CullMode::NONE);
+	
 	pass.mDepthStencilDesc
 		.SetDepthEnable(false)
 		.SetStencilEnable(false);
@@ -65,7 +65,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
 	pass.mRtvs[0] = rtv;
-	pass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(rtSize.x()).SetHeight(rtSize.y());
+	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
@@ -144,7 +144,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
 
-	pass.mRasterizerDesc.SetCullMode(GI::CullMode::NONE);
+	
 	pass.mDepthStencilDesc
 		.SetDepthEnable(false)
 		.SetStencilEnable(false);
@@ -152,7 +152,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
 	pass.mRtvs[0] = rtv;
-	pass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(rtSize.x()).SetHeight(rtSize.y());
+	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
@@ -258,7 +258,7 @@ void EnvironmentMap::PrefilterEnvironmentMap
 	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 	pass.mShaderMacros.push_back(GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
 
-	pass.mRasterizerDesc.SetCullMode(GI::CullMode::NONE);
+	
 	pass.mDepthStencilDesc
 		.SetDepthEnable(false)
 		.SetStencilEnable(false);
@@ -266,7 +266,7 @@ void EnvironmentMap::PrefilterEnvironmentMap
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
 	pass.mRtvs[0] = target;
-	pass.mViewPort.SetTopLeftX(0.f).SetTopLeftY(0.f).SetWidth(targetSize.x()).SetHeight(targetSize.y());
+	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = 0;
 

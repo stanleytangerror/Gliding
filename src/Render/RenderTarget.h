@@ -10,8 +10,8 @@ public:
 	RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI::Format::Enum format, const char* name);
 
 	GI::RtvDesc			GetRtv() const { return mRtv; }
-	GI::UavDesc			GetSrv() const { return mUav; }
-	GI::SrvDesc			GetUav() const { return mSrv; }
+	GI::UavDesc			GetUav() const { return mUav; }
+	GI::SrvDesc			GetSrv() const { return mSrv; }
 
 protected:
 	std::unique_ptr<GI::IGraphicMemoryResource> mResource;
