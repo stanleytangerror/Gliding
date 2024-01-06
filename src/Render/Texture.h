@@ -13,7 +13,7 @@
 //
 //	Vec3i							GetSize() const { return mSize; }
 //	GI::Format::Enum				GetFormat() const { return mFormat; }
-//	D3D12Backend::ShaderResourceView*							GetSrv() const { return mSrv; }
+//	const GI::SrvDesc&							GetSrv() const { return mSrv; }
 //
 //	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 //
@@ -28,7 +28,7 @@
 //	i32						mMipLevelCount = 1;
 //	GI::Format::Enum		mFormat = GI::Format::FORMAT_UNKNOWN;
 //
-//	D3D12Backend::ShaderResourceView*					mSrv = nullptr;
+//	const GI::SrvDesc&					mSrv = nullptr;
 //};
 
 class GD_RENDER_API FileTexture

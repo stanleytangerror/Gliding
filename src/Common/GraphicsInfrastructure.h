@@ -24,6 +24,8 @@
 
 namespace GI 
 {
+    constexpr u32 GetDataPitchAlignment() { return 256; }
+
     struct GD_COMMON_API Format
     {
         enum GD_COMMON_API Enum
@@ -371,6 +373,65 @@ namespace GI
         };
     };
 
+    struct GD_COMMON_API Blend
+    {
+        enum GD_COMMON_API Enum
+        {
+            ZERO = 1,
+            ONE = 2,
+            SRC_COLOR = 3,
+            INV_SRC_COLOR = 4,
+            SRC_ALPHA = 5,
+            INV_SRC_ALPHA = 6,
+            DEST_ALPHA = 7,
+            INV_DEST_ALPHA = 8,
+            DEST_COLOR = 9,
+            INV_DEST_COLOR = 10,
+            SRC_ALPHA_SAT = 11,
+            BLEND_FACTOR = 14,
+            INV_BLEND_FACTOR = 15,
+            SRC1_COLOR = 16,
+            INV_SRC1_COLOR = 17,
+            SRC1_ALPHA = 18,
+            INV_SRC1_ALPHA = 19
+        };
+    };
+
+    struct GD_COMMON_API BlendOp
+    {
+        enum GD_COMMON_API Enum
+        {
+            ADD = 1,
+            SUBTRACT = 2,
+            REV_SUBTRACT = 3,
+            MIN = 4,
+            MAX = 5
+        };
+    };
+
+    struct GD_COMMON_API LogicOp
+    {
+        enum GD_COMMON_API Enum
+        {
+            CLEAR	= 0,
+            SET	= ( CLEAR + 1 ) ,
+            COPY	= ( SET + 1 ) ,
+            COPY_INVERTED	= ( COPY + 1 ) ,
+            NOOP	= ( COPY_INVERTED + 1 ) ,
+            INVERT	= ( NOOP + 1 ) ,
+            AND	= ( INVERT + 1 ) ,
+            NAND	= ( AND + 1 ) ,
+            OR	= ( NAND + 1 ) ,
+            NOR	= ( OR + 1 ) ,
+            XOR	= ( NOR + 1 ) ,
+            EQUIV	= ( XOR + 1 ) ,
+            AND_REVERSE	= ( EQUIV + 1 ) ,
+            AND_INVERTED	= ( AND_REVERSE + 1 ) ,
+            OR_REVERSE	= ( AND_INVERTED + 1 ) ,
+            OR_INVERTED	= ( OR_REVERSE + 1 ) 
+        };
+    };
+
     struct GD_COMMON_API ComparisonFunction
     {
         enum GD_COMMON_API Enum
@@ -399,6 +460,20 @@ namespace GI
             INCR = 7,
             DECR = 8
         };
+    };
+
+    struct GD_COMMON_API ColorWrite
+    {
+        enum GD_COMMON_API Enum
+        {
+            ENABLE_RED	= 1,
+            ENABLE_GREEN	= 2,
+            ENABLE_BLUE	= 4,
+            ENABLE_ALPHA	= 8,
+            ENABLE_ALL	= ( ( ( ENABLE_RED | ENABLE_GREEN )  | ENABLE_BLUE )  | ENABLE_ALPHA ) 
+        };
+
+        using Mask = u8;
     };
 
     struct GD_COMMON_API CullMode
@@ -462,8 +537,8 @@ namespace GI
 
     struct GD_COMMON_API Viewport
     {
-        CONTINOUS_SETTER(Viewport, f32, TopLeftX);
-        CONTINOUS_SETTER(Viewport, f32, TopLeftY);
+        CONTINOUS_SETTER_VALUE(Viewport, f32, TopLeftX, 0.0f);
+        CONTINOUS_SETTER_VALUE(Viewport, f32, TopLeftY, 0.0f);
         CONTINOUS_SETTER(Viewport, f32, Width);
         CONTINOUS_SETTER(Viewport, f32, Height);
         CONTINOUS_SETTER_VALUE(Viewport, f32, MinDepth, 0.0f);
@@ -573,7 +648,7 @@ namespace GI
     {
         // default value see CD3DX12_RASTERIZER_DESC(CD3DX12_DEFAULT)
         CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, FillSolidRatherThanWireframe, true);
-        CONTINOUS_SETTER_VALUE(RasterizerDesc, CullMode::Enum, CullMode, CullMode::BACK);
+        CONTINOUS_SETTER_VALUE(RasterizerDesc, CullMode::Enum, CullMode, CullMode::NONE);
         CONTINOUS_SETTER_VALUE(RasterizerDesc, bool, FrontCounterClockwise, false);
         CONTINOUS_SETTER_VALUE(RasterizerDesc, i32, DepthBias, 0);
         CONTINOUS_SETTER_VALUE(RasterizerDesc, f32, DepthBiasClamp, 0.0f);
@@ -603,8 +678,29 @@ namespace GI
         CONTINOUS_SETTER_VALUE(DepthStencilDesc, bool, StencilEnable, false);
         CONTINOUS_SETTER_VALUE(DepthStencilDesc, u8, StencilReadMask, 0xff);
         CONTINOUS_SETTER_VALUE(DepthStencilDesc, u8, StencilWriteMask, 0xff);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOpDesc, FrontFace);
-        CONTINOUS_SETTER(DepthStencilDesc, StencilOpDesc, BackFace);
+        StencilOpDesc FrontFace;
+        StencilOpDesc BackFace;
+    };
+
+    struct GD_COMMON_API RtBlendDesc
+    {
+        CONTINOUS_SETTER_VALUE(RtBlendDesc, bool, BlendEnable, false);
+        CONTINOUS_SETTER_VALUE(RtBlendDesc, bool, LogicOpEnable, false);
+        CONTINOUS_SETTER(RtBlendDesc, Blend::Enum, SrcBlend);
+        CONTINOUS_SETTER(RtBlendDesc, Blend::Enum, DestBlend);
+        CONTINOUS_SETTER(RtBlendDesc, BlendOp::Enum, BlendOp);
+        CONTINOUS_SETTER(RtBlendDesc, Blend::Enum, SrcBlendAlpha);
+        CONTINOUS_SETTER(RtBlendDesc, Blend::Enum, DestBlendAlpha);
+        CONTINOUS_SETTER(RtBlendDesc, BlendOp::Enum, BlendOpAlpha);
+        CONTINOUS_SETTER(RtBlendDesc, LogicOp::Enum, LogicOp);
+        CONTINOUS_SETTER_VALUE(RtBlendDesc, ColorWrite::Mask, RenderTargetWriteMask, ColorWrite::ENABLE_ALL);
+    };
+
+    struct GD_COMMON_API BlendDesc
+    {
+        CONTINOUS_SETTER_VALUE(BlendDesc, bool, AlphaToCoverageEnable, false);
+        CONTINOUS_SETTER_VALUE(BlendDesc, bool, IndependentBlendEnable, false);
+        std::array<RtBlendDesc, 8>  RtBlendDesc;
     };
 
     constexpr ComparisonFunction::Enum ToDepthCompareFunc(const Math::ValueCompareState& state)
@@ -739,6 +835,7 @@ namespace GI
 
         RasterizerDesc                              mRasterizerDesc;
         DepthStencilDesc                            mDepthStencilDesc;
+        BlendDesc                                   mBlendDesc;
 
         std::vector<VbvDesc>	                    mVbvs;
         IbvDesc                 					mIbv = {};
@@ -756,4 +853,54 @@ namespace GI
         std::map<std::string, SrvDesc>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
     };
+
+    class GD_COMMON_API ComputePass
+    {
+    public:
+        void Dispatch();
+
+        template <typename T>
+        void AddCbVar(const std::string& name, const T& var)
+        {
+            Assert(mCbParams.find(name) == mCbParams.end());
+            mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+        }
+
+        void AddSrv(const std::string& name, const SrvDesc& srv)
+        {
+            Assert(mSrvParams.find(name) == mSrvParams.end());
+            mSrvParams[name] = srv;
+        }
+
+        void AddUav(const std::string& name, const UavDesc& uav)
+        {
+            Assert(mUavParams.find(name) == mUavParams.end());
+            mUavParams[name] = uav;
+        }
+
+        void AddSampler(const std::string& name, const SamplerDesc& sampler)
+        {
+            Assert(mSamplerParams.find(name) == mSamplerParams.end());
+            mSamplerParams[name] = sampler;
+        }
+
+    public:
+        struct
+        {
+            std::string mFile;
+            const char* mEntry = nullptr;
+        }					mRootSignatureDesc;
+
+        std::string mCsFile;
+        std::vector<ShaderMacro>	mShaderMacros;
+
+    public:
+        std::map<std::string, GI::SamplerDesc>		mSamplerParams;
+        std::map<std::string, GI::SrvDesc>  		mSrvParams;
+        std::map<std::string, GI::UavDesc>	        mUavParams;
+        std::map<std::string, std::vector<byte>>	mCbParams;
+
+        std::array<u32, 3>							mThreadGroupCounts = {};
+    };
+
 };
