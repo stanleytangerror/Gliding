@@ -22,17 +22,21 @@ namespace D3D12Backend
 			desc.Flags = mFlags;
 		}
 
-		ID3D12Resource* resource = nullptr;
-		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE(heapType));
-		AssertHResultOk(device->GetDevice()->CreateCommittedResource(
-			&heapProp,
-			D3D12_HEAP_FLAG_NONE,
-			&desc,
-			mInitState,
-			nullptr,
-			IID_PPV_ARGS(&resource)));
-
-		NAME_RAW_D3D12_OBJECT(resource, mName);
+		ID3D12Resource* resource = device->GetResourceManager()->CreateResource(
+			[heapType, desc, this] (ID3D12Device* device) 
+			{
+				ID3D12Resource* resource = nullptr;
+				CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE(heapType));
+				AssertHResultOk(device->CreateCommittedResource(
+					&heapProp,
+					D3D12_HEAP_FLAG_NONE,
+					&desc,
+					this->mInitState,
+					nullptr,
+					IID_PPV_ARGS(&resource)));
+				NAME_RAW_D3D12_OBJECT(resource, mName);
+				return resource;
+			});
 
 		result->mDevice = device;
 		result->mResource = resource;
@@ -72,113 +76,6 @@ namespace D3D12Backend
 			context->Transition(mResource, mState, destState);
 			mState = destState;
 		}
-	}
-
-	CommitedResource::SrvBuilder CommitedResource::CreateSrv()
-	{
-		return SrvBuilder().SetDevice(mDevice).SetResource(this);
-	}
-
-	CommitedResource::RtvBuilder CommitedResource::CreateRtv()
-	{
-		return RtvBuilder().SetDevice(mDevice).SetResource(this);
-	}
-
-	CommitedResource::DsvBuilder CommitedResource::CreateDsv()
-	{
-		return DsvBuilder().SetDevice(mDevice).SetResource(this);
-	}
-
-	CommitedResource::UavBuilder CommitedResource::CreateUav()
-	{
-		return UavBuilder().SetDevice(mDevice).SetResource(this);
-	}
-
-	ShaderResourceView* CommitedResource::SrvBuilder::BuildBuffer()
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Shader4ComponentMapping = mShader4ComponentMapping;
-			desc.Buffer.FirstElement = mBuffer_FirstElement;
-			desc.Buffer.NumElements = mBuffer_NumElements;
-			desc.Buffer.StructureByteStride = mBuffer_StructureByteStride;
-			desc.Buffer.Flags = mBuffer_Flags;
-		}
-
-		return new ShaderResourceView(mDevice, mResource, desc);
-	}
-
-	ShaderResourceView* CommitedResource::SrvBuilder::BuildTex2D()
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Shader4ComponentMapping = mShader4ComponentMapping;
-			desc.Texture2D.MostDetailedMip = mTexture2D_MostDetailedMip;
-			desc.Texture2D.MipLevels = mTexture2D_MipLevels;
-			desc.Texture2D.PlaneSlice = mTexture2D_PlaneSlice;
-			desc.Texture2D.ResourceMinLODClamp = mTexture2D_ResourceMinLODClamp;
-		}
-
-		return new ShaderResourceView(mDevice, mResource, desc);
-	}
-
-	RenderTargetView* CommitedResource::RtvBuilder::BuildTex2D()
-	{
-		D3D12_RENDER_TARGET_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Texture2D.MipSlice = mMipSlice;
-			desc.Texture2D.PlaneSlice = mPlaneSlice;
-		}
-
-		return new RenderTargetView(mDevice, mResource, desc);
-	}
-
-	DepthStencilView* CommitedResource::DsvBuilder::BuildTex2D()
-	{
-		D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Flags = mFlags;
-			desc.Texture2D.MipSlice = mMipSlice;
-		}
-
-		return new DepthStencilView(mDevice, mResource, desc);
-	}
-
-	UnorderedAccessView* CommitedResource::UavBuilder::BuildBuffer()
-	{
-		D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Buffer.FirstElement = mBuffer_FirstElement;
-			desc.Buffer.NumElements = mBuffer_NumElements;
-			desc.Buffer.StructureByteStride = mBuffer_StructureByteStride;
-			desc.Buffer.CounterOffsetInBytes = mBuffer_CounterOffsetInBytes;
-			desc.Buffer.Flags = mBuffer_Flags;
-		}
-
-		return new UnorderedAccessView(mDevice, mResource, desc);
-	}
-
-	UnorderedAccessView* CommitedResource::UavBuilder::BuildTex2D()
-	{
-		D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-		{
-			desc.Format = mFormat;
-			desc.ViewDimension = mViewDimension;
-			desc.Texture2D.MipSlice = mTexture2D_MipSlice;
-			desc.Texture2D.PlaneSlice = mTexture2D_PlaneSlice;
-		}
-
-		return new UnorderedAccessView(mDevice, mResource, desc);
 	}
 
 	CommitedResource* CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels)

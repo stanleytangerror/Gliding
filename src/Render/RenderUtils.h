@@ -7,11 +7,6 @@
 
 struct SceneRawData;
 
-namespace GI
-{
-	class IGraphicInfra;
-}
-
 namespace RenderUtils
 {
 	void CopyTexture(GI::IGraphicsInfra* infra,
@@ -38,7 +33,7 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(GI::IGraphicInfra* infra, SceneRawData* sceneRawData);
+	FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,

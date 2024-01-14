@@ -5,22 +5,22 @@
 
 namespace D3D12Backend
 {
-	class DescriptorHeapBlock
+	class DescriptorArrayResource
 	{
 	public:
-		DescriptorHeapBlock(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool shaderVisible, const i32 numDescriptors);
-		virtual								~DescriptorHeapBlock();
+		DescriptorArrayResource(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool deviceVisible, const i32 capacity, const char* name);
+		virtual								~DescriptorArrayResource();
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE		GetCpuBaseWithOffset(i32 offset) const;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuBaseWithOffset(i32 offset) const;
-		ID3D12DescriptorHeap* GetDescriptorHeap() const { return mDescriptorHeap; }
-		i32									GetNumDescriptos() const { return mDescriptorNum; }
+		CD3DX12_CPU_DESCRIPTOR_HANDLE		GetCpuBaseWithOffset(i32 index) const;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE		GetGpuBaseWithOffset(i32 index) const;
+		ID3D12DescriptorHeap*				GetDescriptorHeap() const { return mDescriptorHeap; }
+		i32									GetCapacity() const { return mCapacity; }
 
 	protected:
 		const D3D12_DESCRIPTOR_HEAP_DESC	mDesc;
-		ID3D12DescriptorHeap* mDescriptorHeap = nullptr; // ownership
-		const i32							mDescriptorSize = 0;
-		const i32							mDescriptorNum = 0;
+		ID3D12DescriptorHeap*				mDescriptorHeap = nullptr; // ownership
+		const i32							mCapacity = 0;
+		const i32							mStride = 0;
 		D3D12_CPU_DESCRIPTOR_HANDLE			mCpuBase = {};
 		D3D12_GPU_DESCRIPTOR_HANDLE			mGpuBase = {};
 	};
@@ -44,9 +44,9 @@ namespace D3D12Backend
 		ID3D12Device* mDevice = nullptr;
 
 		const D3D12_DESCRIPTOR_HEAP_TYPE	mDescriptorType = {};
-		Pool<DescriptorHeapBlock>			mPool;
+		Pool<DescriptorArrayResource>			mPool;
 
-		DescriptorHeapBlock* mCurrentWorkingBlock = nullptr;
+		DescriptorArrayResource* mCurrentWorkingBlock = nullptr;
 		i32									mCurrentWorkingIndex = 0;
 	};
 }

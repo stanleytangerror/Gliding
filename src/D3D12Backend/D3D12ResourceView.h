@@ -22,7 +22,7 @@ namespace D3D12Backend
 
 	protected:
 		IResource*									mResource = nullptr;
-		CpuDescItem									mDescriptionHandle;
+		DescriptorPtr								mDescriptionHandle;
 		D3D12_SHADER_RESOURCE_VIEW_DESC const		mDesc;
 	};
 
@@ -37,7 +37,7 @@ namespace D3D12Backend
 
 	protected:
 		IResource*									mResource = nullptr;
-		CpuDescItem									mDescriptionHandle;
+		DescriptorPtr									mDescriptionHandle;
 		D3D12_UNORDERED_ACCESS_VIEW_DESC const		mDesc;
 	};
 
@@ -55,7 +55,7 @@ namespace D3D12Backend
 	protected:
 		IResource*									mResource = nullptr;
 		D3D12_RENDER_TARGET_VIEW_DESC const			mDesc;
-		CpuDescItem									mRtv;
+		DescriptorPtr									mRtv;
 	};
 
 	class GD_D3D12BACKEND_API DepthStencilView
@@ -71,7 +71,7 @@ namespace D3D12Backend
 
 	protected:
 		IResource*									mResource = nullptr;
-		CpuDescItem									mHandle;
+		DescriptorPtr									mHandle;
 		D3D12_DEPTH_STENCIL_VIEW_DESC const			mDesc;
 	};
 
@@ -86,6 +86,6 @@ namespace D3D12Backend
 		static D3D12_SAMPLER_DESC					GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode);
 
 		D3D12_SAMPLER_DESC const					mDesc = {};
-		CpuDescItem									mHandle;
+		DescriptorPtr									mHandle;
 	};
 }

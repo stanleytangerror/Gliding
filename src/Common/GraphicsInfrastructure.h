@@ -3,6 +3,7 @@
 #include "AssertUtils.h"
 #include "Math.h"
 #include "Texture.h"
+#include "PresentPort.h"
 
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
@@ -582,7 +583,7 @@ namespace GI
         CONTINOUS_SETTER(DsvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(DsvDesc, DsvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(DsvDesc, DsvFlag::Enum, Flags);
-        CONTINOUS_SETTER(DsvDesc, u32, MipSlice);
+        CONTINOUS_SETTER(DsvDesc, u32, Texture2D_MipSlice);
     };
 
     struct GD_COMMON_API UavDesc
@@ -779,8 +780,19 @@ namespace GI
     class GD_COMMON_API IImage
     {
     public:
-        virtual MemoryResourceDesc GetResourceDesc() const = 0;
+        //virtual MemoryResourceDesc GetResourceDesc() const = 0;
     };
+
+    using DevicePtr = void*;
+    
+    class GD_COMMON_API IGraphicsRecorder
+	{
+	public:
+		virtual void    AddClearOperation(const RtvDesc& rtv, const Vec4f& value) = 0;
+		virtual void    AddClearOperation(const DsvDesc& dsv, float depth, u32 stencil) = 0;
+		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
+		virtual void    AddComputePass(const class ComputePass& pass) = 0;
+	};
 
     class GD_COMMON_API IGraphicsInfra
     {
@@ -792,7 +804,49 @@ namespace GI
 
         virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const = 0;
         virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
+
+		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
+		virtual RtvDesc                     GetWindowBackBufferRtv(u8 windowId) = 0;
+
+		virtual void                        StartFrame() = 0;
+		virtual void                        Present() = 0;
+
+		virtual void                        StartRecording() = 0;
+		virtual void                        EndRecording() = 0;
+        virtual IGraphicsRecorder*          GetRecorder() const = 0;
+
+        virtual DevicePtr                   GetNativeDevicePtr() const = 0;
     };
+
+    template <typename T>
+    inline std::vector<u8> ToConstBufferParamData(const T& var);
+
+    template <typename T>
+    inline std::vector<u8> ToConstBufferParamData(const T& var)
+    {
+        std::vector<u8> result(sizeof(T), 0);
+        memcpy(result.data(), &var, sizeof(T));
+        return result;
+    }
+
+    template <>
+    inline std::vector<u8> ToConstBufferParamData(const Mat33f& var)
+    {
+        std::vector<u8> result(sizeof(f32) * (4 + 4 + 3), 0);
+        Assert(false);
+        return result;
+    }
+
+
+    template <>
+    inline std::vector<u8> ToConstBufferParamData(const std::vector<f32>& var)
+    {
+        const auto size = var.size() * sizeof(f32);
+
+        std::vector<u8> result(size, 0);
+        memcpy_s(result.data(), size, var.data(), size);
+        return result;
+    }
 
     class GD_COMMON_API GraphicsPass
     {
@@ -857,13 +911,11 @@ namespace GI
     class GD_COMMON_API ComputePass
     {
     public:
-        void Dispatch();
-
         template <typename T>
         void AddCbVar(const std::string& name, const T& var)
         {
             Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = D3D12Utils::ToD3DConstBufferParamData(var);
+            mCbParams[name] = ToConstBufferParamData(var);
         }
 
         void AddSrv(const std::string& name, const SrvDesc& srv)
@@ -898,7 +950,7 @@ namespace GI
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
         std::map<std::string, GI::SrvDesc>  		mSrvParams;
         std::map<std::string, GI::UavDesc>	        mUavParams;
-        std::map<std::string, std::vector<byte>>	mCbParams;
+        std::map<std::string, std::vector<u8>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
     };

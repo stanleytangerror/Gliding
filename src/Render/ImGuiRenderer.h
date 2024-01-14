@@ -19,5 +19,5 @@ protected:
 	GI::SamplerDesc		mImGuiSampler;
 
 	GI::SrvDesc			mFontAtlasSrvDesc;
-	InMemoryTexture*	mFontAtlas = nullptr;
+	class InMemoryTexture*	mFontAtlas = nullptr;
 };

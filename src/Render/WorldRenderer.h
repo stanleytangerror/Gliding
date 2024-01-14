@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Common/TransformHierarchy.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "Common/TransformHierarchy.h"
 
 class RenderModule;
 class Geometry;
@@ -17,31 +17,31 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicInfra* infra, const GI::RtvDesc& target);
+	void Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
-	void RenderGBufferChannels(GI::IGraphicInfra* infra, const GI::RtvDesc& target);
-	void RenderShadowMaskChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target);
-	void RenderLightViewDepthChannel(GI::IGraphicInfra* infra, const GI::RtvDesc& target);
+	void RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
+	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
+	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
 private:
-	void RenderSky(GI::IGraphicInfra* infra, const GI::RtvDesc& target, const GI::DsvDesc& depth) const;
-	void DeferredLighting(GI::IGraphicInfra* infra, const GI::RtvDesc& target);
+	void RenderSky(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::DsvDesc& depth) const;
+	void DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
-	static void RenderGeometryWithMaterial(GI::IGraphicInfra* infra,
+	static void RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 		const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView,
 		const Vec2i& targetSize);
 
-	static void RenderGeometryDepthWithMaterial(GI::IGraphicInfra* infra,
+	static void RenderGeometryDepthWithMaterial(GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 		const GI::DsvDesc& depthView,
 		const Vec2i& targetSize);
 
-	static void RenderShadowMask(GI::IGraphicInfra* infra,
+	static void RenderShadowMask(GI::IGraphicsInfra* infra,
 		const GI::RtvDesc& shadowMask,
 		const GI::SrvDesc& lightViewDepth, GI::SamplerDesc lightViewDepthSampler,
 		const GI::SrvDesc& cameraViewDepth, GI::SamplerDesc cameraViewDepthSampler,

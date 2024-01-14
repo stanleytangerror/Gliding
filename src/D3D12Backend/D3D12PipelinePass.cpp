@@ -34,7 +34,7 @@ namespace D3D12Backend
 		};
 
 		template <typename T, typename V>
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12Backend::D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues, const CpuDescItem& nullDesc)
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> BindSrvUavParams(D3D12Backend::D3D12CommandContext* context, const std::map<std::string, T>& paramBindings, const std::map<std::string, V>& paramValues, const DescriptorPtr& nullDesc)
 		{
 			int maxIdx = 0;
 			for (const auto& p : paramBindings)

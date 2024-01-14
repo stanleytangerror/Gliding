@@ -14,7 +14,7 @@ struct RenderMaterial
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
 
-	void UpdateGpuResources(GI::IGraphicInfra* infra);
+	void UpdateGpuResources(GI::IGraphicsInfra* infra);
 	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(

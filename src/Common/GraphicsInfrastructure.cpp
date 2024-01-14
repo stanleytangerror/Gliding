@@ -20,5 +20,7 @@ namespace GI
 		case GI::ResourceDimension::TEXTURE3D:
 			break;
 		}
+
+		return GI::RtvDesc();
 	}
 }

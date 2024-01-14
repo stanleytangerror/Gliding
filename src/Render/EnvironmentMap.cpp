@@ -83,9 +83,9 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	pass.AddSrv("PanoramicSky", sky);
 	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 
-	// TODO render pass
+	infra->GetRecorder()->AddGraphicsPass(pass);
 
-	return std::make_tuple(irradianceMap, srv);
+	return std::make_tuple(std::move(irradianceMap), srv);
 }
 
 std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GenerateIntegratedBRDF(GI::IGraphicsInfra* infra, i32 resolution)
@@ -133,7 +133,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	RENDER_EVENT(context, GenerateIntegratedBRDF);
 
-	GI::GraphicsPass pass(context);
+	GI::GraphicsPass pass;
 
 	Geometry* geometry = mQuad;
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -163,13 +163,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
-	//TODO pass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(pass);
 
 	return std::make_tuple(integratedBRDF, srv);
 }
 
 std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GeneratePrefilteredEnvironmentMap
-(GI::IGraphicsInfra* infra, GI::SrvDesc src, i32 resolution)
+(GI::IGraphicsInfra* infra, const GI::SrvDesc& src, i32 resolution)
 {
 	const auto& originSize = src.GetResource()->GetDimSize();
 	const auto& format = src.GetResource()->GetFormat();
@@ -225,7 +225,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(context, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(infra, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
@@ -233,7 +233,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap
-(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, GI::SrvDesc src, const Vec2i& targetSize, f32 roughness)
+(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& src, const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -281,5 +281,5 @@ void EnvironmentMap::PrefilterEnvironmentMap
 	pass.AddSrv("PanoramicSky", src);
 	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
 
-	//TODO pass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(pass);
 }

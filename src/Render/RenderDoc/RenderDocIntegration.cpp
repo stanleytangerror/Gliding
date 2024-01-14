@@ -35,7 +35,7 @@ bool RenderDocIntegration::CaptureNextFrame()
 	}
 }
 
-void RenderDocIntegration::OnStartFrame(D3D12Backend::D3D12Device* device, HWND windowHandle)
+void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, PortHandle windowHandle)
 {
 	if (!mApi) { return; }
 
@@ -45,7 +45,7 @@ void RenderDocIntegration::OnStartFrame(D3D12Backend::D3D12Device* device, HWND 
 	{
 		mCaptureState = eCapturingThisFrame;
 
-		mApi->StartFrameCapture(device->GetDevice(), windowHandle);
+		mApi->StartFrameCapture(device, RENDERDOC_WindowHandle(windowHandle));
 	}
 	break;
 	default:
@@ -53,7 +53,7 @@ void RenderDocIntegration::OnStartFrame(D3D12Backend::D3D12Device* device, HWND 
 	}
 }
 
-void RenderDocIntegration::OnEndFrame(D3D12Backend::D3D12Device* device, HWND windowHandle)
+void RenderDocIntegration::OnEndFrame(GI::DevicePtr device, PortHandle windowHandle)
 {
 	if (!mApi) { return; }
 
@@ -61,7 +61,7 @@ void RenderDocIntegration::OnEndFrame(D3D12Backend::D3D12Device* device, HWND wi
 	{
 	case eCapturingThisFrame:
 	{
-		if (mApi->EndFrameCapture(device->GetDevice(), windowHandle))
+		if (mApi->EndFrameCapture(device, RENDERDOC_WindowHandle(windowHandle)))
 		{
 			char LogFile[512] = {};
 			uint64_t Timestamp;

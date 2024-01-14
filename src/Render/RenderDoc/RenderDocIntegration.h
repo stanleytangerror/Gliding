@@ -1,8 +1,8 @@
 #pragma once
 
 #include "renderdoc_app.h"
-#include "D3D12Backend/D3D12Headers.h"
-#include "D3D12Backend/D3D12Device.h"
+#include "Common/GraphicsInfrastructure.h"
+#include "Common/PresentPort.h"
 
 class RenderDocApi;
 
@@ -13,8 +13,8 @@ public:
 
 	bool CaptureNextFrame();
 
-	void OnStartFrame(D3D12Backend::D3D12Device* device, HWND windowHandle);
-	void OnEndFrame(D3D12Backend::D3D12Device* device, HWND windowHandle);
+	void OnStartFrame(GI::DevicePtr device, PortHandle windowHandle);
+	void OnEndFrame(GI::DevicePtr device, PortHandle windowHandle);
 
 private:
 	using RenderDocApi = RENDERDOC_API_1_0_0;

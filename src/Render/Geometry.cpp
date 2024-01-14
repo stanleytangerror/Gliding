@@ -129,7 +129,7 @@ Geometry* Geometry::GenerateSphere(i32 subDev)
 		}
 	}
 
-	return Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(device, vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
+	return Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
 }
 
 Geometry* Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<GI::InputElementDesc>& inputDescs)

@@ -6,21 +6,21 @@ namespace D3D12Backend
 {
 	//////////////////////////////////////////////////////////////////////////
 
-	DescriptorHeapBlock::DescriptorHeapBlock(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool shaderVisible, const i32 numDescriptors)
-		: mDesc{ type, UINT(numDescriptors), shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 }
+	DescriptorArrayResource::DescriptorArrayResource(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const bool deviceVisible, const i32 capacity, const char* name)
+		: mDesc{ type, UINT(capacity), deviceVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 }
 		, mDescriptorHeap(nullptr)
-		, mDescriptorNum(numDescriptors)
-		, mDescriptorSize(device->GetDescriptorHandleIncrementSize(type))
+		, mCapacity(capacity)
+		, mStride(device->GetDescriptorHandleIncrementSize(type))
 	{
 		AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&mDescriptorHeap)));
-		mDescriptorHeap->SetName(L"RuntimeDescriptorHeap");
+		mDescriptorHeap->SetName(Utils::ToWString(name).c_str());
 
 		mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		mGpuBase = mDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	}
 
 
-	DescriptorHeapBlock::~DescriptorHeapBlock()
+	DescriptorArrayResource::~DescriptorArrayResource()
 	{
 		mDescriptorHeap->Release();
 		mDescriptorHeap = nullptr;
@@ -28,12 +28,12 @@ namespace D3D12Backend
 		mGpuBase = {};
 	}
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetCpuBaseWithOffset(i32 offset) const
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorArrayResource::GetCpuBaseWithOffset(i32 index) const
 	{
-		if (0 <= offset && offset < mDescriptorNum)
+		if (0 <= index && index < mCapacity)
 		{
 			CD3DX12_CPU_DESCRIPTOR_HANDLE result(mCpuBase);
-			result.Offset(offset, mDescriptorSize);
+			result.Offset(index, mStride);
 			return result;
 		}
 		else
@@ -42,12 +42,12 @@ namespace D3D12Backend
 		}
 	}
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapBlock::GetGpuBaseWithOffset(i32 offset) const
+	CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorArrayResource::GetGpuBaseWithOffset(i32 index) const
 	{
-		if (0 <= offset && offset < mDescriptorNum)
+		if (0 <= index && index < mCapacity)
 		{
 			CD3DX12_GPU_DESCRIPTOR_HANDLE result(mGpuBase);
-			result.Offset(offset, mDescriptorSize);
+			result.Offset(index, mStride);
 			return result;
 		}
 		else
@@ -62,9 +62,9 @@ namespace D3D12Backend
 		: mDescriptorType(type)
 		, mDevice(device)
 		, mPool(
-			[device, type]() { return new DescriptorHeapBlock(device, type, true, msNumDescriptorsPerBlock); },
-			[](DescriptorHeapBlock* t) {},
-			[](DescriptorHeapBlock* t) { if (t) { delete t; } }
+			[device, type]() { return new DescriptorArrayResource(device, type, true, msNumDescriptorsPerBlock, "Runtime descriptor heap"); },
+			[](DescriptorArrayResource* t) {},
+			[](DescriptorArrayResource* t) { if (t) { delete t; } }
 		)
 	{
 	}
@@ -78,7 +78,7 @@ namespace D3D12Backend
 	{
 		Assert(0 <= handleCount && handleCount < msNumDescriptorsPerBlock);
 
-		if (!mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetNumDescriptos())
+		if (!mCurrentWorkingBlock || mCurrentWorkingIndex + handleCount >= mCurrentWorkingBlock->GetCapacity())
 		{
 			mCurrentWorkingBlock = mPool.AllocItem();
 			mCurrentWorkingIndex = 0;

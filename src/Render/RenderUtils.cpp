@@ -63,6 +63,8 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 	pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
 	pass.AddSrv("SourceTex", source);
 	pass.AddSampler("SourceTexSampler", sourceSampler);
+
+	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
 void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler)
@@ -120,7 +122,7 @@ void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const 
 	}
 	pass.AddCbVar("Weights", weights);
 
-	// TODO pass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
 void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, i32 kernelSizeInPixel)
@@ -140,14 +142,14 @@ void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& tar
 	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetDimSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
 
 	RENDER_EVENT(context, GaussianBlur);
-	GaussianBlur1D(context, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(context, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(GI::IGraphicInfra* infra, SceneRawData* sceneRawData)
+RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,

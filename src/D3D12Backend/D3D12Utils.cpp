@@ -215,35 +215,39 @@ namespace
 //	return nullptr;
 //}
 
-D3D12Utils::ScratchImage::ScratchImage(std::unique_ptr<DirectX::ScratchImage>&& image) 
-	: mImage(std::forward<std::unique_ptr<DirectX::ScratchImage>>(image)) {}
-
-std::unique_ptr<D3D12Utils::ScratchImage> D3D12Utils::ScratchImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content)
+namespace D3D12Utils
 {
-	switch (ext)
+	WindowsImage::WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image)
+		: mImage(std::forward<std::unique_ptr<DirectX::ScratchImage>>(image))
+	{}
+
+	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content)
 	{
-	case TextureFileExt::DDS:
-		return std::make_unique<D3D12Utils::ScratchImage>(LoadDDSImageFromMemory(content.data(), content.size()));
-	case TextureFileExt::PNG:
-	case TextureFileExt::BMP:
-	case TextureFileExt::GIF:
-	case TextureFileExt::TIFF:
-	case TextureFileExt::JPEG:
-	case TextureFileExt::JPG:
-		return std::make_unique<D3D12Utils::ScratchImage>(LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size()));
-	default:
-		Assert(false);
-		return nullptr;
+		switch (ext)
+		{
+		case TextureFileExt::DDS:
+			return std::make_unique<WindowsImage>(LoadDDSImageFromMemory(content.data(), content.size()));
+		case TextureFileExt::PNG:
+		case TextureFileExt::BMP:
+		case TextureFileExt::GIF:
+		case TextureFileExt::TIFF:
+		case TextureFileExt::JPEG:
+		case TextureFileExt::JPG:
+			return std::make_unique<WindowsImage>(LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size()));
+		default:
+			Assert(false);
+			return nullptr;
+		}
 	}
-}
 
-std::unique_ptr<D3D12Utils::ScratchImage> D3D12Utils::ScratchImage::CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
-{
-	std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
-	image->Initialize2D(ToDxgiFormat(format), size.x(), size.y(), size.z(), mipLevel);
-	memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
+	std::unique_ptr<WindowsImage> WindowsImage::CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+	{
+		std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
+		image->Initialize2D(ToDxgiFormat(format), size.x(), size.y(), size.z(), mipLevel);
+		memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
-	return std::make_unique<D3D12Utils::ScratchImage>(std::move(image));
+		return std::make_unique<WindowsImage>(std::move(image));
+	}
 }
 
 std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
@@ -288,7 +292,7 @@ std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromRaw
 	return resource;
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::ScratchImage& image)
+std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image)
 {
 	return CreateD3DResFromScratchImage(context, *(image.GetImage()));
 }

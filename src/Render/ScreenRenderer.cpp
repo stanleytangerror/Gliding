@@ -34,7 +34,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
 	const f32 brightMax = 65536.f;
-	std::unique_ptr<RenderTarget> histogram = std::make_unique<RenderTarget>(infra, histogramSize, sizeof(u32), GI::Format::FORMAT_UNKNOWN, "BrightnessHistogram");
+	auto histogram = std::make_unique<RenderTarget>(infra, histogramSize, sizeof(u32), GI::Format::FORMAT_UNKNOWN, "BrightnessHistogram");
 
 	{
 		RENDER_EVENT(context, BrightnessHistogram);
@@ -55,7 +55,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 
 		pass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
 
-		pass.Dispatch();
+		infra->GetRecorder()->AddComputePass(pass);
 	}
 
 	{
@@ -81,7 +81,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 
 		pass.mThreadGroupCounts = { 1, 1, 1 };
 
-		pass.Dispatch();
+		infra->GetRecorder()->AddComputePass(pass);
 	}
 }
 
@@ -119,5 +119,5 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& s
 	ldrScreenPass.mIbv = mQuad->GetIbvDesc();
 	ldrScreenPass.mIndexCount = mQuad->mIndices.size();
 
-	//TODO ldrScreenPass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);
 }

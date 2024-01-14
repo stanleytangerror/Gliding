@@ -12,10 +12,10 @@ namespace D3D12Backend
 			.SetResource(res)
 			.Possess(device);
 
-		mRtv = mResource->CreateRtv()
+		mRtv
+			.SetResource(mResource)
 			.SetFormat(mResource->GetFormat())
-			.SetViewDimension(D3D12_RTV_DIMENSION_TEXTURE2D)
-			.BuildTex2D();
+			.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 	}
 
 	void SwapChainBufferResource::PrepareForPresent(D3D12Backend::D3D12CommandContext* context)

@@ -2,7 +2,7 @@
 #include "RenderMaterial.h"
 #include "Texture.h"
 
-void RenderMaterial::UpdateGpuResources(GI::IGraphicInfra* infra)
+void RenderMaterial::UpdateGpuResources(GI::IGraphicsInfra* infra)
 {
 	for (const auto& slot : mMatAttriSlots)
 	{

@@ -3,6 +3,7 @@
 #include "D3D12Headers.h"
 #include "Common/Texture.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "DirectXTex/DirectXTex.h"
 
 namespace D3D12Backend
 {
@@ -17,10 +18,12 @@ namespace DirectX
 
 namespace D3D12Utils
 {
-	class ScratchImage;
+	class WindowsImage;
 
 	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
 	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
+	constexpr UINT ToDxhader4ComponentMapping(const GI::SrvDesc::ShaderComponentMapping4& mapping) { return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(mapping[0], mapping[1], mapping[2], mapping[3]); }
+
 	D3D12_INPUT_ELEMENT_DESC ToD3D12InputElementDesc(const GI::InputElementDesc& desc);
 
 	void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter);
@@ -35,7 +38,7 @@ namespace D3D12Utils
 	//GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
 	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
 	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::ScratchImage& image);
+	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
 	
 	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
@@ -64,19 +67,18 @@ namespace D3D12Utils
 		std::string	mContent;
 	};
 
-	class ScratchImage : public GI::IImage
+	class WindowsImage : public GI::IImage
 	{
 	public:
-		static std::unique_ptr<ScratchImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-		static std::unique_ptr<ScratchImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+		static std::unique_ptr<WindowsImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+
+		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image);
 
 		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
 
 	protected:
-		ScratchImage(std::unique_ptr<DirectX::ScratchImage>&& image);
-
-	protected:
-		std::unique_ptr<DirectX::ScratchImage> mImage;
+		const std::unique_ptr<DirectX::ScratchImage> mImage;
 	};
 }
 

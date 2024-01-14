@@ -18,8 +18,39 @@ namespace D3D12Backend
 		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const override;
 		std::unique_ptr<GI::IImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const override;
 
+		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;
+		GI::RtvDesc					GetWindowBackBufferRtv(u8 windowId) override;
+
+		void                        StartFrame() override;
+		void                        Present() override;
+
+		void						StartRecording() override;
+		void						EndRecording() override;
+		class GI::IGraphicsRecorder* GetRecorder() const override;
+
+		GI::DevicePtr               GetNativeDevicePtr() const override;
+
 	private:
 		class D3D12Device*	mDevice = nullptr;
-		class D3D12CommandContext* mCurrentContext = nullptr;
+		class D3D12GraphicsRecorder* mCurrentRecorder = nullptr;
+	};
+
+	class GD_D3D12BACKEND_API D3D12GraphicsRecorder : public GI::IGraphicsRecorder
+	{
+	public:
+		D3D12GraphicsRecorder(D3D12CommandContext* context);
+
+		void AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value) override;
+		void AddClearOperation(const GI::DsvDesc& dsv, float depth, u32 stencil) override;
+		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
+		void AddComputePass(const GI::ComputePass& pass) override;
+
+		void Finalize();
+
+		// TODO remove this
+		D3D12CommandContext* GetContext() const { return mContext; }
+
+	private:
+		D3D12CommandContext* mContext = nullptr;
 	};
 }

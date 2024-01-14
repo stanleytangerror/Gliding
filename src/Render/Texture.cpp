@@ -60,7 +60,7 @@ FileTexture::FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const 
 
 void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 {
-	auto res = infra->CreateMemoryResource(*mImage.get()));
+	auto res = infra->CreateMemoryResource(*mImage.get());
 	std::swap(mResource, res);
 }
 
@@ -75,8 +75,8 @@ InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum for
 
 }
 
-void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+void InMemoryTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 {
-	auto res = infra->CreateMemoryResource(*mImage.get()));
+	auto res = infra->CreateMemoryResource(*mImage.get());
 	std::swap(mResource, res);
 }

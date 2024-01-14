@@ -181,7 +181,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 
 			pass.AddCbVar("WvpMat", wvpMat);
 
-			//TODO pass.Draw();
+			infra->GetRecorder()->AddGraphicsPass(pass);
 		}
 		indexOffset += cmdList->IdxBuffer.Size;
 		vertexOffset += cmdList->VtxBuffer.Size;
