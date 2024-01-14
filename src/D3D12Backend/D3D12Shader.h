@@ -54,18 +54,10 @@ namespace D3D12Backend
 		eVs, ePs, eCs, eNum
 	};
 
-	struct ShaderMacro
-	{
-		std::string mName;
-		std::string mDefinition;
-
-		bool operator<(const ShaderMacro& other) const;
-	};
-
 	class ShaderPiece
 	{
 	public:
-		ShaderPiece(const char* file, enum ShaderType type, const std::vector<ShaderMacro>& macros);
+		ShaderPiece(const char* file, enum ShaderType type, const std::vector<GI::ShaderMacro>& macros);
 
 		const enum ShaderType						GetType() const { return mType; }
 		ID3DBlob* GetShader() const { return mShader; }
@@ -78,7 +70,7 @@ namespace D3D12Backend
 	protected:
 		const enum ShaderType					mType;
 		const std::string						mFile;
-		const std::vector<ShaderMacro>			mMacros;
+		const std::vector<GI::ShaderMacro>		mMacros;
 
 		ID3DBlob* mShader = nullptr;
 		std::vector<D3D12_INPUT_ELEMENT_DESC>	mInputLayout;
@@ -92,15 +84,15 @@ namespace D3D12Backend
 	class D3D12ShaderLibrary
 	{
 	public:
-		ShaderPiece* CreateVs(const char* file, const std::vector<ShaderMacro>& macros);
-		ShaderPiece* CreatePs(const char* file, const std::vector<ShaderMacro>& macros);
-		ShaderPiece* CreateCs(const char* file, const std::vector<ShaderMacro>& macros);
+		ShaderPiece* CreateVs(const char* file, const std::vector<GI::ShaderMacro>& macros);
+		ShaderPiece* CreatePs(const char* file, const std::vector<GI::ShaderMacro>& macros);
+		ShaderPiece* CreateCs(const char* file, const std::vector<GI::ShaderMacro>& macros);
 
 	protected:
 		struct Entry
 		{
 			std::string mName;
-			std::vector<ShaderMacro> mMacros;
+			std::vector<GI::ShaderMacro> mMacros;
 
 			class Less
 			{

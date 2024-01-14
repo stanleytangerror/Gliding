@@ -553,7 +553,7 @@ namespace GI
         using ShaderComponentMapping4 = std::array<bool, 4>;
         static ShaderComponentMapping4 FullMapping() { return { true, true, true, true }; };
 
-        CONTINOUS_SETTER(SrvDesc, const IGraphicMemoryResource*, Resource);
+        CONTINOUS_SETTER(SrvDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(SrvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(SrvDesc, SrvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER_VALUE(SrvDesc, ShaderComponentMapping4, Shader4ComponentMapping, FullMapping());
@@ -569,7 +569,7 @@ namespace GI
 
     struct GD_COMMON_API RtvDesc
     {
-        CONTINOUS_SETTER(RtvDesc, const IGraphicMemoryResource*, Resource);
+        CONTINOUS_SETTER(RtvDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(RtvDesc, RtvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(RtvDesc, u32, Texture2D_MipSlice);
@@ -578,7 +578,7 @@ namespace GI
 
     struct GD_COMMON_API DsvDesc
     {
-        CONTINOUS_SETTER(DsvDesc, const IGraphicMemoryResource*, Resource);
+        CONTINOUS_SETTER(DsvDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(DsvDesc, bool, Enabled);
         CONTINOUS_SETTER(DsvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(DsvDesc, DsvDimension::Enum, ViewDimension);
@@ -588,7 +588,7 @@ namespace GI
 
     struct GD_COMMON_API UavDesc
     {
-        CONTINOUS_SETTER(UavDesc, const IGraphicMemoryResource*, Resource);
+        CONTINOUS_SETTER(UavDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(UavDesc, Format::Enum, Format);
         CONTINOUS_SETTER(UavDesc, UavDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(UavDesc, u64, Buffer_FirstElement);
@@ -643,6 +643,14 @@ namespace GI
     {
         std::string mName;
         std::string mDefinition;
+
+		bool operator<(const ShaderMacro& other) const 
+		{
+			return
+				mName < other.mName ? true :
+				mName > other.mName ? false :
+				mDefinition < other.mDefinition;
+		}
     };
 
     struct GD_COMMON_API RasterizerDesc
@@ -756,7 +764,7 @@ namespace GI
 
     class GD_COMMON_API ResouceViewUtils
     {
-        static GI::RtvDesc CreateFullRtv(const IGraphicMemoryResource* resource, GI::Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice);
+        //static GI::RtvDesc CreateFullRtv(const IGraphicMemoryResource* resource, GI::Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice);
     };
 
     class GD_COMMON_API MemoryResourceDesc
@@ -789,7 +797,8 @@ namespace GI
 	{
 	public:
 		virtual void    AddClearOperation(const RtvDesc& rtv, const Vec4f& value) = 0;
-		virtual void    AddClearOperation(const DsvDesc& dsv, float depth, u32 stencil) = 0;
+		virtual void    AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) = 0;
+        virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
 	};
@@ -902,7 +911,7 @@ namespace GI
         Math::Rect  								mScissorRect = {};
         u32     									mStencilRef = 0;
 
-    protected:
+    //protected:
         std::map<std::string, std::vector<b8>>      mCbParams;
         std::map<std::string, SrvDesc>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;

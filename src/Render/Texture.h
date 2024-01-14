@@ -39,6 +39,7 @@ public:
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
 	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
+	GI::SrvDesc						GetSrv() const;
 
 protected:
 	std::vector<b8>	const			mContent;

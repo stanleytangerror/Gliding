@@ -4,8 +4,6 @@
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "RenderTarget.h"
-#include "D3D12Backend/D3D12SwapChain.h"
-#include "D3D12Backend/D3D12Device.h"
 #include "D3D12Backend/D3D12GraphicsInfra.h"
 
 #if defined(_DEBUG)
@@ -20,7 +18,7 @@ RenderModule::RenderModule()
 	mRenderDoc = new RenderDocIntegration;
 #endif
 
-	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra(new D3D12Backend::D3D12Device);
+	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
@@ -31,14 +29,13 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 
 void RenderModule::Initial()
 {
-	const Vec3i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
-	const Vec2i& mainPortSize = { mainPortBackBufferSize.x(), mainPortBackBufferSize.y() };
+	const Vec2i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortSize);
+	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = new RenderTarget(mGraphicInfra, mainPortBackBufferSize, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = new RenderTarget(mGraphicInfra, { mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
 }
 
 void RenderModule::TickFrame(Timer* timer)

@@ -1,6 +1,7 @@
 #include "D3D12BackendPch.h"
 #include "D3D12ResourceManager.h"
 #include "D3D12Device.h"
+#include "D3D12Resource.h"
 
 namespace D3D12Backend
 {
@@ -23,7 +24,7 @@ namespace D3D12Backend
 		return builder(mDevice->GetDevice());
 	}
 
-	DescriptorPtr ResourceManager::CreateSrvDescriptor(ID3D12Resource* res, const GI::SrvDesc& desc)
+	DescriptorPtr ResourceManager::CreateSrvDescriptor(const GI::SrvDesc& desc)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC d3d12Desc = {};
 		{
@@ -47,12 +48,13 @@ namespace D3D12Backend
 			}
 		}
 
+		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateUavDescriptor(ID3D12Resource* res, const GI::UavDesc& desc)
+	DescriptorPtr ResourceManager::CreateUavDescriptor(const GI::UavDesc& desc)
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC d3d12Desc = {};
 		{
@@ -73,12 +75,13 @@ namespace D3D12Backend
 			}
 		}
 
+		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateRtvDescriptor(ID3D12Resource* res, const GI::RtvDesc& desc)
+	DescriptorPtr ResourceManager::CreateRtvDescriptor(const GI::RtvDesc& desc)
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC d3d12Desc = {};
 		{
@@ -93,12 +96,13 @@ namespace D3D12Backend
 			}
 		}
 
+		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateDsvDescriptor(ID3D12Resource* res, const GI::DsvDesc& desc)
+	DescriptorPtr ResourceManager::CreateDsvDescriptor(const GI::DsvDesc& desc)
 	{
 		D3D12_DEPTH_STENCIL_VIEW_DESC d3d12Desc = {};
 		{
@@ -113,6 +117,7 @@ namespace D3D12Backend
 			}
 		}
 
+		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
 		return { ptr };

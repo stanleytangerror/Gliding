@@ -109,24 +109,16 @@ namespace D3D12Backend
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC nullSrvDesc = {};
-		{
-			nullSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			nullSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			nullSrvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			nullSrvDesc.Texture2D.MipLevels = 1;
-			nullSrvDesc.Texture2D.MostDetailedMip = 0;
-			nullSrvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-		}
-		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(nullptr, nullSrvDesc);
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(GI::SrvDesc()
+			.SetResource(nullptr)
+			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
+			.SetTexture2D_MipLevels(1)
+			.SetTexture2D_MostDetailedMip(0));
 
-		D3D12_SAMPLER_DESC nullSamplerDesc = {};
-		{
-			nullSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			nullSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			nullSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		}
-		mNullSamplerCpuDesc = mResMgr->CreateSampler(nullSamplerDesc);
+		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
+			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
+			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
 	}
 
 	void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)

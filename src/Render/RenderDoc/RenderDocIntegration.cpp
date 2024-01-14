@@ -1,5 +1,6 @@
 #include "RenderPch.h"
 #include "RenderDocIntegration.h"
+#include <windows.h>
 
 const char* RenderDocIntegration::DllName = "renderdoc.dll";
 

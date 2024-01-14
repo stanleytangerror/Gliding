@@ -21,10 +21,10 @@ namespace D3D12Backend
 		void			ReleaseResource(ID3D12Resource* res);
 		void			Update();
 
-		DescriptorPtr	CreateSrvDescriptor(ID3D12Resource* res, const GI::SrvDesc& desc);
-		DescriptorPtr	CreateUavDescriptor(ID3D12Resource* res, const GI::UavDesc& desc);
-		DescriptorPtr	CreateRtvDescriptor(ID3D12Resource* res, const GI::RtvDesc& desc);
-		DescriptorPtr	CreateDsvDescriptor(ID3D12Resource* res, const GI::DsvDesc& desc);
+		DescriptorPtr	CreateSrvDescriptor(const GI::SrvDesc& desc);
+		DescriptorPtr	CreateUavDescriptor(const GI::UavDesc& desc);
+		DescriptorPtr	CreateRtvDescriptor(const GI::RtvDesc& desc);
+		DescriptorPtr	CreateDsvDescriptor(const GI::DsvDesc& desc);
 		DescriptorPtr	CreateSampler(const GI::SamplerDesc& desc);
 
 	protected:

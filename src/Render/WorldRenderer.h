@@ -31,20 +31,18 @@ private:
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
-		const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView,
-		const Vec2i& targetSize);
+		const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView);
 
 	static void RenderGeometryDepthWithMaterial(GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
-		const GI::DsvDesc& depthView,
-		const Vec2i& targetSize);
+		const GI::DsvDesc& depthView);
 
 	static void RenderShadowMask(GI::IGraphicsInfra* infra,
 		const GI::RtvDesc& shadowMask,
-		const GI::SrvDesc& lightViewDepth, GI::SamplerDesc lightViewDepthSampler,
-		const GI::SrvDesc& cameraViewDepth, GI::SamplerDesc cameraViewDepthSampler,
+		const GI::SrvDesc& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
+		const GI::SrvDesc& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler,
 		const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 		const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans);
 

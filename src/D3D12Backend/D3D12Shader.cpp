@@ -44,22 +44,14 @@ namespace D3D12Backend
 		}
 	}
 
-	bool ShaderMacro::operator<(const ShaderMacro& other) const
-	{
-		return
-			mName < other.mName ? true :
-			mName > other.mName ? false :
-			mDefinition < other.mDefinition;
-	}
-
-	ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vector<ShaderMacro>& macros)
+	ShaderPiece::ShaderPiece(const char* file, enum ShaderType type, const std::vector<GI::ShaderMacro>& macros)
 		: mType(type)
 		, mFile(file)
 		, mMacros(macros)
 	{
 		std::vector<D3D_SHADER_MACRO> d3dMacros(mMacros.size() + 1, D3D_SHADER_MACRO{}); // a terminator
 		std::transform(mMacros.begin(), mMacros.end(), d3dMacros.begin(),
-			[](const ShaderMacro& m) { return D3D_SHADER_MACRO{ m.mName.c_str(), m.mDefinition.c_str() }; });
+			[](const GI::ShaderMacro& m) { return D3D_SHADER_MACRO{ m.mName.c_str(), m.mDefinition.c_str() }; });
 
 		mShader =
 			type == ShaderType::eVs ? D3D12Utils::CompileBlobFromFile(file, "VSMain", "vs_5_0", d3dMacros) :
@@ -204,7 +196,7 @@ namespace D3D12Backend
 		}
 	}
 
-	ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file, const std::vector<ShaderMacro>& macros)
+	ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file, const std::vector<GI::ShaderMacro>& macros)
 	{
 		const Entry entry = { file, macros };
 		if (mVsCache.find(entry) == mVsCache.end())
@@ -216,7 +208,7 @@ namespace D3D12Backend
 		return mVsCache[entry];
 	}
 
-	ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file, const std::vector<ShaderMacro>& macros)
+	ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file, const std::vector<GI::ShaderMacro>& macros)
 	{
 		const Entry entry = { file, macros };
 		if (mPsCache.find(entry) == mPsCache.end())
@@ -228,7 +220,7 @@ namespace D3D12Backend
 		return mPsCache[entry];
 	}
 
-	ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file, const std::vector<ShaderMacro>& macros)
+	ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file, const std::vector<GI::ShaderMacro>& macros)
 	{
 		const Entry entry = { file, macros };
 		if (mCsCache.find(entry) == mCsCache.end())

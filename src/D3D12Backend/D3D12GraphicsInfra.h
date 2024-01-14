@@ -8,7 +8,7 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API D3D12GraphicsInfra : public GI::IGraphicsInfra
 	{
 	public:
-		D3D12GraphicsInfra(class D3D12Device* device);
+		D3D12GraphicsInfra();
 
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::MemoryResourceDesc& desc) override;
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::IImage& image) override;
@@ -41,7 +41,8 @@ namespace D3D12Backend
 		D3D12GraphicsRecorder(D3D12CommandContext* context);
 
 		void AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value) override;
-		void AddClearOperation(const GI::DsvDesc& dsv, float depth, u32 stencil) override;
+		void AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) override;
+		void AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src) override;
 		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
 		void AddComputePass(const GI::ComputePass& pass) override;
 

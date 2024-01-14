@@ -31,7 +31,7 @@ namespace D3D12Backend
 		}					mRootSignatureDesc;
 
 		std::string mCsFile;
-		std::vector<ShaderMacro>	mShaderMacros;
+		std::vector<GI::ShaderMacro>	mShaderMacros;
 
 	public:
 		GraphicsContext* const					mContext = nullptr;
@@ -78,7 +78,7 @@ namespace D3D12Backend
 
 		std::string mVsFile;
 		std::string mPsFile;
-		std::vector<ShaderMacro>	mShaderMacros;
+		std::vector<GI::ShaderMacro>	mShaderMacros;
 
 	public:
 		GraphicsContext* const					mContext = nullptr;

@@ -2,6 +2,8 @@
 
 #pragma warning( disable : 4819 ) // The file contains a character that cannot be represented in the current code page
 
+#define NOMINMAX 
+
 #include "Common/CommonMacros.h"
 #include "Common/Profile.h"
 #include "World/WorldMacros.h"

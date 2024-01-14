@@ -165,7 +165,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	infra->GetRecorder()->AddGraphicsPass(pass);
 
-	return std::make_tuple(integratedBRDF, srv);
+	return std::make_tuple(std::move(integratedBRDF), srv);
 }
 
 std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GeneratePrefilteredEnvironmentMap
@@ -229,7 +229,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		dstSize = dstSize * 0.5f;
 	}
 
-	return std::make_tuple(result, fullSrv);
+	return std::make_tuple(std::move(result), fullSrv);
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap

@@ -9,7 +9,7 @@ namespace D3D12Backend
 		: mResource(res)
 		, mDesc(desc)
 	{
-		mDescriptionHandle = device->GetResourceManager()->CreateSrvDescriptor(mResource->GetD3D12Resource(), desc);
+		//mDescriptionHandle = device->GetResourceManager()->CreateSrvDescriptor(desc);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ namespace D3D12Backend
 		: mResource(res)
 		, mDesc(desc)
 	{
-		mDescriptionHandle = device->GetResourceManager()->CreateUavDescriptor(mResource->GetD3D12Resource(), desc);
+		//mDescriptionHandle = device->GetResourceManager()->CreateUavDescriptor(desc);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@ namespace D3D12Backend
 		: mResource(res)
 		, mDesc(desc)
 	{
-		mRtv = device->GetResourceManager()->CreateRtvDescriptor(mResource->GetD3D12Resource(), desc);
+		//mRtv = device->GetResourceManager()->CreateRtvDescriptor(desc);
 	}
 
 	void RenderTargetView::Clear(D3D12Backend::D3D12CommandContext* context, const Vec4f& color)
@@ -44,7 +44,7 @@ namespace D3D12Backend
 		: mResource(res)
 		, mDesc(desc)
 	{
-		mHandle = device->GetResourceManager()->CreateDsvDescriptor(mResource->GetD3D12Resource(), desc);
+		//mHandle = device->GetResourceManager()->CreateDsvDescriptor(desc);
 	}
 
 	void DepthStencilView::Clear(D3D12Backend::D3D12CommandContext* context, float depth, const u32 stencil)
@@ -59,13 +59,13 @@ namespace D3D12Backend
 	SamplerView::SamplerView(D3D12Device* device, const D3D12_SAMPLER_DESC& desc)
 		: mDesc(desc)
 	{
-		mHandle = device->GetResourceManager()->CreateSampler(mDesc);
+		//mHandle = device->GetResourceManager()->CreateSampler(mDesc);
 	}
 
 	SamplerView::SamplerView(D3D12Device* device, D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
 		: mDesc(GetDesc(filterType, addrMode))
 	{
-		mHandle = device->GetResourceManager()->CreateSampler(mDesc);
+		//mHandle = device->GetResourceManager()->CreateSampler(mDesc);
 	}
 
 	D3D12_SAMPLER_DESC SamplerView::GetDesc(D3D12_FILTER filterType, const std::array< D3D12_TEXTURE_ADDRESS_MODE, 3>& addrMode)
