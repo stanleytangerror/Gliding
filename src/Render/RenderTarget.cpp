@@ -20,7 +20,7 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::En
 		.SetDepthOrArraySize(mSize.z())
 		.SetMipLevels(mMipLevelCount)
 		.SetFormat(mFormat)
-		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
 		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
 		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
 		.SetName(name)

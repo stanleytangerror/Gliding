@@ -35,7 +35,10 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 	const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
 	static Geometry* quad = Geometry::GenerateQuad();
-	if (!quad->IsGraphicsResourceReady()) { quad->CreateAndInitialResource(infra); }
+	if (!quad->IsGraphicsResourceReady()) 
+	{ 
+		quad->CreateAndInitialResource(infra); 
+	}
 
 	GI::GraphicsPass pass;
 

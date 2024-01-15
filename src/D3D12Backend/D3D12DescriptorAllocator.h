@@ -34,6 +34,7 @@ namespace D3D12Backend
 		FreeList<CD3DX12_CPU_DESCRIPTOR_HANDLE>::Index mIndex = FreeList<CD3DX12_CPU_DESCRIPTOR_HANDLE>::InvalidIndex;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE		Get() const;
+											operator bool() const;
 	};
 
 	class D3D12DescriptorAllocator

@@ -21,7 +21,7 @@ namespace D3D12Backend
 		virtual std::string GetName() const { return {}; }
 	};
 
-	class GD_D3D12BACKEND_API CommitedResource : public IResource, public GI::IGraphicMemoryResource
+	class GD_D3D12BACKEND_API CommitedResource : public GI::IGraphicMemoryResource
 	{
 	public:
 		class GD_D3D12BACKEND_API Builder
@@ -57,9 +57,8 @@ namespace D3D12Backend
 		};
 
 		~CommitedResource();
-		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) override;
-		ID3D12Resource* GetD3D12Resource() const override { return mResource; }
-		Vec3i						GetSize() const override { return mSize; }
+		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
+		ID3D12Resource*				GetD3D12Resource() const { return mResource; }
 		Vec3i						GetDimSize() const override { return mSize; }
 		GI::Format::Enum			GetFormat() const override { return D3D12Utils::ToGiFormat(mDesc.Format); }
 		u16							GetMipLevelCount() const override { return mDesc.MipLevels; }

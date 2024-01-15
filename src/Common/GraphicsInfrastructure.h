@@ -828,31 +828,31 @@ namespace GI
     };
 
     template <typename T>
-    inline std::vector<u8> ToConstBufferParamData(const T& var);
+    inline std::vector<b8> ToConstBufferParamData(const T& var);
 
     template <typename T>
-    inline std::vector<u8> ToConstBufferParamData(const T& var)
+    inline std::vector<b8> ToConstBufferParamData(const T& var)
     {
-        std::vector<u8> result(sizeof(T), 0);
+        std::vector<b8> result(sizeof(T), {});
         memcpy(result.data(), &var, sizeof(T));
         return result;
     }
 
     template <>
-    inline std::vector<u8> ToConstBufferParamData(const Mat33f& var)
+    inline std::vector<b8> ToConstBufferParamData(const Mat33f& var)
     {
-        std::vector<u8> result(sizeof(f32) * (4 + 4 + 3), 0);
+        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), {});
         Assert(false);
         return result;
     }
 
 
     template <>
-    inline std::vector<u8> ToConstBufferParamData(const std::vector<f32>& var)
+    inline std::vector<b8> ToConstBufferParamData(const std::vector<f32>& var)
     {
         const auto size = var.size() * sizeof(f32);
 
-        std::vector<u8> result(size, 0);
+        std::vector<b8> result(size, {});
         memcpy_s(result.data(), size, var.data(), size);
         return result;
     }
@@ -959,7 +959,7 @@ namespace GI
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
         std::map<std::string, GI::SrvDesc>  		mSrvParams;
         std::map<std::string, GI::UavDesc>	        mUavParams;
-        std::map<std::string, std::vector<u8>>	    mCbParams;
+        std::map<std::string, std::vector<b8>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
     };

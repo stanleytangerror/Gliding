@@ -31,8 +31,8 @@ namespace D3D12Backend
 
 		void						Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState);
 
-		void						CopyResource(IResource* dst, IResource* src);
-		void						CopyBuffer2D(IResource* dst, IResource* src);
+		void						CopyResource(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src);
+		void						CopyBuffer2D(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src);
 
 	protected:
 		std::thread::id	mThisCpuThreadId;

@@ -25,7 +25,7 @@ namespace D3D12Backend
 
 	Vec3i SwapChainBufferResource::GetSize() const
 	{
-		return mResource->GetSize();
+		return mResource->GetDimSize();
 	}
 
 	SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount)

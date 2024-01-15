@@ -48,7 +48,7 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
+		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
@@ -75,7 +75,7 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
+		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
 		return { ptr };
@@ -96,7 +96,7 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
+		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
@@ -117,7 +117,7 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource();
+		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
 		return { ptr };

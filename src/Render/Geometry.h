@@ -9,7 +9,7 @@ class GD_RENDER_API Geometry
 public:
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
 
-	bool IsGraphicsResourceReady() const { return !mVb || !mIb; };
+	bool IsGraphicsResourceReady() const { return mVb && mIb; };
 
 	GI::VbvDesc	GetVbvDesc() const;
 	GI::IbvDesc	GetIbvDesc() const;

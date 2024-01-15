@@ -35,6 +35,12 @@ namespace D3D12Backend
 		return mBlock ? mBlock->GetDesc(mIndex) : CD3DX12_CPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT());
 	}
 
+
+	DescriptorPtr::operator bool() const
+	{
+		return mBlock != nullptr;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 
 	D3D12DescriptorAllocator::D3D12DescriptorAllocator(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type)
