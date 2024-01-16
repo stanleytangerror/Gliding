@@ -45,6 +45,8 @@ namespace D3D12Backend
 		void AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src) override;
 		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
 		void AddComputePass(const GI::ComputePass& pass) override;
+		void AddBeginEvent(const char* mark) override;
+		void AddEndEvent() override;
 
 		void Finalize();
 

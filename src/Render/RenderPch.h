@@ -39,5 +39,3 @@
 #include <thread>
 #include <numeric>
 #include <filesystem>
-
-#define RENDER_EVENT(context, format) {}

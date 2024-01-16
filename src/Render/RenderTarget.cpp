@@ -60,7 +60,7 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetHeapType(GI::HeapType::DEFAULT));
 
 	mUav.SetResource(mResource.get())
-		.SetFormat(mFormat)
+		.SetFormat(GI::Format::FORMAT_UNKNOWN)
 		.SetViewDimension(GI::UavDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
 		.SetBuffer_NumElements(count)
@@ -68,7 +68,7 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetBuffer_FlagRawRatherThanNone(false);
 
 	mSrv.SetResource(mResource.get())
-		.SetFormat(mFormat)
+		.SetFormat(GI::Format::FORMAT_R32_UINT)
 		.SetViewDimension(GI::SrvDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
 		.SetBuffer_NumElements(count)

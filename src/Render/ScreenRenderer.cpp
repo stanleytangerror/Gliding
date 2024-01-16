@@ -37,7 +37,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 	auto histogram = std::make_unique<RenderTarget>(infra, histogramSize, sizeof(u32), GI::Format::FORMAT_UNKNOWN, "BrightnessHistogram");
 
 	{
-		RENDER_EVENT(context, BrightnessHistogram);
+		RENDER_EVENT(infra, BrightnessHistogram);
 
 		GI::ComputePass pass;
 
@@ -59,7 +59,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 	}
 
 	{
-		RENDER_EVENT(context, HistogramReduce);
+		RENDER_EVENT(infra, HistogramReduce);
 
 		GI::ComputePass pass;
 
@@ -87,7 +87,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 
 void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::SrvDesc& exposure, const GI::RtvDesc& target)
 {
-	RENDER_EVENT(context, ToneMapping);
+	RENDER_EVENT(infra, ToneMapping);
 
 	GI::GraphicsPass ldrScreenPass;
 

@@ -59,12 +59,12 @@ void RenderModule::Render()
 	mGraphicInfra->StartRecording();
 	{
 		{
-			RENDER_EVENT(context, RenderWorldToHdr);
+			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
 			mWorldRenderer->Render(mGraphicInfra, mSceneHdrRt->GetRtv());
 		}
 
 		{
-			RENDER_EVENT(context, RenderToMainPort);
+			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::MainPort));
 			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
@@ -72,7 +72,7 @@ void RenderModule::Render()
 		}
 
 		{
-			RENDER_EVENT(context, DebugChannels);
+			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
 			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::DebugPort));
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);

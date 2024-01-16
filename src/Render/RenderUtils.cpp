@@ -144,7 +144,7 @@ void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& tar
 
 	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetDimSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
 
-	RENDER_EVENT(context, GaussianBlur);
+	RENDER_EVENT(infra, GaussianBlur);
 	GaussianBlur1D(infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
 	GaussianBlur1D(infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
 }

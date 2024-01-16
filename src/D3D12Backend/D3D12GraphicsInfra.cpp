@@ -3,6 +3,7 @@
 #include "D3D12Resource.h"
 #include "D3D12SwapChain.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
 
 namespace D3D12Backend
 {
@@ -90,7 +91,6 @@ namespace D3D12Backend
 	{
 		return mCurrentRecorder;
 	}
-
 
 	GI::DevicePtr D3D12GraphicsInfra::GetNativeDevicePtr() const
 	{
@@ -507,6 +507,22 @@ namespace D3D12Backend
 
 		commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
 
+	}
+
+
+	void D3D12GraphicsRecorder::AddBeginEvent(const char* mark)
+	{
+#if defined(_PIX_H_) || defined(_PIX3_H_)
+		PIXBeginEvent(mContext->GetCommandList(), 0, mark);
+#endif
+	}
+
+
+	void D3D12GraphicsRecorder::AddEndEvent()
+	{
+#if defined(_PIX_H_) || defined(_PIX3_H_)
+		PIXEndEvent(mContext->GetCommandList());
+#endif
 	}
 
 	void D3D12GraphicsRecorder::Finalize()

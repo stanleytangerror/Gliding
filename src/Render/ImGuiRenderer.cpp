@@ -51,7 +51,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 		ImGui::GetIO().Fonts->SetTexID(&mFontAtlasSrvDesc);
 	}
 
-	RENDER_EVENT(context, ImGuiRenderer::Render);
+	RENDER_EVENT(infra, ImGuiRenderer::Render);
 
 	// Avoid rendering when minimized
 	if (!uiData || uiData->CmdListsCount == 0 || uiData->DisplaySize.x <= 0.0f || uiData->DisplaySize.y <= 0.0f) { return; }

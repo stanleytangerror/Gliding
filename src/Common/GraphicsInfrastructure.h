@@ -23,6 +23,10 @@
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  } \
                 CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
 
+#define RENDER_EVENT(infra, format)\
+	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format);
+	//Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
+
 namespace GI 
 {
     constexpr u32 GetDataPitchAlignment() { return 256; }
@@ -801,6 +805,17 @@ namespace GI
         virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
+		virtual void    AddBeginEvent(const char* mark) = 0;
+		virtual void    AddEndEvent() = 0;
+	};
+
+	struct GD_COMMON_API GraphicsScopedEvent
+	{
+    public:
+        GraphicsScopedEvent(IGraphicsRecorder* recorder, const char* format) : mRecorder(recorder){ mRecorder->AddBeginEvent(format); }
+        ~GraphicsScopedEvent() { mRecorder->AddEndEvent(); }
+
+        IGraphicsRecorder* mRecorder;
 	};
 
     class GD_COMMON_API IGraphicsInfra

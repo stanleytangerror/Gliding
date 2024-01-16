@@ -44,7 +44,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
 
-	RENDER_EVENT(context, GenerateIrradianceMap);
+	RENDER_EVENT(infra, GenerateIrradianceMap);
 
 	GI::GraphicsPass pass;
 
@@ -131,7 +131,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
 
-	RENDER_EVENT(context, GenerateIntegratedBRDF);
+	RENDER_EVENT(infra, GenerateIntegratedBRDF);
 
 	GI::GraphicsPass pass;
 
@@ -219,7 +219,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetTexture2D_MipLevels(levelCount)
 		.SetTexture2D_PlaneSlice(0);
 
-	RENDER_EVENT(context, FilterEnvironmentMap);
+	RENDER_EVENT(infra, FilterEnvironmentMap);
 
 	Vec2f dstSize = Vec2f{ originSize.x(), originSize.y() };
 	for (i32 i = 0; i < levelCount; ++i)
