@@ -21,11 +21,4 @@ namespace D3D12Backend
 
 #include "Common/GraphicsInfrastructure.h"
 #include "D3D12Utils.h"
-#include "D3D12GpuEvent.h"
-
-#if 0
-#define RENDER_EVENT(context, format)\
-	D3D12Backend::D3D12ScopedEvent _D3D12ScopedEvent_##_FILE_##_LINE_NO_(context->GetCommandList(), #format);\
-	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
-#endif
 
