@@ -187,6 +187,11 @@ namespace D3D12Backend
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
+		for (const auto& vbv : pass.mVbvs)
+		{
+			if (!vbv.GetResource()) { return; }
+		}
+
 		std::map<std::string, DescriptorPtr> srvs;
 		for (const auto& [name, srv] : pass.mSrvParams)
 		{
@@ -194,10 +199,14 @@ namespace D3D12Backend
 			srvs[name] = resourceManager->CreateSrvDescriptor(srv);
 		}
 
-		std::array<DescriptorPtr, 8> rtvs;
-		for (const auto& rtv : pass.mRtvs)
+		std::vector<DescriptorPtr> rtvs;
+		std::vector<DXGI_FORMAT> rtvFormats;
+		auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResource(); });
+		if (numRtvs == 0 && !pass.mDsv.GetResource()) { return; }
+		for (auto i = 0; i < numRtvs; ++i)
 		{
-			if (!rtv.GetResource()) { return; }
+			rtvs.push_back(resourceManager->CreateRtvDescriptor(pass.mRtvs[i]));
+			rtvFormats.push_back(D3D12Utils::ToDxgiFormat(pass.mRtvs[i].GetFormat()));
 		}
 
 		std::map<std::string, DescriptorPtr> samplers;
@@ -244,21 +253,67 @@ namespace D3D12Backend
 		pso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
 
 		const auto& inputLayout = vs->GetInputLayout();
+		D3D12_BLEND_DESC blendDesc;
+		{
+			blendDesc.AlphaToCoverageEnable = pass.mBlendDesc.GetAlphaToCoverageEnable();
+			blendDesc.IndependentBlendEnable = pass.mBlendDesc.GetIndependentBlendEnable();
+			for (auto i = 0; i < sizeof(blendDesc.RenderTarget) / sizeof(blendDesc.RenderTarget[0]); ++i)
+			{
+				blendDesc.RenderTarget[i].BlendEnable			 = pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable		  ();
+				blendDesc.RenderTarget[i].LogicOpEnable			 = pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable		  ();
+				blendDesc.RenderTarget[i].SrcBlend				 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend			  ());
+				blendDesc.RenderTarget[i].DestBlend				 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlend			  ());
+				blendDesc.RenderTarget[i].BlendOp				 = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOp			  ());
+				blendDesc.RenderTarget[i].SrcBlendAlpha			 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha		  ());
+				blendDesc.RenderTarget[i].DestBlendAlpha		 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha		  ());
+				blendDesc.RenderTarget[i].BlendOpAlpha			 = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha		  ());
+				blendDesc.RenderTarget[i].LogicOp				 = D3D12_LOGIC_OP(pass.mBlendDesc.RtBlendDesc[i].GetLogicOp			  ());
+				blendDesc.RenderTarget[i].RenderTargetWriteMask	 = pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
+			}
+		}
+		pso->SetBlendState(blendDesc);
+		D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
+		{
+			depthStencilDesc.DepthEnable						= pass.mDepthStencilDesc.GetDepthEnable();
+			depthStencilDesc.DepthWriteMask						= pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+			depthStencilDesc.DepthFunc							= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.GetDepthFunc());
+			depthStencilDesc.StencilEnable						= pass.mDepthStencilDesc.GetStencilEnable();
+			depthStencilDesc.StencilReadMask					= pass.mDepthStencilDesc.GetStencilReadMask();
+			depthStencilDesc.StencilWriteMask					= pass.mDepthStencilDesc.GetStencilWriteMask();
+			depthStencilDesc.FrontFace.StencilFailOp			= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
+			depthStencilDesc.FrontFace.StencilDepthFailOp		= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
+			depthStencilDesc.FrontFace.StencilPassOp			= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
+			depthStencilDesc.FrontFace.StencilFunc				= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
+			depthStencilDesc.BackFace.StencilFailOp				= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
+			depthStencilDesc.BackFace.StencilDepthFailOp		= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
+			depthStencilDesc.BackFace.StencilPassOp				= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
+			depthStencilDesc.BackFace.StencilFunc				= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.BackFace.GetStencilFunc());
+		}
+		pso->SetDepthStencilState(depthStencilDesc);
+		D3D12_RASTERIZER_DESC rastDesc;
+		{
+			rastDesc.FillMode 								= pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
+			rastDesc.CullMode 								= D3D12_CULL_MODE(pass.mRasterizerDesc.GetCullMode());
+			rastDesc.FrontCounterClockwise 					= pass.mRasterizerDesc.GetFrontCounterClockwise();
+			rastDesc.DepthBias 								= pass.mRasterizerDesc.GetDepthBias			   ();
+			rastDesc.DepthBiasClamp 						= pass.mRasterizerDesc.GetDepthBiasClamp	   ();
+			rastDesc.SlopeScaledDepthBias 					= pass.mRasterizerDesc.GetSlopeScaledDepthBias ();
+			rastDesc.DepthClipEnable 						= pass.mRasterizerDesc.GetDepthClipEnable	   ();
+			rastDesc.MultisampleEnable 						= pass.mRasterizerDesc.GetMultisampleEnable	   ();
+			rastDesc.AntialiasedLineEnable 					= pass.mRasterizerDesc.GetAntialiasedLineEnable();
+			rastDesc.ForcedSampleCount 						= pass.mRasterizerDesc.GetForcedSampleCount	   ();
+			rastDesc.ConservativeRaster 					= pass.mRasterizerDesc.GetConservativeRaster   () ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		}
+		pso->SetRasterizerState(rastDesc);
+
 		pso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
 
 		// rts
 		auto& desc = pso->Descriptor();
-		desc.NumRenderTargets = static_cast<u32>(pass.mRtvs.size());
-		for (auto i = 0; i < pass.mRtvs.size(); ++i)
+		desc.NumRenderTargets = numRtvs;
+		for (auto i = 0; i < sizeof(desc.RTVFormats) / sizeof(desc.RTVFormats[0]); ++i)
 		{
-			const auto& rtv = pass.mRtvs[i];
-			if (!rtv.GetResource()) 
-			{
-				desc.NumRenderTargets = i;
-				break;
-			}
-
-			desc.RTVFormats[i] = D3D12Utils::ToDxgiFormat(rtv.GetFormat());
+			desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
 		}
 
 		if (pass.mDsv.GetResource())

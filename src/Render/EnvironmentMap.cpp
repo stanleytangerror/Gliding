@@ -213,6 +213,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	GI::SrvDesc fullSrv;
 	fullSrv
+		.SetResource(result.get())
 		.SetFormat(result->GetFormat())
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MostDetailedMip(0)
