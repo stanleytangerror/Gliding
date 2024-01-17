@@ -23,6 +23,11 @@ void ScreenRenderer::TickFrame(Timer* timer)
 
 void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::RtvDesc& screenRt)
 {
+	if (!mQuad->IsGraphicsResourceReady())
+	{
+		mQuad->CreateAndInitialResource(infra);
+	}
+
 	std::unique_ptr<RenderTarget> exposure = std::make_unique<RenderTarget>(infra, Vec3i{ 1, 1, 1, }, GI::Format::FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
 	CalcSceneExposure(infra, sceneHdr, exposure->GetUav());
