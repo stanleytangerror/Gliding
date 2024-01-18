@@ -43,7 +43,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 	const f32 farPlaneDeviceDepth = mSunLight->mLightViewProj.GetFarPlaneDeviceDepth();
 		
 	mNoMipMapLinearDepthCmpSampler
-		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+		.SetFilter(GI::Filter::COMPARISON_MIN_MAG_LINEAR_MIP_POINT)
 		.SetAddress({ GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER })
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
