@@ -197,6 +197,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	{
 		rtvs.push_back(
 			GI::RtvDesc()
+			.SetResource(result.get())
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 			.SetTexture2D_MipSlice(i)
@@ -204,6 +205,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 		srvs.push_back(
 			GI::SrvDesc()
+			.SetResource(result.get())
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetTexture2D_MostDetailedMip(i)
