@@ -68,6 +68,15 @@ namespace D3D12Backend
 	void D3D12GraphicsInfra::StartFrame()
 	{
 		mDevice->StartFrame();
+		StartRecording();
+	}
+
+	void D3D12GraphicsInfra::EndFrame()
+	{
+		mCurrentRecorder->AddPreparePresent(GetWindowBackBufferRtv(u8(PresentPortType::MainPort)).GetResource());
+		mCurrentRecorder->AddPreparePresent(GetWindowBackBufferRtv(u8(PresentPortType::DebugPort)).GetResource());
+
+		EndRecording();
 	}
 
 	void D3D12GraphicsInfra::Present()
@@ -161,6 +170,9 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value)
 	{
+		auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
+		res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv);
 		float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 		mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
@@ -168,6 +180,9 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil)
 	{
+		auto res = reinterpret_cast<CommitedResource*>(dsv.GetResource());
+		res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
 		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv);
 		auto flag =
 			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
@@ -564,6 +579,10 @@ namespace D3D12Backend
 
 	}
 
+	void D3D12GraphicsRecorder::AddPreparePresent(GI::IGraphicMemoryResource* res)
+	{
+		reinterpret_cast<CommitedResource*>(res)->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);		
+	}
 
 	void D3D12GraphicsRecorder::AddBeginEvent(const char* mark)
 	{

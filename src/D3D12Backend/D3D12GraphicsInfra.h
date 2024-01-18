@@ -22,6 +22,7 @@ namespace D3D12Backend
 		GI::RtvDesc					GetWindowBackBufferRtv(u8 windowId) override;
 
 		void                        StartFrame() override;
+		void                        EndFrame() override;
 		void                        Present() override;
 
 		void						StartRecording() override;
@@ -45,6 +46,7 @@ namespace D3D12Backend
 		void AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src) override;
 		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
 		void AddComputePass(const GI::ComputePass& pass) override;
+		void AddPreparePresent(GI::IGraphicMemoryResource* res) override;
 		void AddBeginEvent(const char* mark) override;
 		void AddEndEvent() override;
 

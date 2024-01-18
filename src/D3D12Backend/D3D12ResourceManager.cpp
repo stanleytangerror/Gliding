@@ -66,6 +66,7 @@ namespace D3D12Backend
 				d3d12Desc.Buffer.FirstElement = desc.GetBuffer_FirstElement();
 				d3d12Desc.Buffer.NumElements = desc.GetBuffer_NumElements();
 				d3d12Desc.Buffer.StructureByteStride = desc.GetBuffer_StructureByteStride();
+				d3d12Desc.Buffer.CounterOffsetInBytes = desc.GetBuffer_CounterOffsetInBytes();
 				d3d12Desc.Buffer.Flags = desc.GetBuffer_FlagRawRatherThanNone() ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
 				break;
 			case GI::UavDimension::TEXTURE2D:
@@ -131,6 +132,13 @@ namespace D3D12Backend
 			d3d12Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(desc.GetAddress()[0]);
 			d3d12Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE(desc.GetAddress()[1]);
 			d3d12Desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE(desc.GetAddress()[2]);
+			d3d12Desc.MipLODBias = desc.GetMipLODBias();
+			d3d12Desc.MaxAnisotropy = desc.GetMaxAnisotropy();
+			d3d12Desc.ComparisonFunc = D3D12_COMPARISON_FUNC(desc.GetComparisonFunc());
+			d3d12Desc.BorderColor[0] = desc.GetBorderColor().x();
+			d3d12Desc.BorderColor[1] = desc.GetBorderColor().y();
+			d3d12Desc.BorderColor[2] = desc.GetBorderColor().z();
+			d3d12Desc.BorderColor[3] = desc.GetBorderColor().w();
 			d3d12Desc.MinLOD = desc.GetMinLOD();
 			d3d12Desc.MaxLOD = desc.GetMaxLOD();
 		}

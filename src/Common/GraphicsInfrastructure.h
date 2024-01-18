@@ -805,6 +805,7 @@ namespace GI
         virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
+		virtual void    AddPreparePresent(IGraphicMemoryResource* res) = 0;
 		virtual void    AddBeginEvent(const char* mark) = 0;
 		virtual void    AddEndEvent() = 0;
 	};
@@ -833,6 +834,7 @@ namespace GI
 		virtual RtvDesc                     GetWindowBackBufferRtv(u8 windowId) = 0;
 
 		virtual void                        StartFrame() = 0;
+		virtual void                        EndFrame() = 0;
 		virtual void                        Present() = 0;
 
 		virtual void                        StartRecording() = 0;

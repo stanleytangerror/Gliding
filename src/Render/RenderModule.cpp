@@ -55,8 +55,6 @@ void RenderModule::Render()
 	}
 
 	mGraphicInfra->StartFrame();
-
-	mGraphicInfra->StartRecording();
 	{
 		{
 			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
@@ -80,7 +78,7 @@ void RenderModule::Render()
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
-	mGraphicInfra->EndRecording();
+	mGraphicInfra->EndFrame();
 
 	mGraphicInfra->Present();
 
