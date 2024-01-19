@@ -22,7 +22,6 @@ namespace D3D12Utils
 
 	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
 	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
-	constexpr UINT ToDxhader4ComponentMapping(const GI::SrvDesc::ShaderComponentMapping4& mapping) { return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(mapping[0], mapping[1], mapping[2], mapping[3]); }
 
 	D3D12_INPUT_ELEMENT_DESC ToD3D12InputElementDesc(const GI::InputElementDesc& desc);
 

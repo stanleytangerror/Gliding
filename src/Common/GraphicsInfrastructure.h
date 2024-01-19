@@ -554,13 +554,13 @@ namespace GI
 
     struct GD_COMMON_API SrvDesc
     {
-        using ShaderComponentMapping4 = std::array<bool, 4>;
-        static ShaderComponentMapping4 FullMapping() { return { true, true, true, true }; };
+        using ShaderComponentMapping4 = std::array<u8, 4>;
+        static ShaderComponentMapping4 NormalMapping() { return { 0, 1, 2, 3}; };
 
         CONTINOUS_SETTER(SrvDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(SrvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(SrvDesc, SrvDimension::Enum, ViewDimension);
-        CONTINOUS_SETTER_VALUE(SrvDesc, ShaderComponentMapping4, Shader4ComponentMapping, FullMapping());
+        CONTINOUS_SETTER_VALUE(SrvDesc, ShaderComponentMapping4, Shader4ComponentMapping, NormalMapping());
         CONTINOUS_SETTER(SrvDesc, u64, Buffer_FirstElement);
         CONTINOUS_SETTER(SrvDesc, u32, Buffer_NumElements);
         CONTINOUS_SETTER(SrvDesc, u32, Buffer_StructureByteStride);

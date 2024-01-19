@@ -30,7 +30,8 @@ namespace D3D12Backend
 		{
 			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
 			d3d12Desc.ViewDimension = D3D12_SRV_DIMENSION(desc.GetViewDimension());
-			d3d12Desc.Shader4ComponentMapping = D3D12Utils::ToDxhader4ComponentMapping(desc.GetShader4ComponentMapping());
+			const auto& mapping = desc.GetShader4ComponentMapping();
+			d3d12Desc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(mapping[0], mapping[1], mapping[2], mapping[3]);
 			switch (desc.GetViewDimension())
 			{
 			case GI::SrvDimension::BUFFER:

@@ -5,7 +5,7 @@
 
 #define DECLARE_MATERIAL_INPUTS(name) \
 Texture2D name##Tex;\
-SamplerState name##TexSampler;\
+SamplerState name##Sampler;\
 float4 name##ConstantValue;
 
 DECLARE_MATERIAL_INPUTS(Normal);
@@ -16,7 +16,7 @@ DECLARE_MATERIAL_INPUTS(Roughness);
 float4 GetBaseColorValue(float2 uv)
 {
 #ifdef BaseColor_USE_MAP
-	return BaseColorTex.Sample(BaseColorTexSampler, uv);
+	return BaseColorTex.Sample(BaseColorSampler, uv);
 #else
 	return BaseColorConstantValue;
 #endif
@@ -25,7 +25,7 @@ float4 GetBaseColorValue(float2 uv)
 float4 GetNormalValue(float2 uv)
 {
 #ifdef Normal_USE_MAP
-	return NormalTex.Sample(NormalTexSampler, uv);
+	return NormalTex.Sample(NormalSampler, uv);
 #else
 	return NormalConstantValue;
 #endif
@@ -34,7 +34,7 @@ float4 GetNormalValue(float2 uv)
 float4 GetMetallicValue(float2 uv)
 {
 #ifdef Metallic_USE_MAP
-	return MetallicTex.Sample(MetallicTexSampler, uv);
+	return MetallicTex.Sample(MetallicSampler, uv);
 #else
 	return MetallicConstantValue;
 #endif
@@ -43,7 +43,7 @@ float4 GetMetallicValue(float2 uv)
 float4 GetRoughnessValue(float2 uv)
 {
 #ifdef Roughness_USE_MAP
-	return RoughnessTex.Sample(RoughnessTexSampler, uv);
+	return RoughnessTex.Sample(RoughnessSampler, uv);
 #else
 	return RoughnessConstantValue;
 #endif
