@@ -1,20 +1,31 @@
 #pragma once
 
 #include "D3D12Headers.h"
+#include "D3D12Backend/D3D12DescriptorAllocator.h"
 
 namespace D3D12Backend
 {
 	class D3D12GpuQueue;
 	class D3D12Device;
 
-	class D3D12ResourceManager
+	class ResourceManager
 	{
 	public:
-		D3D12ResourceManager(D3D12Device* device);
-		virtual ~D3D12ResourceManager();
+		using CreateResrouce = std::function<ID3D12Resource* (ID3D12Device*)>;
 
-		void	ReleaseResource(ID3D12Resource* res);
-		void	Update();
+	public:
+						ResourceManager(D3D12Device* device);
+		virtual			~ResourceManager();
+
+		ID3D12Resource* CreateResource(const CreateResrouce& builder);
+		void			ReleaseResource(ID3D12Resource* res);
+		void			Update();
+
+		DescriptorPtr	CreateSrvDescriptor(const GI::SrvDesc& desc);
+		DescriptorPtr	CreateUavDescriptor(const GI::UavDesc& desc);
+		DescriptorPtr	CreateRtvDescriptor(const GI::RtvDesc& desc);
+		DescriptorPtr	CreateDsvDescriptor(const GI::DsvDesc& desc);
+		DescriptorPtr	CreateSampler(const GI::SamplerDesc& desc);
 
 	protected:
 
@@ -26,5 +37,7 @@ namespace D3D12Backend
 
 		D3D12Device* const			mDevice = nullptr;
 		std::vector<ReleaseItem>	mReleaseQueue;
+
+		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
 	};
 }

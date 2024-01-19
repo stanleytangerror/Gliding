@@ -99,7 +99,7 @@ namespace D3D12Backend
 		}
 #endif
 
-		mResMgr = std::make_unique<D3D12ResourceManager>(this);
+		mResMgr = std::make_unique<ResourceManager>(this);
 
 		for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 		{
@@ -109,31 +109,16 @@ namespace D3D12Backend
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		for (i32 i = 0; i < mDescAllocator.size(); ++i)
-		{
-			mDescAllocator[i] = new D3D12DescriptorAllocator(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
-		}
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(GI::SrvDesc()
+			.SetResource(nullptr)
+			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
+			.SetTexture2D_MipLevels(1)
+			.SetTexture2D_MostDetailedMip(0));
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC nullSrvDesc = {};
-		{
-			nullSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			nullSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			nullSrvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			nullSrvDesc.Texture2D.MipLevels = 1;
-			nullSrvDesc.Texture2D.MostDetailedMip = 0;
-			nullSrvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-		}
-		mNullSrvCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
-		D3D12Device::GetDevice()->CreateShaderResourceView(nullptr, &nullSrvDesc, mNullSrvCpuDesc.Get());
-
-		D3D12_SAMPLER_DESC nullSamplerDesc = {};
-		{
-			nullSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			nullSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			nullSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		}
-		mNullSamplerCpuDesc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER]->AllocCpuDesc();
-		D3D12Device::GetDevice()->CreateSampler(&nullSamplerDesc, mNullSamplerCpuDesc.Get());
+		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
+			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
+			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
 	}
 
 	void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)
@@ -162,9 +147,7 @@ namespace D3D12Backend
 
 		SwapChainBuffers* swapChain = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
 
-		mPresentPorts[type].mSize = initWindowSize;
-		mPresentPorts[type].mNativeHandle = PortHandle(windowHandle);
-		mPresentPorts[type].mSwapChain = swapChain;
+		mPresentPorts[type] = swapChain;
 	}
 
 	void D3D12Device::StartFrame()
@@ -186,7 +169,7 @@ namespace D3D12Backend
 
 		for (auto& [_, presentPort] : mPresentPorts)
 		{
-			presentPort.mSwapChain->Present();
+			presentPort->Present();
 		}
 
 		for (D3D12GpuQueue* q : mGpuQueues)
@@ -205,19 +188,13 @@ namespace D3D12Backend
 			Utils::SafeDelete(q);
 		}
 
-		for (auto& [_, presentPort] : mPresentPorts)
-		{
-			Utils::SafeDelete(presentPort.mSwapChain);
-		}
+		//for (auto& [_, presentPort] : mPresentPorts)
+		//{
+		//	Utils::SafeDelete(presentPort);
+		//}
 
 		mResMgr->Update();
 		mResMgr = nullptr;
-
-		//for (D3D12DescriptorAllocator*& alloc : mDescAllocator)
-		//{
-		//	delete alloc;
-		//	alloc = nullptr;
-		//}
 
 		Utils::SafeDelete(mPipelineStateLib);
 		Utils::SafeDelete(mShaderLib);
@@ -230,17 +207,11 @@ namespace D3D12Backend
 		return mDevice;
 	}
 
-	D3D12DescriptorAllocator* D3D12Device::GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const
-	{
-		Assert(type < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
-		return mDescAllocator[type];
-	}
 
-	PresentPort D3D12Device::GetPresentPort(PresentPortType type) const
+	D3D12Backend::SwapChainBuffers* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
 	{
 		auto it = mPresentPorts.find(type);
-		Assert(it != mPresentPorts.end());
-		return it->second;
+		return it != mPresentPorts.end() ? it->second : nullptr;
 	}
 
 	void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)

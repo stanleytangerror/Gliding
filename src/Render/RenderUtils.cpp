@@ -1,10 +1,6 @@
 #include "RenderPch.h"
 #include "RenderUtils.h"
-#include "D3D12Backend/D3D12PipelinePass.h"
 #include "Geometry.h"
-#include "D3D12Backend/D3D12CommandContext.h"
-#include "D3D12Backend/D3D12ResourceView.h"
-#include "D3D12Backend/D3D12Resource.h"
 #include "RenderTarget.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
@@ -12,109 +8,104 @@
 
 namespace
 {
-	D3D12_SAMPLER_DESC ToD3DSamplerDesc(const TextureSamplerType& type)
+	GI::SamplerDesc ToSamplerDesc(const TextureSamplerType& type)
 	{
-		D3D12_SAMPLER_DESC result = {};
-
 		auto mapType = [](SamplerAddrMode mode)
 		{
 			switch (mode)
 			{
-			case TextureSamplerType_Clamp: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			case TextureSamplerType_Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case TextureSamplerType_Wrap: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			case TextureSamplerType_Clamp: return GI::TextureAddressMode::CLAMP;
+			case TextureSamplerType_Mirror: return GI::TextureAddressMode::MIRROR;
+			case TextureSamplerType_Wrap: return GI::TextureAddressMode::WRAP;
 			case TextureSamplerType_Decal:
-			default:  Assert(false); return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			default:  Assert(false); return GI::TextureAddressMode::WRAP;
 			}
 		};
 
-		result.AddressU = mapType(type[0]);
-		result.AddressV = mapType(type[1]);
-		result.AddressW = mapType(type[2]);
-
-		return result;
+		return GI::SamplerDesc()
+			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+			.SetAddress({ mapType(type[0]),
+					mapType(type[1]),
+					mapType(type[2]) });
 	}
 }
 
-void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context,
-	D3D12Backend::RenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect, 
-	D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler, const char* sourcePixelUnary)
+void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
+	const GI::RtvDesc& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
+	const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
-	static Geometry* quad = Geometry::GenerateQuad(context->GetDevice());
+	static Geometry* quad = Geometry::GenerateQuad();
+	if (!quad->IsGraphicsResourceReady()) 
+	{ 
+		quad->CreateAndInitialResource(infra); 
+	}
 
-	D3D12Backend::GraphicsPass pass(context);
+	GI::GraphicsPass pass;
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 	pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
+	pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { quad->mInputDescs.data(), u32(quad->mInputDescs.size()) };
-	}
+	pass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(false);
 
-	const Vec3i& targetSize = target->GetResource()->GetSize();
-	pass.mRts[0] = target;
-	pass.mViewPort = CD3DX12_VIEWPORT(targetOffset.x(), targetOffset.y(), targetRect.x(), targetRect.y());
+	pass.mInputLayout = quad->mVertexElementDescs;
+
+	const Vec3i& targetSize = target.GetResource()->GetSize();
+	pass.mRtvs[0] = target;
+	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(quad->mVbv);
-	pass.mIbv = quad->mIbv;
-	pass.mIndexCount = quad->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(quad->GetVbvDesc());
+	pass.mIbv = quad->GetIbvDesc();
+	pass.mIndexCount = quad->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
 	pass.AddSrv("SourceTex", source);
 	pass.AddSampler("SourceTexSampler", sourceSampler);
 
-	pass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
-void RenderUtils::CopyTexture(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, D3D12Backend::SamplerView* sourceSampler)
+void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler)
 {
-	const auto& targetSize = target->GetResource()->GetSize();
-	CopyTexture(context, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
+	const auto& targetSize = target.GetResource()->GetSize();
+	CopyTexture(infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel, D3D12Backend::SamplerView* sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
-	const auto& size = source->GetResource()->GetSize();
+	const auto& size = source.GetResource()->GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
-	D3D12Backend::GraphicsPass pass(context);
+	GI::GraphicsPass pass;
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
 	pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
-	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
-	pass.mShaderMacros.push_back(D3D12Backend::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1"});
+	pass.mShaderMacros.push_back(GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
+	pass.mShaderMacros.push_back(GI::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1"});
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = pass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { quad->mInputDescs.data(), u32(quad->mInputDescs.size()) };
-	}
+	pass.mDepthStencilDesc
+		.SetDepthEnable(false)
+		.SetStencilEnable(false);
 
-	pass.mRts[0] = target;
-	pass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, f32(size.x()), f32(size.y()));
+	pass.mInputLayout = quad->mVertexElementDescs;
+
+	pass.mRtvs[0] = target;
+	pass.mViewPort.SetWidth(size.x()).SetHeight(size.y());
 	pass.mScissorRect = { 0, 0, size.x(), size.y() };
 
 	pass.mVbvs.clear();
-	pass.mVbvs.push_back(quad->mVbv);
-	pass.mIbv = quad->mIbv;
-	pass.mIndexCount = quad->mIbv.SizeInBytes / sizeof(u16);
+	pass.mVbvs.push_back(quad->GetVbvDesc());
+	pass.mIbv = quad->GetIbvDesc();
+	pass.mIndexCount = quad->mIndices.size();
 
 	pass.AddCbVar("BlurTargetSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 	pass.AddSrv("SourceTex", source);
@@ -134,42 +125,51 @@ void GaussianBlur1D(D3D12Backend::GraphicsContext* context, D3D12Backend::Render
 	}
 	pass.AddCbVar("Weights", weights);
 
-	pass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
-void RenderUtils::GaussianBlur(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, i32 kernelSizeInPixel)
 {
-	static D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(context->GetDevice(), D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
-	static Geometry* quad = Geometry::GenerateQuad(context->GetDevice());
+	static GI::SamplerDesc sampler;
+	static Geometry* quad = Geometry::GenerateQuad();
+	
+	if (!quad->IsGraphicsResourceReady())
+	{
+		sampler
+			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
+			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
 
-	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(context->GetDevice(), source->GetResource()->GetSize(), source->GetFormat(), "GaussianBlurIntermediateRT");
+		quad->CreateAndInitialResource(infra);
+	}
 
-	RENDER_EVENT(context, GaussianBlur);
-	GaussianBlur1D(context, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(context, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
+	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
+
+	RENDER_EVENT(infra, GaussianBlur);
+	GaussianBlur1D(infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* sceneRawData)
+RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	std::map<std::string, Texture*> textures;
+	std::map<std::string, FileTexture*> textures;
 	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
 	{
 		if (texRawData)
 		{
-			textures[texPath] = new Texture(texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new FileTexture(infra, texPath.c_str(), texRawData->mRawData);
 		}
 	}
-	std::map<TextureSamplerType, D3D12Backend::SamplerView*> samplers;
+	std::map<TextureSamplerType, GI::SamplerDesc> samplers;
 	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
 	{
-		samplers[samplerType] = new D3D12Backend::SamplerView(device, ToD3DSamplerDesc(samplerType));
+		samplers[samplerType] = ToSamplerDesc(samplerType);
 	}
 
 	std::vector<std::shared_ptr<RenderMaterial>> materials;
@@ -179,7 +179,7 @@ RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* s
 	}
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
-		Geometry* geo = GenerateGeometryFromMeshRawData(device, mesh);
+		Geometry* geo = GenerateGeometryFromMeshRawData(mesh);
 		const auto& mat = materials[mesh->mMaterialIndex];
 		const Transformf& trans = mesh->mTransform;
 
@@ -194,14 +194,24 @@ RenderUtils::FromSceneRawData(D3D12Backend::D3D12Device* device, SceneRawData* s
 
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(D3D12Backend::D3D12Device* device)
+	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(GI::IGraphicsInfra* infra)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
-	Geometry* geo = Geometry::GenerateSphere(device, 40);
-	D3D12Backend::SamplerView* sampler = new D3D12Backend::SamplerView(device, D3D12_FILTER_MIN_MAG_MIP_LINEAR, { D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP });
+
+	static Geometry* geo = Geometry::GenerateSphere(40);
+	static GI::SamplerDesc sampler;
+
+	if (!geo->IsGraphicsResourceReady())
+	{
+		sampler
+			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+
+		geo->CreateAndInitialResource(infra);
+	}
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
 	{
@@ -227,14 +237,14 @@ TransformNode<std::pair<
 	return result;
 }
 
-Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device* device, const MeshRawData* meshRawData)
+Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData)
 {
 	const i32 vertexCount = meshRawData->mVertexCount;
 	const auto& vertexData = meshRawData->mVertexData;
 	const u32 vertexTotalStride = std::accumulate(vertexData.begin(), vertexData.end(), 0, [](u32 a, const auto& p) { return a + p.first.mStrideInBytes; });
 
 	std::vector<b8> vertices(vertexTotalStride * vertexCount, b8(0));
-	std::vector<D3D12_INPUT_ELEMENT_DESC> inputDesc;
+	std::vector<GI::InputElementDesc> inputDesc;
 
 	static const char* names[] =
 	{
@@ -246,12 +256,12 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 		"COLOR"
 	};
 
-	static const DXGI_FORMAT formats[] =
+	static const GI::Format::Enum formats[] =
 	{
-		DXGI_FORMAT_R32_FLOAT,
-		DXGI_FORMAT_R32G32_FLOAT,
-		DXGI_FORMAT_R32G32B32_FLOAT,
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		GI::Format::FORMAT_R32_FLOAT,
+		GI::Format::FORMAT_R32G32_FLOAT,
+		GI::Format::FORMAT_R32G32B32_FLOAT,
+		GI::Format::FORMAT_R32G32B32A32_FLOAT,
 	};
 
 	u32 vertexStride = 0;
@@ -260,14 +270,12 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 		const VertexAttriMeta& meta = p.first;
 		const std::vector<VertexAttriRawData>& attrData = p.second;
 
-		inputDesc.push_back(D3D12_INPUT_ELEMENT_DESC{
-			names[meta.mType],
-			meta.mChannelIndex,
-			formats[meta.mStrideInBytes / sizeof(f32)],
-			meta.mChannelIndex,
-			vertexStride,
-			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-			0 });
+		inputDesc.push_back(GI::InputElementDesc()
+			.SetSemanticName(names[meta.mType])
+			.SetSemanticIndex(meta.mChannelIndex)
+			.SetFormat(formats[meta.mStrideInBytes / sizeof(f32)])
+			.SetInputSlot(meta.mChannelIndex)
+			.SetAlignedByteOffset(vertexStride));
 
 		b8* target = vertices.data() + vertexStride;
 		for (i32 i = 0; i < vertexCount; i += 1, target += vertexTotalStride)
@@ -287,5 +295,5 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(D3D12Backend::D3D12Device
 		indices.push_back(f[2]);
 	}
 
-	return Geometry::GenerateGeometry(device, vertices, vertexTotalStride, indices, inputDesc);
+	return Geometry::GenerateGeometry(vertices, vertexTotalStride, indices, inputDesc);
 }

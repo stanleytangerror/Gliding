@@ -186,6 +186,14 @@ namespace Math
 
 	template <typename T, i32 Rols, i32 Cols>
 	inline std::string ToString(const Mat<T, Rols, Cols>& mat);
+
+	struct Rect
+	{
+		i32 left;
+		i32 top;
+		i32 right;
+		i32 bottom;
+	};
 }
 
 #include "Math_inl.h"

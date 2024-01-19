@@ -1,15 +1,10 @@
 #pragma once
 
+#include "Common/GraphicsInfrastructure.h"
+
 class Timer;
 class RenderModule;
-namespace D3D12Backend
-{
-	class SamplerView;
-	class RenderTargetView;
-	class GraphicsContext;
-}
 struct ImDrawData;
-class Texture;
 
 class ImGuiRenderer
 {
@@ -17,11 +12,12 @@ public:
 	ImGuiRenderer(RenderModule* renderModule);
 
 	void TickFrame(Timer* timer);
-	void Render(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, ImDrawData* uiData);
+	void Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, ImDrawData* uiData);
 
 protected:
 	RenderModule*		mRenderModule = nullptr;
-	D3D12Backend::SamplerView*	mImGuiSampler = nullptr;
+	GI::SamplerDesc		mImGuiSampler;
 
-	Texture*		mFontAtlas = nullptr;
+	GI::SrvDesc			mFontAtlasSrvDesc;
+	class InMemoryTexture*	mFontAtlas = nullptr;
 };

@@ -19,12 +19,12 @@ namespace D3D12Backend
 
 		void					PrepareForPresent(D3D12Backend::D3D12CommandContext* context);
 
-		D3D12Backend::RenderTargetView* GetRtv() const { return mRtv; }
+		GI::RtvDesc				GetRtv() const { return mRtv; }
 		Vec3i					GetSize() const;
 
 	protected:
 		D3D12Backend::CommitedResource* mResource = nullptr;
-		D3D12Backend::RenderTargetView* mRtv = nullptr;
+		GI::RtvDesc				mRtv;
 
 	public:
 		std::string const		mName;

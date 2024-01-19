@@ -1,28 +1,25 @@
 #pragma once
 
-#include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12ResourceView.h"
+#include "Common/GraphicsInfrastructure.h"
 
 class GD_RENDER_API RenderTarget
 {
 public:
-	RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, const char* name);
-	RenderTarget(D3D12Backend::D3D12Device* device, Vec3i size, DXGI_FORMAT format, i32 mipLevelCount, const char* name);
-	RenderTarget(D3D12Backend::D3D12Device* device, i32 count, i32 stride, DXGI_FORMAT format, const char* name);
+	RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, const char* name);
+	RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, i32 mipLevelCount, const char* name);
+	RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI::Format::Enum format, const char* name);
 
-	D3D12Backend::RenderTargetView*						GetRtv() const { return mRtv; }
-	D3D12Backend::ShaderResourceView*						GetSrv() const { return mSrv; }
-	D3D12Backend::UnorderedAccessView*						GetUav() const { return mUav; }
+	GI::RtvDesc			GetRtv() const { return mRtv; }
+	GI::UavDesc			GetUav() const { return mUav; }
+	GI::SrvDesc			GetSrv() const { return mSrv; }
 
 protected:
-	D3D12Backend::D3D12Device*				mDevice = nullptr;
-	std::unique_ptr<D3D12Backend::CommitedResource>	
-								mResource;
+	std::unique_ptr<GI::IGraphicMemoryResource> mResource;
 	Vec3i						mSize = {};
 	i32							mMipLevelCount = 1;
-	DXGI_FORMAT					mFormat;
+	GI::Format::Enum			mFormat;
 
-	D3D12Backend::RenderTargetView*						mRtv = nullptr;
-	D3D12Backend::UnorderedAccessView*						mUav = nullptr;
-	D3D12Backend::ShaderResourceView*						mSrv = nullptr;
+	GI::RtvDesc					mRtv;
+	GI::UavDesc					mUav;
+	GI::SrvDesc					mSrv;
 };

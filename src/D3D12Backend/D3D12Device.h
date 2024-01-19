@@ -15,7 +15,7 @@ namespace D3D12Backend
 	class D3D12DescriptorAllocator;
 	class SwapChainBuffers;
 	class D3D12GpuQueue;
-	class D3D12ResourceManager;
+	class ResourceManager;
 	enum D3D12GpuQueueType : u8;
 
 	class GD_D3D12BACKEND_API D3D12Device
@@ -31,32 +31,32 @@ namespace D3D12Backend
 		ID3D12Device* GetDevice() const;
 
 	public:
-		D3D12DescriptorAllocator* GetDescAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 		D3D12ShaderLibrary* GetShaderLib() const { return mShaderLib; }
 		D3D12PipelineStateLibrary* GetPipelineStateLib() const { return mPipelineStateLib; }
-		CpuDescItem	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
-		CpuDescItem	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
-		PresentPort GetPresentPort(PresentPortType type) const;
+		DescriptorPtr	GetNullSrvUavCbvCpuDesc() const { return mNullSrvCpuDesc; }
+		DescriptorPtr	GetNullSamplerCpuDesc() const { return mNullSamplerCpuDesc; }
 
 		D3D12GpuQueue* GetGpuQueue(D3D12GpuQueueType type) const { return mGpuQueues[u64(type)]; }
+
+		ResourceManager* GetResourceManager() const { return mResMgr.get(); }
+		SwapChainBuffers* GetSwapChainBuffers(PresentPortType type) const;
 
 		void	ReleaseD3D12Resource(ID3D12Resource*& res);
 
 	private:
 		IDXGIFactory4* mFactory = nullptr;
 		ID3D12Device* mDevice = nullptr;
-
-		std::map<PresentPortType, PresentPort>	mPresentPorts;
+		
+		std::map<PresentPortType, SwapChainBuffers*>	mPresentPorts;
 
 		std::array<D3D12GpuQueue*, u64(D3D12GpuQueueType::Count)>	mGpuQueues;
-		std::unique_ptr<D3D12ResourceManager>			mResMgr;
+		std::unique_ptr<ResourceManager>			mResMgr;
 
 		D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
 		D3D12ShaderLibrary* mShaderLib = nullptr;
 
-		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
-		CpuDescItem	mNullSrvCpuDesc;
-		CpuDescItem	mNullSamplerCpuDesc;
+		DescriptorPtr	mNullSrvCpuDesc;
+		DescriptorPtr	mNullSamplerCpuDesc;
 
 		static const u32 mSwapChainBufferCount = 3;
 	};

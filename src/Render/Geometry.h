@@ -1,40 +1,42 @@
 #pragma once
 
-#include "D3D12Backend/D3D12Headers.h"
-#include "D3D12Backend/D3D12Device.h"
+#include "Common/GraphicsInfrastructure.h"
 
 struct MeshRawData;
 
 class GD_RENDER_API Geometry
 {
-protected:
-	Geometry(D3D12Backend::D3D12Device* device);
+public:
+	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
+
+	bool IsGraphicsResourceReady() const { return mVb && mIb; };
+
+	GI::VbvDesc	GetVbvDesc() const;
+	GI::IbvDesc	GetIbvDesc() const;
 
 public:
-	D3D12Backend::D3D12Device* const		mDevice = nullptr;
+	std::vector<b8>		mVertices;
+	i32					mVertexStride = 0;
+	std::vector<u16>	mIndices;
+	std::vector < GI::InputElementDesc > mVertexElementDescs;
 
-	std::unique_ptr< D3D12Backend::CommitedResource> mVb = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW mVbv = {};
-
-	std::unique_ptr< D3D12Backend::CommitedResource> mIb = nullptr;
-	D3D12_INDEX_BUFFER_VIEW mIbv = {};
-
-	std::vector < D3D12_INPUT_ELEMENT_DESC > mInputDescs;
+	std::unique_ptr<GI::IGraphicMemoryResource> mVb = nullptr;
+	std::unique_ptr<GI::IGraphicMemoryResource> mIb = nullptr;
 
 public:
 	template <typename TVertex>
-	static Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
+	static Geometry* GenerateGeometry(
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
-		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
+		const std::vector<GI::InputElementDesc>& inputDescs);
 
-	static Geometry* GenerateQuad(D3D12Backend::D3D12Device* device);
-	static Geometry* GenerateSphere(D3D12Backend::D3D12Device* device, i32 subDev);
+	static Geometry* GenerateQuad();
+	static Geometry* GenerateSphere(i32 subDev);
 
-	static Geometry* GenerateGeometry(D3D12Backend::D3D12Device* device,
+	static Geometry* GenerateGeometry(
 		const std::vector<b8>& vertices, i32 vertexStride,
 		const std::vector<u16>& indices,
-		const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputDescs);
+		const std::vector<GI::InputElementDesc>& inputDescs);
 };
 
 namespace GeometryUtils
@@ -45,7 +47,7 @@ namespace GeometryUtils
 		Vec3f mNorm;
 		Vec2f mUv;
 
-		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
+		static std::vector<GI::InputElementDesc> GetInputDesc();
 	};
 
 	struct VertexPosNormTanUv
@@ -56,7 +58,7 @@ namespace GeometryUtils
 		Vec3f mBiTangent;
 		Vec2f mUv;
 
-		static std::vector<D3D12_INPUT_ELEMENT_DESC> GetInputDesc();
+		static std::vector<GI::InputElementDesc> GetInputDesc();
 	};
 }
 

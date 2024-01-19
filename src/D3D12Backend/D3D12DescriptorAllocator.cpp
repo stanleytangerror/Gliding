@@ -1,4 +1,5 @@
 #include "D3D12BackendPch.h"
+#include "D3D12DescriptorHeap.h"
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12Utils.h"
 
@@ -6,56 +7,38 @@ namespace D3D12Backend
 {
 	//////////////////////////////////////////////////////////////////////////
 
-	D3D12DescriptorBlock::D3D12DescriptorBlock(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const i32 numDescriptors)
-		: mDesc{ type, UINT(numDescriptors), D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 }
-		, mDescriptorHeap(nullptr)
-		, mDescriptorNum(numDescriptors)
-		, mDescriptorSize(device->GetDescriptorHandleIncrementSize(type))
+	DescriptorPool::DescriptorPool(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_TYPE type, const i32 numDescriptors)
+		: mDescriptorMemory(new DescriptorArrayResource(device, type, false, numDescriptors, "DescriptorPool"))
 		, mAllocator(numDescriptors)
 	{
-		AssertHResultOk(device->CreateDescriptorHeap(&mDesc, IID_PPV_ARGS(&mDescriptorHeap)));
-		mDescriptorHeap->SetName(L"D3D12DescriptorBlock");
-
-		mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
-	D3D12DescriptorBlock::~D3D12DescriptorBlock()
-	{
-		mDescriptorHeap->Release();
-		mDescriptorHeap = nullptr;
-		mCpuBase = {};
-	}
-
-
-	D3D12DescriptorBlock::DescHandleIndex D3D12DescriptorBlock::AllocCpuDesc()
+	DescriptorPool::DescHandleIndex DescriptorPool::AllocCpuDesc()
 	{
 		return mAllocator.Pop();
 	}
 
-	void D3D12DescriptorBlock::ReleaseCpuDesc(u64 fenceValue, const DescHandleIndex& index)
+	void DescriptorPool::ReleaseCpuDesc(u64 fenceValue, const DescHandleIndex& index)
 	{
 		mAllocator.Push(index);
 	}
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorBlock::GetDesc(const DescHandleIndex& index) const
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorPool::GetDesc(const DescHandleIndex& index) const
 	{
-		if (0 <= index && index < mDescriptorNum)
-		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE result(mCpuBase);
-			result.Offset(index, mDescriptorSize);
-			return result;
-		}
-		else
-		{
-			return CD3DX12_CPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT());
-		}
+		return mDescriptorMemory->GetCpuBaseWithOffset(index);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE CpuDescItem::Get() const
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorPtr::Get() const
 	{
 		return mBlock ? mBlock->GetDesc(mIndex) : CD3DX12_CPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT());
+	}
+
+
+	DescriptorPtr::operator bool() const
+	{
+		return mBlock != nullptr;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -64,9 +47,9 @@ namespace D3D12Backend
 		: mDescriptorType(type)
 		, mDevice(device)
 		, mBlockPool(
-			[device, type]() { return new D3D12DescriptorBlock(device, type, msDescriptorBlockSize); },
-			[](D3D12DescriptorBlock* t) {},
-			[](D3D12DescriptorBlock* t) { if (t) { delete t; } }
+			[device, type]() { return new DescriptorPool(device, type, msDescriptorBlockSize); },
+			[](DescriptorPool* t) {},
+			[](DescriptorPool* t) { if (t) { delete t; } }
 		)
 	{
 	}
@@ -81,7 +64,7 @@ namespace D3D12Backend
 		mBlockPool.UpdateTime(val);
 	}
 
-	void D3D12DescriptorAllocator::ReleaseCpuDesc(u64 fenceValue, const CpuDescItem& item)
+	void D3D12DescriptorAllocator::ReleaseCpuDesc(u64 fenceValue, const DescriptorPtr& item)
 	{
 		if (item.mBlock)
 		{
@@ -91,7 +74,7 @@ namespace D3D12Backend
 
 		for (auto it = mActiveBlocks.begin(); it != mActiveBlocks.end(); )
 		{
-			D3D12DescriptorBlock* block = *it;
+			DescriptorPool* block = *it;
 			if (block->AllFreed())
 			{
 				mBlockPool.ReleaseItem(fenceValue, block);
@@ -104,9 +87,9 @@ namespace D3D12Backend
 		}
 	}
 
-	CpuDescItem D3D12DescriptorAllocator::AllocCpuDesc()
+	DescriptorPtr D3D12DescriptorAllocator::AllocCpuDesc()
 	{
-		for (D3D12DescriptorBlock* block : mActiveBlocks)
+		for (DescriptorPool* block : mActiveBlocks)
 		{
 			if (block->CanAlloc())
 			{
@@ -115,7 +98,7 @@ namespace D3D12Backend
 			}
 		}
 
-		D3D12DescriptorBlock* newBlock = mBlockPool.AllocItem();
+		DescriptorPool* newBlock = mBlockPool.AllocItem();
 		mActiveBlocks.push_back(newBlock);
 
 		return { newBlock, newBlock->AllocCpuDesc() };

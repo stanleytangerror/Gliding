@@ -1,21 +1,14 @@
 #pragma once
 
-class RenderTarget;
-namespace D3D12Backend
-{
-	class GraphicsContext;
-	class ShaderResourceView;
-	class RenderTargetView;
-	class CommitedResource;
-}
+#include "Common/GraphicsInfrastructure.h"
 
 class EnvironmentMap
 {
 public:
-	static std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> GenerateIrradianceMap(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* sky, i32 resolution, i32 semiSphereBusbarSampleCount);
-	static std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> GenerateIntegratedBRDF(D3D12Backend::GraphicsContext* context, i32 resolution);
-	static std::tuple<D3D12Backend::CommitedResource*, D3D12Backend::ShaderResourceView*> GeneratePrefilteredEnvironmentMap(D3D12Backend::GraphicsContext* context, D3D12Backend::ShaderResourceView* src, i32 resolution);
+	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> GenerateIrradianceMap(GI::IGraphicsInfra* infra, const GI::SrvDesc& sky, i32 resolution, i32 semiSphereBusbarSampleCount);
+	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> GenerateIntegratedBRDF(GI::IGraphicsInfra* infra, i32 resolution);
+	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> GeneratePrefilteredEnvironmentMap(GI::IGraphicsInfra* infra, const GI::SrvDesc& src, i32 resolution);
 
 protected:
-	static void PrefilterEnvironmentMap(D3D12Backend::GraphicsContext* context, D3D12Backend::RenderTargetView* target, D3D12Backend::ShaderResourceView* src, const Vec2i& targetSize, f32 roughness);
+	static void PrefilterEnvironmentMap(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& src, const Vec2i& targetSize, f32 roughness);
 };
