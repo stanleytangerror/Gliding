@@ -55,6 +55,15 @@
     <ClInclude Include="Texture.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="IndexAllocator.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="NativeUtils.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsInfrastructure.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
@@ -78,6 +87,10 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Texture.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NativeUtils.cpp" />
+    <ClCompile Include="GraphicsInfrastructure.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

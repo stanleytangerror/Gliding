@@ -1,11 +1,9 @@
 #pragma once
 
+#include "Common/GraphicsInfrastructure.h"
+
 class RenderModule;
-class GraphicsContext;
-class IRenderTargetView;
-class IShaderResourceView;
-class IUnorderedAccessView;
-class D3D12Geometry;
+class Geometry;
 
 class GD_RENDER_API ScreenRenderer
 {
@@ -14,16 +12,16 @@ public:
 	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt);
+	void Render(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::RtvDesc& screenRt);
 
 private:
-	void CalcSceneExposure(GraphicsContext* context, IShaderResourceView* input, IUnorderedAccessView* exposureTex);
-	void ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target);
+	void CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvDesc& input, const GI::UavDesc& exposureTex);
+	void ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::SrvDesc& exposure, const GI::RtvDesc& target);
 
 private:
 	RenderModule* mRenderModule = nullptr;
 
-	D3D12Geometry* mQuad = nullptr;
+	Geometry* mQuad = nullptr;
 
 	f32 mSecondsSinceLaunch = 0.f;
 	f32 mLastFrameDeltaTimeInSeconds = 0.f;

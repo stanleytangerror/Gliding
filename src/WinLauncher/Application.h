@@ -27,8 +27,8 @@ protected:
 	static HWND CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 
 	std::atomic_bool				mWindowCreated = false;
-	WindowInfo						mMainWindowInfo = {};
-	WindowInfo						mDebugWindowInfo = {};
+	WindowRuntimeInfo				mMainWindowInfo = {};
+	WindowRuntimeInfo				mDebugWindowInfo = {};
 
 	std::unique_ptr<Timer>			mTimer;
 	std::unique_ptr<RenderModule>	mRenderModule;

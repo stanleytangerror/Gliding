@@ -13,15 +13,18 @@
 
 #include "imgui.h"
 
-namespace ImGuiIntegration
+extern "C"
 {
-	IMGUI_INTEGRATION_API bool			Initial();
-	IMGUI_INTEGRATION_API bool			AttachToWindow(const u64 windowHandle);
-	IMGUI_INTEGRATION_API void			BeginUI();
-	IMGUI_INTEGRATION_API ImDrawData*	EndUI();
-	IMGUI_INTEGRATION_API void			Shutdown();
+	namespace ImGuiIntegration
+	{
+		IMGUI_INTEGRATION_API bool			Initial();
+		IMGUI_INTEGRATION_API bool			AttachToWindow(const u64 windowHandle);
+		IMGUI_INTEGRATION_API void			BeginUI();
+		IMGUI_INTEGRATION_API ImDrawData*	EndUI();
+		IMGUI_INTEGRATION_API void			Shutdown();
 
-	IMGUI_INTEGRATION_API u64			WindowProcHandler(const u64 windowHandle, u32 msg, u64 wParam, u64 lParam);
+		IMGUI_INTEGRATION_API u64			WindowProcHandler(const u64 windowHandle, u32 msg, u64 wParam, u64 lParam);
+	}
 }
 
 namespace ImGui

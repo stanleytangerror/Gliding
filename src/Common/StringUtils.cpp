@@ -17,14 +17,14 @@ std::wstring Utils::ToWString(const char* str)
 	return ToWString(std::string(str));
 }
 
-GD_COMMON_API std::string Utils::ToString(const std::wstring& wstr)
+std::string Utils::ToString(const std::wstring& wstr)
 {
 	std::string str(wstr.size(), L' '); // Overestimate number of code points.
 	str.resize(std::wcstombs(&str[0], wstr.c_str(), wstr.size())); // Shrink to fit
 	return str;
 }
 
-GD_COMMON_API std::string Utils::ToString(const wchar_t* wstr)
+std::string Utils::ToString(const wchar_t* wstr)
 {
 	return ToString(std::wstring(wstr));
 }
@@ -39,7 +39,7 @@ std::string Utils::FormatString(const char* format, ...)
 	return std::string(buffer);
 }
 
-GD_COMMON_API std::string Utils::GetDirFromPath(const char* path)
+std::string Utils::GetDirFromPath(const char* path)
 {
 	const std::string& pathStr = path;
 	size_t pos = pathStr.find_last_of("\\/");
@@ -48,12 +48,12 @@ GD_COMMON_API std::string Utils::GetDirFromPath(const char* path)
 		: pathStr.substr(0, pos);
 }
 
-GD_COMMON_API void Utils::PrintDebugString(const char* path)
+void Utils::PrintDebugString(const char* path)
 {
 	OutputDebugString(Utils::ToWString(path).c_str());
 }
 
-GD_COMMON_API std::vector<b8> Utils::LoadFileContent(const char* path)
+std::vector<b8> Utils::LoadFileContent(const char* path)
 {
 	std::ifstream is(path, std::ifstream::binary);
 	if (is)
@@ -76,7 +76,7 @@ GD_COMMON_API std::vector<b8> Utils::LoadFileContent(const char* path)
 	return {};
 }
 
-GD_COMMON_API u32 Utils::HashBytes(const b8* data, u32 size)
+u32 Utils::HashBytes(const b8* data, u32 size)
 {
 	/* Fowler¨CNoll¨CVo hash function */
 	const u32 fnv_prime = 16777619u;

@@ -11,14 +11,14 @@
 #include <wrl/client.h>
 #include <dxgi1_4.h>
 
-enum D3D12GpuQueueType : u8
+namespace D3D12Backend
 {
-	Graphic, Compute, Copy, Count
-};
+	enum D3D12GpuQueueType : u8
+	{
+		Graphic, Compute, Copy, Count
+	};
+}
 
+#include "Common/GraphicsInfrastructure.h"
 #include "D3D12Utils.h"
-#include "D3D12GpuEvent.h"
 
-#define RENDER_EVENT(context, format)\
-	D3D12ScopedEvent _D3D12ScopedEvent_##_FILE_##_LINE_NO_(context->GetCommandList(), #format);\
-	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);

@@ -1,20 +1,13 @@
 #include "RenderPch.h"
 #include "ScreenRenderer.h"
 #include "RenderModule.h"
-#include "D3D12Backend/D3D12Headers.h"
-#include "D3D12Backend/D3D12Device.h"
-#include "D3D12Backend/D3D12PipelinePass.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
-#include "D3D12Backend/D3D12ResourceView.h"
-#include "D3D12Backend/D3D12Resource.h"
-#include "D3D12Backend/D3D12CommandContext.h"
-#include "D3D12Backend/D3D12Geometry.h"
-#include "D3D12Backend/D3D12ResourceView.h"
+#include "RenderTarget.h"
+#include "Geometry.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	mQuad = D3D12Geometry::GenerateQuad(mRenderModule->GetDevice());
+	mQuad = Geometry::GenerateQuad();
 }
 
 ScreenRenderer::~ScreenRenderer()
@@ -28,32 +21,37 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GraphicsContext* context, IShaderResourceView* sceneHdr, IRenderTargetView* screenRt)
+void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::RtvDesc& screenRt)
 {
-	std::unique_ptr<D3D12RenderTarget> exposure = std::make_unique<D3D12RenderTarget>(context->GetDevice(), Vec3i{ 1, 1, 1, }, DXGI_FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+	if (!mQuad->IsGraphicsResourceReady())
+	{
+		mQuad->CreateAndInitialResource(infra);
+	}
 
-	CalcSceneExposure(context, sceneHdr, exposure->GetUav());
-	ToneMapping(context, sceneHdr, exposure->GetSrv(), screenRt);
+	std::unique_ptr<RenderTarget> exposure = std::make_unique<RenderTarget>(infra, Vec3i{ 1, 1, 1, }, GI::Format::FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+
+	CalcSceneExposure(infra, sceneHdr, exposure->GetUav());
+	ToneMapping(infra, sceneHdr, exposure->GetSrv(), screenRt);
 }
 
-void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResourceView* sceneHdr, IUnorderedAccessView* exposureRt)
+void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::UavDesc& exposureRt)
 {
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
 	const f32 brightMax = 65536.f;
-	std::unique_ptr<D3D12RenderTarget> histogram = std::make_unique<D3D12RenderTarget>(context->GetDevice(), histogramSize, sizeof(u32), DXGI_FORMAT_UNKNOWN, "BrightnessHistogram");
+	auto histogram = std::make_unique<RenderTarget>(infra, histogramSize, sizeof(u32), GI::Format::FORMAT_UNKNOWN, "BrightnessHistogram");
 
 	{
-		RENDER_EVENT(context, BrightnessHistogram);
+		RENDER_EVENT(infra, BrightnessHistogram);
 
-		ComputePass pass(context);
+		GI::ComputePass pass;
 
 		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 		pass.mRootSignatureDesc.mEntry = "ComputeRS";
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
-		pass.mShaderMacros.push_back(ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
+		pass.mShaderMacros.push_back(GI::ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
-		const Vec3i& size = sceneHdr->GetResource()->GetSize();
+		const Vec3i& size = sceneHdr.GetResource()->GetSize();
 		pass.AddSrv("SceneHdr", sceneHdr);
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
@@ -62,20 +60,20 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResource
 
 		pass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
 
-		pass.Dispatch();
+		infra->GetRecorder()->AddComputePass(pass);
 	}
 
 	{
-		RENDER_EVENT(context, HistogramReduce);
+		RENDER_EVENT(infra, HistogramReduce);
 
-		ComputePass pass(context);
+		GI::ComputePass pass;
 
 		pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 		pass.mRootSignatureDesc.mEntry = "ComputeRS";
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
-		pass.mShaderMacros.push_back(ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
+		pass.mShaderMacros.push_back(GI::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
-		const Vec3i& size = sceneHdr->GetResource()->GetSize();
+		const Vec3i& size = sceneHdr.GetResource()->GetSize();
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
 		pass.AddCbVar("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
@@ -88,31 +86,27 @@ void ScreenRenderer::CalcSceneExposure(GraphicsContext* context, IShaderResource
 
 		pass.mThreadGroupCounts = { 1, 1, 1 };
 
-		pass.Dispatch();
+		infra->GetRecorder()->AddComputePass(pass);
 	}
 }
 
-void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* sceneHdr, IShaderResourceView* exposure, IRenderTargetView* target)
+void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::SrvDesc& exposure, const GI::RtvDesc& target)
 {
-	RENDER_EVENT(context, ToneMapping);
+	RENDER_EVENT(infra, ToneMapping);
 
-	GraphicsPass ldrScreenPass(context);
+	GI::GraphicsPass ldrScreenPass;
 
 	ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
 	ldrScreenPass.mRootSignatureDesc.mEntry = "GraphicsRS";
 	ldrScreenPass.mVsFile = "res/Shader/ToneMapping.hlsl";
 	ldrScreenPass.mPsFile = "res/Shader/ToneMapping.hlsl";
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc = ldrScreenPass.PsoDesc();
-	{
-		desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		desc.DepthStencilState.DepthEnable = false;
-		desc.DepthStencilState.StencilEnable = false;
-		desc.InputLayout = { mQuad->mInputDescs.data(), u32(mQuad->mInputDescs.size()) };
-	}
+	ldrScreenPass.mDepthStencilDesc.SetDepthEnable(false);
+	ldrScreenPass.mDepthStencilDesc.SetStencilEnable(false);
 
-	const Vec3i& targetSize = target->GetResource()->GetSize();
+	ldrScreenPass.mInputLayout = mQuad->mVertexElementDescs;
+
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	
 	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
@@ -121,14 +115,14 @@ void ScreenRenderer::ToneMapping(GraphicsContext* context, IShaderResourceView* 
 
 	ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
-	ldrScreenPass.mRts[0] = target;
-	ldrScreenPass.mViewPort = CD3DX12_VIEWPORT(0.f, 0.f, float(targetSize.x()), float(targetSize.y()));
+	ldrScreenPass.mRtvs[0] = target;
+	ldrScreenPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	ldrScreenPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	
 	ldrScreenPass.mVbvs.clear();
-	ldrScreenPass.mVbvs.push_back(mQuad->mVbv);
-	ldrScreenPass.mIbv = mQuad->mIbv;
-	ldrScreenPass.mIndexCount = mQuad->mIbv.SizeInBytes / sizeof(u16);
+	ldrScreenPass.mVbvs.push_back(mQuad->GetVbvDesc());
+	ldrScreenPass.mIbv = mQuad->GetIbvDesc();
+	ldrScreenPass.mIndexCount = mQuad->mIndices.size();
 
-	ldrScreenPass.Draw();
+	infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);
 }

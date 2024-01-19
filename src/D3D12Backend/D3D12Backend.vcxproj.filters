@@ -22,12 +22,6 @@
     <ClCompile Include="D3D12Device.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12Geometry.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12GpuEvent.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="D3D12GpuQueue.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -35,9 +29,6 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="D3D12PipelineState.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12RenderTarget.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="D3D12Resource.cpp">
@@ -55,13 +46,13 @@
     <ClCompile Include="D3D12SwapChain.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12Texture.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="D3D12Utils.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="D3D12BackendPch.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12GraphicsInfra.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -81,15 +72,6 @@
     <ClInclude Include="D3D12Device.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12Geometry.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12Geometry_inl.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12GpuEvent.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="D3D12GpuQueue.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -100,9 +82,6 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="D3D12PipelineState.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12RenderTarget.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="D3D12Resource.h">
@@ -120,9 +99,6 @@
     <ClInclude Include="D3D12SwapChain.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12Texture.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="D3D12Utils.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -135,5 +111,11 @@
     <ClInclude Include="D3D12BackendMacros.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12GraphicsInfra.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -1,28 +1,25 @@
 #pragma once
 
 #include "World/Scene.h"
-
-class D3D12Texture;
-class D3D12CommandContext;
-class D3D12SamplerView;
+#include "Common/GraphicsInfrastructure.h"
 
 struct RenderMaterial
 {
 	struct MaterialAttriSlot
 	{
-		D3D12Texture* mTexture = nullptr;
-		D3D12SamplerView* mSampler = nullptr;
+		class FileTexture* mTexture = nullptr;
+		GI::SamplerDesc mSampler;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
 
-	void UpdateGpuResources(D3D12CommandContext* context);
+	void UpdateGpuResources(GI::IGraphicsInfra* infra);
 	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(
 		const MaterialRawData* matRawData,
 		const SceneRawData* sceneRawData,
-		const std::map<std::string, D3D12Texture*>& textures,
-		const std::map<TextureSamplerType, D3D12SamplerView*>& samplers);
+		const std::map<std::string, class FileTexture*>& textures,
+		const std::map<TextureSamplerType, GI::SamplerDesc>& samplers);
 };

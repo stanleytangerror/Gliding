@@ -3,23 +3,15 @@
 #include "Math.h"
 
 using PortHandle = u64;
-class SwapChainBuffers;
 
 enum class GD_COMMON_API PresentPortType
 {
-	MainPort,
-	DebugPort
+	MainPort = 0,
+	DebugPort = 1,
 };
 
-struct GD_COMMON_API WindowInfo
+struct GD_COMMON_API WindowRuntimeInfo
 {
-	PortHandle		mWindow = {};
+	PortHandle		mNativeHandle = {};
 	Vec2i			mSize = {};
-};
-
-struct GD_COMMON_API PresentPort
-{
-	PortHandle			mWindow = {};
-	Vec2i				mSize = {};
-	SwapChainBuffers*	mSwapChain = nullptr;
 };

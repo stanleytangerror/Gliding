@@ -2,25 +2,42 @@
 
 #include "D3D12Headers.h"
 #include "Common/Texture.h"
+#include "Common/GraphicsInfrastructure.h"
+#include "DirectXTex/DirectXTex.h"
 
-class D3D12CommandContext;
+namespace D3D12Backend
+{
+	class D3D12CommandContext;
+	class CommitedResource;
+}
+
+namespace DirectX
+{
+	class ScratchImage;
+}
 
 namespace D3D12Utils
 {
+	class WindowsImage;
+
+	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
+	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
+
+	D3D12_INPUT_ELEMENT_DESC ToD3D12InputElementDesc(const GI::InputElementDesc& desc);
+
 	void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter);
 	
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
 
-	ID3D12Resource* CreateUploadBuffer(ID3D12Device* device, u64 size, const char* name = nullptr);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const char* name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
-	void SetRawD3D12ResourceName(ID3D12Resource* res, const char* name);
-	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name);
-	void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);
-	void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
-
-	ID3D12Resource* CreateTextureFromImageFile(D3D12CommandContext* context, const char* filePath);
-	ID3D12Resource* CreateTextureFromImageMemory(D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	ID3D12Resource* CreateTextureFromRawMemory(D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	//GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
+	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
 	
 	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
@@ -31,8 +48,8 @@ namespace D3D12Utils
 	DXGI_FORMAT GetDepthFormat(DXGI_FORMAT defaultFormat);
 	DXGI_FORMAT GetStencilFormat(DXGI_FORMAT defaultFormat);
 
-	D3D12_SRV_DIMENSION GetSrvDimension(D3D12_RESOURCE_DIMENSION dim);
-	D3D12_UAV_DIMENSION GetUavDimension(D3D12_RESOURCE_DIMENSION dim);
+	GD_D3D12BACKEND_API D3D12_SRV_DIMENSION GetSrvDimension(D3D12_RESOURCE_DIMENSION dim);
+	GD_D3D12BACKEND_API D3D12_UAV_DIMENSION GetUavDimension(D3D12_RESOURCE_DIMENSION dim);
 
 	template <typename T>
 	inline std::vector<byte> ToD3DConstBufferParamData(const T& var);
@@ -47,6 +64,20 @@ namespace D3D12Utils
 	protected:
 		std::string const	mRoot;
 		std::string	mContent;
+	};
+
+	class WindowsImage : public GI::IImage
+	{
+	public:
+		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+		static std::unique_ptr<WindowsImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+
+		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image);
+
+		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
+
+	protected:
+		const std::unique_ptr<DirectX::ScratchImage> mImage;
 	};
 }
 

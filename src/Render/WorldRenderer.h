@@ -1,17 +1,12 @@
 #pragma once
 
+#include "Common/GraphicsInfrastructure.h"
 #include "Common/TransformHierarchy.h"
 
 class RenderModule;
-class D3D12Geometry;
-class IRenderTargetView;
-class IShaderResourceView;
-class D3D12SamplerView;
-class GraphicsContext;
-class D3D12Texture;
-class D3D12RenderTarget;
-class D3DDepthStencil;
-class DSV;
+class Geometry;
+class FileTexture;
+class RenderTarget;
 struct RenderMaterial;
 struct DirectionalLight;
 
@@ -22,32 +17,32 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GraphicsContext* context, IRenderTargetView* target);
+	void Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
-	void RenderGBufferChannels(GraphicsContext* context, IRenderTargetView* target);
-	void RenderShadowMaskChannel(GraphicsContext* context, IRenderTargetView* target);
-	void RenderLightViewDepthChannel(GraphicsContext* context, IRenderTargetView* target);
+	void RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
+	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
+	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
 private:
-	void RenderSky(GraphicsContext* context, IRenderTargetView* target, DSV* depth) const;
-	void DeferredLighting(GraphicsContext* context, IRenderTargetView* target);
+	void RenderSky(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::DsvDesc& depth) const;
+	void DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDesc& target);
 
-	static void RenderGeometryWithMaterial(GraphicsContext* context, 
-		D3D12Geometry* geometry, RenderMaterial* material, 
-		const Transformf& transform, 
+	static void RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
+		Geometry* geometry, RenderMaterial* material,
+		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
-		const std::array<D3D12RenderTarget*, 3>& gbufferRts, DSV* depthView);
+		const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView);
 
-	static void RenderGeometryDepthWithMaterial(GraphicsContext* context,
-		D3D12Geometry* geometry, RenderMaterial* material,
+	static void RenderGeometryDepthWithMaterial(GI::IGraphicsInfra* infra,
+		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
-		DSV* depthView);
+		const GI::DsvDesc& depthView);
 
-	static void RenderShadowMask(GraphicsContext* context,
-		IRenderTargetView* shadowMask,
-		IShaderResourceView* lightViewDepth, D3D12SamplerView* lightViewDepthSampler,
-		IShaderResourceView* cameraViewDepth, D3D12SamplerView* cameraViewDepthSampler,
+	static void RenderShadowMask(GI::IGraphicsInfra* infra,
+		const GI::RtvDesc& shadowMask,
+		const GI::SrvDesc& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
+		const GI::SrvDesc& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler,
 		const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans,
 		const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans);
 
@@ -55,37 +50,50 @@ private:
 	RenderModule* mRenderModule = nullptr;
 	Vec2i const mRenderSize = {};
 
-	D3D12Geometry* mQuad = nullptr;
-	D3D12Geometry* mSphere = nullptr;
+	Geometry* mQuad = nullptr;
+	Geometry* mSphere = nullptr;
 
-	D3D12Texture* mSkyTexture = nullptr;
-	D3D12RenderTarget* mPanoramicSkyRt = nullptr;
-	D3D12SamplerView* mPanoramicSkySampler = nullptr;
+	FileTexture* mSkyTexture = nullptr;
+	RenderTarget* mPanoramicSkyRt = nullptr;
+	GI::SamplerDesc mPanoramicSkySampler;
 	f32	mSkyLightIntensity = 50.f;
 
-	D3D12SamplerView* mLightingSceneSampler = nullptr;
-	D3D12SamplerView* mNoMipMapLinearSampler = nullptr;
-	D3D12SamplerView* mNoMipMapLinearDepthCmpSampler = nullptr;
+	GI::SamplerDesc mLightingSceneSampler;
+	GI::SamplerDesc mNoMipMapLinearSampler;
+	GI::SamplerDesc mNoMipMapLinearDepthCmpSampler;
 
-	D3D12RenderTarget* mBRDFIntegrationMap = nullptr;
-	D3D12SamplerView* mBRDFIntegrationMapSampler = nullptr;
+	std::unique_ptr<GI::IGraphicMemoryResource> mBRDFIntegrationMap;
+	GI::SrvDesc mBRDFIntegrationMapSrv;
+	GI::SamplerDesc mBRDFIntegrationMapSampler;
 
-	D3D12RenderTarget* mIrradianceMap = nullptr;
-	D3D12RenderTarget* mFilteredEnvMap = nullptr;
-	D3D12SamplerView* mFilteredEnvMapSampler = nullptr;
+	std::unique_ptr<GI::IGraphicMemoryResource> mIrradianceMap;
+	GI::SrvDesc mIrradianceMapSrv;
+
+	std::unique_ptr<GI::IGraphicMemoryResource> mFilteredEnvMap;
+	GI::SrvDesc mFilteredEnvMapSrv;
+	GI::SamplerDesc mFilteredEnvMapSampler;
 
 	DirectionalLight* mSunLight = nullptr;
-	D3DDepthStencil* mLightViewDepthRt = nullptr;
 
-	D3DDepthStencil* mMainDepthRt = nullptr;
-	std::array<D3D12RenderTarget*, 3> mGBufferRts = {};
-	D3D12RenderTarget* mShadowMask = nullptr;
+	std::unique_ptr<GI::IGraphicMemoryResource> mLightViewDepth;
+	GI::DsvDesc mLightViewDepthDsv;
+	GI::SrvDesc mLightViewDepthSrv;
+
+	std::unique_ptr<GI::IGraphicMemoryResource> mMainDepth;
+	GI::DsvDesc mMainDepthDsv;
+	GI::SrvDesc mMainDepthSrv;
+
+	std::array<std::unique_ptr<GI::IGraphicMemoryResource>, 3> mGBuffers = {};
+	std::array<GI::SrvDesc, 3> mGBufferSrvs = {};
+	std::array<GI::RtvDesc, 3> mGBufferRtvs = {};
+
+	RenderTarget* mShadowMask = nullptr;
 
 public:
 	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf			mCameraTrans;
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>* mTestModel;
 };

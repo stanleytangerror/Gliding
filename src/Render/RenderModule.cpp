@@ -3,9 +3,8 @@
 #include "ScreenRenderer.h"
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
-#include "D3D12Backend/D3D12Device.h"
-#include "D3D12Backend/D3D12RenderTarget.h"
-#include "D3D12Backend/D3D12SwapChain.h"
+#include "RenderTarget.h"
+#include "D3D12Backend/D3D12GraphicsInfra.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -19,24 +18,24 @@ RenderModule::RenderModule()
 	mRenderDoc = new RenderDocIntegration;
 #endif
 
-	mDevice = new D3D12Device;
+	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
 }
 
-void RenderModule::AdaptWindow(PresentPortType type, const WindowInfo& windowInfo)
+void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
 {
-	mDevice->CreateSwapChain(type, HWND(windowInfo.mWindow), windowInfo.mSize);
+	mWindowInfo[type] = windowInfo;
+	mGraphicInfra->AdaptToWindow(u8(type), windowInfo);
 }
 
 void RenderModule::Initial()
 {
-	const Vec3i& mainPortBackBufferSize = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer()->GetSize();
-	const Vec2i& mainPortSize = { mainPortBackBufferSize.x(), mainPortBackBufferSize.y() };
+	const Vec2i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortSize);
+	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = new D3D12RenderTarget(mDevice, mainPortBackBufferSize, DXGI_FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = new RenderTarget(mGraphicInfra, { mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
 }
 
 void RenderModule::TickFrame(Timer* timer)
@@ -52,46 +51,40 @@ void RenderModule::Render()
 {
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
+		mRenderDoc->OnStartFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
 	}
 
-	mDevice->StartFrame();
-
-	GraphicsContext* context = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->AllocGraphicContext();
+	mGraphicInfra->StartFrame();
 	{
 		{
-			RENDER_EVENT(context, RenderWorldToHdr);
-			mWorldRenderer->Render(context, mSceneHdrRt->GetRtv());
+			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
+			mWorldRenderer->Render(mGraphicInfra, mSceneHdrRt->GetRtv());
 		}
 
 		{
-			RENDER_EVENT(context, RenderToMainPort);
+			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
-			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::MainPort).mSwapChain->GetBuffer();
-			mScreenRenderer->Render(context, mSceneHdrRt->GetSrv(), backBuffer->GetRtv());
-			mImGuiRenderer->Render(context, backBuffer->GetRtv(), mUiData);
-
-			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::MainPort));
+			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
+			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
 		}
 
 		{
-			RENDER_EVENT(context, DebugChannels);
+			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
-			SwapChainBufferResource* backBuffer = mDevice->GetPresentPort(PresentPortType::DebugPort).mSwapChain->GetBuffer();
-			mWorldRenderer->RenderGBufferChannels(context, backBuffer->GetRtv());
-			mWorldRenderer->RenderShadowMaskChannel(context, backBuffer->GetRtv());
-			mWorldRenderer->RenderLightViewDepthChannel(context, backBuffer->GetRtv());
-
-			backBuffer->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
+			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::DebugPort));
+			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
+			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
+			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
-	context->Finalize();
+	mGraphicInfra->EndFrame();
 
-	mDevice->Present();
+	mGraphicInfra->Present();
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mDevice, HWND(mDevice->GetPresentPort(PresentPortType::MainPort).mWindow));
+		mRenderDoc->OnEndFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
 	}
 }
 
@@ -100,7 +93,4 @@ void RenderModule::Destroy()
 	mScreenRenderer = nullptr;
 	mWorldRenderer = nullptr;
 	Utils::SafeDelete(mSceneHdrRt);
-
-	mDevice->Destroy();
-	Utils::SafeDelete(mDevice);
 }

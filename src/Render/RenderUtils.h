@@ -1,28 +1,25 @@
 #pragma once
 
 #include "Common/TransformHierarchy.h"
-#include "D3D12Backend/D3D12Geometry.h"
+#include "Common/GraphicsInfrastructure.h"
+#include "Geometry.h"
 #include "RenderMaterial.h"
 
-class GraphicsContext;
-class IRenderTargetView;
-class IShaderResourceView;
-class D3D12SamplerView;
 struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(GraphicsContext* context, 
-		IRenderTargetView* target, const Vec2f& targetOffset, const Vec2f& targetRect,
-		IShaderResourceView* source, D3D12SamplerView* sourceSampler, const char* sourcePixelUnary = nullptr);
+	void CopyTexture(GI::IGraphicsInfra* infra,
+		const GI::RtvDesc& target, const Vec2f& targetOffset, const Vec2f& targetRect,
+		const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
-	void CopyTexture(GraphicsContext* context,
-		IRenderTargetView* target, 
-		IShaderResourceView* source, D3D12SamplerView* sourceSampler);
+	void CopyTexture(GI::IGraphicsInfra* infra,
+		const GI::RtvDesc& target, 
+		const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler);
 
-	void GaussianBlur(GraphicsContext* context,
-		IRenderTargetView* target, 
-		IShaderResourceView* source, i32 kernelSizeInPixel);
+	void GaussianBlur(GI::IGraphicsInfra* infra,
+		const GI::RtvDesc& target, 
+		const GI::SrvDesc& source, i32 kernelSizeInPixel);
 
 	enum WorldStencilMask : u8
 	{
@@ -34,14 +31,14 @@ namespace RenderUtils
 	//////////////////////////////////////////////////////////////////////////
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(D3D12Device* device, SceneRawData* sceneRawData);
+	FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
-		std::unique_ptr<D3D12Geometry>,
+		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-		GenerateMaterialProbes(D3D12Device* device);
+		GenerateMaterialProbes(GI::IGraphicsInfra* infra);
 
-	D3D12Geometry* GenerateGeometryFromMeshRawData(D3D12Device* device, const MeshRawData* meshRawData);
+	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
 }
