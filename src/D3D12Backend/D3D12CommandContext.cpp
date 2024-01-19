@@ -92,7 +92,7 @@ namespace D3D12Backend
 		auto destRes = reinterpret_cast<CommitedResource*>(dst);
 		auto srcRes = reinterpret_cast<CommitedResource*>(src);
 
-		Assert(destRes->GetDimSize() == srcRes->GetDimSize());
+		Assert(destRes->GetSize() == srcRes->GetSize());
 		Assert(destRes->GetD3D12Resource()->GetDesc() == destRes->GetD3D12Resource()->GetDesc());
 
 		destRes->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -106,7 +106,7 @@ namespace D3D12Backend
 		auto destRes = reinterpret_cast<CommitedResource*>(dst);
 		auto srcRes = reinterpret_cast<CommitedResource*>(src);
 
-		Assert(destRes->GetDimSize() == srcRes->GetDimSize());
+		Assert(destRes->GetSize() == srcRes->GetSize());
 
 		destRes->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);
 		srcRes->Transition(this, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -127,7 +127,7 @@ namespace D3D12Backend
 			srcLocation.SubresourceIndex = 2;
 		}
 
-		const auto& size = srcRes->GetDimSize();
+		const auto& size = srcRes->GetSize();
 		D3D12_BOX box = { 0, 0, 0, size.x(), size.y(), size.z() };
 		mCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &box);
 	}

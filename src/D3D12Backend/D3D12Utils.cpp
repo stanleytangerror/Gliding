@@ -176,7 +176,7 @@ namespace
 			.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
 			.SetFlags(D3D12_RESOURCE_FLAG_NONE)
 			.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-			.BuildUpload(context->GetDevice()));
+			.Build(context->GetDevice(), GI::HeapType::UPLOAD));
 		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
 
 		UpdateSubresources(

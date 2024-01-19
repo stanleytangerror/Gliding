@@ -41,9 +41,6 @@ namespace D3D12Backend
 
 		public:
 			CommitedResource* Build(D3D12Device* device, GI::HeapType::Enum heapType);
-			CommitedResource* BuildUpload(D3D12Device* device) { return Build(device, GI::HeapType::UPLOAD); }
-			CommitedResource* BuildDefault(D3D12Device* device) { return Build(device, GI::HeapType::DEFAULT); }
-			CommitedResource* BuildReadback(D3D12Device* device) { return Build(device, GI::HeapType::READBACK); }
 		};
 
 		class GD_D3D12BACKEND_API Possessor
@@ -59,7 +56,7 @@ namespace D3D12Backend
 		~CommitedResource();
 		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
 		ID3D12Resource*				GetD3D12Resource() const { return mResource; }
-		Vec3i						GetDimSize() const override { return mSize; }
+		Vec3i						GetSize() const override { return mSize; }
 		GI::Format::Enum			GetFormat() const override { return D3D12Utils::ToGiFormat(mDesc.Format); }
 		u16							GetMipLevelCount() const override { return mDesc.MipLevels; }
 		D3D12_RESOURCE_STATES		GetState() const { return mState; }
@@ -75,6 +72,4 @@ namespace D3D12Backend
 		D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;
 		GI::HeapType::Enum			mHeapType = {};
 	};
-
-	GD_D3D12BACKEND_API CommitedResource* CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels = 1);
 }

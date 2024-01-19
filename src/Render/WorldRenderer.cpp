@@ -196,7 +196,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 		{
 			mSkyTexture->CreateAndInitialResource(infra);
 
-			const auto& srcSize = mSkyTexture->GetResource()->GetDimSize();
+			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
 			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
 			mPanoramicSkyRt = new RenderTarget(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
@@ -239,7 +239,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 	{
 		RENDER_EVENT(infra, LightViewDepth);
 
-		const Vec3i& rtSize = target.GetResource()->GetDimSize();
+		const Vec3i& rtSize = target.GetResource()->GetSize();
 
 		infra->GetRecorder()->AddClearOperation(mLightViewDepthDsv, true, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
 
@@ -297,7 +297,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 		{ 2, "float4(LinearToSrgb(color.zzz), 1)" },		// Reflection,
 	};
 	
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) / Utils::GetArrayLength(gbufferSemantics);
 	const f32 height = width / targetSize.x() * targetSize.y();
 
@@ -313,7 +313,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 
 void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 {
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
@@ -324,7 +324,7 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI:
 
 void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 {
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
 	RenderUtils::CopyTexture(infra,
@@ -336,7 +336,7 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDes
 {
 	RENDER_EVENT(infra, DeferredLighting);
 
-	const auto& dsSize = mMainDepth->GetDimSize();
+	const auto& dsSize = mMainDepth->GetSize();
 
 	auto tmpDepth = infra->CreateMemoryResource(
 			GI::MemoryResourceDesc()
@@ -383,7 +383,7 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDes
 
 	lightingPass.mInputLayout = mQuad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	lightingPass.mRtvs[0] = target;
 	lightingPass.mDsv = tmpDepthDsv;
 	lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
@@ -462,7 +462,7 @@ void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvDesc& targ
 
 	pass.mRtvs[0] = target;
 	pass.mDsv = depth;
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = 0;
@@ -526,7 +526,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 	}
 	gbufferPass.mDsv = depthView;
 
-	const auto& targetSize = gbufferRtvs[0].GetResource()->GetDimSize();
+	const auto& targetSize = gbufferRtvs[0].GetResource()->GetSize();
 	gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
@@ -606,7 +606,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 	pass.mDsv = depthView;
 
-	const Vec3i& targetSize = depthView.GetResource()->GetDimSize();
+	const Vec3i& targetSize = depthView.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
@@ -663,7 +663,7 @@ void WorldRenderer::RenderShadowMask(GI::IGraphicsInfra* infra,
 
 	pass.mRtvs[0] = shadowMask;
 
-	const Vec3i& targetSize = shadowMask.GetResource()->GetDimSize();
+	const Vec3i& targetSize = shadowMask.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 

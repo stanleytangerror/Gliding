@@ -171,7 +171,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GeneratePrefilteredEnvironmentMap
 (GI::IGraphicsInfra* infra, const GI::SrvDesc& src, i32 resolution)
 {
-	const auto& originSize = src.GetResource()->GetDimSize();
+	const auto& originSize = src.GetResource()->GetSize();
 	const auto& format = src.GetResource()->GetFormat();
 	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
 

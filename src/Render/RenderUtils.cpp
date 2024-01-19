@@ -54,7 +54,7 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 
 	pass.mInputLayout = quad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	pass.mRtvs[0] = target;
 	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
@@ -72,7 +72,7 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 
 void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler)
 {
-	const auto& targetSize = target.GetResource()->GetDimSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	CopyTexture(infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
@@ -80,7 +80,7 @@ void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const 
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
-	const auto& size = source.GetResource()->GetDimSize();
+	const auto& size = source.GetResource()->GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
 	GI::GraphicsPass pass;
@@ -142,7 +142,7 @@ void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& tar
 		quad->CreateAndInitialResource(infra);
 	}
 
-	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetDimSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
+	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
 
 	RENDER_EVENT(infra, GaussianBlur);
 	GaussianBlur1D(infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);

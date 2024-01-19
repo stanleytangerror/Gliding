@@ -101,6 +101,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 	}
 
 	std::unique_ptr<Geometry> geo;
+
 	geo.reset(Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
 		{
 			GI::InputElementDesc()
@@ -116,6 +117,8 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 				.SetFormat(GI::Format::FORMAT_R32_UINT)
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
 		}));
+
+	geo->CreateAndInitialResource(infra);
 
 	// Render command lists
 	vertexOffset = 0;
@@ -161,7 +164,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 
 			pass.mInputLayout = geo->mVertexElementDescs;
 
-			const Vec3i& targetSize = target.GetResource()->GetDimSize();
+			const Vec3i& targetSize = target.GetResource()->GetSize();
 			pass.mRtvs[0] = target;
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = scissorRect;

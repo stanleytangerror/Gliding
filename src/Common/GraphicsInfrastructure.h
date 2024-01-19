@@ -761,7 +761,7 @@ namespace GI
     public:
         virtual HeapType::Enum          GetHeapType() const = 0;
         virtual ResourceDimension::Enum GetDimension() const = 0;
-        virtual Vec3i                   GetDimSize() const = 0;
+        virtual Vec3i                   GetSize() const = 0;
         virtual Format::Enum            GetFormat() const = 0;
         virtual u16                     GetMipLevelCount() const = 0;
     };

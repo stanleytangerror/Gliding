@@ -77,19 +77,4 @@ namespace D3D12Backend
 			mState = destState;
 		}
 	}
-
-	CommitedResource* CreateCommitedResourceTex2D(D3D12Device* device, const Vec3i& size, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const char* name, u32 mipLevels)
-	{
-		return CommitedResource::Builder()
-			.SetDimention(D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-			.SetWidth(size.x())
-			.SetHeight(size.y())
-			.SetDepthOrArraySize(size.z())
-			.SetMipLevels(mipLevels)
-			.SetFormat(format)
-			.SetFlags(flags)
-			.SetName(name)
-			.SetInitState(initStates)
-			.BuildDefault(device);
-	}
 }

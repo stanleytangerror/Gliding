@@ -51,7 +51,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
 		pass.mShaderMacros.push_back(GI::ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
-		const Vec3i& size = sceneHdr.GetResource()->GetDimSize();
+		const Vec3i& size = sceneHdr.GetResource()->GetSize();
 		pass.AddSrv("SceneHdr", sceneHdr);
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
@@ -73,7 +73,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
 		pass.mShaderMacros.push_back(GI::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
-		const Vec3i& size = sceneHdr.GetResource()->GetDimSize();
+		const Vec3i& size = sceneHdr.GetResource()->GetSize();
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
 		pass.AddCbVar("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
@@ -106,7 +106,7 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& s
 
 	ldrScreenPass.mInputLayout = mQuad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetDimSize();
+	const Vec3i& targetSize = target.GetResource()->GetSize();
 	
 	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
