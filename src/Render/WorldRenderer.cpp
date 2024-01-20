@@ -495,7 +495,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 	const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView)
 {
-	RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
+	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
 	
 	GI::GraphicsPass gbufferPass;
 
@@ -589,7 +589,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 	const GI::DsvDesc& depthView)
 {
-	RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
+	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
 
 	GI::GraphicsPass pass;
 

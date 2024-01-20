@@ -35,8 +35,11 @@ namespace D3D12Backend
 		return D3D12Utils::CreateResourceFromImage(mCurrentRecorder->GetContext(), dxScratchImage);
 	}
 
-	void D3D12GraphicsInfra::CopyToUploadMemoryResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)
+	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)
 	{
+		Assert(resource->GetDimension() == GI::ResourceDimension::BUFFER);
+		Assert(resource->GetSize().x() >= data.size());
+
 		auto dx12Res = reinterpret_cast<D3D12Backend::CommitedResource*>(resource);
 		u8* pVertexDataBegin = nullptr;
 		CD3DX12_RANGE readRange(0, 0);

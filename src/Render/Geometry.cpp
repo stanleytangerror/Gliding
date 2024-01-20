@@ -17,7 +17,7 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 		.SetHeapType(GI::HeapType::UPLOAD));
 
-	infra->CopyToUploadMemoryResource(mVb.get(), mVertices);
+	infra->CopyToUploadBufferResource(mVb.get(), mVertices);
 
 	mIb = infra->CreateMemoryResource(
 		GI::MemoryResourceDesc()
@@ -35,7 +35,7 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 
 	std::vector<b8> buf(mIndices.size() * sizeof(u16));
 	std::memcpy(buf.data(), mIndices.data(), buf.size());
-	infra->CopyToUploadMemoryResource(mIb.get(), buf);
+	infra->CopyToUploadBufferResource(mIb.get(), buf);
 }
 
 GI::VbvDesc	Geometry::GetVbvDesc() const
