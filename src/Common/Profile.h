@@ -25,6 +25,3 @@ namespace Profile
 #define PROFILE_EVENT(name)	\
 	static const u64 _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_##_Token = Profile::ScopedCpuEvent::GetToken(#name); \
 	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(_Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_##_Token);
-
-//#include "zeux-microprofile/microprofile.h"
-//#define PROFILE_EVENT(name)				MICROPROFILE_SCOPEI("group",#name, MP_YELLOW);

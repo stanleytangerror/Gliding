@@ -761,7 +761,10 @@ namespace GI
     class GD_COMMON_API IGraphicMemoryResource
     {
     public:
+        /* https://stackoverflow.com/a/3628611/2131563
+         * You can add the pure specifier to an interface's destructor, but the linker will still want an implementation for it like so: virtual ~IAnimal() = 0 {}. */
         virtual                         ~IGraphicMemoryResource() = 0 {}
+
         virtual HeapType::Enum          GetHeapType() const = 0;
         virtual ResourceDimension::Enum GetDimension() const = 0;
         virtual Vec3i                   GetSize() const = 0;
