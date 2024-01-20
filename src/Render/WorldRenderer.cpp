@@ -180,7 +180,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 {
 	{
-		RENDER_EVENT(infra, UpdateResources);
+		RENDER_EVENT(infra, InitialResources);
 
 		if (!mQuad->IsGraphicsResourceReady())
 		{
@@ -225,11 +225,17 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 			{
 				if (auto& geo = node.mContent.first)
 				{
-					geo->CreateAndInitialResource(mRenderModule->GetGraphicsInfra());
+					if (!geo->IsGraphicsResourceReady())
+					{
+						geo->CreateAndInitialResource(mRenderModule->GetGraphicsInfra());
+					}
 				}
 				if (auto& mat = node.mContent.second)
 				{
-					mat->UpdateGpuResources(mRenderModule->GetGraphicsInfra());
+					if (!mat->IsGpuResourceReady())
+					{
+						mat->UpdateGpuResources(mRenderModule->GetGraphicsInfra());
+					}
 				}
 			});
 	}
@@ -489,8 +495,8 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
 	const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView)
 {
-	PROFILE_EVENT(WorldRenderer::RenderGeometryWithMaterial);
-
+	RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
+	
 	GI::GraphicsPass gbufferPass;
 
 	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -583,7 +589,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
 	const GI::DsvDesc& depthView)
 {
-	PROFILE_EVENT(WorldRenderer::RenderGeometryDepthWithMaterial);
+	RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
 
 	GI::GraphicsPass pass;
 
