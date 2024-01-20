@@ -24,8 +24,10 @@
                 CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
 
 #define RENDER_EVENT(infra, format)\
-	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format);
-	//Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
+	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format); \
+	PROFILE_EVENT(format)
+
+//Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
 
 namespace GI 
 {
@@ -766,11 +768,6 @@ namespace GI
         virtual u16                     GetMipLevelCount() const = 0;
     };
 
-    class GD_COMMON_API ResouceViewUtils
-    {
-        //static GI::RtvDesc CreateFullRtv(const IGraphicMemoryResource* resource, GI::Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice);
-    };
-
     class GD_COMMON_API MemoryResourceDesc
     {
         CONTINOUS_SETTER(MemoryResourceDesc, HeapType::Enum, HeapType);
@@ -831,7 +828,7 @@ namespace GI
         virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
 
 		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
-		virtual RtvDesc                     GetWindowBackBufferRtv(u8 windowId) = 0;
+		virtual IGraphicMemoryResource*     GetWindowBackBuffer(u8 windowId) = 0;
 
 		virtual void                        StartFrame() = 0;
 		virtual void                        EndFrame() = 0;

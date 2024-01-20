@@ -64,7 +64,13 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
-			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::MainPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
+			const auto& target = GI::RtvDesc()
+				.SetResource(backBuffer)
+				.SetFormat(backBuffer->GetFormat())
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+				.SetTexture2D_MipSlice(0)
+				.SetTexture2D_PlaneSlice(0);
 			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
 		}
@@ -72,7 +78,13 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
-			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::DebugPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
+			const auto& target = GI::RtvDesc()
+				.SetResource(backBuffer)
+				.SetFormat(backBuffer->GetFormat())
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+				.SetTexture2D_MipSlice(0)
+				.SetTexture2D_PlaneSlice(0);
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
 			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);

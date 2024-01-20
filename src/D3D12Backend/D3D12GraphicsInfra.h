@@ -19,7 +19,7 @@ namespace D3D12Backend
 		std::unique_ptr<GI::IImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const override;
 
 		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;
-		GI::RtvDesc					GetWindowBackBufferRtv(u8 windowId) override;
+		GI::IGraphicMemoryResource* GetWindowBackBuffer(u8 windowId) override;
 
 		void                        StartFrame() override;
 		void                        EndFrame() override;

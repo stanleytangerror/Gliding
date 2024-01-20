@@ -125,29 +125,7 @@ namespace D3D12Backend
 	{
 		Assert(mPresentPorts.find(type) == mPresentPorts.end());
 
-		// Describe and create the swap chain.
-		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-		swapChainDesc.BufferCount = mSwapChainBufferCount;
-		swapChainDesc.Width = initWindowSize.x();
-		swapChainDesc.Height = initWindowSize.y();
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.SampleDesc.Count = 1;
-
-		IDXGISwapChain1* swapChain1 = nullptr;
-		AssertHResultOk(mFactory->CreateSwapChainForHwnd(
-			mGpuQueues[D3D12GpuQueueType::Graphic]->GetCommandQueue(),
-			windowHandle,
-			&swapChainDesc,
-			nullptr,
-			nullptr,
-			&swapChain1
-		));
-
-		SwapChainBuffers* swapChain = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
-
-		mPresentPorts[type] = swapChain;
+		mPresentPorts[type] = new SwapChain(this, windowHandle, initWindowSize, mSwapChainBufferCount);
 	}
 
 	void D3D12Device::StartFrame()
@@ -208,7 +186,12 @@ namespace D3D12Backend
 	}
 
 
-	D3D12Backend::SwapChainBuffers* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
+	IDXGIFactory4* D3D12Device::GetFactory() const
+	{
+		return mFactory;
+	}
+
+	D3D12Backend::SwapChain* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
 	{
 		auto it = mPresentPorts.find(type);
 		return it != mPresentPorts.end() ? it->second : nullptr;

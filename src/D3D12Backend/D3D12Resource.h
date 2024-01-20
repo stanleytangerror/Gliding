@@ -7,10 +7,6 @@ namespace D3D12Backend
 {
 	class D3D12Device;
 	class D3D12CommandContext;
-	class ShaderResourceView;
-	class RenderTargetView;
-	class UnorderedAccessView;
-	class DepthStencilView;
 
 	class GD_D3D12BACKEND_API IResource
 	{

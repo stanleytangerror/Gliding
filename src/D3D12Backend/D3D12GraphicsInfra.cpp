@@ -60,9 +60,9 @@ namespace D3D12Backend
 		mDevice->CreateSwapChain(PresentPortType(windowId), HWND(windowInfo.mNativeHandle), windowInfo.mSize);
 	}
 
-	GI::RtvDesc D3D12GraphicsInfra::GetWindowBackBufferRtv(u8 windowId)
+	GI::IGraphicMemoryResource* D3D12GraphicsInfra::GetWindowBackBuffer(u8 windowId)
 	{
-		return mDevice->GetSwapChainBuffers(PresentPortType(windowId))->GetBuffer()->GetRtv();
+		return mDevice->GetSwapChainBuffers(PresentPortType(windowId))->GetBuffer();
 	}
 
 	void D3D12GraphicsInfra::StartFrame()
@@ -73,8 +73,8 @@ namespace D3D12Backend
 
 	void D3D12GraphicsInfra::EndFrame()
 	{
-		mCurrentRecorder->AddPreparePresent(GetWindowBackBufferRtv(u8(PresentPortType::MainPort)).GetResource());
-		mCurrentRecorder->AddPreparePresent(GetWindowBackBufferRtv(u8(PresentPortType::DebugPort)).GetResource());
+		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::MainPort)));
+		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::DebugPort)));
 
 		EndRecording();
 	}

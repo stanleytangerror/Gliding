@@ -11,8 +11,10 @@ namespace Profile
 	class GD_COMMON_API ScopedCpuEvent
 	{
 	public:
-		ScopedCpuEvent(const char* name);
+		ScopedCpuEvent(u64 token);
 		~ScopedCpuEvent();
+
+		static u64 GetToken(const char* name);
 
 	private:
 		u64 mToken = 0;
@@ -20,4 +22,9 @@ namespace Profile
 	};
 }
 
-#define PROFILE_EVENT(name)				Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#name);
+#define PROFILE_EVENT(name)	\
+	static const u64 _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_##_Token = Profile::ScopedCpuEvent::GetToken(#name); \
+	Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(_Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_##_Token);
+
+//#include "zeux-microprofile/microprofile.h"
+//#define PROFILE_EVENT(name)				MICROPROFILE_SCOPEI("group",#name, MP_YELLOW);

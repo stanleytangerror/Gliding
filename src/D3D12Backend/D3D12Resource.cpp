@@ -1,6 +1,5 @@
 #include "D3D12BackendPch.h"
 #include "D3D12Resource.h"
-#include "D3D12ResourceView.h"
 
 namespace D3D12Backend
 {
