@@ -49,7 +49,7 @@ namespace D3D12Backend
 			CommitedResource* Possess(D3D12Device* device);
 		};
 
-		~CommitedResource();
+									~CommitedResource() override;
 		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
 		ID3D12Resource*				GetD3D12Resource() const { return mResource; }
 		Vec3i						GetSize() const override { return mSize; }

@@ -761,6 +761,7 @@ namespace GI
     class GD_COMMON_API IGraphicMemoryResource
     {
     public:
+        virtual                         ~IGraphicMemoryResource() = 0 {}
         virtual HeapType::Enum          GetHeapType() const = 0;
         virtual ResourceDimension::Enum GetDimension() const = 0;
         virtual Vec3i                   GetSize() const = 0;
