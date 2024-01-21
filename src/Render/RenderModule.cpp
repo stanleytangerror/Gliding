@@ -27,6 +27,13 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 	mGraphicInfra->AdaptToWindow(u8(type), windowInfo);
 }
 
+
+void RenderModule::OnResizeWindow(u8 windowId, const Vec2i& size)
+{
+	mGraphicInfra->ResizeWindow(windowId, size);
+	mSyncMode = true;
+}
+
 void RenderModule::Initial()
 {
 	const Vec2i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
@@ -90,7 +97,9 @@ void RenderModule::Render()
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
-	mGraphicInfra->EndFrame();
+	mGraphicInfra->EndFrame(mSyncMode);
+	
+	mSyncMode = false;
 
 	mGraphicInfra->Present();
 

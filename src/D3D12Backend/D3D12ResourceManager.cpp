@@ -2,6 +2,7 @@
 #include "D3D12ResourceManager.h"
 #include "D3D12Device.h"
 #include "D3D12Resource.h"
+#include "D3D12SwapChain.h"
 
 namespace D3D12Backend
 {
@@ -181,4 +182,20 @@ namespace D3D12Backend
 			}
 		}
 	}
+
+	D3D12Backend::SwapChain* ResourceManager::CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2i& size, const int32_t frameCount)
+	{
+		Assert(mSwapChains.find(windowId) == mSwapChains.end());
+
+		const auto& swapChain = new SwapChain(mDevice, windowHandle, size, frameCount);
+		mSwapChains[windowId] = swapChain;
+		return swapChain;
+	}
+
+	D3D12Backend::SwapChain* ResourceManager::GetSwapChain(u32 windowId) const
+	{
+		auto it = mSwapChains.find(windowId);
+		return it->second;
+	}
+
 }

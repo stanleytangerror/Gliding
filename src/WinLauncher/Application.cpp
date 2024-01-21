@@ -106,6 +106,15 @@ void Application::LogicThread()
 
 		for (const WinMessage& msg : ReadMessages())
 		{
+			if (msg.message == WM_SIZE)
+			{
+				UINT width = LOWORD(msg.lParam);
+				UINT height = HIWORD(msg.lParam);
+				u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
+				mRenderModule->OnResizeWindow(windowId, Vec2i{ width, height });
+				DEBUG_PRINT("WM_SIZE %d, size %d %d", msg.wParam, width, height);
+			}
+
 			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
 		}
 

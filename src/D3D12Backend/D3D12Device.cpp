@@ -121,13 +121,6 @@ namespace D3D12Backend
 			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
 	}
 
-	void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)
-	{
-		Assert(mPresentPorts.find(type) == mPresentPorts.end());
-
-		mPresentPorts[type] = new SwapChain(this, windowHandle, initWindowSize, mSwapChainBufferCount);
-	}
-
 	void D3D12Device::StartFrame()
 	{
 		for (D3D12GpuQueue* q : mGpuQueues)
@@ -145,9 +138,9 @@ namespace D3D12Backend
 			q->Execute();
 		}
 
-		for (auto& [_, presentPort] : mPresentPorts)
+		for (auto [_, swapChain] : mResMgr->GetSwapChains())
 		{
-			presentPort->Present();
+			swapChain->Present();
 		}
 
 		for (D3D12GpuQueue* q : mGpuQueues)
@@ -156,6 +149,28 @@ namespace D3D12Backend
 		}
 
 		mResMgr->Update();
+
+		bool postSyncQueueNotEmpty = std::any_of(mPostSyncQueues.begin(), mPostSyncQueues.end(), [](const auto& q) { return !q.empty(); });
+		if (postSyncQueueNotEmpty)
+		{
+			while (!mPostSyncQueues[PreRelease].empty())
+			{
+				mPostSyncQueues[PreRelease].front()();
+				mPostSyncQueues[PreRelease].pop();
+			}
+
+			for (D3D12GpuQueue* q : mGpuQueues)
+			{
+				q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
+			}
+			mResMgr->Update();
+
+			while (!mPostSyncQueues[PostRelease].empty())
+			{
+				mPostSyncQueues[PostRelease].front()();
+				mPostSyncQueues[PostRelease].pop();
+			}
+		}
 	}
 
 	void D3D12Device::Destroy()
@@ -165,11 +180,6 @@ namespace D3D12Backend
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
 			Utils::SafeDelete(q);
 		}
-
-		//for (auto& [_, presentPort] : mPresentPorts)
-		//{
-		//	Utils::SafeDelete(presentPort);
-		//}
 
 		mResMgr->Update();
 		mResMgr = nullptr;
@@ -191,15 +201,15 @@ namespace D3D12Backend
 		return mFactory;
 	}
 
-	D3D12Backend::SwapChain* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
-	{
-		auto it = mPresentPorts.find(type);
-		return it != mPresentPorts.end() ? it->second : nullptr;
-	}
-
 	void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
 	{
 		mResMgr->ReleaseResource(res);
 		res = nullptr;
 	}
+
+	void D3D12Device::PushPostSyncOperation(D3D12Device::PostSyncStage stage, const PostSyncOperation& operation)
+	{
+		mPostSyncQueues[stage].push(operation);
+	}
+
 }

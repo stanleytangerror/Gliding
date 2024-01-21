@@ -60,12 +60,33 @@ namespace D3D12Backend
 
 	void D3D12GraphicsInfra::AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo)
 	{
-		mDevice->CreateSwapChain(PresentPortType(windowId), HWND(windowInfo.mNativeHandle), windowInfo.mSize);
+		mDevice->GetResourceManager()->CreateSwapChain(windowId, HWND(windowInfo.mNativeHandle), windowInfo.mSize, windowInfo.mFrameCount);
+	}
+
+
+	void D3D12GraphicsInfra::ResizeWindow(u8 windowId, const Vec2i& windowSize)
+	{
+		auto swapChain = mDevice->GetResourceManager()->GetSwapChain(windowId);
+
+		if (swapChain->GetSize() != windowSize)
+		{
+			mDevice->PushPostSyncOperation(D3D12Device::PreRelease, 
+				[swapChain, windowSize]()
+				{
+					swapChain->ClearBuffers();
+				});
+
+			mDevice->PushPostSyncOperation(D3D12Device::PostRelease, 
+				[swapChain, windowSize]()
+				{
+					swapChain->Resize(windowSize);
+				});
+		}
 	}
 
 	GI::IGraphicMemoryResource* D3D12GraphicsInfra::GetWindowBackBuffer(u8 windowId)
 	{
-		return mDevice->GetSwapChainBuffers(PresentPortType(windowId))->GetBuffer();
+		return mDevice->GetResourceManager()->GetSwapChain(windowId)->GetBuffer();
 	}
 
 	void D3D12GraphicsInfra::StartFrame()
@@ -74,12 +95,12 @@ namespace D3D12Backend
 		StartRecording();
 	}
 
-	void D3D12GraphicsInfra::EndFrame()
+	void D3D12GraphicsInfra::EndFrame(bool skipThisFrame)
 	{
 		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::MainPort)));
 		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::DebugPort)));
 
-		EndRecording();
+		EndRecording(skipThisFrame);
 	}
 
 	void D3D12GraphicsInfra::Present()
@@ -93,9 +114,9 @@ namespace D3D12Backend
 		mCurrentRecorder = new D3D12GraphicsRecorder(context);
 	}
 
-	void D3D12GraphicsInfra::EndRecording()
+	void D3D12GraphicsInfra::EndRecording(bool dropAllCommands)
 	{
-		mCurrentRecorder->Finalize();
+		mCurrentRecorder->Finalize(dropAllCommands);
 		Utils::SafeDelete(mCurrentRecorder);
 	}
 
@@ -173,437 +194,468 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value)
 	{
-		auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
-		res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		mCommands.push([this, rtv, value]()
+			{
+				auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
+				res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv);
-		float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
-		mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
+				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv);
+				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
+				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
+			});
 	}
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil)
 	{
-		auto res = reinterpret_cast<CommitedResource*>(dsv.GetResource());
-		res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		mCommands.push([this, dsv, clearDepth, depth, clearStencil, stencil]()
+			{
+				auto res = reinterpret_cast<CommitedResource*>(dsv.GetResource());
+				res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv);
-		auto flag =
-			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
-			(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
-		mContext->GetCommandList()->ClearDepthStencilView(descriptor.Get(), D3D12_CLEAR_FLAGS(flag), depth, stencil, 0, nullptr);
+				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv);
+				auto flag =
+					(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
+					(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
+				mContext->GetCommandList()->ClearDepthStencilView(descriptor.Get(), D3D12_CLEAR_FLAGS(flag), depth, stencil, 0, nullptr);
+			});
 	}
 
 
 	void D3D12GraphicsRecorder::AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src)
 	{
-		mContext->CopyResource(
-			reinterpret_cast<CommitedResource*>(dest),
-			reinterpret_cast<CommitedResource*>(src));
+		mCommands.push([this, dest, src]()
+			{
+				mContext->CopyResource(
+					reinterpret_cast<CommitedResource*>(dest),
+					reinterpret_cast<CommitedResource*>(src));
+			});
 	}
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
-		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
-		for (const auto& vbv : pass.mVbvs)
-		{
-			if (!vbv.GetResource()) { return; }
-		}
-
-		std::map<std::string, DescriptorPtr> srvs;
-		for (const auto& [name, srv] : pass.mSrvParams)
-		{
-			if (!srv.GetResource()) { return; }
-			srvs[name] = resourceManager->CreateSrvDescriptor(srv);
-		}
-
-		std::vector<DescriptorPtr> rtvs;
-		std::vector<DXGI_FORMAT> rtvFormats;
-		auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResource(); });
-		if (numRtvs == 0 && !pass.mDsv.GetResource()) { return; }
-		for (auto i = 0; i < numRtvs; ++i)
-		{
-			rtvs.push_back(resourceManager->CreateRtvDescriptor(pass.mRtvs[i]));
-			rtvFormats.push_back(D3D12Utils::ToDxgiFormat(pass.mRtvs[i].GetFormat()));
-		}
-
-		std::map<std::string, DescriptorPtr> samplers;
-		for (const auto& [name, sampler] : pass.mSamplerParams)
-		{
-			samplers[name] = resourceManager->CreateSampler(sampler);
-		}
-		
-
-		// transitions
-		for (const auto& [_, srv] : pass.mSrvParams)
-		{
-			auto res = reinterpret_cast<CommitedResource*>(srv.GetResource());
-			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		}
-
-		for (const auto& rtv : pass.mRtvs)
-		{
-			if (rtv.GetResource())
+		mCommands.push([this, pass]()
 			{
-				auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
-				res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			}
-		}
+				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
-		if (pass.mDsv.GetResource())
-		{
-			auto res = reinterpret_cast<CommitedResource*>(pass.mDsv.GetResource());
-			res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		}
-
-		// root signatures
-		D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-		auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
-
-		auto pso = std::make_unique< GraphicsPipelineState>();
-		pso->SetRootSignature(rootSignature);
-
-		// shader
-		ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(pass.mVsFile.c_str(), pass.mShaderMacros);
-		ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(pass.mPsFile.c_str(), pass.mShaderMacros);
-
-		pso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
-		pso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
-
-		const auto& inputLayout = vs->GetInputLayout();
-		D3D12_BLEND_DESC blendDesc;
-		{
-			blendDesc.AlphaToCoverageEnable = pass.mBlendDesc.GetAlphaToCoverageEnable();
-			blendDesc.IndependentBlendEnable = pass.mBlendDesc.GetIndependentBlendEnable();
-			for (auto i = 0; i < sizeof(blendDesc.RenderTarget) / sizeof(blendDesc.RenderTarget[0]); ++i)
-			{
-				blendDesc.RenderTarget[i].BlendEnable			 = pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable		  ();
-				blendDesc.RenderTarget[i].LogicOpEnable			 = pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable		  ();
-				blendDesc.RenderTarget[i].SrcBlend				 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend			  ());
-				blendDesc.RenderTarget[i].DestBlend				 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlend			  ());
-				blendDesc.RenderTarget[i].BlendOp				 = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOp			  ());
-				blendDesc.RenderTarget[i].SrcBlendAlpha			 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha		  ());
-				blendDesc.RenderTarget[i].DestBlendAlpha		 = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha		  ());
-				blendDesc.RenderTarget[i].BlendOpAlpha			 = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha		  ());
-				blendDesc.RenderTarget[i].LogicOp				 = D3D12_LOGIC_OP(pass.mBlendDesc.RtBlendDesc[i].GetLogicOp			  ());
-				blendDesc.RenderTarget[i].RenderTargetWriteMask	 = pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
-			}
-		}
-		pso->SetBlendState(blendDesc);
-		D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
-		{
-			depthStencilDesc.DepthEnable						= pass.mDepthStencilDesc.GetDepthEnable();
-			depthStencilDesc.DepthWriteMask						= pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-			depthStencilDesc.DepthFunc							= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.GetDepthFunc());
-			depthStencilDesc.StencilEnable						= pass.mDepthStencilDesc.GetStencilEnable();
-			depthStencilDesc.StencilReadMask					= pass.mDepthStencilDesc.GetStencilReadMask();
-			depthStencilDesc.StencilWriteMask					= pass.mDepthStencilDesc.GetStencilWriteMask();
-			depthStencilDesc.FrontFace.StencilFailOp			= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
-			depthStencilDesc.FrontFace.StencilDepthFailOp		= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
-			depthStencilDesc.FrontFace.StencilPassOp			= D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
-			depthStencilDesc.FrontFace.StencilFunc				= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
-			depthStencilDesc.BackFace.StencilFailOp				= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
-			depthStencilDesc.BackFace.StencilDepthFailOp		= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
-			depthStencilDesc.BackFace.StencilPassOp				= D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
-			depthStencilDesc.BackFace.StencilFunc				= D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.BackFace.GetStencilFunc());
-		}
-		pso->SetDepthStencilState(depthStencilDesc);
-		D3D12_RASTERIZER_DESC rastDesc;
-		{
-			rastDesc.FillMode 								= pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
-			rastDesc.CullMode 								= D3D12_CULL_MODE(pass.mRasterizerDesc.GetCullMode());
-			rastDesc.FrontCounterClockwise 					= pass.mRasterizerDesc.GetFrontCounterClockwise();
-			rastDesc.DepthBias 								= pass.mRasterizerDesc.GetDepthBias			   ();
-			rastDesc.DepthBiasClamp 						= pass.mRasterizerDesc.GetDepthBiasClamp	   ();
-			rastDesc.SlopeScaledDepthBias 					= pass.mRasterizerDesc.GetSlopeScaledDepthBias ();
-			rastDesc.DepthClipEnable 						= pass.mRasterizerDesc.GetDepthClipEnable	   ();
-			rastDesc.MultisampleEnable 						= pass.mRasterizerDesc.GetMultisampleEnable	   ();
-			rastDesc.AntialiasedLineEnable 					= pass.mRasterizerDesc.GetAntialiasedLineEnable();
-			rastDesc.ForcedSampleCount 						= pass.mRasterizerDesc.GetForcedSampleCount	   ();
-			rastDesc.ConservativeRaster 					= pass.mRasterizerDesc.GetConservativeRaster   () ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		}
-		pso->SetRasterizerState(rastDesc);
-
-		pso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
-
-		// rts
-		auto& desc = pso->Descriptor();
-		desc.NumRenderTargets = numRtvs;
-		for (auto i = 0; i < sizeof(desc.RTVFormats) / sizeof(desc.RTVFormats[0]); ++i)
-		{
-			desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
-		}
-
-		if (pass.mDsv.GetResource())
-		{
-			desc.DSVFormat = D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat());
-		}
-
-		pso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
-
-		// resource bindings
-		ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
-
-		commandList->SetGraphicsRootSignature(rootSignature);
-		commandList->SetPipelineState(pso->Get());
-
-		std::set<ID3D12DescriptorHeap*> heaps;
-		std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
-
-		// srvs
-		{
-			RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-			std::map<std::string, InputSrvParam> srvBindings;
-			{
-				for (const auto& p : vs->GetSrvBindings())
+				for (const auto& vbv : pass.mVbvs)
 				{
-					if (srvBindings.find(p.first) == srvBindings.end())
+					if (!vbv.GetResource()) { return; }
+				}
+
+				std::map<std::string, DescriptorPtr> srvs;
+				for (const auto& [name, srv] : pass.mSrvParams)
+				{
+					if (!srv.GetResource()) { return; }
+					srvs[name] = resourceManager->CreateSrvDescriptor(srv);
+				}
+
+				std::vector<DescriptorPtr> rtvs;
+				std::vector<DXGI_FORMAT> rtvFormats;
+				auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResource(); });
+				if (numRtvs == 0 && !pass.mDsv.GetResource()) { return; }
+				for (auto i = 0; i < numRtvs; ++i)
+				{
+					rtvs.push_back(resourceManager->CreateRtvDescriptor(pass.mRtvs[i]));
+					rtvFormats.push_back(D3D12Utils::ToDxgiFormat(pass.mRtvs[i].GetFormat()));
+				}
+
+				std::map<std::string, DescriptorPtr> samplers;
+				for (const auto& [name, sampler] : pass.mSamplerParams)
+				{
+					samplers[name] = resourceManager->CreateSampler(sampler);
+				}
+
+
+				// transitions
+				for (const auto& [_, srv] : pass.mSrvParams)
+				{
+					auto res = reinterpret_cast<CommitedResource*>(srv.GetResource());
+					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				}
+
+				for (const auto& rtv : pass.mRtvs)
+				{
+					if (rtv.GetResource())
 					{
-						srvBindings[p.first] = p.second;
+						auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
+						res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 					}
 				}
-				for (const auto& p : ps->GetSrvBindings())
+
+				if (pass.mDsv.GetResource())
 				{
-					if (srvBindings.find(p.first) == srvBindings.end())
+					auto res = reinterpret_cast<CommitedResource*>(pass.mDsv.GetResource());
+					res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+				}
+
+				// root signatures
+				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+				auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
+
+				auto pso = std::make_unique< GraphicsPipelineState>();
+				pso->SetRootSignature(rootSignature);
+
+				// shader
+				ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(pass.mVsFile.c_str(), pass.mShaderMacros);
+				ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(pass.mPsFile.c_str(), pass.mShaderMacros);
+
+				pso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
+				pso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
+
+				const auto& inputLayout = vs->GetInputLayout();
+				D3D12_BLEND_DESC blendDesc;
+				{
+					blendDesc.AlphaToCoverageEnable = pass.mBlendDesc.GetAlphaToCoverageEnable();
+					blendDesc.IndependentBlendEnable = pass.mBlendDesc.GetIndependentBlendEnable();
+					for (auto i = 0; i < sizeof(blendDesc.RenderTarget) / sizeof(blendDesc.RenderTarget[0]); ++i)
 					{
-						srvBindings[p.first] = p.second;
+						blendDesc.RenderTarget[i].BlendEnable = pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable();
+						blendDesc.RenderTarget[i].LogicOpEnable = pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable();
+						blendDesc.RenderTarget[i].SrcBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend());
+						blendDesc.RenderTarget[i].DestBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlend());
+						blendDesc.RenderTarget[i].BlendOp = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOp());
+						blendDesc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha());
+						blendDesc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha());
+						blendDesc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha());
+						blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP(pass.mBlendDesc.RtBlendDesc[i].GetLogicOp());
+						blendDesc.RenderTarget[i].RenderTargetWriteMask = pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
 					}
 				}
-			}
-
-			int maxSrvIndex = 0;
-			for (const auto& p : srvBindings)
-			{
-				const InputSrvParam& srvParam = p.second;
-				maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
-			}
-
-			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
-			for (const auto& p : srvBindings)
-			{
-				const std::string& srvName = p.first;
-				const InputSrvParam& srvParam = p.second;
-
-				auto it = srvs.find(srvName);
-				if (it != srvs.end())
+				pso->SetBlendState(blendDesc);
+				D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
 				{
-					srvHandles[srvParam.mBindPoint] = it->second.Get();
+					depthStencilDesc.DepthEnable = pass.mDepthStencilDesc.GetDepthEnable();
+					depthStencilDesc.DepthWriteMask = pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+					depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.GetDepthFunc());
+					depthStencilDesc.StencilEnable = pass.mDepthStencilDesc.GetStencilEnable();
+					depthStencilDesc.StencilReadMask = pass.mDepthStencilDesc.GetStencilReadMask();
+					depthStencilDesc.StencilWriteMask = pass.mDepthStencilDesc.GetStencilWriteMask();
+					depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
+					depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
+					depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
+					depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
+					depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
+					depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
+					depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
+					depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.BackFace.GetStencilFunc());
 				}
-			}
-			const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
+				pso->SetDepthStencilState(depthStencilDesc);
+				D3D12_RASTERIZER_DESC rastDesc;
+				{
+					rastDesc.FillMode = pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
+					rastDesc.CullMode = D3D12_CULL_MODE(pass.mRasterizerDesc.GetCullMode());
+					rastDesc.FrontCounterClockwise = pass.mRasterizerDesc.GetFrontCounterClockwise();
+					rastDesc.DepthBias = pass.mRasterizerDesc.GetDepthBias();
+					rastDesc.DepthBiasClamp = pass.mRasterizerDesc.GetDepthBiasClamp();
+					rastDesc.SlopeScaledDepthBias = pass.mRasterizerDesc.GetSlopeScaledDepthBias();
+					rastDesc.DepthClipEnable = pass.mRasterizerDesc.GetDepthClipEnable();
+					rastDesc.MultisampleEnable = pass.mRasterizerDesc.GetMultisampleEnable();
+					rastDesc.AntialiasedLineEnable = pass.mRasterizerDesc.GetAntialiasedLineEnable();
+					rastDesc.ForcedSampleCount = pass.mRasterizerDesc.GetForcedSampleCount();
+					rastDesc.ConservativeRaster = pass.mRasterizerDesc.GetConservativeRaster() ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+				}
+				pso->SetRasterizerState(rastDesc);
 
-			heaps.insert(srvHeap->GetCurrentDescriptorHeap());
-			gpuBaseAddrs[0] = gpuDescBaseAddr;
-		}
+				pso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
 
-		{
-			RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+				// rts
+				auto& desc = pso->Descriptor();
+				desc.NumRenderTargets = numRtvs;
+				for (auto i = 0; i < sizeof(desc.RTVFormats) / sizeof(desc.RTVFormats[0]); ++i)
+				{
+					desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
+				}
 
-			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
+				if (pass.mDsv.GetResource())
+				{
+					desc.DSVFormat = D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat());
+				}
 
-			const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+				pso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
-			heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
-			gpuBaseAddrs[2] = gpuDescBase;
-		}
+				// resource bindings
+				ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
 
-		std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
-		commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
-		for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
-		{
-			commandList->SetGraphicsRootDescriptorTable(rsSlot, gpuBaseAddr);
-		}
+				commandList->SetGraphicsRootSignature(rootSignature);
+				commandList->SetPipelineState(pso->Get());
 
-		// cbs
-		std::vector<b8> cbufData;
-		BindConstBufferParams(cbufData, pass.mCbParams, vs);
-		BindConstBufferParams(cbufData, pass.mCbParams, ps);
-		const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
-		mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
+				std::set<ID3D12DescriptorHeap*> heaps;
+				std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
 
-		Assert(pass.mViewPort.GetMinDepth() < pass.mViewPort.GetMaxDepth());
-		auto viewport = D3D12_VIEWPORT{
-			pass.mViewPort.GetTopLeftX(), pass.mViewPort.GetTopLeftY(),
-			pass.mViewPort.GetWidth(), pass.mViewPort.GetHeight(),
-			pass.mViewPort.GetMinDepth(), pass.mViewPort.GetMaxDepth()
-		};
-		commandList->RSSetViewports(1, &viewport);
-		auto rect = D3D12_RECT{ 
-			pass.mScissorRect.left, 
-			pass.mScissorRect.top, 
-			pass.mScissorRect.right, 
-			pass.mScissorRect.bottom };
-		commandList->RSSetScissorRects(1, &rect);
+				// srvs
+				{
+					RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
-		u32 rtvCount = 0;
-		for (; rtvCount < rtvs.size(); ++rtvCount)
-		{
-			if (!rtvs[rtvCount]) { break; }
-			rtvHandles[rtvCount] = rtvs[rtvCount].Get();
-		}
+					std::map<std::string, InputSrvParam> srvBindings;
+					{
+						for (const auto& p : vs->GetSrvBindings())
+						{
+							if (srvBindings.find(p.first) == srvBindings.end())
+							{
+								srvBindings[p.first] = p.second;
+							}
+						}
+						for (const auto& p : ps->GetSrvBindings())
+						{
+							if (srvBindings.find(p.first) == srvBindings.end())
+							{
+								srvBindings[p.first] = p.second;
+							}
+						}
+					}
 
-		if (pass.mDsv.GetResource())
-		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv).Get();
-			commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, &dsHandle);
-		}
-		else
-		{
-			commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, nullptr);
-		}
-		commandList->OMSetStencilRef(pass.mStencilRef);
+					int maxSrvIndex = 0;
+					for (const auto& p : srvBindings)
+					{
+						const InputSrvParam& srvParam = p.second;
+						maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
+					}
 
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
+					for (const auto& p : srvBindings)
+					{
+						const std::string& srvName = p.first;
+						const InputSrvParam& srvParam = p.second;
 
-		std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
-		for (auto i = 0; i < vbvs.size(); ++i)
-		{
-			vbvs[i].BufferLocation = reinterpret_cast<const CommitedResource*>(pass.mVbvs[i].GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
-			vbvs[i].SizeInBytes = pass.mVbvs[i].GetSizeInBytes();
-			vbvs[i].StrideInBytes = pass.mVbvs[i].GetStrideInBytes();
-		}
-		commandList->IASetVertexBuffers(0, static_cast<u32>(vbvs.size()), vbvs.data());
+						auto it = srvs.find(srvName);
+						if (it != srvs.end())
+						{
+							srvHandles[srvParam.mBindPoint] = it->second.Get();
+						}
+					}
+					const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
 
-		D3D12_INDEX_BUFFER_VIEW ibv;
-		{
-			ibv.BufferLocation = reinterpret_cast<const CommitedResource*>(pass.mIbv.GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
-			ibv.SizeInBytes = pass.mIbv.GetSizeInBytes();
-			ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetFormat());
-		}
-		commandList->IASetIndexBuffer(&ibv);
+					heaps.insert(srvHeap->GetCurrentDescriptorHeap());
+					gpuBaseAddrs[0] = gpuDescBaseAddr;
+				}
 
-		commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
+				{
+					RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
+
+					const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+
+					heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+					gpuBaseAddrs[2] = gpuDescBase;
+				}
+
+				std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+				commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+				for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+				{
+					commandList->SetGraphicsRootDescriptorTable(rsSlot, gpuBaseAddr);
+				}
+
+				// cbs
+				std::vector<b8> cbufData;
+				BindConstBufferParams(cbufData, pass.mCbParams, vs);
+				BindConstBufferParams(cbufData, pass.mCbParams, ps);
+				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+				mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
+
+				Assert(pass.mViewPort.GetMinDepth() < pass.mViewPort.GetMaxDepth());
+				auto viewport = D3D12_VIEWPORT{
+					pass.mViewPort.GetTopLeftX(), pass.mViewPort.GetTopLeftY(),
+					pass.mViewPort.GetWidth(), pass.mViewPort.GetHeight(),
+					pass.mViewPort.GetMinDepth(), pass.mViewPort.GetMaxDepth()
+				};
+				commandList->RSSetViewports(1, &viewport);
+				auto rect = D3D12_RECT{
+					pass.mScissorRect.left,
+					pass.mScissorRect.top,
+					pass.mScissorRect.right,
+					pass.mScissorRect.bottom };
+				commandList->RSSetScissorRects(1, &rect);
+
+				CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
+				u32 rtvCount = 0;
+				for (; rtvCount < rtvs.size(); ++rtvCount)
+				{
+					if (!rtvs[rtvCount]) { break; }
+					rtvHandles[rtvCount] = rtvs[rtvCount].Get();
+				}
+
+				if (pass.mDsv.GetResource())
+				{
+					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv).Get();
+					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, &dsHandle);
+				}
+				else
+				{
+					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, nullptr);
+				}
+				commandList->OMSetStencilRef(pass.mStencilRef);
+
+				commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+				std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
+				for (auto i = 0; i < vbvs.size(); ++i)
+				{
+					vbvs[i].BufferLocation = reinterpret_cast<const CommitedResource*>(pass.mVbvs[i].GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
+					vbvs[i].SizeInBytes = pass.mVbvs[i].GetSizeInBytes();
+					vbvs[i].StrideInBytes = pass.mVbvs[i].GetStrideInBytes();
+				}
+				commandList->IASetVertexBuffers(0, static_cast<u32>(vbvs.size()), vbvs.data());
+
+				D3D12_INDEX_BUFFER_VIEW ibv;
+				{
+					ibv.BufferLocation = reinterpret_cast<const CommitedResource*>(pass.mIbv.GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
+					ibv.SizeInBytes = pass.mIbv.GetSizeInBytes();
+					ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetFormat());
+				}
+				commandList->IASetIndexBuffer(&ibv);
+
+				commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
+			});
 	}
 
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
-		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-		
-		std::map<std::string, DescriptorPtr> srvs;
-		for (const auto& [name, srv] : pass.mSrvParams)
-		{
-			if (!srv.GetResource()) { return; }
-			srvs[name] = resourceManager->CreateSrvDescriptor(srv);
-		}
+		mCommands.push([this, pass]()
+			{
 
-		std::map<std::string, DescriptorPtr> uavs;
-		for (const auto& [name, uav] : pass.mUavParams)
-		{
-			if (!uav.GetResource()) { return; }
-			uavs[name] = resourceManager->CreateUavDescriptor(uav);
-		}
+				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
-		std::map<std::string, DescriptorPtr> samplers;
-		for (const auto& [name, sampler] : pass.mSamplerParams)
-		{
-			samplers[name] = resourceManager->CreateSampler(sampler);
-		}
+				std::map<std::string, DescriptorPtr> srvs;
+				for (const auto& [name, srv] : pass.mSrvParams)
+				{
+					if (!srv.GetResource()) { return; }
+					srvs[name] = resourceManager->CreateSrvDescriptor(srv);
+				}
 
-		for (const auto& [_, srv] : pass.mSrvParams)
-		{
-			auto res = reinterpret_cast<CommitedResource*>(srv.GetResource());
-			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		}
+				std::map<std::string, DescriptorPtr> uavs;
+				for (const auto& [name, uav] : pass.mUavParams)
+				{
+					if (!uav.GetResource()) { return; }
+					uavs[name] = resourceManager->CreateUavDescriptor(uav);
+				}
 
-		for (const auto& [_, uav] : pass.mUavParams)
-		{
-			auto res = reinterpret_cast<CommitedResource*>(uav.GetResource());
-			res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		}
+				std::map<std::string, DescriptorPtr> samplers;
+				for (const auto& [name, sampler] : pass.mSamplerParams)
+				{
+					samplers[name] = resourceManager->CreateSampler(sampler);
+				}
 
-		// root signatures
-		D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-		auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
+				for (const auto& [_, srv] : pass.mSrvParams)
+				{
+					auto res = reinterpret_cast<CommitedResource*>(srv.GetResource());
+					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+				}
 
-		auto mPso = std::make_unique< ComputePipelineState>();
-		mPso->SetRootSignature(rootSignature);
+				for (const auto& [_, uav] : pass.mUavParams)
+				{
+					auto res = reinterpret_cast<CommitedResource*>(uav.GetResource());
+					res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				}
 
-		// shader
-		ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(pass.mCsFile.c_str(), pass.mShaderMacros);
-		mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
+				// root signatures
+				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
+				auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
 
-		mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
+				auto mPso = std::make_unique< ComputePipelineState>();
+				mPso->SetRootSignature(rootSignature);
 
-		ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
+				// shader
+				ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(pass.mCsFile.c_str(), pass.mShaderMacros);
+				mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
 
-		commandList->SetComputeRootSignature(rootSignature);
-		commandList->SetPipelineState(mPso->Get());
+				mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
-		std::set<ID3D12DescriptorHeap*> heaps;
-		std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
+				ID3D12GraphicsCommandList* commandList = mContext->GetCommandList();
+
+				commandList->SetComputeRootSignature(rootSignature);
+				commandList->SetPipelineState(mPso->Get());
+
+				std::set<ID3D12DescriptorHeap*> heaps;
+				std::map<i32, CD3DX12_GPU_DESCRIPTOR_HANDLE> gpuBaseAddrs;
 
 
-		RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		{
-			// srv
-			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), srvs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
-			// uav
-			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), uavs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
+				RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				{
+					// srv
+					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), srvs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
+					// uav
+					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), uavs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 
-			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
-			handles.insert(handles.end(), srvHandles.begin(), srvHandles.end());
-			handles.insert(handles.end(), uavHandles.begin(), uavHandles.end());
+					std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+					handles.insert(handles.end(), srvHandles.begin(), srvHandles.end());
+					handles.insert(handles.end(), uavHandles.begin(), uavHandles.end());
 
-			const CD3DX12_GPU_DESCRIPTOR_HANDLE& gpuDescBase = srvUavHeap->Push(static_cast<i32>(handles.size()), handles.data());
-			const u32 handleSize = srvUavHeap->GetDescHandleSize();
+					const CD3DX12_GPU_DESCRIPTOR_HANDLE& gpuDescBase = srvUavHeap->Push(static_cast<i32>(handles.size()), handles.data());
+					const u32 handleSize = srvUavHeap->GetDescHandleSize();
 
-			gpuBaseAddrs[0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, 0, handleSize);
-			gpuBaseAddrs[1] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, srvHandles.size(), handleSize);
+					gpuBaseAddrs[0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, 0, handleSize);
+					gpuBaseAddrs[1] = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuDescBase, srvHandles.size(), handleSize);
 
-			heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
-		}
+					heaps.insert(srvUavHeap->GetCurrentDescriptorHeap());
+				}
 
-		RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-		{
-			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
+				RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+				{
+					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
 
-			const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
+					const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
 
-			heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
-			gpuBaseAddrs[3] = gpuDescBase;
-		}
+					heaps.insert(samplerHeap->GetCurrentDescriptorHeap());
+					gpuBaseAddrs[3] = gpuDescBase;
+				}
 
-		std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
-		commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
-		for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
-		{
-			commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
-		}
+				std::vector<ID3D12DescriptorHeap*> heapArr(heaps.begin(), heaps.end());
+				commandList->SetDescriptorHeaps(heapArr.size(), heapArr.data());
+				for (const auto& [rsSlot, gpuBaseAddr] : gpuBaseAddrs)
+				{
+					commandList->SetComputeRootDescriptorTable(rsSlot, gpuBaseAddr);
+				}
 
-		std::vector<b8> cbufData;
-		BindConstBufferParams(cbufData, pass.mCbParams, cs);
-		const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
-		mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
+				std::vector<b8> cbufData;
+				BindConstBufferParams(cbufData, pass.mCbParams, cs);
+				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
+				mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
-		commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
-
+				commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
+			});
 	}
 
 	void D3D12GraphicsRecorder::AddPreparePresent(GI::IGraphicMemoryResource* res)
 	{
-		reinterpret_cast<CommitedResource*>(res)->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);		
+		mCommands.push([this, res]()
+			{
+				reinterpret_cast<CommitedResource*>(res)->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);
+			});
 	}
 
 	void D3D12GraphicsRecorder::AddBeginEvent(const char* mark)
 	{
+		mCommands.push([this, mark]()
+			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
-		PIXBeginEvent(mContext->GetCommandList(), 0, mark);
+				PIXBeginEvent(mContext->GetCommandList(), 0, mark);
 #endif
+			});
 	}
 
 
 	void D3D12GraphicsRecorder::AddEndEvent()
 	{
+		mCommands.push([this]()
+			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
-		PIXEndEvent(mContext->GetCommandList());
+				PIXEndEvent(mContext->GetCommandList());
 #endif
+			});
 	}
 
-	void D3D12GraphicsRecorder::Finalize()
+	void D3D12GraphicsRecorder::Finalize(bool dropAllCommands)
 	{
+		while (!mCommands.empty())
+		{
+			if (!dropAllCommands)
+				mCommands.front()();
+			mCommands.pop();
+		}
+
 		mContext->Finalize();
 	}
 

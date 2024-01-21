@@ -8,15 +8,6 @@ namespace D3D12Backend
 	class D3D12Device;
 	class D3D12CommandContext;
 
-	class GD_D3D12BACKEND_API IResource
-	{
-	public:
-		virtual void Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState) = 0;
-		virtual ID3D12Resource* GetD3D12Resource() const = 0;
-		virtual Vec3i GetSize() const = 0;
-		virtual std::string GetName() const { return {}; }
-	};
-
 	class GD_D3D12BACKEND_API CommitedResource : public GI::IGraphicMemoryResource
 	{
 	public:
@@ -63,6 +54,7 @@ namespace D3D12Backend
 	protected:
 		D3D12Device*				mDevice = nullptr;
 		ID3D12Resource*				mResource = nullptr;
+
 		Vec3i						mSize = {};
 		D3D12_RESOURCE_DESC			mDesc = {};
 		D3D12_RESOURCE_STATES		mState = D3D12_RESOURCE_STATE_COMMON;

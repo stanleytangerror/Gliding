@@ -832,14 +832,15 @@ namespace GI
         virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
 
 		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
+		virtual void                        ResizeWindow(u8 windowId, const Vec2i& windowSize) = 0;
 		virtual IGraphicMemoryResource*     GetWindowBackBuffer(u8 windowId) = 0;
 
 		virtual void                        StartFrame() = 0;
-		virtual void                        EndFrame() = 0;
+		virtual void                        EndFrame(bool skipThisFrame) = 0;
 		virtual void                        Present() = 0;
 
 		virtual void                        StartRecording() = 0;
-		virtual void                        EndRecording() = 0;
+		virtual void                        EndRecording(bool dropAllCommands) = 0;
         virtual IGraphicsRecorder*          GetRecorder() const = 0;
 
         virtual DevicePtr                   GetNativeDevicePtr() const = 0;

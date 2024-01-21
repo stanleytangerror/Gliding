@@ -19,14 +19,15 @@ namespace D3D12Backend
 		std::unique_ptr<GI::IImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const override;
 
 		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;
+		void                        ResizeWindow(u8 windowId, const Vec2i& windowSize) override;
 		GI::IGraphicMemoryResource* GetWindowBackBuffer(u8 windowId) override;
 
 		void                        StartFrame() override;
-		void                        EndFrame() override;
+		void                        EndFrame(bool skipThisFrame) override;
 		void                        Present() override;
 
 		void						StartRecording() override;
-		void						EndRecording() override;
+		void						EndRecording(bool dropAllCommands) override;
 		class GI::IGraphicsRecorder* GetRecorder() const override;
 
 		GI::DevicePtr               GetNativeDevicePtr() const override;
@@ -39,6 +40,8 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API D3D12GraphicsRecorder : public GI::IGraphicsRecorder
 	{
 	public:
+		using Command = std::function<void()>;
+
 		D3D12GraphicsRecorder(D3D12CommandContext* context);
 
 		void AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value) override;
@@ -50,12 +53,13 @@ namespace D3D12Backend
 		void AddBeginEvent(const char* mark) override;
 		void AddEndEvent() override;
 
-		void Finalize();
+		void Finalize(bool dropAllCommands);
 
 		// TODO remove this
 		D3D12CommandContext* GetContext() const { return mContext; }
 
 	private:
-		D3D12CommandContext* mContext = nullptr;
+		D3D12CommandContext*	mContext = nullptr;
+		std::queue<Command>		mCommands;
 	};
 }
