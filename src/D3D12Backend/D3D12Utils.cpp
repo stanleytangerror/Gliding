@@ -153,10 +153,9 @@ namespace
 		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
 		ID3D12Resource* defaultResource = nullptr;
 		AssertHResultOk(DirectX::CreateTexture(device->GetDevice(), image.GetMetadata(), &defaultResource));
-		auto result = std::unique_ptr<D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Possessor()
+		auto result = device->GetResourceManager()->CreateResource(D3D12Backend::Possessor()
 			.SetResource(defaultResource)
-			.SetCurrentState(D3D12_RESOURCE_STATE_COPY_DEST)
-			.Possess(device));
+			.SetCurrentState(D3D12_RESOURCE_STATE_COPY_DEST));
 
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
@@ -164,19 +163,18 @@ namespace
 		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
 		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(result->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
 
-		auto textureUploadHeap = std::unique_ptr< D3D12Backend::CommitedResource>(
-			D3D12Backend::CommitedResource::Builder()
-			.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		auto textureUploadHeap = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::BUFFER)
 			.SetAlignment(0)
 			.SetWidth(uploadBufferSize)
 			.SetHeight(1)
 			.SetDepthOrArraySize(1)
 			.SetMipLevels(1)
-			.SetFormat(DXGI_FORMAT_UNKNOWN)
-			.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
-			.SetFlags(D3D12_RESOURCE_FLAG_NONE)
-			.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-			.Build(context->GetDevice(), GI::HeapType::UPLOAD));
+			.SetFormat(GI::Format::FORMAT_UNKNOWN)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::NONE)
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD));
 		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
 
 		UpdateSubresources(
@@ -186,7 +184,7 @@ namespace
 			0, 0, static_cast<unsigned int>(subresources.size()),
 			subresources.data());
 
-		return result;
+		return std::unique_ptr<D3D12Backend::CommitedResource>(result);
 	}
 }
 

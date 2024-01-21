@@ -1,13 +1,28 @@
 #pragma once
 
 #include "D3D12Headers.h"
-#include "D3D12Backend/D3D12DescriptorAllocator.h"
+#include "D3D12DescriptorAllocator.h"
+#include "Common/IndexAllocator.h"
 
 namespace D3D12Backend
 {
 	class D3D12GpuQueue;
 	class D3D12Device;
 	class SwapChain;
+	class CommitedResource;
+	class Possessor;
+
+	struct CommittedResourceId
+	{
+		const u64 mId;
+
+		static CommittedResourceId FromInt(u64 v) { return { v }; }
+
+		struct Less
+		{
+			constexpr bool operator() (const CommittedResourceId& left, const CommittedResourceId& right) const { return left.mId < right.mId; }
+		};
+	};
 
 	class ResourceManager
 	{
@@ -26,6 +41,8 @@ namespace D3D12Backend
 						GetSwapChains() const { return mSwapChains; }
 
 		ID3D12Resource* CreateResource(const CreateResrouce& builder);
+		std::unique_ptr<CommitedResource>	CreateResource(const GI::MemoryResourceDesc& desc);
+		CommitedResource*					CreateResource(const Possessor& possessor);
 		void			ReleaseResource(ID3D12Resource* res);
 
 		DescriptorPtr	CreateSrvDescriptor(const GI::SrvDesc& desc);
@@ -48,5 +65,9 @@ namespace D3D12Backend
 		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
 
 		std::map<u32, SwapChain*>	mSwapChains;
+
+		IndexAllocator<CommittedResourceId>			mResourceIdAllocator;
+
+		std::map<CommittedResourceId, ID3D12Resource*, CommittedResourceId::Less> mResourceIdMapping;
 	};
 }

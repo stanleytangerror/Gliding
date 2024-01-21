@@ -84,11 +84,11 @@ namespace D3D12Backend
 			AssertHResultOk(mSwapChain->GetBuffer(n, IID_PPV_ARGS(&resource)));
 
 			mBuffers.push_back(
-				CommitedResource::Possessor()
-				.SetName(Utils::FormatString("BackBuffer_%d", n).c_str())
-				.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
-				.SetResource(resource)
-				.Possess(mDevice));
+				mDevice->GetResourceManager()->CreateResource(
+					Possessor()
+					.SetName(Utils::FormatString("BackBuffer_%d", n).c_str())
+					.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
+					.SetResource(resource)));
 		}
 	}
 

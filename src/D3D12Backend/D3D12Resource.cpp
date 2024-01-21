@@ -3,9 +3,9 @@
 
 namespace D3D12Backend
 {
-	CommitedResource* CommitedResource::Builder::Build(D3D12Device* device, GI::HeapType::Enum heapType)
+	CommitedResource* CommitedResource::Builder::Build(CommittedResourceId id, D3D12Device* device, GI::HeapType::Enum heapType) const
 	{
-		CommitedResource* result = new CommitedResource;
+		CommitedResource* result = new CommitedResource(id);
 
 		D3D12_RESOURCE_DESC desc = {};
 		{
@@ -47,9 +47,9 @@ namespace D3D12Backend
 		return result;
 	}
 
-	CommitedResource* CommitedResource::Possessor::Possess(D3D12Device* device)
+	CommitedResource* Possessor::Possess(CommittedResourceId id, D3D12Device* device) const
 	{
-		CommitedResource* result = new CommitedResource;
+		CommitedResource* result = new CommitedResource(id);
 
 		NAME_RAW_D3D12_OBJECT(mResource, mName);
 		const D3D12_RESOURCE_DESC& desc = mResource->GetDesc();

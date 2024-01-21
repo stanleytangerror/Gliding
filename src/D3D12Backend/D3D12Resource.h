@@ -2,14 +2,26 @@
 
 #include "D3D12Headers.h"
 #include "D3D12CommandContext.h"
+#include "D3D12ResourceManager.h"
 
 namespace D3D12Backend
 {
 	class D3D12Device;
 	class D3D12CommandContext;
 
+	class GD_D3D12BACKEND_API Possessor
+	{
+		CONTINOUS_SETTER(Possessor, ID3D12Resource*, Resource);
+		CONTINOUS_SETTER(Possessor, const char*, Name);
+		CONTINOUS_SETTER(Possessor, D3D12_RESOURCE_STATES, CurrentState);
+
+	public:
+		CommitedResource* Possess(CommittedResourceId id, D3D12Device* device) const;
+	};
+
 	class GD_D3D12BACKEND_API CommitedResource : public GI::IGraphicMemoryResource
 	{
+		friend Possessor;
 	public:
 		class GD_D3D12BACKEND_API Builder
 		{
@@ -27,19 +39,10 @@ namespace D3D12Backend
 			CONTINOUS_SETTER_VALUE(Builder, D3D12_RESOURCE_STATES, InitState, D3D12_RESOURCE_STATE_COMMON);
 
 		public:
-			CommitedResource* Build(D3D12Device* device, GI::HeapType::Enum heapType);
+			CommitedResource* Build(CommittedResourceId id, D3D12Device* device, GI::HeapType::Enum heapType) const;
 		};
 
-		class GD_D3D12BACKEND_API Possessor
-		{
-			CONTINOUS_SETTER(Possessor, ID3D12Resource*, Resource);
-			CONTINOUS_SETTER(Possessor, const char*, Name);
-			CONTINOUS_SETTER(Possessor, D3D12_RESOURCE_STATES, CurrentState);
-
-		public:
-			CommitedResource* Possess(D3D12Device* device);
-		};
-
+									CommitedResource(CommittedResourceId id) : mId(id) {}
 									~CommitedResource() override;
 		void						Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState);
 		ID3D12Resource*				GetD3D12Resource() const { return mResource; }
@@ -52,6 +55,7 @@ namespace D3D12Backend
 		GI::ResourceDimension::Enum	GetDimension() const { return GI::ResourceDimension::Enum(mDesc.Dimension); }
 
 	protected:
+		const CommittedResourceId	mId;
 		D3D12Device*				mDevice = nullptr;
 		ID3D12Resource*				mResource = nullptr;
 

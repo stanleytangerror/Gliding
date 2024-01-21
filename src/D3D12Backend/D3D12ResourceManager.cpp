@@ -25,6 +25,40 @@ namespace D3D12Backend
 		return builder(mDevice->GetDevice());
 	}
 
+	std::unique_ptr<CommitedResource> ResourceManager::CreateResource(const GI::MemoryResourceDesc& desc)
+	{
+		auto resourceId = mResourceIdAllocator.Alloc();
+
+		auto resource =	D3D12Backend::CommitedResource::Builder()
+			.SetDimention(D3D12_RESOURCE_DIMENSION(desc.GetDimension()))
+			.SetFormat(D3D12Utils::ToDxgiFormat(desc.GetFormat()))
+			.SetMipLevels(desc.GetMipLevels())
+			.SetWidth(desc.GetWidth())
+			.SetHeight(desc.GetHeight())
+			.SetDepthOrArraySize(desc.GetDepthOrArraySize())
+			.SetName(desc.GetName())
+			.SetLayout(D3D12_TEXTURE_LAYOUT(desc.GetLayout()))
+			.SetFlags(D3D12_RESOURCE_FLAGS(desc.GetFlags()))
+			.SetInitState(D3D12_RESOURCE_STATES(desc.GetInitState()))
+			.Build(resourceId, mDevice, desc.GetHeapType());
+
+		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
+		mResourceIdMapping[resourceId] = resource->GetD3D12Resource();
+
+		return std::unique_ptr<CommitedResource>(resource);
+	}
+
+	D3D12Backend::CommitedResource* ResourceManager::CreateResource(const Possessor& possessor)
+	{
+		auto resourceId = mResourceIdAllocator.Alloc();
+		auto resource = possessor.Possess(resourceId, mDevice);
+
+		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
+		mResourceIdMapping[resourceId] = resource->GetD3D12Resource();
+
+		return resource;
+	}
+
 	DescriptorPtr ResourceManager::CreateSrvDescriptor(const GI::SrvDesc& desc)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC d3d12Desc = {};

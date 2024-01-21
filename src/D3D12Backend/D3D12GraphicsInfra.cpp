@@ -14,19 +14,7 @@ namespace D3D12Backend
 
 	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResource(const GI::MemoryResourceDesc& desc)
 	{
-		return std::unique_ptr<GI::IGraphicMemoryResource>(
-			D3D12Backend::CommitedResource::Builder()
-			.SetDimention(D3D12_RESOURCE_DIMENSION(desc.GetDimension()))
-			.SetFormat(D3D12Utils::ToDxgiFormat(desc.GetFormat()))
-			.SetMipLevels(desc.GetMipLevels())
-			.SetWidth(desc.GetWidth())
-			.SetHeight(desc.GetHeight())
-			.SetDepthOrArraySize(desc.GetDepthOrArraySize())
-			.SetName(desc.GetName())
-			.SetLayout(D3D12_TEXTURE_LAYOUT(desc.GetLayout()))
-			.SetFlags(D3D12_RESOURCE_FLAGS(desc.GetFlags()))
-			.SetInitState(D3D12_RESOURCE_STATES(desc.GetInitState()))
-			.Build(mDevice, desc.GetHeapType()));
+		return std::move(mDevice->GetResourceManager()->CreateResource(desc));
 	}
 
 	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResource(const GI::IImage& image)
@@ -192,9 +180,12 @@ namespace D3D12Backend
 
 	}
 
+#define DEFERRED_EXECUTE 0
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvDesc& rtv, const Vec4f& value)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, rtv, value]()
+#endif
 			{
 				auto res = reinterpret_cast<CommitedResource*>(rtv.GetResource());
 				res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -202,13 +193,18 @@ namespace D3D12Backend
 				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv);
 				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
-			});
+			}
+#if DEFERRED_EXECUTE
+		);
+#endif
 	}
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, dsv, clearDepth, depth, clearStencil, stencil]()
-			{
+#endif
+		{
 				auto res = reinterpret_cast<CommitedResource*>(dsv.GetResource());
 				res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
@@ -217,23 +213,34 @@ namespace D3D12Backend
 					(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 					(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
 				mContext->GetCommandList()->ClearDepthStencilView(descriptor.Get(), D3D12_CLEAR_FLAGS(flag), depth, stencil, 0, nullptr);
-			});
+			}
+#if DEFERRED_EXECUTE
+			);
+#endif
 	}
 
 
 	void D3D12GraphicsRecorder::AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, dest, src]()
+#endif
 			{
 				mContext->CopyResource(
 					reinterpret_cast<CommitedResource*>(dest),
 					reinterpret_cast<CommitedResource*>(src));
-			});
+			}
+#if DEFERRED_EXECUTE
+		);
+#endif
+
 	}
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, pass]()
+#endif
 			{
 				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
@@ -507,13 +514,19 @@ namespace D3D12Backend
 				commandList->IASetIndexBuffer(&ibv);
 
 				commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
-			});
+			}
+#if DEFERRED_EXECUTE
+			);
+#endif
+
 	}
 
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, pass]()
+#endif
 			{
 
 				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
@@ -615,46 +628,68 @@ namespace D3D12Backend
 				mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
 				commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
-			});
+			}
+#if DEFERRED_EXECUTE
+			);
+#endif
+
 	}
 
 	void D3D12GraphicsRecorder::AddPreparePresent(GI::IGraphicMemoryResource* res)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, res]()
+#endif
 			{
 				reinterpret_cast<CommitedResource*>(res)->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);
-			});
+			}
+#if DEFERRED_EXECUTE
+		);
+#endif
 	}
 
 	void D3D12GraphicsRecorder::AddBeginEvent(const char* mark)
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this, mark]()
+#endif
 			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
 				PIXBeginEvent(mContext->GetCommandList(), 0, mark);
 #endif
-			});
+			}
+#if DEFERRED_EXECUTE
+		);
+#endif
+
 	}
 
 
 	void D3D12GraphicsRecorder::AddEndEvent()
 	{
+#if DEFERRED_EXECUTE
 		mCommands.push([this]()
+#endif
 			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
 				PIXEndEvent(mContext->GetCommandList());
 #endif
-			});
+			}
+#if DEFERRED_EXECUTE
+		);
+#endif
 	}
 
 	void D3D12GraphicsRecorder::Finalize(bool dropAllCommands)
 	{
+#if DEFERRED_EXECUTE
 		while (!mCommands.empty())
 		{
 			if (!dropAllCommands)
 				mCommands.front()();
 			mCommands.pop();
 		}
+#endif
 
 		mContext->Finalize();
 	}
