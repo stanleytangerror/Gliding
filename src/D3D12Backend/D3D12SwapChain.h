@@ -12,14 +12,15 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API SwapChain
 	{
 	public:
-		SwapChain(D3D12Device* device, HWND windowHandle, const Vec2i& size, const u32 frameCount);
+		SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount);
+		SwapChain(const SwapChain& other) = delete;
 
-		CommitedResource*		GetBuffer() const;
+		GI::IGraphicMemoryResource*		GetBuffer() const;
 		HWND					GetWindowHandle() const { return mWindowHandle; }
 		void					Present();
-		Vec2i					GetSize() const { return mSize; }
+		Vec2u					GetSize() const { return mSize; }
 
-		void					Resize(const Vec2i& newSize);
+		void					Resize(const Vec2u& newSize);
 
 		void					ClearBuffers();
 		void					InitialBuffers();
@@ -31,7 +32,8 @@ namespace D3D12Backend
 		const DXGI_FORMAT						mFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		const u32								mFrameCount;
 		i32										mCurrentBackBufferIndex = 0;
-		std::vector<CommitedResource*>			mBuffers;
-		Vec2i									mSize = {};
+		std::vector<std::unique_ptr<GI::IGraphicMemoryResource>>
+												mBuffers;
+		Vec2u									mSize = {};
 	};
 }

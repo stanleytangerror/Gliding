@@ -111,7 +111,7 @@ void Application::LogicThread()
 				UINT width = LOWORD(msg.lParam);
 				UINT height = HIWORD(msg.lParam);
 				u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
-				mRenderModule->OnResizeWindow(windowId, Vec2i{ width, height });
+				mRenderModule->OnResizeWindow(windowId, { width, height });
 				DEBUG_PRINT("WM_SIZE %d, size %d %d", msg.wParam, width, height);
 			}
 

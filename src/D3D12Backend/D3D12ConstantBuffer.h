@@ -11,7 +11,6 @@ namespace D3D12Backend
 	{
 	public:
 		ConstBufferBlock(D3D12Device* device, i32 size);
-		virtual ~ConstBufferBlock();
 
 		D3D12_GPU_VIRTUAL_ADDRESS		Push(const void* data, i32 size);
 		void							Reset();
@@ -21,7 +20,7 @@ namespace D3D12Backend
 		D3D12Device* const				mDevice = nullptr;
 		i32	const						mSize = 0;
 
-		ID3D12Resource* mGpuResource = nullptr; // ownership, release by fence
+		std::unique_ptr<GI::IGraphicMemoryResource> mGpuResource;
 
 		// va
 		byte* mCpuBaseVirtualAddr = nullptr;

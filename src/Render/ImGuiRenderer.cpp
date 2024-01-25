@@ -35,15 +35,15 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData)
 {
 	if (!mFontAtlas->IsD3DResourceReady())
 	{
 		mFontAtlas->CreateAndInitialResource(infra);
 
 		auto resource = mFontAtlas->GetResource();
+		mFontAtlasSrvDesc = GI::SrvUsage(resource);
 		mFontAtlasSrvDesc
-			.SetResource(resource)
 			.SetFormat(resource->GetFormat())
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetTexture2D_MipLevels(resource->GetMipLevelCount());
@@ -138,7 +138,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 
 			const Math::Rect scissorRect = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
 
-			const auto* srv = reinterpret_cast<const GI::SrvDesc*>(cmd->GetTexID());
+			const auto* srv = reinterpret_cast<const GI::SrvUsage*>(cmd->GetTexID());
 
 			GI::GraphicsPass pass;
 
@@ -164,7 +164,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target,
 
 			pass.mInputLayout = geo->mVertexElementDescs;
 
-			const Vec3i& targetSize = target.GetResource()->GetSize();
+			const Vec3u& targetSize = target.GetResource()->GetSize();
 			pass.mRtvs[0] = target;
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = scissorRect;

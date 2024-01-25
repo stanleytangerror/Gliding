@@ -3,7 +3,7 @@
 
 namespace D3D12Backend
 {
-	SwapChain::SwapChain(D3D12Device* device, HWND windowHandle, const Vec2i& size, const u32 frameCount)
+	SwapChain::SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount)
 		: mDevice(device)
 		, mWindowHandle(windowHandle)
 		, mSize(size)
@@ -38,9 +38,9 @@ namespace D3D12Backend
 		InitialBuffers();
 	}
 
-	CommitedResource* SwapChain::GetBuffer() const
+	GI::IGraphicMemoryResource* SwapChain::GetBuffer() const
 	{
-		return mBuffers[mCurrentBackBufferIndex];
+		return mBuffers[mCurrentBackBufferIndex].get();
 	}
 
 	void SwapChain::Present()
@@ -55,7 +55,7 @@ namespace D3D12Backend
 		DEBUG_PRINT(" ================ End Present ======================= ");
 	}
 
-	void SwapChain::Resize(const Vec2i& newSize)
+	void SwapChain::Resize(const Vec2u& newSize)
 	{
 		Assert(mSize != newSize);
 		
@@ -67,10 +67,10 @@ namespace D3D12Backend
 
 	void SwapChain::ClearBuffers()
 	{
-		for (auto resource : mBuffers)
-		{
-			delete resource;
-		}
+		//for (auto b : mBuffers)
+		//{
+		//	delete b;
+		//}
 		mBuffers.clear();
 	}
 		
@@ -85,10 +85,9 @@ namespace D3D12Backend
 
 			mBuffers.push_back(
 				mDevice->GetResourceManager()->CreateResource(
-					Possessor()
-					.SetName(Utils::FormatString("BackBuffer_%d", n).c_str())
-					.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
-					.SetResource(resource)));
+					resource,
+					Utils::FormatString("BackBuffer_%d", n).c_str(),
+					D3D12_RESOURCE_STATE_COMMON));
 		}
 	}
 

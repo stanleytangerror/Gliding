@@ -13,6 +13,6 @@ enum class GD_COMMON_API PresentPortType : u8
 struct GD_COMMON_API WindowRuntimeInfo
 {
 	PortHandle		mNativeHandle = {};
-	Vec2i			mSize = {};
+	Vec2u			mSize = {};
 	u32				mFrameCount = 3;
 };

@@ -35,9 +35,9 @@ namespace D3D12Utils
 	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
 
 	//GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
-	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-	GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
+	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
 	
 	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 

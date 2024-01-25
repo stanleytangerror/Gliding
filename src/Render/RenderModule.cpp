@@ -28,7 +28,7 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 }
 
 
-void RenderModule::OnResizeWindow(u8 windowId, const Vec2i& size)
+void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 {
 	mGraphicInfra->ResizeWindow(windowId, size);
 	mSyncMode = true;
@@ -36,7 +36,7 @@ void RenderModule::OnResizeWindow(u8 windowId, const Vec2i& size)
 
 void RenderModule::Initial()
 {
-	const Vec2i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
+	const Vec2u& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
 	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
@@ -72,8 +72,8 @@ void RenderModule::Render()
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
-			const auto& target = GI::RtvDesc()
-				.SetResource(backBuffer)
+			auto target = GI::RtvUsage(backBuffer);
+			target
 				.SetFormat(backBuffer->GetFormat())
 				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 				.SetTexture2D_MipSlice(0)
@@ -86,8 +86,8 @@ void RenderModule::Render()
 			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
-			const auto& target = GI::RtvDesc()
-				.SetResource(backBuffer)
+			auto target = GI::RtvUsage(backBuffer);
+			target
 				.SetFormat(backBuffer->GetFormat())
 				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 				.SetTexture2D_MipSlice(0)

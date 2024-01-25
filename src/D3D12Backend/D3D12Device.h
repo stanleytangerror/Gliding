@@ -54,7 +54,6 @@ namespace D3D12Backend
 
 		ResourceManager* GetResourceManager() const { return mResMgr.get(); }
 
-		void	ReleaseD3D12Resource(ID3D12Resource*& res);
 		void	PushPostSyncOperation(PostSyncStage stage, const PostSyncOperation& operation);
 
 	private:

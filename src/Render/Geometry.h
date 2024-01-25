@@ -11,8 +11,8 @@ public:
 
 	bool IsGraphicsResourceReady() const { return mVb && mIb; };
 
-	GI::VbvDesc	GetVbvDesc() const;
-	GI::IbvDesc	GetIbvDesc() const;
+	GI::VbvUsage	GetVbvDesc() const;
+	GI::IbvUsage	GetIbvDesc() const;
 
 public:
 	std::vector<b8>		mVertices;

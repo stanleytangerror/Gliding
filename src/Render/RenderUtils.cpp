@@ -31,8 +31,8 @@ namespace
 }
 
 void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
-	const GI::RtvDesc& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
-	const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
+	const GI::RtvUsage& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
+	const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
 	static Geometry* quad = Geometry::GenerateQuad();
 	if (!quad->IsGraphicsResourceReady()) 
@@ -54,10 +54,10 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 
 	pass.mInputLayout = quad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const Vec3u& targetSize = target.GetResource()->GetSize();
 	pass.mRtvs[0] = target;
 	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
-	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
 	pass.mVbvs.push_back(quad->GetVbvDesc());
 	pass.mIbv = quad->GetIbvDesc();
@@ -70,13 +70,13 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
-void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, const GI::SamplerDesc& sourceSampler)
+void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler)
 {
 	const auto& targetSize = target.GetResource()->GetSize();
 	CopyTexture(infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -100,7 +100,7 @@ void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const 
 
 	pass.mRtvs[0] = target;
 	pass.mViewPort.SetWidth(size.x()).SetHeight(size.y());
-	pass.mScissorRect = { 0, 0, size.x(), size.y() };
+	pass.mScissorRect = { 0, 0, i32(size.x()), i32(size.y()) };
 
 	pass.mVbvs.clear();
 	pass.mVbvs.push_back(quad->GetVbvDesc());
@@ -128,7 +128,7 @@ void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const 
 	infra->GetRecorder()->AddGraphicsPass(pass);
 }
 
-void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
 	static Geometry* quad = Geometry::GenerateQuad();

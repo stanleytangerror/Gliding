@@ -10,7 +10,7 @@
 #include "Light.h"
 #include "EnvironmentMap.h"
 
-WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize)
+WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize)
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
 {
@@ -64,15 +64,14 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
 			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-		mGBufferSrvs[i] =
-			GI::SrvDesc()
-			.SetResource(mGBuffers[i].get())
+		mGBufferSrvs[i] = GI::SrvUsage(mGBuffers[i]);
+		mGBufferSrvs[i]
 			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetTexture2D_MipLevels(1); 
 		
-		mGBufferRtvs[i] = GI::RtvDesc()
-			.SetResource(mGBuffers[i].get())
+		mGBufferRtvs[i] = GI::RtvUsage(mGBuffers[i]);
+		mGBufferRtvs[i]
 			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
 			.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 	}
@@ -91,14 +90,14 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.SetName("SceneDepthStencil")
 			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-	mMainDepthDsv = GI::DsvDesc()
-		.SetResource(mMainDepth.get())
+	mMainDepthDsv = GI::DsvUsage(mMainDepth);
+	mMainDepthDsv
 		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 		.SetFormat(GI::Format::FORMAT_D32_FLOAT_S8X24_UINT)
 		.SetFlags(GI::DsvFlag::NONE);
 
-	mMainDepthSrv = GI::SrvDesc()
-		.SetResource(mMainDepth.get())
+	mMainDepthSrv = GI::SrvUsage(mMainDepth);
+	mMainDepthSrv
 		.SetFormat(GI::Format::FORMAT_R32_FLOAT_X8X24_TYPELESS)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1); 
@@ -131,14 +130,14 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2i& renderSize
 			.SetName("LightViewDepth")
 			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-	mLightViewDepthDsv = GI::DsvDesc()
-		.SetResource(mLightViewDepth.get())
+	mLightViewDepthDsv = GI::DsvUsage(mLightViewDepth);
+	mLightViewDepthDsv
 		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 		.SetFormat(GI::Format::FORMAT_D24_UNORM_S8_UINT)
 		.SetFlags(GI::DsvFlag::NONE);
 
-	mLightViewDepthSrv = GI::SrvDesc()
-		.SetResource(mLightViewDepth.get())
+	mLightViewDepthSrv = GI::SrvUsage(mLightViewDepth);
+	mLightViewDepthSrv
 		.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
@@ -177,7 +176,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
+void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
 {
 	{
 		RENDER_EVENT(infra, InitialResources);
@@ -197,7 +196,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 			mSkyTexture->CreateAndInitialResource(infra);
 
 			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
-			const Vec3i skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
+			const Vec3u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
 			mPanoramicSkyRt = new RenderTarget(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
@@ -245,8 +244,6 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 	{
 		RENDER_EVENT(infra, LightViewDepth);
 
-		const Vec3i& rtSize = target.GetResource()->GetSize();
-
 		infra->GetRecorder()->AddClearOperation(mLightViewDepthDsv, true, mSunLight->mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
 
 		mTestModel->ForEach([&](const auto& node)
@@ -292,7 +289,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
 	RenderSky(infra, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
+void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
 {
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -303,7 +300,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 		{ 2, "float4(LinearToSrgb(color.zzz), 1)" },		// Reflection,
 	};
 	
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) / Utils::GetArrayLength(gbufferSemantics);
 	const f32 height = width / targetSize.x() * targetSize.y();
 
@@ -317,9 +314,9 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
+void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
 {
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
@@ -328,9 +325,9 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI:
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
+void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
 {
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
 	RenderUtils::CopyTexture(infra,
@@ -338,7 +335,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDesc& target)
+void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
 {
 	RENDER_EVENT(infra, DeferredLighting);
 
@@ -358,8 +355,8 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDes
 			.SetName("TempDepthRt")
 			.SetHeapType(GI::HeapType::DEFAULT));
 
-	auto tmpDepthDsv = GI::DsvDesc()
-		.SetResource(tmpDepth.get())
+	auto tmpDepthDsv = GI::DsvUsage(tmpDepth);
+	tmpDepthDsv
 		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 		.SetFormat(mMainDepthDsv.GetFormat())
 		.SetFlags(GI::DsvFlag::NONE);
@@ -389,11 +386,11 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDes
 
 	lightingPass.mInputLayout = mQuad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	lightingPass.mRtvs[0] = target;
 	lightingPass.mDsv = tmpDepthDsv;
 	lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	lightingPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	lightingPass.mVbvs.clear();
@@ -432,7 +429,7 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvDes
 	infra->GetRecorder()->AddGraphicsPass(lightingPass);
 }
 
-void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::DsvDesc& depth) const
+void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::DsvUsage& depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
@@ -468,9 +465,9 @@ void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvDesc& targ
 
 	pass.mRtvs[0] = target;
 	pass.mDsv = depth;
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = target.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	pass.mStencilRef = 0;
 
 	pass.mVbvs.clear();
@@ -493,7 +490,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	const Math::CameraTransformf& cameraTrans, const Math::PerspectiveProjectionf& cameraProj,
-	const std::array<GI::RtvDesc, 3>& gbufferRtvs, const GI::DsvDesc& depthView)
+	const std::array<GI::RtvUsage, 3>& gbufferRtvs, const GI::DsvUsage& depthView)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
 	
@@ -534,7 +531,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 
 	const auto& targetSize = gbufferRtvs[0].GetResource()->GetSize();
 	gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	gbufferPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	gbufferPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	gbufferPass.mVbvs.push_back(geometry->GetVbvDesc());
@@ -564,13 +561,12 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 			gbufferPass.mShaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
 
 			auto res = attr.mTexture->GetResource();
-			gbufferPass.AddSrv((paramName + "Tex").c_str(),
-				GI::SrvDesc()
-				.SetResource(res)
+			auto srv = GI::SrvUsage(res);
+			srv
 				.SetFormat(res->GetFormat())
 				.SetViewDimension(GI::GetSrvDimension(res->GetDimension()))
-				.SetTexture2D_MipLevels(res->GetMipLevelCount())
-			);
+				.SetTexture2D_MipLevels(res->GetMipLevelCount());
+			gbufferPass.AddSrv((paramName + "Tex").c_str(), srv);
 			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
 		}
 		else
@@ -587,7 +583,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	const Math::CameraTransformf& cameraTrans, const Math::OrthographicProjectionf& cameraProj,
-	const GI::DsvDesc& depthView)
+	const GI::DsvUsage& depthView)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -612,9 +608,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 	pass.mDsv = depthView;
 
-	const Vec3i& targetSize = depthView.GetResource()->GetSize();
+	const auto& targetSize = depthView.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
 	pass.mVbvs.push_back(geometry->GetVbvDesc());
@@ -640,9 +636,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 }
 
 void WorldRenderer::RenderShadowMask(GI::IGraphicsInfra* infra, 
-	const GI::RtvDesc& shadowMask, 
-	const GI::SrvDesc& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler, 
-	const GI::SrvDesc& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler,
+	const GI::RtvUsage& shadowMask, 
+	const GI::SrvUsage& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler, 
+	const GI::SrvUsage& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler,
 	const Math::OrthographicProjectionf& lightViewProj, const Math::CameraTransformf& lightViewTrans, 
 	const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans)
 {
@@ -669,9 +665,9 @@ void WorldRenderer::RenderShadowMask(GI::IGraphicsInfra* infra,
 
 	pass.mRtvs[0] = shadowMask;
 
-	const Vec3i& targetSize = shadowMask.GetResource()->GetSize();
+	const auto& targetSize = shadowMask.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
 	pass.mVbvs.clear();
 	pass.mVbvs.push_back(geometry->GetVbvDesc());

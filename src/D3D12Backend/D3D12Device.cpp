@@ -109,8 +109,8 @@ namespace D3D12Backend
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(GI::SrvDesc()
-			.SetResource(nullptr)
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor({},
+			GI::SrvDesc()
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
 			.SetTexture2D_MipLevels(1)
@@ -199,12 +199,6 @@ namespace D3D12Backend
 	IDXGIFactory4* D3D12Device::GetFactory() const
 	{
 		return mFactory;
-	}
-
-	void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
-	{
-		mResMgr->ReleaseResource(res);
-		res = nullptr;
 	}
 
 	void D3D12Device::PushPostSyncOperation(D3D12Device::PostSyncStage stage, const PostSyncOperation& operation)

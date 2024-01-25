@@ -1,12 +1,12 @@
 #include "RenderPch.h"
 #include "RenderTarget.h"
 
-RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, const char* name)
+RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3u size, GI::Format::Enum format, const char* name)
 	: RenderTarget(infra, size, format, 1, name)
 {
 }
 
-RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::Enum format, i32 mipLevelCount, const char* name)
+RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3u size, GI::Format::Enum format, i32 mipLevelCount, const char* name)
 	: mSize(size)
 	, mMipLevelCount(mipLevelCount)
 	, mFormat(format)
@@ -26,15 +26,18 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3i size, GI::Format::En
 		.SetName(name)
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	mRtv.SetResource(mResource.get())
+	mRtv = GI::RtvUsage(mResource);
+	mRtv
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 
-	mUav.SetResource(mResource.get())
+	mUav = GI::UavUsage(mResource);
+	mUav
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::UavDimension::TEXTURE2D);
 
-	mSrv.SetResource(mResource.get())
+	mSrv = GI::SrvUsage(mResource);
+	mSrv
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(u32(mMipLevelCount));
@@ -59,7 +62,8 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetName(name)
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	mUav.SetResource(mResource.get())
+	mUav = GI::UavUsage(mResource);
+	mUav
 		.SetFormat(GI::Format::FORMAT_UNKNOWN)
 		.SetViewDimension(GI::UavDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
@@ -67,7 +71,8 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetBuffer_StructureByteStride(u32(stride))
 		.SetBuffer_FlagRawRatherThanNone(false);
 
-	mSrv.SetResource(mResource.get())
+	mSrv = GI::SrvUsage(mResource);
+	mSrv
 		.SetFormat(GI::Format::FORMAT_R32_UINT)
 		.SetViewDimension(GI::SrvDimension::BUFFER)
 		.SetBuffer_FirstElement(0)
