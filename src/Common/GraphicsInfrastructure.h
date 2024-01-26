@@ -919,7 +919,7 @@ namespace GI
 		virtual IGraphicMemoryResource*     GetWindowBackBuffer(u8 windowId) = 0;
 
 		virtual void                        StartFrame() = 0;
-		virtual void                        EndFrame(bool skipThisFrame) = 0;
+		virtual void                        EndFrame() = 0;
 		virtual void                        Present() = 0;
 
 		virtual void                        StartRecording() = 0;

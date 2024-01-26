@@ -31,7 +31,6 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 {
 	mGraphicInfra->ResizeWindow(windowId, size);
-	mSyncMode = true;
 }
 
 void RenderModule::Initial()
@@ -97,10 +96,8 @@ void RenderModule::Render()
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
-	mGraphicInfra->EndFrame(mSyncMode);
+	mGraphicInfra->EndFrame();
 	
-	mSyncMode = false;
-
 	mGraphicInfra->Present();
 
 	if (mRenderDoc)

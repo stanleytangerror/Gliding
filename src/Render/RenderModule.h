@@ -42,7 +42,6 @@ protected:
 	RenderTarget*							mSceneHdrRt = nullptr;
 
 	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
-	bool									mSyncMode = false;
 
 public:
 	ImDrawData*								mUiData = nullptr;

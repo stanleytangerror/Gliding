@@ -109,7 +109,7 @@ namespace D3D12Backend
 
 	CommitedResource::~CommitedResource()
 	{
-		mDevice->GetResourceManager()->ReleaseResource(mResource);
+		mResource->Release();
 	}
 
 	void CommitedResource::Transition(D3D12Backend::D3D12CommandContext* context, const D3D12_RESOURCE_STATES& destState)

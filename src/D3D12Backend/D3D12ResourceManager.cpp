@@ -239,10 +239,10 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	void ResourceManager::ReleaseResource(ID3D12Resource* res)
+	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
 	{
 		ReleaseItem item;
-		item.mRes = res;
+		item.mResourceId = id;
 
 		for (i32 t = 0; t < Count; ++t)
 		{
@@ -251,16 +251,6 @@ namespace D3D12Backend
 		};
 
 		mReleaseQueue.push_back(item);
-	}
-
-
-	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
-	{
-		auto it = mResourceIdMapping.find(id);
-
-		Assert(it != mResourceIdMapping.end());
-
-		mResourceIdMapping.erase(it);
 	}
 
 	CommitedResource* ResourceManager::GetResource(GI::CommittedResourceId id) const
@@ -278,7 +268,9 @@ namespace D3D12Backend
 			if (std::all_of(item.mGpuQueueTimePoints.begin(), item.mGpuQueueTimePoints.end(),
 				[](const auto& p) { return p.first->IsGpuValueFinished(p.second); }))
 			{
-				item.mRes->Release();
+				Assert(mResourceIdMapping.find(item.mResourceId) != mResourceIdMapping.end());
+				mResourceIdMapping.erase(mResourceIdMapping.find(item.mResourceId));
+
 				it = mReleaseQueue.erase(it);
 			}
 			else

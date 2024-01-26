@@ -23,7 +23,7 @@ namespace D3D12Backend
 		GI::IGraphicMemoryResource* GetWindowBackBuffer(u8 windowId) override;
 
 		void                        StartFrame() override;
-		void                        EndFrame(bool skipThisFrame) override;
+		void                        EndFrame() override;
 		void                        Present() override;
 
 		void						StartRecording() override;
@@ -35,6 +35,7 @@ namespace D3D12Backend
 	private:
 		class D3D12Device*	mDevice = nullptr;
 		class D3D12GraphicsRecorder* mCurrentRecorder = nullptr;
+		bool						mSkipFrameCommands = false;
 	};
 
 	class GD_D3D12BACKEND_API D3D12GraphicsRecorder : public GI::IGraphicsRecorder

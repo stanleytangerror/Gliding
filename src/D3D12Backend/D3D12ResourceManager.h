@@ -27,7 +27,6 @@ namespace D3D12Backend
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const D3D12_RESOURCE_DESC& desc, D3D12_HEAP_TYPE heapType, const char* name, D3D12_RESOURCE_STATES currentState);
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const GI::MemoryResourceDesc& desc);
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
-		void				ReleaseResource(ID3D12Resource* res);
 		void				ReleaseResource(GI::CommittedResourceId id);
 		CommitedResource*	GetResource(GI::CommittedResourceId id) const;
 
@@ -41,8 +40,8 @@ namespace D3D12Backend
 
 		struct ReleaseItem
 		{
-			ID3D12Resource* mRes = nullptr;
-			std::map<D3D12GpuQueue*, u64> mGpuQueueTimePoints;
+			GI::CommittedResourceId			mResourceId;
+			std::map<D3D12GpuQueue*, u64>	mGpuQueueTimePoints;
 		};
 
 		D3D12Device* const			mDevice = nullptr;

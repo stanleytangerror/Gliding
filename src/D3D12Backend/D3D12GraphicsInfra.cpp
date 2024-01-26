@@ -69,6 +69,8 @@ namespace D3D12Backend
 				{
 					swapChain->Resize(windowSize);
 				});
+
+			mSkipFrameCommands = true;
 		}
 	}
 
@@ -83,12 +85,12 @@ namespace D3D12Backend
 		StartRecording();
 	}
 
-	void D3D12GraphicsInfra::EndFrame(bool skipThisFrame)
+	void D3D12GraphicsInfra::EndFrame()
 	{
 		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::MainPort)));
 		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::DebugPort)));
 
-		EndRecording(skipThisFrame);
+		EndRecording(mSkipFrameCommands);
 	}
 
 	void D3D12GraphicsInfra::Present()
@@ -180,18 +182,18 @@ namespace D3D12Backend
 
 	}
 
-#define DEFERRED_EXECUTE 0
+#define DEFERRED_EXECUTE 1
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 		auto resId = rtv.GetResourceId();
 
 #if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, resId, value]()
+		mCommands.push([this, resourceManager, resId, rtv, value]()
 			{
 				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv);
+				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(resId, rtv);
 				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
 			});
@@ -210,11 +212,11 @@ namespace D3D12Backend
 		auto resId = dsv.GetResourceId();
 
 #if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, resId, clearDepth, depth, clearStencil, stencil]()
+		mCommands.push([this, resourceManager, resId, dsv, clearDepth, depth, clearStencil, stencil]()
 			{
 				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv);
+				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(resId, dsv);
 				auto flag =
 					(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 					(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
@@ -239,7 +241,7 @@ namespace D3D12Backend
 		auto destId = (dest)->GetResourceId();
 		auto srcId = (src)->GetResourceId();
 #if DEFERRED_EXECUTE
-		mCommands.push([this, destId, srcId]()
+		mCommands.push([this, resourceManager, destId, srcId]()
 			{
 				mContext->CopyResource(resourceManager->GetResource(destId), resourceManager->GetResource(srcId));
 			});
@@ -251,12 +253,12 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
+		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
+
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, pass]()
 			{
 #endif
-				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
 				for (const auto& vbv : pass.mVbvs)
 				{
 					if (!vbv.GetResourceId()) { return; }
@@ -534,12 +536,12 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
+		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
+
 #if DEFERRED_EXECUTE
-		mCommands.push([this, pass]()
+		mCommands.push([this, resourceManager, pass]()
 			{
 #endif
-				ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
 				std::map<std::string, DescriptorPtr> srvs;
 				for (const auto& [name, srv] : pass.mSrvParams)
 				{
