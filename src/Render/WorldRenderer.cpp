@@ -387,15 +387,14 @@ void WorldRenderer::DeferredLighting(GI::IGraphicsInfra* infra, const GI::RtvUsa
 	lightingPass.mInputLayout = mQuad->mVertexElementDescs;
 
 	const auto& targetSize = target.GetResource()->GetSize();
-	lightingPass.mRtvs[0] = target;
-	lightingPass.mDsv = tmpDepthDsv;
+	lightingPass.SetRtv(0, target);
+	lightingPass.SetDsv(tmpDepthDsv);
 	lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	lightingPass.mVbvs.clear();
-	lightingPass.mVbvs.push_back(mQuad->GetVbvDesc());
-	lightingPass.mIbv = mQuad->GetIbvDesc();
+	lightingPass.PushVbv(mQuad->GetVbvDesc());
+	lightingPass.SetIbv(mQuad->GetIbvDesc());
 	lightingPass.mIndexCount = mQuad->mIndices.size();
 
 	lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -463,16 +462,15 @@ void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvUsage& tar
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = target;
-	pass.mDsv = depth;
+	pass.SetRtv(0, target);
+	pass.SetDsv(depth);
 	const auto& targetSize = target.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -525,17 +523,17 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 
 	for (i32 i = 0; i < gbufferRtvs.size(); ++i)
 	{
-		gbufferPass.mRtvs[i] = gbufferRtvs[i];
+		gbufferPass.SetRtv(i, gbufferRtvs[i]);
 	}
-	gbufferPass.mDsv = depthView;
+	gbufferPass.SetDsv(depthView);
 
 	const auto& targetSize = gbufferRtvs[0].GetResource()->GetSize();
 	gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	gbufferPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	gbufferPass.mVbvs.push_back(geometry->GetVbvDesc());
-	gbufferPass.mIbv = geometry->GetIbvDesc();
+	gbufferPass.PushVbv(geometry->GetVbvDesc());
+	gbufferPass.SetIbv(geometry->GetIbvDesc());
 
 	gbufferPass.mIndexCount = geometry->mIndices.size();
 
@@ -606,15 +604,15 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mDsv = depthView;
+	pass.SetDsv(depthView);
 
 	const auto& targetSize = depthView.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -663,15 +661,14 @@ void WorldRenderer::RenderShadowMask(GI::IGraphicsInfra* infra,
 	
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = shadowMask;
+	pass.SetRtv(0, shadowMask);
 
 	const auto& targetSize = shadowMask.GetResource()->GetSize();
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddSrv("LightViewDepth", lightViewDepth);

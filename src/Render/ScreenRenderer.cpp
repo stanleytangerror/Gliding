@@ -115,13 +115,12 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvUsage& 
 
 	ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
-	ldrScreenPass.mRtvs[0] = target;
+	ldrScreenPass.SetRtv(0, target);
 	ldrScreenPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	ldrScreenPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	
-	ldrScreenPass.mVbvs.clear();
-	ldrScreenPass.mVbvs.push_back(mQuad->GetVbvDesc());
-	ldrScreenPass.mIbv = mQuad->GetIbvDesc();
+	ldrScreenPass.PushVbv(mQuad->GetVbvDesc());
+	ldrScreenPass.SetIbv(mQuad->GetIbvDesc());
 	ldrScreenPass.mIndexCount = mQuad->mIndices.size();
 
 	infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);

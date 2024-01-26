@@ -64,14 +64,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = rtv;
+	pass.SetRtv(0, rtv);
 	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -151,14 +150,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = rtv;
+	pass.SetRtv(0, rtv);
 	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -267,14 +265,13 @@ void EnvironmentMap::PrefilterEnvironmentMap
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = target;
+	pass.SetRtv(0, target);
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });

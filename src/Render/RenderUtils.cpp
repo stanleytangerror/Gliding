@@ -55,12 +55,12 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 	pass.mInputLayout = quad->mVertexElementDescs;
 
 	const Vec3u& targetSize = target.GetResource()->GetSize();
-	pass.mRtvs[0] = target;
+	pass.SetRtv(0, target);
 	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
-	pass.mVbvs.push_back(quad->GetVbvDesc());
-	pass.mIbv = quad->GetIbvDesc();
+	pass.PushVbv(quad->GetVbvDesc());
+	pass.SetIbv(quad->GetIbvDesc());
 	pass.mIndexCount = quad->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
@@ -98,13 +98,12 @@ void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const
 
 	pass.mInputLayout = quad->mVertexElementDescs;
 
-	pass.mRtvs[0] = target;
+	pass.SetRtv(0, target);
 	pass.mViewPort.SetWidth(size.x()).SetHeight(size.y());
 	pass.mScissorRect = { 0, 0, i32(size.x()), i32(size.y()) };
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(quad->GetVbvDesc());
-	pass.mIbv = quad->GetIbvDesc();
+	pass.PushVbv(quad->GetVbvDesc());
+	pass.SetIbv(quad->GetIbvDesc());
 	pass.mIndexCount = quad->mIndices.size();
 
 	pass.AddCbVar("BlurTargetSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });

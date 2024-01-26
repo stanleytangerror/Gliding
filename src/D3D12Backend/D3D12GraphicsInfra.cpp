@@ -251,7 +251,6 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
-
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, pass]()
 			{
@@ -260,20 +259,20 @@ namespace D3D12Backend
 
 				for (const auto& vbv : pass.mVbvs)
 				{
-					if (!vbv.GetResource()) { return; }
+					if (!vbv.GetResourceId()) { return; }
 				}
 
 				std::map<std::string, DescriptorPtr> srvs;
 				for (const auto& [name, srv] : pass.mSrvParams)
 				{
-					if (!srv.GetResource()) { return; }
+					if (!srv.GetResourceId()) { return; }
 					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
 				}
 
 				std::vector<DescriptorPtr> rtvs;
 				std::vector<DXGI_FORMAT> rtvFormats;
-				auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResource(); });
-				if (numRtvs == 0 && !pass.mDsv.GetResource()) { return; }
+				auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResourceId(); });
+				if (numRtvs == 0 && !pass.mDsv.GetResourceId()) { return; }
 				for (auto i = 0; i < numRtvs; ++i)
 				{
 					rtvs.push_back(resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResourceId(), pass.mRtvs[i]));
@@ -296,14 +295,14 @@ namespace D3D12Backend
 
 				for (const auto& rtv : pass.mRtvs)
 				{
-					if (rtv.GetResource())
+					if (rtv.GetResourceId())
 					{
 						auto res = resourceManager->GetResource(rtv.GetResourceId());
 						res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 					}
 				}
 
-				if (pass.mDsv.GetResource())
+				if (pass.mDsv.GetResourceId())
 				{
 					auto res = resourceManager->GetResource(pass.mDsv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -387,7 +386,7 @@ namespace D3D12Backend
 					desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
 				}
 
-				if (pass.mDsv.GetResource())
+				if (pass.mDsv.GetResourceId())
 				{
 					desc.DSVFormat = D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat());
 				}
@@ -497,7 +496,7 @@ namespace D3D12Backend
 					rtvHandles[rtvCount] = rtvs[rtvCount].Get();
 				}
 
-				if (pass.mDsv.GetResource())
+				if (pass.mDsv.GetResourceId())
 				{
 					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResourceId(), pass.mDsv).Get();
 					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, &dsHandle);
@@ -544,14 +543,14 @@ namespace D3D12Backend
 				std::map<std::string, DescriptorPtr> srvs;
 				for (const auto& [name, srv] : pass.mSrvParams)
 				{
-					if (!srv.GetResource()) { return; }
+					if (!srv.GetResourceId()) { return; }
 					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
 				}
 
 				std::map<std::string, DescriptorPtr> uavs;
 				for (const auto& [name, uav] : pass.mUavParams)
 				{
-					if (!uav.GetResource()) { return; }
+					if (!uav.GetResourceId()) { return; }
 					uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav);
 				}
 

@@ -165,13 +165,12 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			pass.mInputLayout = geo->mVertexElementDescs;
 
 			const Vec3u& targetSize = target.GetResource()->GetSize();
-			pass.mRtvs[0] = target;
+			pass.SetRtv(0, target);
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = scissorRect;
 
-			pass.mVbvs.clear();
-			pass.mVbvs.push_back(geo->GetVbvDesc());
-			pass.mIbv = geo->GetIbvDesc();
+			pass.PushVbv(geo->GetVbvDesc());
+			pass.SetIbv(geo->GetIbvDesc());
 			pass.mIndexCount = cmd->ElemCount;
 			pass.mIndexStartLocation = indexOffset + cmd->IdxOffset;
 			pass.mVertexStartLocation = vertexOffset + cmd->VtxOffset;
