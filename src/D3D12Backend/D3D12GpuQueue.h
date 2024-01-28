@@ -13,7 +13,7 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API D3D12GpuQueue
 	{
 	public:
-		D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type);
+		D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name);
 		virtual ~D3D12GpuQueue();
 
 		GraphicsContext* AllocGraphicContext();
@@ -35,6 +35,7 @@ namespace D3D12Backend
 	protected:
 		D3D12GpuQueueType const	mType = D3D12GpuQueueType::Graphic;
 		D3D12Device* const		mDevice = nullptr;
+		std::string				mName;
 
 		ID3D12CommandQueue* mCommandQueue = nullptr;
 		ID3D12Fence* mFence = nullptr;

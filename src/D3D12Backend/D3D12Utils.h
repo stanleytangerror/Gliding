@@ -29,10 +29,10 @@ namespace D3D12Utils
 	
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
 
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const char* name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const char* name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const std::string& name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
+	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
 
 	//GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
 	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);

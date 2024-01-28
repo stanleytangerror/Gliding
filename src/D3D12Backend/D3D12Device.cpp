@@ -103,7 +103,11 @@ namespace D3D12Backend
 
 		for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 		{
-			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i));
+			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i), Utils::FormatString("GPU queue %s", 
+				i == D3D12GpuQueueType::Graphic ? "Graphic" :
+				i == D3D12GpuQueueType::Compute ? "Compute" :
+				i == D3D12GpuQueueType::Copy ? "Copy" : "Unknown"
+			).c_str());
 		}
 
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);

@@ -3,8 +3,9 @@
 
 namespace D3D12Backend
 {
-	D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type)
+	D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name)
 		: mDevice(device)
+		, mName(name)
 		, mType(type)
 	{
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -13,6 +14,7 @@ namespace D3D12Backend
 			queueDesc.Type = GetD3D12CommandListType(mType);
 		}
 		AssertHResultOk(mDevice->GetDevice()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
+		NAME_RAW_D3D12_OBJECT(mCommandQueue, mName.c_str());
 
 		AssertHResultOk(mDevice->GetDevice()->CreateFence(mGpuCompletedValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
 

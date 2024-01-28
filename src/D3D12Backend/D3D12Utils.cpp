@@ -90,22 +90,22 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 	return result;
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const char* name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const char* name)
 {
 	SetRawD3D12ResourceName(res, Utils::ToWString(name));
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const std::string& name)
 {
 	SetRawD3D12ResourceName(res, Utils::ToWString(name));
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name)
 {
 	res->SetName(name);
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name)
 {
 	SetRawD3D12ResourceName(res, name.c_str());
 }
