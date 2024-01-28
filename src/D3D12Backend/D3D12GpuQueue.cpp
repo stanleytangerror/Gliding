@@ -72,23 +72,24 @@ namespace D3D12Backend
 		mCommandQueue->ExecuteCommandLists(u32(cmdLists.size()), cmdLists.data());
 		mCommandQueue->Signal(mFence, mGpuPlannedValue);
 
-		mGraphicContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
-		mComputeContextPool->ReleaseAllActiveItems(mGpuPlannedValue);
+		mGraphicContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
+		mComputeContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
 	}
 
 	void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
 	{
 		Assert(mGpuCompletedValue <= value && value <= mGpuPlannedValue);
 
-		if (mFence->GetCompletedValue() < value)
+		const auto completedValue = mFence->GetCompletedValue();
+		if (completedValue < value)
 		{
-			DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", mFence->GetCompletedValue(), value);
+			DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", completedValue, value);
 			mFence->SetEventOnCompletion(value, mCpuEventHandle);
 			WaitForSingleObject(mCpuEventHandle, INFINITE);
 		}
-		Assert(value <= mFence->GetCompletedValue());
 
 		mGpuCompletedValue = mFence->GetCompletedValue();
+		Assert(value <= mGpuCompletedValue);
 		DEBUG_PRINT("GpuQueue complete value %d, planned value %d", mGpuCompletedValue, mGpuPlannedValue);
 
 		mGraphicContextPool->UpdateTime(mGpuCompletedValue);
@@ -101,7 +102,7 @@ namespace D3D12Backend
 
 	bool D3D12GpuQueue::IsGpuValueFinished(u64 value)
 	{
-		return mGpuCompletedValue >= value;
+		return value <= mGpuCompletedValue;
 	}
 
 	D3D12_COMMAND_LIST_TYPE D3D12GpuQueue::GetD3D12CommandListType(D3D12GpuQueueType type)

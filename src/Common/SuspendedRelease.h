@@ -18,8 +18,8 @@ public:
 	virtual ~SuspendedReleasePool();
 
 	T* AllocItem();
-	void ReleaseItem(u64 releasingTime, T*& object);
-	void ReleaseAllActiveItems(u64 releasingTime);
+	void ScheduleReleaseItemAtTimestamp(u64 releasingTime, T*& object);
+	void ScheduleReleaseAllActiveItemsAtTimestamp(u64 releasingTime);
 
 	void UpdateTime(u64 time);
 
