@@ -63,6 +63,7 @@ namespace D3D12Backend
 		mSize = newSize;
 
 		InitialBuffers();
+		mCurrentBackBufferIndex = 0;
 	}
 
 	void SwapChain::ClearBuffers()
