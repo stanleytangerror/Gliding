@@ -91,6 +91,7 @@ namespace D3D12Backend
 		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::DebugPort)));
 
 		EndRecording(mSkipFrameCommands);
+		mSkipFrameCommands = false;
 	}
 
 	void D3D12GraphicsInfra::Present()
