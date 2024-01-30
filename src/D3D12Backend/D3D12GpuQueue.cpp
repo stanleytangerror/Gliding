@@ -3,6 +3,17 @@
 
 namespace D3D12Backend
 {
+	void WaitForFenceCompletion(ID3D12Fence* fence, u64 value)
+	{
+		auto cpuEventHandle = CreateEvent(nullptr, false, false, nullptr);
+		Assert(cpuEventHandle != INVALID_HANDLE_VALUE);
+
+		AssertHResultOk(fence->SetEventOnCompletion(value, cpuEventHandle));
+		WaitForSingleObject(cpuEventHandle, INFINITE);
+
+		CloseHandle(cpuEventHandle);
+	}
+
 	D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name)
 		: mDevice(device)
 		, mName(name)
@@ -15,8 +26,6 @@ namespace D3D12Backend
 		}
 		AssertHResultOk(mDevice->GetDevice()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
 		NAME_RAW_D3D12_OBJECT(mCommandQueue, mName.c_str());
-
-		AssertHResultOk(mDevice->GetDevice()->CreateFence(mGpuCompletedValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
 
 		mGraphicContextPool = new SuspendedReleasePool<GraphicsContext>(
 			[&]() { return new GraphicsContext(mDevice, this); },
@@ -42,7 +51,7 @@ namespace D3D12Backend
 
 		CloseHandle(mCpuEventHandle);
 
-		Utils::SafeRelease(mFence);
+		//Utils::SafeRelease(mFence);
 		Utils::SafeRelease(mCommandQueue);
 	}
 
@@ -70,7 +79,13 @@ namespace D3D12Backend
 		}
 
 		mCommandQueue->ExecuteCommandLists(u32(cmdLists.size()), cmdLists.data());
-		mCommandQueue->Signal(mFence, mGpuPlannedValue);
+
+		auto fence = AllocFence();
+		AssertHResultOk(mCommandQueue->Signal(fence, mGpuPlannedValue));
+		Assert(mWorkingFences.find(mGpuPlannedValue) == mWorkingFences.end());
+		mWorkingFences[mGpuPlannedValue] = fence;
+
+		DEBUG_PRINT("[%s] operations fired to %d", mName.c_str(), mGpuPlannedValue);
 
 		mGraphicContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
 		mComputeContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
@@ -78,19 +93,57 @@ namespace D3D12Backend
 
 	void D3D12GpuQueue::CpuWaitForThisQueue(u64 value)
 	{
-		Assert(mGpuCompletedValue <= value && value <= mGpuPlannedValue);
+		Assert(value <= mGpuPlannedValue);
 
-		const auto completedValue = mFence->GetCompletedValue();
-		if (completedValue < value)
+		if (value == GetGpuPlannedValue())
 		{
-			DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", completedValue, value);
-			mFence->SetEventOnCompletion(value, mCpuEventHandle);
-			WaitForSingleObject(mCpuEventHandle, INFINITE);
+			for (auto it = mWorkingFences.begin(); it != mWorkingFences.end(); ++it)
+			{
+				auto plannedValue = it->first;
+				auto fence = it->second;
+				const auto completedValue = fence->GetCompletedValue();
+
+				WaitForFenceCompletion(fence, plannedValue);
+
+				mAvailableFences.push_back(fence);
+			}
+			mWorkingFences.clear();
+
+			{
+				auto fence = AllocFence();
+				AssertHResultOk(mCommandQueue->Signal(fence, value));
+				WaitForFenceCompletion(fence, value);
+				mAvailableFences.push_back(fence);
+			}
+		}
+		else
+		{
+			for (auto it = mWorkingFences.begin(); it != mWorkingFences.end(); )
+			{
+				auto plannedValue = it->first;
+				auto fence = it->second;
+				if (plannedValue <= value)
+				{
+					const auto completedValue = fence->GetCompletedValue();
+					if (completedValue < plannedValue)
+					{
+						//DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", completedValue, value);
+
+						WaitForFenceCompletion(fence, plannedValue);
+					}
+
+					it = mWorkingFences.erase(it);
+					mAvailableFences.push_back(fence);
+				}
+				else
+				{
+					++it;
+				}
+			}
 		}
 
-		mGpuCompletedValue = mFence->GetCompletedValue();
-		Assert(value <= mGpuCompletedValue);
-		DEBUG_PRINT("GpuQueue complete value %d, planned value %d", mGpuCompletedValue, mGpuPlannedValue);
+
+		mGpuCompletedValue = std::max(mGpuCompletedValue, value);
 
 		mGraphicContextPool->UpdateTime(mGpuCompletedValue);
 	}
@@ -111,5 +164,21 @@ namespace D3D12Backend
 			type == D3D12GpuQueueType::Graphic ? D3D12_COMMAND_LIST_TYPE_DIRECT :
 			type == D3D12GpuQueueType::Compute ? D3D12_COMMAND_LIST_TYPE_COMPUTE :
 			type == D3D12GpuQueueType::Copy ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT;
+	}
+
+	ID3D12Fence* D3D12GpuQueue::AllocFence()
+	{
+		if (mAvailableFences.empty())
+		{
+			ID3D12Fence* newFence = nullptr;
+			AssertHResultOk(mDevice->GetDevice()->CreateFence(mGpuCompletedValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&newFence)));
+			return newFence;
+		}
+		else
+		{
+			auto newFence = mAvailableFences.front();
+			mAvailableFences.erase(mAvailableFences.begin());
+			return newFence;
+		}
 	}
 }

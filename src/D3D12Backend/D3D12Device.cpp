@@ -149,7 +149,7 @@ namespace D3D12Backend
 
 		for (D3D12GpuQueue* q : mGpuQueues)
 		{
-			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 1 ? q->GetGpuPlannedValue() - 1 : 0);
+			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 2 ? q->GetGpuPlannedValue() - 2 : 0);
 		}
 
 		mResMgr->Update();

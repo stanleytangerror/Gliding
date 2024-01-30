@@ -33,12 +33,16 @@ namespace D3D12Backend
 		static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
 
 	protected:
+		ID3D12Fence*			AllocFence();
+
+	protected:
 		D3D12GpuQueueType const	mType = D3D12GpuQueueType::Graphic;
 		D3D12Device* const		mDevice = nullptr;
 		std::string				mName;
 
 		ID3D12CommandQueue* mCommandQueue = nullptr;
-		ID3D12Fence* mFence = nullptr;
+		std::vector<ID3D12Fence*> mAvailableFences;
+		std::map<u64, ID3D12Fence*> mWorkingFences;
 
 		u64						mGpuPlannedValue = 1;
 		u64						mGpuCompletedValue = 0;
