@@ -22,7 +22,7 @@ namespace D3D12Backend
 		u64						GetGpuPlannedValue() const { return mGpuPlannedValue; }
 		u64						GetGpuCompletedValue() const { return mGpuCompletedValue; }
 		D3D12GpuQueueType		GetType() const { return mType; }
-		ID3D12CommandQueue* GetCommandQueue() const { return mCommandQueue; }
+		ID3D12CommandQueue*		GetCommandQueue() const { return mCommandQueue; }
 
 		void					Execute();
 

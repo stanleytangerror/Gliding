@@ -1,6 +1,9 @@
 #include "D3D12BackendPch.h"
 #include "D3D12GpuQueue.h"
 
+//#define DEBUG_PRINT_COMMAND_QUEUE DEBUG_PRINT
+#define DEBUG_PRINT_COMMAND_QUEUE(msg, ...) {}
+
 namespace D3D12Backend
 {
 	void WaitForFenceCompletion(ID3D12Fence* fence, u64 value)
@@ -10,8 +13,11 @@ namespace D3D12Backend
 
 		AssertHResultOk(fence->SetEventOnCompletion(value, cpuEventHandle));
 		WaitForSingleObject(cpuEventHandle, INFINITE);
+		DEBUG_PRINT_COMMAND_QUEUE("Fence 0x%08x SetEventOnCompletion value %d", fence, value);
 
 		CloseHandle(cpuEventHandle);
+
+		DEBUG_PRINT_COMMAND_QUEUE("Fence 0x%08x GetCompletedValue %d", fence, fence->GetCompletedValue());
 	}
 
 	D3D12GpuQueue::D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name)
@@ -79,13 +85,14 @@ namespace D3D12Backend
 		}
 
 		mCommandQueue->ExecuteCommandLists(u32(cmdLists.size()), cmdLists.data());
+		DEBUG_PRINT_COMMAND_QUEUE("[%s] ExecuteCommandLists length %d", mName.c_str(), cmdLists.size());
 
 		auto fence = AllocFence();
 		AssertHResultOk(mCommandQueue->Signal(fence, mGpuPlannedValue));
+		DEBUG_PRINT_COMMAND_QUEUE("[%s] Signal fence 0x%08x value %d", mName.c_str(), fence, mGpuPlannedValue);
+
 		Assert(mWorkingFences.find(mGpuPlannedValue) == mWorkingFences.end());
 		mWorkingFences[mGpuPlannedValue] = fence;
-
-		DEBUG_PRINT("[%s] operations fired to %d", mName.c_str(), mGpuPlannedValue);
 
 		mGraphicContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
 		mComputeContextPool->ScheduleReleaseAllActiveItemsAtTimestamp(mGpuPlannedValue);
@@ -95,6 +102,7 @@ namespace D3D12Backend
 	{
 		Assert(value <= mGpuPlannedValue);
 
+		//if (false) TODO use this line still works well
 		if (value == GetGpuPlannedValue())
 		{
 			for (auto it = mWorkingFences.begin(); it != mWorkingFences.end(); ++it)
@@ -112,6 +120,8 @@ namespace D3D12Backend
 			{
 				auto fence = AllocFence();
 				AssertHResultOk(mCommandQueue->Signal(fence, value));
+				DEBUG_PRINT_COMMAND_QUEUE("[%s] Signal fence 0x%08x value %d", mName.c_str(), fence, value);
+
 				WaitForFenceCompletion(fence, value);
 				mAvailableFences.push_back(fence);
 			}
@@ -127,8 +137,6 @@ namespace D3D12Backend
 					const auto completedValue = fence->GetCompletedValue();
 					if (completedValue < plannedValue)
 					{
-						//DEBUG_PRINT("CPU wait for GPU completed %d, wait for %d", completedValue, value);
-
 						WaitForFenceCompletion(fence, plannedValue);
 					}
 
