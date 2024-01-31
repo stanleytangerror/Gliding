@@ -64,13 +64,14 @@ void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 	std::swap(mResource, res);
 }
 
-GI::SrvDesc FileTexture::GetSrv() const
+GI::SrvUsage FileTexture::GetSrv() const
 {
-	return GI::SrvDesc()
-		.SetResource(mResource.get())
+	auto result = GI::SrvUsage(mResource);
+	result
 		.SetFormat(mResource->GetFormat())
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(mResource->GetMipLevelCount());
+	return result;
 }
 
 InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)

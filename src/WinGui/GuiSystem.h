@@ -30,7 +30,7 @@ namespace WinGui
 	struct WindowCreationInfo
 	{
 		std::wstring mTitle;
-		Vec2i mSize;
+		Vec2u mSize;
 		WindowId mWindowId;
 	};
 
@@ -39,7 +39,7 @@ namespace WinGui
 	public:
 		GuiSystem();
 
-		WindowId CreateNewWindow(const wchar_t* title, const Vec2i& size);
+		WindowId CreateNewWindow(const wchar_t* title, const Vec2u& size);
 		bool TryGetWindowInfo(const WindowId& windowId, WindowRuntimeInfo* info);
 
 		void PeakAllMessages();

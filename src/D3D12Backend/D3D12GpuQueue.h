@@ -13,7 +13,7 @@ namespace D3D12Backend
 	class GD_D3D12BACKEND_API D3D12GpuQueue
 	{
 	public:
-		D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type);
+		D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name);
 		virtual ~D3D12GpuQueue();
 
 		GraphicsContext* AllocGraphicContext();
@@ -22,7 +22,7 @@ namespace D3D12Backend
 		u64						GetGpuPlannedValue() const { return mGpuPlannedValue; }
 		u64						GetGpuCompletedValue() const { return mGpuCompletedValue; }
 		D3D12GpuQueueType		GetType() const { return mType; }
-		ID3D12CommandQueue* GetCommandQueue() const { return mCommandQueue; }
+		ID3D12CommandQueue*		GetCommandQueue() const { return mCommandQueue; }
 
 		void					Execute();
 
@@ -33,11 +33,16 @@ namespace D3D12Backend
 		static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
 
 	protected:
+		ID3D12Fence*			AllocFence();
+
+	protected:
 		D3D12GpuQueueType const	mType = D3D12GpuQueueType::Graphic;
 		D3D12Device* const		mDevice = nullptr;
+		std::string				mName;
 
 		ID3D12CommandQueue* mCommandQueue = nullptr;
-		ID3D12Fence* mFence = nullptr;
+		std::vector<ID3D12Fence*> mAvailableFences;
+		std::map<u64, ID3D12Fence*> mWorkingFences;
 
 		u64						mGpuPlannedValue = 1;
 		u64						mGpuCompletedValue = 0;

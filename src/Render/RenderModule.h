@@ -19,6 +19,7 @@ public:
 	RenderModule();
 
 	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
+	void OnResizeWindow(u8 windowId, const Vec2u& size);
 
 	void Initial();
 

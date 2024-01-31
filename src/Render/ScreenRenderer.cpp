@@ -21,20 +21,20 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::RtvDesc& screenRt)
+void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const GI::SrvUsage& sceneHdr, const GI::RtvUsage& screenRt)
 {
 	if (!mQuad->IsGraphicsResourceReady())
 	{
 		mQuad->CreateAndInitialResource(infra);
 	}
 
-	std::unique_ptr<RenderTarget> exposure = std::make_unique<RenderTarget>(infra, Vec3i{ 1, 1, 1, }, GI::Format::FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
+	std::unique_ptr<RenderTarget> exposure = std::make_unique<RenderTarget>(infra, Vec3u{ 1, 1, 1, }, GI::Format::FORMAT_R32G32B32A32_FLOAT, "ExposureRt");
 
 	CalcSceneExposure(infra, sceneHdr, exposure->GetUav());
 	ToneMapping(infra, sceneHdr, exposure->GetSrv(), screenRt);
 }
 
-void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::UavDesc& exposureRt)
+void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvUsage& sceneHdr, const GI::UavUsage& exposureRt)
 {
 	const i32 histogramSize = 64;
 	const f32 brightMin = 4.f;
@@ -51,7 +51,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
 		pass.mShaderMacros.push_back(GI::ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
-		const Vec3i& size = sceneHdr.GetResource()->GetSize();
+		const Vec3u& size = sceneHdr.GetResource()->GetSize();
 		pass.AddSrv("SceneHdr", sceneHdr);
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
@@ -73,7 +73,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 		pass.mCsFile = "res/Shader/Exposure.hlsl";
 		pass.mShaderMacros.push_back(GI::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
-		const Vec3i& size = sceneHdr.GetResource()->GetSize();
+		const Vec3u& size = sceneHdr.GetResource()->GetSize();
 		pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
 		pass.AddCbVar("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
@@ -90,7 +90,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvD
 	}
 }
 
-void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& sceneHdr, const GI::SrvDesc& exposure, const GI::RtvDesc& target)
+void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvUsage& sceneHdr, const GI::SrvUsage& exposure, const GI::RtvUsage& target)
 {
 	RENDER_EVENT(infra, ToneMapping);
 
@@ -106,7 +106,7 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& s
 
 	ldrScreenPass.mInputLayout = mQuad->mVertexElementDescs;
 
-	const Vec3i& targetSize = target.GetResource()->GetSize();
+	const Vec3u& targetSize = target.GetResource()->GetSize();
 	
 	ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
@@ -115,13 +115,12 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvDesc& s
 
 	ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
-	ldrScreenPass.mRtvs[0] = target;
+	ldrScreenPass.SetRtv(0, target);
 	ldrScreenPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	ldrScreenPass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+	ldrScreenPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 	
-	ldrScreenPass.mVbvs.clear();
-	ldrScreenPass.mVbvs.push_back(mQuad->GetVbvDesc());
-	ldrScreenPass.mIbv = mQuad->GetIbvDesc();
+	ldrScreenPass.PushVbv(mQuad->GetVbvDesc());
+	ldrScreenPass.SetIbv(mQuad->GetIbvDesc());
 	ldrScreenPass.mIndexCount = mQuad->mIndices.size();
 
 	infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);

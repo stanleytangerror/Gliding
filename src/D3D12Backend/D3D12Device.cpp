@@ -103,14 +103,18 @@ namespace D3D12Backend
 
 		for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 		{
-			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i));
+			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i), Utils::FormatString("GPU queue %s", 
+				i == D3D12GpuQueueType::Graphic ? "Graphic" :
+				i == D3D12GpuQueueType::Compute ? "Compute" :
+				i == D3D12GpuQueueType::Copy ? "Copy" : "Unknown"
+			).c_str());
 		}
 
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(GI::SrvDesc()
-			.SetResource(nullptr)
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor({},
+			GI::SrvDesc()
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
 			.SetTexture2D_MipLevels(1)
@@ -119,13 +123,6 @@ namespace D3D12Backend
 		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
 			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
 			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
-	}
-
-	void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)
-	{
-		Assert(mPresentPorts.find(type) == mPresentPorts.end());
-
-		mPresentPorts[type] = new SwapChain(this, windowHandle, initWindowSize, mSwapChainBufferCount);
 	}
 
 	void D3D12Device::StartFrame()
@@ -145,17 +142,39 @@ namespace D3D12Backend
 			q->Execute();
 		}
 
-		for (auto& [_, presentPort] : mPresentPorts)
+		for (auto [_, swapChain] : mResMgr->GetSwapChains())
 		{
-			presentPort->Present();
+			swapChain->Present();
 		}
 
 		for (D3D12GpuQueue* q : mGpuQueues)
 		{
-			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 1 ? q->GetGpuPlannedValue() - 1 : 0);
+			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 2 ? q->GetGpuPlannedValue() - 2 : 0);
 		}
 
 		mResMgr->Update();
+
+		bool postSyncQueueNotEmpty = std::any_of(mPostSyncQueues.begin(), mPostSyncQueues.end(), [](const auto& q) { return !q.empty(); });
+		if (postSyncQueueNotEmpty)
+		{
+			while (!mPostSyncQueues[PreRelease].empty())
+			{
+				mPostSyncQueues[PreRelease].front()();
+				mPostSyncQueues[PreRelease].pop();
+			}
+
+			for (D3D12GpuQueue* q : mGpuQueues)
+			{
+				q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
+			}
+			mResMgr->Update();
+
+			while (!mPostSyncQueues[PostRelease].empty())
+			{
+				mPostSyncQueues[PostRelease].front()();
+				mPostSyncQueues[PostRelease].pop();
+			}
+		}
 	}
 
 	void D3D12Device::Destroy()
@@ -165,11 +184,6 @@ namespace D3D12Backend
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
 			Utils::SafeDelete(q);
 		}
-
-		//for (auto& [_, presentPort] : mPresentPorts)
-		//{
-		//	Utils::SafeDelete(presentPort);
-		//}
 
 		mResMgr->Update();
 		mResMgr = nullptr;
@@ -191,15 +205,9 @@ namespace D3D12Backend
 		return mFactory;
 	}
 
-	D3D12Backend::SwapChain* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
+	void D3D12Device::PushPostSyncOperation(D3D12Device::PostSyncStage stage, const PostSyncOperation& operation)
 	{
-		auto it = mPresentPorts.find(type);
-		return it != mPresentPorts.end() ? it->second : nullptr;
+		mPostSyncQueues[stage].push(operation);
 	}
 
-	void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
-	{
-		mResMgr->ReleaseResource(res);
-		res = nullptr;
-	}
 }

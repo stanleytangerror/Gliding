@@ -1,5 +1,6 @@
 #include "D3D12BackendPch.h"
 #include "D3D12ConstantBuffer.h"
+#include "D3D12Resource.h"
 
 namespace D3D12Backend
 {
@@ -7,27 +8,32 @@ namespace D3D12Backend
 		: mDevice(device)
 		, mSize(Math::Align(size, msGpuAddrAlignment))
 	{
-		CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
-		CD3DX12_RESOURCE_DESC uploadBuffer = CD3DX12_RESOURCE_DESC::Buffer(mSize);
-		device->GetDevice()->CreateCommittedResource(
-			&heapUpload,
-			D3D12_HEAP_FLAG_NONE,
-			&uploadBuffer,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&mGpuResource));
+		auto res = mDevice->GetResourceManager()->CreateResource(
+			CD3DX12_RESOURCE_DESC::Buffer(mSize), 
+			D3D12_HEAP_TYPE_UPLOAD, 
+			"ConstBufferBlock", 
+			D3D12_RESOURCE_STATE_GENERIC_READ);
 
-		mGpuBaseVirtualAddr = mGpuResource->GetGPUVirtualAddress();
+		std::swap(res, mGpuResource);
+
+		//CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
+		//CD3DX12_RESOURCE_DESC uploadBuffer = CD3DX12_RESOURCE_DESC::Buffer(mSize);
+		//device->GetDevice()->CreateCommittedResource(
+		//	&heapUpload,
+		//	D3D12_HEAP_FLAG_NONE,
+		//	&uploadBuffer,
+		//	D3D12_RESOURCE_STATE_GENERIC_READ,
+		//	nullptr,
+		//	IID_PPV_ARGS(&mGpuResource));
+
+		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource->GetResourceId())->GetD3D12Resource();
+
+		mGpuBaseVirtualAddr = d3dRes->GetGPUVirtualAddress();
 		Assert(mGpuBaseVirtualAddr == Math::Align(mGpuBaseVirtualAddr, msGpuAddrAlignment));
 
 		void* mapCpuAddr = nullptr;
-		mGpuResource->Map(0, nullptr, &mapCpuAddr);
+		d3dRes->Map(0, nullptr, &mapCpuAddr);
 		mCpuBaseVirtualAddr = reinterpret_cast<byte*>(mapCpuAddr);
-	}
-
-	ConstBufferBlock::~ConstBufferBlock()
-	{
-		mDevice->ReleaseD3D12Resource(mGpuResource);
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS ConstBufferBlock::Push(const void* data, i32 size)

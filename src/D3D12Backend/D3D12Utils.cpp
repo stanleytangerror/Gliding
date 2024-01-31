@@ -90,22 +90,22 @@ ID3DBlob* D3D12Utils::CompileBlobFromFile(const char* filePath, const char* entr
 	return result;
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const char* name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const char* name)
 {
 	SetRawD3D12ResourceName(res, Utils::ToWString(name));
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const std::string& name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const std::string& name)
 {
 	SetRawD3D12ResourceName(res, Utils::ToWString(name));
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const wchar_t* name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name)
 {
 	res->SetName(name);
 }
 
-void D3D12Utils::SetRawD3D12ResourceName(ID3D12Resource* res, const std::wstring& name)
+void D3D12Utils::SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name)
 {
 	SetRawD3D12ResourceName(res, name.c_str());
 }
@@ -146,43 +146,42 @@ namespace
 		return image;
 	}
 
-	std::unique_ptr<D3D12Backend::CommitedResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const DirectX::ScratchImage& image)
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const DirectX::ScratchImage& image)
 	{
 		D3D12Backend::D3D12Device* device = context->GetDevice();
 
 		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
 		ID3D12Resource* defaultResource = nullptr;
 		AssertHResultOk(DirectX::CreateTexture(device->GetDevice(), image.GetMetadata(), &defaultResource));
-		auto result = std::unique_ptr<D3D12Backend::CommitedResource>(D3D12Backend::CommitedResource::Possessor()
-			.SetResource(defaultResource)
-			.SetCurrentState(D3D12_RESOURCE_STATE_COPY_DEST)
-			.Possess(device));
+		auto result = device->GetResourceManager()->CreateResource(defaultResource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
+		auto resultDeviceResource = device->GetResourceManager()->GetResource(result->GetResourceId());
 
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
 
 		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(result->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resultDeviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
 
-		auto textureUploadHeap = std::unique_ptr< D3D12Backend::CommitedResource>(
-			D3D12Backend::CommitedResource::Builder()
-			.SetDimention(D3D12_RESOURCE_DIMENSION_BUFFER)
+		auto textureUploadHeap = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::BUFFER)
 			.SetAlignment(0)
 			.SetWidth(uploadBufferSize)
 			.SetHeight(1)
 			.SetDepthOrArraySize(1)
 			.SetMipLevels(1)
-			.SetFormat(DXGI_FORMAT_UNKNOWN)
-			.SetLayout(D3D12_TEXTURE_LAYOUT_ROW_MAJOR)
-			.SetFlags(D3D12_RESOURCE_FLAG_NONE)
-			.SetInitState(D3D12_RESOURCE_STATE_GENERIC_READ)
-			.Build(context->GetDevice(), GI::HeapType::UPLOAD));
+			.SetFormat(GI::Format::FORMAT_UNKNOWN)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::NONE)
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD));
 		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
+
+		auto innerUploadResource = device->GetResourceManager()->GetResource(textureUploadHeap->GetResourceId());
 
 		UpdateSubresources(
 			context->GetCommandList(),
-			result->GetD3D12Resource(), 
-			textureUploadHeap->GetD3D12Resource(),
+			resultDeviceResource->GetD3D12Resource(),
+			innerUploadResource->GetD3D12Resource(),
 			0, 0, static_cast<unsigned int>(subresources.size()),
 			subresources.data());
 
@@ -250,7 +249,7 @@ namespace D3D12Utils
 	}
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
+std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)
 {
 	std::unique_ptr<DirectX::ScratchImage> image;
 
@@ -280,19 +279,20 @@ std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromIma
 	return nullptr;
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
+std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 {
 	std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
 	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);
 	memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
 	auto resource = CreateD3DResFromScratchImage(context, *image);
-	NAME_RAW_D3D12_OBJECT(resource->GetD3D12Resource(), name);
+	auto deviceResource = context->GetDevice()->GetResourceManager()->GetResource(resource->GetResourceId());
+	NAME_RAW_D3D12_OBJECT(deviceResource->GetD3D12Resource(), name);
 
 	return resource;
 }
 
-std::unique_ptr<D3D12Backend::CommitedResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image)
+std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image)
 {
 	return CreateD3DResFromScratchImage(context, *(image.GetImage()));
 }

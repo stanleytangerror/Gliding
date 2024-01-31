@@ -13,7 +13,7 @@
 //
 //	Vec3i							GetSize() const { return mSize; }
 //	GI::Format::Enum				GetFormat() const { return mFormat; }
-//	const GI::SrvDesc&							GetSrv() const { return mSrv; }
+//	const GI::SrvUsage&							GetSrv() const { return mSrv; }
 //
 //	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 //
@@ -28,7 +28,7 @@
 //	i32						mMipLevelCount = 1;
 //	GI::Format::Enum		mFormat = GI::Format::FORMAT_UNKNOWN;
 //
-//	const GI::SrvDesc&					mSrv = nullptr;
+//	const GI::SrvUsage&					mSrv = nullptr;
 //};
 
 class GD_RENDER_API FileTexture
@@ -39,7 +39,7 @@ public:
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
 	bool							IsD3DResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
-	GI::SrvDesc						GetSrv() const;
+	GI::SrvUsage						GetSrv() const;
 
 protected:
 	std::vector<b8>	const			mContent;

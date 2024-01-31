@@ -2,6 +2,7 @@
 #include "D3D12ResourceManager.h"
 #include "D3D12Device.h"
 #include "D3D12Resource.h"
+#include "D3D12SwapChain.h"
 
 namespace D3D12Backend
 {
@@ -19,12 +20,101 @@ namespace D3D12Backend
 		Assert(mReleaseQueue.empty());
 	}
 
-	ID3D12Resource* ResourceManager::CreateResource(const ResourceManager::CreateResrouce& builder)
+	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(const GI::MemoryResourceDesc& desc)
 	{
-		return builder(mDevice->GetDevice());
+		auto resourceId = mResourceIdAllocator.Alloc();
+
+		D3D12_RESOURCE_DESC d3d12Desc = {};
+		{
+			d3d12Desc.Dimension = D3D12_RESOURCE_DIMENSION(desc.GetDimension());
+			d3d12Desc.Alignment = desc.GetAlignment();
+			d3d12Desc.Width = desc.GetWidth();
+			d3d12Desc.Height = desc.GetHeight();
+			d3d12Desc.DepthOrArraySize = desc.GetDepthOrArraySize();
+			d3d12Desc.MipLevels = desc.GetMipLevels();
+			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
+			d3d12Desc.SampleDesc.Count = desc.GetSampleDesc_Count();
+			d3d12Desc.SampleDesc.Quality = desc.GetSampleDesc_Quality();
+			d3d12Desc.Layout = D3D12_TEXTURE_LAYOUT(desc.GetLayout());
+			d3d12Desc.Flags = D3D12_RESOURCE_FLAGS(desc.GetFlags());
+		}
+
+		ID3D12Resource* resource = nullptr;
+		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE(desc.GetHeapType()));
+		AssertHResultOk(mDevice->GetDevice()->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&d3d12Desc,
+			D3D12_RESOURCE_STATES(desc.GetInitState()),
+			nullptr,
+			IID_PPV_ARGS(&resource)));
+		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
+		
+		CommitedResource* result = new CommitedResource;
+		result->mDevice = mDevice;
+		result->mResource = resource;
+		result->mSize = { (u32)desc.GetWidth(), (u32)desc.GetHeight(), desc.GetDepthOrArraySize() };
+		result->mDesc = d3d12Desc;
+		result->mState = D3D12_RESOURCE_STATES(desc.GetInitState());
+		result->mHeapType = desc.GetHeapType();
+
+		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
+		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
+
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
 	}
 
-	DescriptorPtr ResourceManager::CreateSrvDescriptor(const GI::SrvDesc& desc)
+	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState)
+	{
+		auto resourceId = mResourceIdAllocator.Alloc();
+
+		NAME_RAW_D3D12_OBJECT(resource, name);
+
+		CommitedResource* result = new CommitedResource;
+		const D3D12_RESOURCE_DESC& desc = resource->GetDesc();
+		result->mDevice = mDevice;
+		result->mResource = resource;
+		result->mSize = { u32(desc.Width), u32(desc.Height), desc.DepthOrArraySize };
+		result->mDesc = desc;
+		result->mState = currentState;
+
+		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
+		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
+
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
+	}
+
+
+	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(const D3D12_RESOURCE_DESC& desc, D3D12_HEAP_TYPE heapType, const char* name, D3D12_RESOURCE_STATES currentState)
+	{
+		auto resourceId = mResourceIdAllocator.Alloc();
+
+		ID3D12Resource* resource = nullptr;
+		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(heapType);
+		AssertHResultOk(mDevice->GetDevice()->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			currentState,
+			nullptr,
+			IID_PPV_ARGS(&resource)));
+		NAME_RAW_D3D12_OBJECT(resource, name);
+
+		CommitedResource* result = new CommitedResource;
+		result->mDevice = mDevice;
+		result->mResource = resource;
+		result->mSize = { u32(desc.Width), desc.Height, desc.DepthOrArraySize };
+		result->mDesc = desc;
+		result->mState = currentState;
+		result->mHeapType = GI::HeapType::Enum(heapType);
+
+		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
+		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
+
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
+	}
+
+	DescriptorPtr ResourceManager::CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC d3d12Desc = {};
 		{
@@ -49,13 +139,13 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
+		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateUavDescriptor(const GI::UavDesc& desc)
+	DescriptorPtr ResourceManager::CreateUavDescriptor(GI::CommittedResourceId resourceId, const GI::UavDesc& desc)
 	{
 		D3D12_UNORDERED_ACCESS_VIEW_DESC d3d12Desc = {};
 		{
@@ -77,13 +167,13 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
+		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateRtvDescriptor(const GI::RtvDesc& desc)
+	DescriptorPtr ResourceManager::CreateRtvDescriptor(GI::CommittedResourceId resourceId, const GI::RtvDesc& desc)
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC d3d12Desc = {};
 		{
@@ -98,13 +188,13 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
+		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateDsvDescriptor(const GI::DsvDesc& desc)
+	DescriptorPtr ResourceManager::CreateDsvDescriptor(GI::CommittedResourceId resourceId, const GI::DsvDesc& desc)
 	{
 		D3D12_DEPTH_STENCIL_VIEW_DESC d3d12Desc = {};
 		{
@@ -119,7 +209,7 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = desc.GetResource() ? reinterpret_cast<CommitedResource*>(desc.GetResource())->GetD3D12Resource() : nullptr;
+		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
 		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->AllocCpuDesc();
 		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
 		return { ptr };
@@ -149,10 +239,10 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	void ResourceManager::ReleaseResource(ID3D12Resource* res)
+	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
 	{
 		ReleaseItem item;
-		item.mRes = res;
+		item.mResourceId = id;
 
 		for (i32 t = 0; t < Count; ++t)
 		{
@@ -161,6 +251,12 @@ namespace D3D12Backend
 		};
 
 		mReleaseQueue.push_back(item);
+	}
+
+	CommitedResource* ResourceManager::GetResource(GI::CommittedResourceId id) const
+	{
+		auto it = mResourceIdMapping.find(id);
+		return it == mResourceIdMapping.end() ? nullptr : it->second.get();
 	}
 
 	void ResourceManager::Update()
@@ -172,7 +268,9 @@ namespace D3D12Backend
 			if (std::all_of(item.mGpuQueueTimePoints.begin(), item.mGpuQueueTimePoints.end(),
 				[](const auto& p) { return p.first->IsGpuValueFinished(p.second); }))
 			{
-				item.mRes->Release();
+				Assert(mResourceIdMapping.find(item.mResourceId) != mResourceIdMapping.end());
+				mResourceIdMapping.erase(mResourceIdMapping.find(item.mResourceId));
+
 				it = mReleaseQueue.erase(it);
 			}
 			else
@@ -181,4 +279,20 @@ namespace D3D12Backend
 			}
 		}
 	}
+
+	D3D12Backend::SwapChain* ResourceManager::CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2u& size, const int32_t frameCount)
+	{
+		Assert(mSwapChains.find(windowId) == mSwapChains.end());
+
+		const auto& swapChain = new SwapChain(mDevice, windowHandle, size, frameCount);
+		mSwapChains[windowId] = swapChain;
+		return swapChain;
+	}
+
+	D3D12Backend::SwapChain* ResourceManager::GetSwapChain(u32 windowId) const
+	{
+		auto it = mSwapChains.find(windowId);
+		return it->second;
+	}
+
 }

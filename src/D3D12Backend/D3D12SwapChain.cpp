@@ -3,8 +3,9 @@
 
 namespace D3D12Backend
 {
-	SwapChain::SwapChain(D3D12Device* device, HWND windowHandle, const Vec2i& size, const int32_t frameCount)
+	SwapChain::SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount)
 		: mDevice(device)
+		, mWindowHandle(windowHandle)
 		, mSize(size)
 		, mFrameCount(frameCount)
 	{
@@ -13,10 +14,11 @@ namespace D3D12Backend
 		swapChainDesc.BufferCount = frameCount;
 		swapChainDesc.Width = size.x();
 		swapChainDesc.Height = size.y();
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.Format = mFormat;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.Flags = 0;
 
 		IDXGISwapChain1* swapChain1 = nullptr;
 		AssertHResultOk(device->GetFactory()->CreateSwapChainForHwnd(
@@ -27,36 +29,67 @@ namespace D3D12Backend
 			nullptr,
 			&swapChain1
 		));
-		mSwapChain = reinterpret_cast<IDXGISwapChain3*>(swapChain1);
+		mSwapChain = swapChain1;
+		// Query the interface for ID3D12SwapChain4
+		//IDXGISwapChain3* swapChain3 = nullptr;
+		//AssertHResultOk(swapChain1->QueryInterface(IID_PPV_ARGS(&swapChain3)));
+		//mSwapChain = swapChain3;
 
-		for (auto n = 0; n < mFrameCount; n++)
-		{
-			ID3D12Resource* resource = nullptr;
-			AssertHResultOk(mSwapChain->GetBuffer(n, IID_PPV_ARGS(&resource)));
-			
-			mBuffers.push_back(
-				CommitedResource::Possessor()
-				.SetName(Utils::FormatString("BackBuffer_%d", n).c_str())
-				.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
-				.SetResource(resource)
-				.Possess(device));
-		}
+		InitialBuffers();
 	}
 
-	CommitedResource* SwapChain::GetBuffer() const
+	GI::IGraphicMemoryResource* SwapChain::GetBuffer() const
 	{
-		return mBuffers[mCurrentBackBufferIndex];
+		return mBuffers[mCurrentBackBufferIndex].get();
 	}
 
 	void SwapChain::Present()
 	{
 		DEBUG_PRINT(" ================ Begin Present ===================== ");
-		DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
+		DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mCurrentBackBufferIndex);
 
 		AssertHResultOk(mSwapChain->Present(0, 0));
 		mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
 
-		DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
+		DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mCurrentBackBufferIndex);
 		DEBUG_PRINT(" ================ End Present ======================= ");
 	}
+
+	void SwapChain::Resize(const Vec2u& newSize)
+	{
+		Assert(mSize != newSize);
+		
+		AssertHResultOk(mSwapChain->ResizeBuffers(mFrameCount, newSize.x(), newSize.y(), mFormat, 0));
+		mSize = newSize;
+
+		InitialBuffers();
+		mCurrentBackBufferIndex = 0;
+	}
+
+	void SwapChain::ClearBuffers()
+	{
+		//for (auto b : mBuffers)
+		//{
+		//	delete b;
+		//}
+		mBuffers.clear();
+	}
+		
+	void SwapChain::InitialBuffers()
+	{
+		Assert(mBuffers.empty());
+
+		for (auto n = 0; n < mFrameCount; n++)
+		{
+			ID3D12Resource* resource = nullptr;
+			AssertHResultOk(mSwapChain->GetBuffer(n, IID_PPV_ARGS(&resource)));
+
+			mBuffers.push_back(
+				mDevice->GetResourceManager()->CreateResource(
+					resource,
+					Utils::FormatString("BackBuffer_%d", n).c_str(),
+					D3D12_RESOURCE_STATE_COMMON));
+		}
+	}
+
 }

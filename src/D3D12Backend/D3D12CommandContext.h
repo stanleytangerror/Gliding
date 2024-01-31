@@ -12,7 +12,6 @@ namespace D3D12Backend
 	class D3D12GpuQueue;
 	class D3D12ConstantBuffer;
 	class RuntimeDescriptorHeap;
-	class IResource;
 
 	class GD_D3D12BACKEND_API D3D12CommandContext
 	{
@@ -24,15 +23,15 @@ namespace D3D12Backend
 		void		Reset();
 
 		ID3D12GraphicsCommandList* GetCommandList() const { return mCommandList; }
-		RuntimeDescriptorHeap* GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const { return mRuntimeDescHeaps[type].get(); }
+		RuntimeDescriptorHeap*		GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) const { return mRuntimeDescHeaps[type].get(); }
 		D3D12ConstantBuffer* GetConstantBuffer() const { return mConstantBuffer.get(); }
 		D3D12Device* GetDevice() const { return mDevice; }
 		u64							GetPlannedFenceValue() const;
 
 		void						Transition(ID3D12Resource* resource, const D3D12_RESOURCE_STATES srcState, const D3D12_RESOURCE_STATES destState);
 
-		void						CopyResource(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src);
-		void						CopyBuffer2D(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src);
+		void						CopyResource(CommitedResource* dst, CommitedResource* src);
+		void						CopyBuffer2D(CommitedResource* dst, CommitedResource* src);
 
 	protected:
 		std::thread::id	mThisCpuThreadId;
