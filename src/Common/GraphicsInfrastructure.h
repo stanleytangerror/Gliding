@@ -723,6 +723,12 @@ namespace GI
 		}
     };
 
+    struct GD_COMMON_API RootSignatureDesc
+    {
+		std::string mFile;
+		const char* mEntry = nullptr;
+    };
+
     struct GD_COMMON_API RasterizerDesc
     {
         // default value see CD3DX12_RASTERIZER_DESC(CD3DX12_DEFAULT)
@@ -939,7 +945,6 @@ namespace GI
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
-            //if (!srv.GetResource()->GetResourceId()) { mReady = false; return; }
             mSrvParams[name] = srv;
         }
 
@@ -951,44 +956,34 @@ namespace GI
 
         void SetDsv(const DsvUsage& dsv)
         {
-			//if (!dsv.GetResource()->GetResourceId()) { mReady = false; return; }
 			mDsv = dsv;
             mHasDsv = true;
         }
 
 		void SetRtv(u8 index, const RtvUsage& rtv)
 		{
-			//if (!rtv.GetResource()->GetResourceId()) { mReady = false; return; }
             mRtvs[index] = rtv;
             mRtvCount = std::max<u8>(mRtvCount, index + 1);
 		}
 
         void PushVbv(const VbvUsage& vbv)
         {
-			//if (!vbv.GetResource()->GetResourceId()) { mReady = false; return; }
             mVbvs.push_back(vbv);
         }
 
         void SetIbv(const IbvUsage& ibv)
         {
-			//if (!ibv.GetResource()->GetResourceId()) { mReady = false; return; }
             mIbv = ibv;
         }
 
         bool IsReadyForExecute() const;
 
-    public:
-        struct
-        {
-            std::string	mFile;
-            const char* mEntry = nullptr;
-        }				                            mRootSignatureDesc;
-
+	public:
+		RootSignatureDesc			                mRootSignatureDesc;
         std::string                                 mVsFile;
         std::string                                 mPsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
 
-    public:
         std::array<RtvUsage, 8>               	    mRtvs;
         u8                                          mRtvCount = 0;
         DsvUsage                                    mDsv;
@@ -1011,7 +1006,6 @@ namespace GI
         Math::Rect  								mScissorRect = {};
         u32     									mStencilRef = 0;
 
-    //protected:
         std::map<std::string, std::vector<b8>>      mCbParams;
         std::map<std::string, SrvUsage>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
@@ -1030,14 +1024,12 @@ namespace GI
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
-			//if (!srv.GetResource()->GetResourceId()) { mReady = false; return; }
             mSrvParams[name] = srv;
         }
 
         void AddUav(const std::string& name, const UavUsage& uav)
         {
             Assert(mUavParams.find(name) == mUavParams.end());
-			//if (!uav.GetResource()->GetResourceId()) { mReady = false; return; }
             mUavParams[name] = uav;
         }
 
@@ -1049,26 +1041,17 @@ namespace GI
 
 		bool IsReadyForExecute() const;
 
-    public:
-        struct
-        {
-            std::string mFile;
-            const char* mEntry = nullptr;
-        }					mRootSignatureDesc;
+	public:
+        RootSignatureDesc		                	mRootSignatureDesc;
+        std::string                                 mCsFile;
+        std::vector<ShaderMacro>	                mShaderMacros;
 
-        std::string mCsFile;
-        std::vector<ShaderMacro>	mShaderMacros;
-
-    public:
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
         std::map<std::string, GI::SrvUsage>  		mSrvParams;
         std::map<std::string, GI::UavUsage>	        mUavParams;
         std::map<std::string, std::vector<b8>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
-
-    protected:
-        //bool                                        mReady = true;
     };
 
 };

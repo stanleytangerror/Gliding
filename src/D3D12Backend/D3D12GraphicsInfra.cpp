@@ -259,8 +259,7 @@ namespace D3D12Backend
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
 		D3D12Backend::GraphicsPass d3d12Pass;
-		d3d12Pass.mRootSignatureDesc.mFile = pass.mRootSignatureDesc.mFile;
-		d3d12Pass.mRootSignatureDesc.mEntry = pass.mRootSignatureDesc.mEntry;
+		d3d12Pass.mRootSignatureDesc = pass.mRootSignatureDesc;
 		d3d12Pass.mVsFile = pass.mVsFile;
 		d3d12Pass.mPsFile = pass.mPsFile;
 		d3d12Pass.mShaderMacros = pass.mShaderMacros;
@@ -579,8 +578,7 @@ namespace D3D12Backend
 
 		D3D12Backend::ComputePass d3d12Pass;
 
-		d3d12Pass.mRootSignatureDesc.mFile = pass.mRootSignatureDesc.mFile;
-		d3d12Pass.mRootSignatureDesc.mEntry = pass.mRootSignatureDesc.mEntry;
+		d3d12Pass.mRootSignatureDesc = pass.mRootSignatureDesc;
 		d3d12Pass.mCsFile = pass.mCsFile;
 		d3d12Pass.mShaderMacros = pass.mShaderMacros;
 		d3d12Pass.mCbParams = pass.mCbParams;

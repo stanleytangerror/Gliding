@@ -100,12 +100,9 @@ namespace D3D12Backend
 
 	class GraphicsPass
 	{
+		friend D3D12GraphicsRecorder;
 	public:
-		struct
-		{
-			std::string	mFile;
-			const char* mEntry = nullptr;
-		}				                            mRootSignatureDesc;
+		GI::RootSignatureDesc			            mRootSignatureDesc;
 
 		std::string                                 mVsFile;
 		std::string                                 mPsFile;
@@ -140,12 +137,9 @@ namespace D3D12Backend
 
 	class ComputePass
 	{
+		friend D3D12GraphicsRecorder;
 	public:
-		struct
-		{
-			std::string mFile;
-			const char* mEntry = nullptr;
-		}					mRootSignatureDesc;
+		GI::RootSignatureDesc			            mRootSignatureDesc;
 
 		std::string mCsFile;
 		std::vector<GI::ShaderMacro>	mShaderMacros;
