@@ -801,33 +801,6 @@ namespace GI
         return ComparisonFunction::ALWAYS;
     }
 
-    template <typename T>
-    inline std::vector<b8> ToGpuConstBufferParamData(const T& var)
-    {
-        std::vector<b8> result(sizeof(T), b8{});
-        memcpy(result.data(), &var, sizeof(T));
-        return result;
-    }
-
-    template <>
-    inline std::vector<b8> ToGpuConstBufferParamData(const Mat33f& var)
-    {
-        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), b8{});
-        Assert(false);
-        return result;
-    }
-
-
-    template <>
-    inline std::vector<b8> ToGpuConstBufferParamData(const std::vector<f32>& var)
-    {
-        const auto size = var.size() * sizeof(f32);
-
-        std::vector<b8> result(size, b8{});
-        memcpy_s(result.data(), size, var.data(), size);
-        return result;
-    }
-
     class GD_COMMON_API MemoryResourceDesc
     {
         CONTINOUS_SETTER(MemoryResourceDesc, HeapType::Enum, HeapType);
@@ -939,7 +912,7 @@ namespace GI
         void AddCbVar(const std::string& name, const T& var)
         {
             Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = ToGpuConstBufferParamData(var);
+            mCbParams[name] = ToConstBufferParamData(var);
         }
 
         void AddSrv(const std::string& name, const SrvUsage& srv)
