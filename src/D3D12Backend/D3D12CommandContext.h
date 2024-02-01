@@ -13,7 +13,7 @@ namespace D3D12Backend
 	class D3D12ConstantBuffer;
 	class RuntimeDescriptorHeap;
 
-	class GD_D3D12BACKEND_API D3D12CommandContext
+	class D3D12CommandContext
 	{
 	public:
 		D3D12CommandContext(D3D12Device* device, D3D12GpuQueue* gpuQueue);

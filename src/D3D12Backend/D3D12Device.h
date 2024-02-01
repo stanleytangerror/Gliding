@@ -18,7 +18,7 @@ namespace D3D12Backend
 	class ResourceManager;
 	enum D3D12GpuQueueType : u8;
 
-	class GD_D3D12BACKEND_API D3D12Device
+	class D3D12Device
 	{
 	public:
 		D3D12Device();

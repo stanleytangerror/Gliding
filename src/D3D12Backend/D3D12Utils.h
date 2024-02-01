@@ -29,17 +29,17 @@ namespace D3D12Utils
 	
 	ID3DBlob* CompileBlobFromFile(const char* filePath, const char* entryName, const char* target, const std::vector<D3D_SHADER_MACRO>& macros);
 
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const char* name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const std::string& name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
-	GD_D3D12BACKEND_API void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
+	void SetRawD3D12ResourceName(ID3D12Object* res, const char* name);
+	void SetRawD3D12ResourceName(ID3D12Object* res, const std::string& name);
+	void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
+	void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
 
-	//GD_D3D12BACKEND_API std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
-	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-	GD_D3D12BACKEND_API std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
+	//std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
 	
-	GD_D3D12BACKEND_API D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
+	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
 	/* dxgi format util functions from Microsoft/DirectX-Graphics-Samples */
 	DXGI_FORMAT GetBaseFormat(DXGI_FORMAT defaultFormat);
@@ -48,8 +48,8 @@ namespace D3D12Utils
 	DXGI_FORMAT GetDepthFormat(DXGI_FORMAT defaultFormat);
 	DXGI_FORMAT GetStencilFormat(DXGI_FORMAT defaultFormat);
 
-	GD_D3D12BACKEND_API D3D12_SRV_DIMENSION GetSrvDimension(D3D12_RESOURCE_DIMENSION dim);
-	GD_D3D12BACKEND_API D3D12_UAV_DIMENSION GetUavDimension(D3D12_RESOURCE_DIMENSION dim);
+	D3D12_SRV_DIMENSION GetSrvDimension(D3D12_RESOURCE_DIMENSION dim);
+	D3D12_UAV_DIMENSION GetUavDimension(D3D12_RESOURCE_DIMENSION dim);
 
 	template <typename T>
 	inline std::vector<byte> ToD3DConstBufferParamData(const T& var);

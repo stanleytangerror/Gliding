@@ -9,7 +9,7 @@ namespace D3D12Backend
 {
 	class D3D12Device;
 
-	class GD_D3D12BACKEND_API SwapChain
+	class SwapChain
 	{
 	public:
 		SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount);

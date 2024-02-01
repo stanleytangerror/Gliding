@@ -10,7 +10,7 @@ namespace D3D12Backend
 	class ComputeContext;
 	class D3D12Device;
 
-	class GD_D3D12BACKEND_API D3D12GpuQueue
+	class D3D12GpuQueue
 	{
 	public:
 		D3D12GpuQueue(D3D12Device* device, D3D12GpuQueueType type, const char* name);

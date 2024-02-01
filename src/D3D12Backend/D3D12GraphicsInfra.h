@@ -47,7 +47,7 @@ namespace D3D12Backend
 		bool						mSkipFrameCommands = false;
 	};
 
-	class GD_D3D12BACKEND_API D3D12GraphicsRecorder : public GI::IGraphicsRecorder
+	class D3D12GraphicsRecorder : public GI::IGraphicsRecorder
 	{
 	public:
 		using Command = std::function<void()>;
