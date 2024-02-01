@@ -254,19 +254,55 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
+		if (!pass.IsReadyForExecute()) { return; }
+
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
+		D3D12Backend::GraphicsPass d3d12Pass;
+		d3d12Pass.mRootSignatureDesc.mFile = pass.mRootSignatureDesc.mFile;
+		d3d12Pass.mRootSignatureDesc.mEntry = pass.mRootSignatureDesc.mEntry;
+		d3d12Pass.mVsFile = pass.mVsFile;
+		d3d12Pass.mPsFile = pass.mPsFile;
+		d3d12Pass.mShaderMacros = pass.mShaderMacros;
+		std::transform(pass.mRtvs.begin(), pass.mRtvs.begin() + pass.mRtvCount, d3d12Pass.mRtvs.begin(),
+			[](const auto& rtv) { return RtvUsageImpl(rtv.GetResource()->GetResourceId(), rtv); });
+		if (pass.mHasDsv)
+		{
+			d3d12Pass.mDsv = DsvUsageImpl(pass.mDsv.GetResource()->GetResourceId(), pass.mDsv);
+		}
+		d3d12Pass.mInputLayout = pass.mInputLayout;
+		d3d12Pass.mRasterizerDesc = pass.mRasterizerDesc;
+		d3d12Pass.mDepthStencilDesc = pass.mDepthStencilDesc;
+		d3d12Pass.mBlendDesc = pass.mBlendDesc;
+		d3d12Pass.mVbvs.resize(pass.mVbvs.size());
+		std::transform(pass.mVbvs.begin(), pass.mVbvs.end(), d3d12Pass.mVbvs.begin(),
+			[](const auto& vbv) { return VbvUsageImpl(vbv.GetResource()->GetResourceId(), vbv); });
+		d3d12Pass.mIbv = IbvUsageImpl(pass.mIbv.GetResource()->GetResourceId(), pass.mIbv);
+		d3d12Pass.mVertexStartLocation = pass.mVertexStartLocation;
+		d3d12Pass.mIndexStartLocation = pass.mIndexStartLocation;
+		d3d12Pass.mIndexCount = pass.mIndexCount;
+		d3d12Pass.mInstanceCount = pass.mInstanceCount;
+		d3d12Pass.mViewPort = pass.mViewPort;
+		d3d12Pass.mScissorRect = pass.mScissorRect;
+		d3d12Pass.mStencilRef = pass.mStencilRef;
+		d3d12Pass.mCbParams = pass.mCbParams;
+		d3d12Pass.mSamplerParams = pass.mSamplerParams;
+		for (const auto& [name, srv] : pass.mSrvParams)
+		{
+			d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
+		}
+
 #if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, pass]()
+		mCommands.push([this, resourceManager, d3d12Pass]()
 			{
 #endif
-				for (const auto& vbv : pass.mVbvs)
+				for (const auto& vbv : d3d12Pass.mVbvs)
 				{
 					if (!vbv.GetResourceId()) { return; }
 				}
 
 				std::map<std::string, DescriptorPtr> srvs;
-				for (const auto& [name, srv] : pass.mSrvParams)
+				for (const auto& [name, srv] : d3d12Pass.mSrvParams)
 				{
 					if (!srv.GetResourceId()) { return; }
 					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
@@ -274,29 +310,29 @@ namespace D3D12Backend
 
 				std::vector<DescriptorPtr> rtvs;
 				std::vector<DXGI_FORMAT> rtvFormats;
-				auto numRtvs = std::count_if(pass.mRtvs.begin(), pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResourceId(); });
-				if (numRtvs == 0 && !pass.mDsv.GetResourceId()) { return; }
+				auto numRtvs = std::count_if(d3d12Pass.mRtvs.begin(), d3d12Pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResourceId(); });
+				if (numRtvs == 0 && !d3d12Pass.mDsv.GetResourceId()) { return; }
 				for (auto i = 0; i < numRtvs; ++i)
 				{
-					rtvs.push_back(resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResourceId(), pass.mRtvs[i]));
-					rtvFormats.push_back(D3D12Utils::ToDxgiFormat(pass.mRtvs[i].GetFormat()));
+					rtvs.push_back(resourceManager->CreateRtvDescriptor(d3d12Pass.mRtvs[i].GetResourceId(), d3d12Pass.mRtvs[i]));
+					rtvFormats.push_back(D3D12Utils::ToDxgiFormat(d3d12Pass.mRtvs[i].GetFormat()));
 				}
 
 				std::map<std::string, DescriptorPtr> samplers;
-				for (const auto& [name, sampler] : pass.mSamplerParams)
+				for (const auto& [name, sampler] : d3d12Pass.mSamplerParams)
 				{
 					samplers[name] = resourceManager->CreateSampler(sampler);
 				}
 
 
 				// transitions
-				for (const auto& [_, srv] : pass.mSrvParams)
+				for (const auto& [_, srv] : d3d12Pass.mSrvParams)
 				{
 					auto res = resourceManager->GetResource(srv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
 
-				for (const auto& rtv : pass.mRtvs)
+				for (const auto& rtv : d3d12Pass.mRtvs)
 				{
 					if (rtv.GetResourceId())
 					{
@@ -305,22 +341,22 @@ namespace D3D12Backend
 					}
 				}
 
-				if (pass.mDsv.GetResourceId())
+				if (d3d12Pass.mDsv.GetResourceId())
 				{
-					auto res = resourceManager->GetResource(pass.mDsv.GetResourceId());
+					auto res = resourceManager->GetResource(d3d12Pass.mDsv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 				}
 
 				// root signatures
 				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-				auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
+				auto rootSignature = psoLib->CreateRootSignature(d3d12Pass.mRootSignatureDesc.mFile.c_str(), d3d12Pass.mRootSignatureDesc.mEntry);
 
 				auto pso = std::make_unique< GraphicsPipelineState>();
 				pso->SetRootSignature(rootSignature);
 
 				// shader
-				ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(pass.mVsFile.c_str(), pass.mShaderMacros);
-				ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(pass.mPsFile.c_str(), pass.mShaderMacros);
+				ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(d3d12Pass.mVsFile.c_str(), d3d12Pass.mShaderMacros);
+				ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(d3d12Pass.mPsFile.c_str(), d3d12Pass.mShaderMacros);
 
 				pso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
 				pso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
@@ -328,54 +364,54 @@ namespace D3D12Backend
 				const auto& inputLayout = vs->GetInputLayout();
 				D3D12_BLEND_DESC blendDesc;
 				{
-					blendDesc.AlphaToCoverageEnable = pass.mBlendDesc.GetAlphaToCoverageEnable();
-					blendDesc.IndependentBlendEnable = pass.mBlendDesc.GetIndependentBlendEnable();
+					blendDesc.AlphaToCoverageEnable = d3d12Pass.mBlendDesc.GetAlphaToCoverageEnable();
+					blendDesc.IndependentBlendEnable = d3d12Pass.mBlendDesc.GetIndependentBlendEnable();
 					for (auto i = 0; i < sizeof(blendDesc.RenderTarget) / sizeof(blendDesc.RenderTarget[0]); ++i)
 					{
-						blendDesc.RenderTarget[i].BlendEnable = pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable();
-						blendDesc.RenderTarget[i].LogicOpEnable = pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable();
-						blendDesc.RenderTarget[i].SrcBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend());
-						blendDesc.RenderTarget[i].DestBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlend());
-						blendDesc.RenderTarget[i].BlendOp = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOp());
-						blendDesc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha());
-						blendDesc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha());
-						blendDesc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha());
-						blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP(pass.mBlendDesc.RtBlendDesc[i].GetLogicOp());
-						blendDesc.RenderTarget[i].RenderTargetWriteMask = pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
+						blendDesc.RenderTarget[i].BlendEnable = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable();
+						blendDesc.RenderTarget[i].LogicOpEnable = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable();
+						blendDesc.RenderTarget[i].SrcBlend = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend());
+						blendDesc.RenderTarget[i].DestBlend = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetDestBlend());
+						blendDesc.RenderTarget[i].BlendOp = D3D12_BLEND_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendOp());
+						blendDesc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha());
+						blendDesc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha());
+						blendDesc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha());
+						blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetLogicOp());
+						blendDesc.RenderTarget[i].RenderTargetWriteMask = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
 					}
 				}
 				pso->SetBlendState(blendDesc);
 				D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
 				{
-					depthStencilDesc.DepthEnable = pass.mDepthStencilDesc.GetDepthEnable();
-					depthStencilDesc.DepthWriteMask = pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-					depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.GetDepthFunc());
-					depthStencilDesc.StencilEnable = pass.mDepthStencilDesc.GetStencilEnable();
-					depthStencilDesc.StencilReadMask = pass.mDepthStencilDesc.GetStencilReadMask();
-					depthStencilDesc.StencilWriteMask = pass.mDepthStencilDesc.GetStencilWriteMask();
-					depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
-					depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
-					depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
-					depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
-					depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
-					depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
-					depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
-					depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.BackFace.GetStencilFunc());
+					depthStencilDesc.DepthEnable = d3d12Pass.mDepthStencilDesc.GetDepthEnable();
+					depthStencilDesc.DepthWriteMask = d3d12Pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+					depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.GetDepthFunc());
+					depthStencilDesc.StencilEnable = d3d12Pass.mDepthStencilDesc.GetStencilEnable();
+					depthStencilDesc.StencilReadMask = d3d12Pass.mDepthStencilDesc.GetStencilReadMask();
+					depthStencilDesc.StencilWriteMask = d3d12Pass.mDepthStencilDesc.GetStencilWriteMask();
+					depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
+					depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
+					depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
+					depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
+					depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
+					depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
+					depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
+					depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilFunc());
 				}
 				pso->SetDepthStencilState(depthStencilDesc);
 				D3D12_RASTERIZER_DESC rastDesc;
 				{
-					rastDesc.FillMode = pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
-					rastDesc.CullMode = D3D12_CULL_MODE(pass.mRasterizerDesc.GetCullMode());
-					rastDesc.FrontCounterClockwise = pass.mRasterizerDesc.GetFrontCounterClockwise();
-					rastDesc.DepthBias = pass.mRasterizerDesc.GetDepthBias();
-					rastDesc.DepthBiasClamp = pass.mRasterizerDesc.GetDepthBiasClamp();
-					rastDesc.SlopeScaledDepthBias = pass.mRasterizerDesc.GetSlopeScaledDepthBias();
-					rastDesc.DepthClipEnable = pass.mRasterizerDesc.GetDepthClipEnable();
-					rastDesc.MultisampleEnable = pass.mRasterizerDesc.GetMultisampleEnable();
-					rastDesc.AntialiasedLineEnable = pass.mRasterizerDesc.GetAntialiasedLineEnable();
-					rastDesc.ForcedSampleCount = pass.mRasterizerDesc.GetForcedSampleCount();
-					rastDesc.ConservativeRaster = pass.mRasterizerDesc.GetConservativeRaster() ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+					rastDesc.FillMode = d3d12Pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
+					rastDesc.CullMode = D3D12_CULL_MODE(d3d12Pass.mRasterizerDesc.GetCullMode());
+					rastDesc.FrontCounterClockwise = d3d12Pass.mRasterizerDesc.GetFrontCounterClockwise();
+					rastDesc.DepthBias = d3d12Pass.mRasterizerDesc.GetDepthBias();
+					rastDesc.DepthBiasClamp = d3d12Pass.mRasterizerDesc.GetDepthBiasClamp();
+					rastDesc.SlopeScaledDepthBias = d3d12Pass.mRasterizerDesc.GetSlopeScaledDepthBias();
+					rastDesc.DepthClipEnable = d3d12Pass.mRasterizerDesc.GetDepthClipEnable();
+					rastDesc.MultisampleEnable = d3d12Pass.mRasterizerDesc.GetMultisampleEnable();
+					rastDesc.AntialiasedLineEnable = d3d12Pass.mRasterizerDesc.GetAntialiasedLineEnable();
+					rastDesc.ForcedSampleCount = d3d12Pass.mRasterizerDesc.GetForcedSampleCount();
+					rastDesc.ConservativeRaster = d3d12Pass.mRasterizerDesc.GetConservativeRaster() ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 				}
 				pso->SetRasterizerState(rastDesc);
 
@@ -389,9 +425,9 @@ namespace D3D12Backend
 					desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
 				}
 
-				if (pass.mDsv.GetResourceId())
+				if (d3d12Pass.mDsv.GetResourceId())
 				{
-					desc.DSVFormat = D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat());
+					desc.DSVFormat = D3D12Utils::ToDxgiFormat(d3d12Pass.mDsv.GetFormat());
 				}
 
 				pso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
@@ -472,23 +508,23 @@ namespace D3D12Backend
 
 				// cbs
 				std::vector<b8> cbufData;
-				BindConstBufferParams(cbufData, pass.mCbParams, vs);
-				BindConstBufferParams(cbufData, pass.mCbParams, ps);
+				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, vs);
+				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, ps);
 				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
 				mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
 
-				Assert(pass.mViewPort.GetMinDepth() < pass.mViewPort.GetMaxDepth());
+				Assert(d3d12Pass.mViewPort.GetMinDepth() < d3d12Pass.mViewPort.GetMaxDepth());
 				auto viewport = D3D12_VIEWPORT{
-					pass.mViewPort.GetTopLeftX(), pass.mViewPort.GetTopLeftY(),
-					pass.mViewPort.GetWidth(), pass.mViewPort.GetHeight(),
-					pass.mViewPort.GetMinDepth(), pass.mViewPort.GetMaxDepth()
+					d3d12Pass.mViewPort.GetTopLeftX(), d3d12Pass.mViewPort.GetTopLeftY(),
+					d3d12Pass.mViewPort.GetWidth(), d3d12Pass.mViewPort.GetHeight(),
+					d3d12Pass.mViewPort.GetMinDepth(), d3d12Pass.mViewPort.GetMaxDepth()
 				};
 				commandList->RSSetViewports(1, &viewport);
 				auto rect = D3D12_RECT{
-					pass.mScissorRect.left,
-					pass.mScissorRect.top,
-					pass.mScissorRect.right,
-					pass.mScissorRect.bottom };
+					d3d12Pass.mScissorRect.left,
+					d3d12Pass.mScissorRect.top,
+					d3d12Pass.mScissorRect.right,
+					d3d12Pass.mScissorRect.bottom };
 				commandList->RSSetScissorRects(1, &rect);
 
 				CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
@@ -499,37 +535,37 @@ namespace D3D12Backend
 					rtvHandles[rtvCount] = rtvs[rtvCount].Get();
 				}
 
-				if (pass.mDsv.GetResourceId())
+				if (d3d12Pass.mDsv.GetResourceId())
 				{
-					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResourceId(), pass.mDsv).Get();
+					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(d3d12Pass.mDsv.GetResourceId(), d3d12Pass.mDsv).Get();
 					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, &dsHandle);
 				}
 				else
 				{
 					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, nullptr);
 				}
-				commandList->OMSetStencilRef(pass.mStencilRef);
+				commandList->OMSetStencilRef(d3d12Pass.mStencilRef);
 
 				commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-				std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
+				std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(d3d12Pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
 				for (auto i = 0; i < vbvs.size(); ++i)
 				{
-					vbvs[i].BufferLocation = resourceManager->GetResource(pass.mVbvs[i].GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					vbvs[i].SizeInBytes = pass.mVbvs[i].GetSizeInBytes();
-					vbvs[i].StrideInBytes = pass.mVbvs[i].GetStrideInBytes();
+					vbvs[i].BufferLocation = resourceManager->GetResource(d3d12Pass.mVbvs[i].GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+					vbvs[i].SizeInBytes = d3d12Pass.mVbvs[i].GetSizeInBytes();
+					vbvs[i].StrideInBytes = d3d12Pass.mVbvs[i].GetStrideInBytes();
 				}
 				commandList->IASetVertexBuffers(0, static_cast<u32>(vbvs.size()), vbvs.data());
 
 				D3D12_INDEX_BUFFER_VIEW ibv;
 				{
-					ibv.BufferLocation = resourceManager->GetResource(pass.mIbv.GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					ibv.SizeInBytes = pass.mIbv.GetSizeInBytes();
-					ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetFormat());
+					ibv.BufferLocation = resourceManager->GetResource(d3d12Pass.mIbv.GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+					ibv.SizeInBytes = d3d12Pass.mIbv.GetSizeInBytes();
+					ibv.Format = D3D12Utils::ToDxgiFormat(d3d12Pass.mIbv.GetFormat());
 				}
 				commandList->IASetIndexBuffer(&ibv);
 
-				commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
+				commandList->DrawIndexedInstanced(d3d12Pass.mIndexCount, d3d12Pass.mInstanceCount, d3d12Pass.mIndexStartLocation, d3d12Pass.mVertexStartLocation, 0);
 #if DEFERRED_EXECUTE
 			});
 #endif
@@ -537,39 +573,59 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
+		if (!pass.IsReadyForExecute()) { return; }
+
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
+		D3D12Backend::ComputePass d3d12Pass;
+
+		d3d12Pass.mRootSignatureDesc.mFile = pass.mRootSignatureDesc.mFile;
+		d3d12Pass.mRootSignatureDesc.mEntry = pass.mRootSignatureDesc.mEntry;
+		d3d12Pass.mCsFile = pass.mCsFile;
+		d3d12Pass.mShaderMacros = pass.mShaderMacros;
+		d3d12Pass.mCbParams = pass.mCbParams;
+		for (const auto& [name, srv] : pass.mSrvParams)
+		{
+			d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
+		}
+		for (const auto& [name, uav] : pass.mUavParams)
+		{
+			d3d12Pass.mUavParams[name] = UavUsageImpl(uav.GetResource()->GetResourceId(), uav);
+		}
+		d3d12Pass.mSamplerParams = pass.mSamplerParams;
+		d3d12Pass.mThreadGroupCounts = pass.mThreadGroupCounts;
+
 #if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, pass]()
+		mCommands.push([this, resourceManager, d3d12Pass]()
 			{
 #endif
 				std::map<std::string, DescriptorPtr> srvs;
-				for (const auto& [name, srv] : pass.mSrvParams)
+				for (const auto& [name, srv] : d3d12Pass.mSrvParams)
 				{
 					if (!srv.GetResourceId()) { return; }
 					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
 				}
 
 				std::map<std::string, DescriptorPtr> uavs;
-				for (const auto& [name, uav] : pass.mUavParams)
+				for (const auto& [name, uav] : d3d12Pass.mUavParams)
 				{
 					if (!uav.GetResourceId()) { return; }
 					uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav);
 				}
 
 				std::map<std::string, DescriptorPtr> samplers;
-				for (const auto& [name, sampler] : pass.mSamplerParams)
+				for (const auto& [name, sampler] : d3d12Pass.mSamplerParams)
 				{
 					samplers[name] = resourceManager->CreateSampler(sampler);
 				}
 
-				for (const auto& [_, srv] : pass.mSrvParams)
+				for (const auto& [_, srv] : d3d12Pass.mSrvParams)
 				{
 					auto res = resourceManager->GetResource(srv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				}
 
-				for (const auto& [_, uav] : pass.mUavParams)
+				for (const auto& [_, uav] : d3d12Pass.mUavParams)
 				{
 					auto res = resourceManager->GetResource(uav.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -577,13 +633,13 @@ namespace D3D12Backend
 
 				// root signatures
 				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-				auto rootSignature = psoLib->CreateRootSignature(pass.mRootSignatureDesc.mFile.c_str(), pass.mRootSignatureDesc.mEntry);
+				auto rootSignature = psoLib->CreateRootSignature(d3d12Pass.mRootSignatureDesc.mFile.c_str(), d3d12Pass.mRootSignatureDesc.mEntry);
 
 				auto mPso = std::make_unique< ComputePipelineState>();
 				mPso->SetRootSignature(rootSignature);
 
 				// shader
-				ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(pass.mCsFile.c_str(), pass.mShaderMacros);
+				ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(d3d12Pass.mCsFile.c_str(), d3d12Pass.mShaderMacros);
 				mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
 
 				mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
@@ -635,11 +691,11 @@ namespace D3D12Backend
 				}
 
 				std::vector<b8> cbufData;
-				BindConstBufferParams(cbufData, pass.mCbParams, cs);
+				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, cs);
 				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
 				mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
-				commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
+				commandList->Dispatch(d3d12Pass.mThreadGroupCounts[0], d3d12Pass.mThreadGroupCounts[1], d3d12Pass.mThreadGroupCounts[2]);
 #if DEFERRED_EXECUTE
 			});
 #endif

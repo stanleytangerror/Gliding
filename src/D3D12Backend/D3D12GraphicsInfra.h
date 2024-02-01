@@ -3,6 +3,15 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "D3D12Headers.h"
 
+#define CONSTRUCTOR_WITH_RESOURCE_ID(Type, Base) \
+	public:     Type() {} \
+	            Type(GI::IGraphicMemoryResource* resource) : mResourceId(resource->GetResourceId()) {} \
+	            Type(GI::CommittedResourceId id, const Base& base) : Base(base), mResourceId(id) {} \
+	            Type(const Type& other) : Base(other), mResourceId(other.mResourceId) {} \
+	            Type(const std::unique_ptr<GI::IGraphicMemoryResource>& resource) : mResourceId(resource->GetResourceId()) {} \
+                GI::CommittedResourceId GetResourceId() const { return mResourceId; } \
+	private:    GI::CommittedResourceId mResourceId = {};
+
 namespace D3D12Backend
 {
 	class GD_D3D12BACKEND_API D3D12GraphicsInfra : public GI::IGraphicsInfra
@@ -63,4 +72,94 @@ namespace D3D12Backend
 		D3D12CommandContext*	mContext = nullptr;
 		std::queue<Command>		mCommands;
 	};
+
+	struct GD_COMMON_API SrvUsageImpl : public GI::SrvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(SrvUsageImpl, GI::SrvDesc);
+	};
+	struct GD_COMMON_API RtvUsageImpl : public GI::RtvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(RtvUsageImpl, GI::RtvDesc);
+	};
+	struct GD_COMMON_API UavUsageImpl : public GI::UavDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(UavUsageImpl, GI::UavDesc);
+	};
+	struct GD_COMMON_API DsvUsageImpl : public GI::DsvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(DsvUsageImpl, GI::DsvDesc);
+	};
+	struct GD_COMMON_API VbvUsageImpl : public GI::VbvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(VbvUsageImpl, GI::VbvDesc);
+	};
+	struct GD_COMMON_API IbvUsageImpl : public GI::IbvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE_ID(IbvUsageImpl, GI::IbvDesc);
+	};
+
+	class GraphicsPass
+	{
+	public:
+		struct
+		{
+			std::string	mFile;
+			const char* mEntry = nullptr;
+		}				                            mRootSignatureDesc;
+
+		std::string                                 mVsFile;
+		std::string                                 mPsFile;
+		std::vector<GI::ShaderMacro>	                mShaderMacros;
+
+	public:
+		std::array<RtvUsageImpl, 8>               	mRtvs;
+		DsvUsageImpl                                mDsv;
+
+		std::vector<GI::InputElementDesc>               mInputLayout;
+
+		GI::RasterizerDesc                              mRasterizerDesc;
+		GI::DepthStencilDesc                            mDepthStencilDesc;
+		GI::BlendDesc                                   mBlendDesc;
+
+		std::vector<VbvUsageImpl>	                    mVbvs;
+		IbvUsageImpl                 					mIbv;
+		i32 										mVertexStartLocation = 0;
+		i32 										mIndexStartLocation = 0;
+		i32 										mIndexCount = 0;
+		i32 										mInstanceCount = 1;
+
+		GI::Viewport        							mViewPort = {};
+		Math::Rect  								mScissorRect = {};
+		u32     									mStencilRef = 0;
+
+		//protected:
+		std::map<std::string, std::vector<b8>>      mCbParams;
+		std::map<std::string, SrvUsageImpl>	            mSrvParams;
+		std::map<std::string, GI::SamplerDesc>	        mSamplerParams;
+	};
+
+	class ComputePass
+	{
+	public:
+		struct
+		{
+			std::string mFile;
+			const char* mEntry = nullptr;
+		}					mRootSignatureDesc;
+
+		std::string mCsFile;
+		std::vector<GI::ShaderMacro>	mShaderMacros;
+
+	public:
+		std::map<std::string, GI::SamplerDesc>		mSamplerParams;
+		std::map<std::string, SrvUsageImpl>  		mSrvParams;
+		std::map<std::string, UavUsageImpl>	        mUavParams;
+		std::map<std::string, std::vector<b8>>	    mCbParams;
+
+		std::array<u32, 3>							mThreadGroupCounts = {};
+
+	protected:
+		//bool                                        mReady = true;
+	};
+
 }

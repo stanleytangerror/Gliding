@@ -30,14 +30,6 @@
                 CommittedResourceId GetResourceId() const { return mResource->GetResourceId(); } \
                 IGraphicMemoryResource* GetResource() const { return mResource; } \
 	private:    IGraphicMemoryResource* mResource = nullptr;
-#define CONSTRUCTOR_WITH_RESOURCE_ID(Type, Base) \
-	public:     Type() {} \
-	            Type(IGraphicMemoryResource* resource) : mResourceId(resource->GetResourceId()) {} \
-	            Type(CommittedResourceId id, const Base& base) : Base(base), mResourceId(id) {} \
-	            Type(const Type& other) : Base(other), mResourceId(other.mResourceId) {} \
-	            Type(const std::unique_ptr<IGraphicMemoryResource>& resource) : mResourceId(resource->GetResourceId()) {} \
-                CommittedResourceId GetResourceId() const { return mResourceId; } \
-	private:    CommittedResourceId mResourceId = {};
 
 #define RENDER_EVENT(infra, format)\
 	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format); \
@@ -717,31 +709,6 @@ namespace GI
 		CONSTRUCTOR_WITH_RESOURCE(IbvUsage, IbvDesc);
 	};
 
-	struct GD_COMMON_API SrvUsageImpl : public SrvDesc
-	{
-        CONSTRUCTOR_WITH_RESOURCE_ID(SrvUsageImpl, SrvDesc);
-	};
-	struct GD_COMMON_API RtvUsageImpl : public RtvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(RtvUsageImpl, RtvDesc);
-	};
-	struct GD_COMMON_API UavUsageImpl : public UavDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(UavUsageImpl, UavDesc);
-	};
-	struct GD_COMMON_API DsvUsageImpl : public DsvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(DsvUsageImpl, DsvDesc);
-	};
-	struct GD_COMMON_API VbvUsageImpl : public VbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(VbvUsageImpl, VbvDesc);
-	};
-	struct GD_COMMON_API IbvUsageImpl : public IbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(IbvUsageImpl, IbvDesc);
-	};
-
     struct GD_COMMON_API ShaderMacro
     {
         std::string mName;
@@ -973,7 +940,7 @@ namespace GI
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
             //if (!srv.GetResource()->GetResourceId()) { mReady = false; return; }
-            mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
+            mSrvParams[name] = srv;
         }
 
         void AddSampler(const std::string& name, const SamplerDesc& sampler)
@@ -985,28 +952,30 @@ namespace GI
         void SetDsv(const DsvUsage& dsv)
         {
 			//if (!dsv.GetResource()->GetResourceId()) { mReady = false; return; }
-			mDsv = DsvUsageImpl(dsv.GetResource()->GetResourceId(), dsv);
+			mDsv = dsv;
+            mHasDsv = true;
         }
 
 		void SetRtv(u8 index, const RtvUsage& rtv)
 		{
 			//if (!rtv.GetResource()->GetResourceId()) { mReady = false; return; }
-			mRtvs[index] = RtvUsageImpl(rtv.GetResource()->GetResourceId(), rtv);
+            mRtvs[index] = rtv;
+            mRtvCount = std::max<u8>(mRtvCount, index + 1);
 		}
 
         void PushVbv(const VbvUsage& vbv)
         {
 			//if (!vbv.GetResource()->GetResourceId()) { mReady = false; return; }
-			mVbvs.emplace_back(vbv.GetResource()->GetResourceId(), vbv);
+            mVbvs.push_back(vbv);
         }
 
         void SetIbv(const IbvUsage& ibv)
         {
 			//if (!ibv.GetResource()->GetResourceId()) { mReady = false; return; }
-			mIbv = IbvUsageImpl(ibv.GetResource()->GetResourceId(), ibv);
+            mIbv = ibv;
         }
 
-        //bool IsReady() const { return mReady; }
+        bool IsReadyForExecute() const;
 
     public:
         struct
@@ -1020,8 +989,10 @@ namespace GI
         std::vector<ShaderMacro>	                mShaderMacros;
 
     public:
-        std::array<RtvUsageImpl, 8>               	mRtvs;
-        DsvUsageImpl                                mDsv;
+        std::array<RtvUsage, 8>               	    mRtvs;
+        u8                                          mRtvCount = 0;
+        DsvUsage                                    mDsv;
+        bool                                        mHasDsv = false;
 
         std::vector<InputElementDesc>               mInputLayout;
 
@@ -1029,8 +1000,8 @@ namespace GI
         DepthStencilDesc                            mDepthStencilDesc;
         BlendDesc                                   mBlendDesc;
 
-        std::vector<VbvUsageImpl>	                    mVbvs;
-        IbvUsageImpl                 					mIbv;
+        std::vector<VbvUsage>	                    mVbvs;
+        IbvUsage                 					mIbv;
         i32 										mVertexStartLocation = 0;
         i32 										mIndexStartLocation = 0;
         i32 										mIndexCount = 0;
@@ -1042,11 +1013,8 @@ namespace GI
 
     //protected:
         std::map<std::string, std::vector<b8>>      mCbParams;
-        std::map<std::string, SrvUsageImpl>	            mSrvParams;
+        std::map<std::string, SrvUsage>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
-    
-    protected:
-        //bool                                        mReady = true;
     };
 
     class GD_COMMON_API ComputePass
@@ -1063,14 +1031,14 @@ namespace GI
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
 			//if (!srv.GetResource()->GetResourceId()) { mReady = false; return; }
-			mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
+            mSrvParams[name] = srv;
         }
 
         void AddUav(const std::string& name, const UavUsage& uav)
         {
             Assert(mUavParams.find(name) == mUavParams.end());
 			//if (!uav.GetResource()->GetResourceId()) { mReady = false; return; }
-			mUavParams[name] = UavUsageImpl(uav.GetResource()->GetResourceId(), uav);
+            mUavParams[name] = uav;
         }
 
         void AddSampler(const std::string& name, const SamplerDesc& sampler)
@@ -1079,7 +1047,7 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
-        //bool IsReady() const { return mReady; }
+		bool IsReadyForExecute() const;
 
     public:
         struct
@@ -1093,8 +1061,8 @@ namespace GI
 
     public:
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
-        std::map<std::string, GI::SrvUsageImpl>  		mSrvParams;
-        std::map<std::string, GI::UavUsageImpl>	        mUavParams;
+        std::map<std::string, GI::SrvUsage>  		mSrvParams;
+        std::map<std::string, GI::UavUsage>	        mUavParams;
         std::map<std::string, std::vector<b8>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
