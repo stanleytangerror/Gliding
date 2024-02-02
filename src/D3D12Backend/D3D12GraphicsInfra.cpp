@@ -769,5 +769,9 @@ namespace D3D12Backend
 
 		mContext->Finalize();
 	}
+}
 
+GI::IGraphicsInfra* CreateGraphicsInfra()
+{
+	return new D3D12Backend::D3D12GraphicsInfra();
 }

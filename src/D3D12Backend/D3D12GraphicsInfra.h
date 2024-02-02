@@ -14,7 +14,7 @@
 
 namespace D3D12Backend
 {
-	class GD_D3D12BACKEND_API D3D12GraphicsInfra : public GI::IGraphicsInfra
+	class D3D12GraphicsInfra : public GI::IGraphicsInfra
 	{
 	public:
 		D3D12GraphicsInfra();
@@ -74,27 +74,27 @@ namespace D3D12Backend
 		std::queue<Command>		mCommands;
 	};
 
-	struct GD_COMMON_API SrvUsageImpl : public GI::SrvDesc
+	struct SrvUsageImpl : public GI::SrvDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(SrvUsageImpl, GI::SrvDesc);
 	};
-	struct GD_COMMON_API RtvUsageImpl : public GI::RtvDesc
+	struct RtvUsageImpl : public GI::RtvDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(RtvUsageImpl, GI::RtvDesc);
 	};
-	struct GD_COMMON_API UavUsageImpl : public GI::UavDesc
+	struct UavUsageImpl : public GI::UavDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(UavUsageImpl, GI::UavDesc);
 	};
-	struct GD_COMMON_API DsvUsageImpl : public GI::DsvDesc
+	struct DsvUsageImpl : public GI::DsvDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(DsvUsageImpl, GI::DsvDesc);
 	};
-	struct GD_COMMON_API VbvUsageImpl : public GI::VbvDesc
+	struct VbvUsageImpl : public GI::VbvDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(VbvUsageImpl, GI::VbvDesc);
 	};
-	struct GD_COMMON_API IbvUsageImpl : public GI::IbvDesc
+	struct IbvUsageImpl : public GI::IbvDesc
 	{
 		CONSTRUCTOR_WITH_RESOURCE_ID(IbvUsageImpl, GI::IbvDesc);
 	};
@@ -156,5 +156,9 @@ namespace D3D12Backend
 	protected:
 		//bool                                        mReady = true;
 	};
+}
 
+extern "C"
+{
+	GD_D3D12BACKEND_API GI::IGraphicsInfra* CreateGraphicsInfra();
 }

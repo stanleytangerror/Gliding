@@ -32,6 +32,7 @@ public:
 	void				Destroy();
 
 protected:
+	HMODULE									mGraphicsBackendModule = {};
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 

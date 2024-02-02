@@ -35,7 +35,17 @@ void RenderModule::Initial(const Vec2u& initialSize)
 	mRenderDoc = new RenderDocIntegration;
 #endif
 
-	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
+	using CreateGraphicsInfra = GI::IGraphicsInfra* ();
+
+#ifdef _DEBUG
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Debug_x64.dll");
+#else
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Release_x64.dll");
+#endif
+
+	// Get the function pointer
+	auto createInfraFunc = reinterpret_cast<CreateGraphicsInfra*>(GetProcAddress(mGraphicsBackendModule, "CreateGraphicsInfra"));
+	mGraphicInfra = createInfraFunc();
 
 	mGraphicInfra->StartRecording();
 
@@ -118,4 +128,6 @@ void RenderModule::Destroy()
 	mImGuiRenderer = nullptr;
 
 	Utils::SafeDelete(mGraphicInfra);
+
+	FreeLibrary(mGraphicsBackendModule);
 }
