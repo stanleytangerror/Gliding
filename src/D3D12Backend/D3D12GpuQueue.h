@@ -54,8 +54,6 @@ namespace D3D12Backend
 		u64						mGpuPlannedValue = 1;
 		u64						mGpuCompletedValue = 0;
 
-		HANDLE					mCpuEventHandle = {};
-
 		SuspendedReleasePool<GraphicsContext>* mGraphicContextPool = nullptr;
 		SuspendedReleasePool<ComputeContext>* mComputeContextPool = nullptr;
 

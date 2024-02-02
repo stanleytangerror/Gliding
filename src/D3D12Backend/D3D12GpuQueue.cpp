@@ -42,9 +42,6 @@ namespace D3D12Backend
 			[&]() { return new ComputeContext(mDevice, this); },
 			[](ComputeContext* ctx) {},
 			[](ComputeContext* ctx) {});
-
-		mCpuEventHandle = CreateEvent(nullptr, false, false, nullptr);
-		Assert(mCpuEventHandle != INVALID_HANDLE_VALUE);
 	}
 
 	D3D12GpuQueue::~D3D12GpuQueue()
@@ -56,8 +53,6 @@ namespace D3D12Backend
 
 		Utils::SafeDelete(mGraphicContextPool);
 		Utils::SafeDelete(mComputeContextPool);
-
-		CloseHandle(mCpuEventHandle);
 
 		//Utils::SafeRelease(mFence);
 		Utils::SafeRelease(mCommandQueue);
