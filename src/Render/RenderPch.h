@@ -8,7 +8,6 @@
 
 #include "Common/CommonMacros.h"
 #include "World/WorldMacros.h"
-#include "D3D12Backend/D3D12BackendMacros.h"
 #include "Render/RenderMacros.h"
 
 // headers from common

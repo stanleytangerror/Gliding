@@ -4,7 +4,6 @@
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "RenderTarget.h"
-#include "D3D12Backend/D3D12GraphicsInfra.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
