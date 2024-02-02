@@ -14,11 +14,7 @@
 
 RenderModule::RenderModule()
 {
-#if ENABLE_RENDER_DOC_PLUGIN
-	mRenderDoc = new RenderDocIntegration;
-#endif
 
-	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
@@ -33,17 +29,21 @@ void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 	mGraphicInfra->ResizeWindow(windowId, size);
 }
 
-void RenderModule::Initial()
+void RenderModule::Initial(const Vec2u& initialSize)
 {
+#if ENABLE_RENDER_DOC_PLUGIN
+	mRenderDoc = new RenderDocIntegration;
+#endif
+
+	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
+
 	mGraphicInfra->StartRecording();
 
-	const Vec2u& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
-
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
+	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ initialSize.x(), initialSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
 
 	mGraphicInfra->EndRecording(false);
 }

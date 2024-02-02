@@ -47,8 +47,8 @@ private:
 		const Math::PerspectiveProjectionf& cameraProj, const Math::CameraTransformf& cameraTrans);
 
 private:
-	RenderModule* mRenderModule = nullptr;
-	Vec2u const mRenderSize = {};
+	RenderModule*	mRenderModule = nullptr;
+	Vec2u			mRenderSize = {};
 
 	std::unique_ptr<Geometry> mQuad;
 	std::unique_ptr<Geometry> mSphere;

@@ -54,9 +54,6 @@
     <ClInclude Include="RenderTarget.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="NativeUtils.h">
-      <Filter>Source</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderPch.cpp">
@@ -93,9 +90,6 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Texture.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NativeUtils.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

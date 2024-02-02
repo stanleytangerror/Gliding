@@ -98,9 +98,10 @@ void Application::LogicThread()
 
 	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mNativeHandle);
 
+	mRenderModule->Initial(mMainWindowInfo.mSize);
+
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
-	mRenderModule->Initial();
 
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
