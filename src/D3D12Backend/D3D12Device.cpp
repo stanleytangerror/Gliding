@@ -142,9 +142,12 @@ namespace D3D12Backend
 			q->Execute();
 		}
 
-		for (auto swapChain : mResMgr->GetSwapChains())
+		for (auto* q : mGpuQueues)
 		{
-			swapChain->Present();
+			for (auto swapChain : q->GetSwapChains())
+			{
+				swapChain->Present();
+			}
 		}
 
 		for (D3D12GpuQueue* q : mGpuQueues)
@@ -182,6 +185,7 @@ namespace D3D12Backend
 		for (D3D12GpuQueue*& q : mGpuQueues)
 		{
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
+			q->ReleaseSwapChainResources();
 		}
 
 		mResMgr->Update();

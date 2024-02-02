@@ -19,11 +19,6 @@ namespace D3D12Backend
 
 		void			Update();
 
-		SwapChain*		CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2u& size, const int32_t frameCount);
-		SwapChain*		GetSwapChain(u32 windowId) const;
-		std::vector<SwapChain*>
-						GetSwapChains() const;
-
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const D3D12_RESOURCE_DESC& desc, D3D12_HEAP_TYPE heapType, const char* name, D3D12_RESOURCE_STATES currentState);
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const GI::MemoryResourceDesc& desc);
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
@@ -48,8 +43,6 @@ namespace D3D12Backend
 		std::vector<ReleaseItem>	mReleaseQueue;
 
 		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
-
-		std::map<u32, std::unique_ptr<SwapChain>>	mSwapChains;
 
 		IndexAllocator<GI::CommittedResourceId>			mResourceIdAllocator;
 

@@ -3,8 +3,9 @@
 
 namespace D3D12Backend
 {
-	SwapChain::SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount)
+	SwapChain::SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount)
 		: mDevice(device)
+		, mGpuQueue(gpuQueue)
 		, mWindowHandle(windowHandle)
 		, mSize(size)
 		, mFrameCount(frameCount)
@@ -22,7 +23,7 @@ namespace D3D12Backend
 
 		IDXGISwapChain1* swapChain1 = nullptr;
 		AssertHResultOk(device->GetFactory()->CreateSwapChainForHwnd(
-			device->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetCommandQueue(),
+			mGpuQueue->GetCommandQueue(),
 			windowHandle,
 			&swapChainDesc,
 			nullptr,

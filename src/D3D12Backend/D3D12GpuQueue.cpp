@@ -49,6 +49,8 @@ namespace D3D12Backend
 
 	D3D12GpuQueue::~D3D12GpuQueue()
 	{
+		mSwapChains.clear();
+
 		mGraphicContextPool->UpdateTime(mGpuCompletedValue);
 		mComputeContextPool->UpdateTime(mGpuCompletedValue);
 
@@ -164,6 +166,44 @@ namespace D3D12Backend
 	bool D3D12GpuQueue::IsGpuValueFinished(u64 value)
 	{
 		return value <= mGpuCompletedValue;
+	}
+
+
+	SwapChain* D3D12GpuQueue::CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2u& size, const int32_t frameCount)
+	{
+		Assert(mSwapChains.find(windowId) == mSwapChains.end());
+
+		const auto& swapChain = new SwapChain(mDevice, this, windowHandle, size, frameCount);
+		mSwapChains.emplace(windowId, swapChain);
+		return swapChain;
+	}
+
+
+	void D3D12GpuQueue::ReleaseSwapChainResources()
+	{
+		for (auto& [_, swapChain] : mSwapChains)
+		{
+			swapChain->ClearBuffers();
+		}
+	}
+
+	std::vector<SwapChain*> D3D12GpuQueue::GetSwapChains() const
+	{
+		auto result = std::vector<SwapChain*>();
+		for (auto& [_, swapChain] : mSwapChains)
+		{
+			result.push_back(swapChain.get());
+		}
+		return result;
+	}
+
+
+	D3D12Backend::SwapChain* D3D12GpuQueue::GetSwapChain(u32 windowId) const
+	{
+		auto it = mSwapChains.find(windowId);
+		Assert(it != mSwapChains.end());
+
+		return it->second.get();
 	}
 
 	D3D12_COMMAND_LIST_TYPE D3D12GpuQueue::GetD3D12CommandListType(D3D12GpuQueueType type)

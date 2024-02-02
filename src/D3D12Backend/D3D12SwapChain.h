@@ -8,25 +8,27 @@
 namespace D3D12Backend
 {
 	class D3D12Device;
+	class D3D12GpuQueue;
 
 	class SwapChain
 	{
 	public:
-		SwapChain(D3D12Device* device, HWND windowHandle, const Vec2u& size, const u32 frameCount);
+		SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount);
 		SwapChain(const SwapChain& other) = delete;
 
 		GI::IGraphicMemoryResource*		GetBuffer() const;
-		HWND					GetWindowHandle() const { return mWindowHandle; }
-		void					Present();
-		Vec2u					GetSize() const { return mSize; }
+		HWND							GetWindowHandle() const { return mWindowHandle; }
+		void							Present();
+		Vec2u							GetSize() const { return mSize; }
 
-		void					Resize(const Vec2u& newSize);
+		void							Resize(const Vec2u& newSize);
 
-		void					ClearBuffers();
-		void					InitialBuffers();
+		void							ClearBuffers();
+		void							InitialBuffers();
 
 	protected:
 		D3D12Device* const						mDevice = nullptr;
+		D3D12GpuQueue* const					mGpuQueue = nullptr;
 		IDXGISwapChain1*						mSwapChain = nullptr;
 		HWND									mWindowHandle = {};
 		const DXGI_FORMAT						mFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

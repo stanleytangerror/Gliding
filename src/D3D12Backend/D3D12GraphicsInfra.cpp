@@ -55,13 +55,13 @@ namespace D3D12Backend
 
 	void D3D12GraphicsInfra::AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo)
 	{
-		mDevice->GetResourceManager()->CreateSwapChain(windowId, HWND(windowInfo.mNativeHandle), windowInfo.mSize, windowInfo.mFrameCount);
+		mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->CreateSwapChain(windowId, HWND(windowInfo.mNativeHandle), windowInfo.mSize, windowInfo.mFrameCount);
 	}
 
 
 	void D3D12GraphicsInfra::ResizeWindow(u8 windowId, const Vec2u& windowSize)
 	{
-		auto swapChain = mDevice->GetResourceManager()->GetSwapChain(windowId);
+		auto swapChain = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowId);
 
 		if (swapChain->GetSize() != windowSize)
 		{
@@ -83,7 +83,7 @@ namespace D3D12Backend
 
 	GI::IGraphicMemoryResource* D3D12GraphicsInfra::GetWindowBackBuffer(u8 windowId)
 	{
-		return mDevice->GetResourceManager()->GetSwapChain(windowId)->GetBuffer();
+		return mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowId)->GetBuffer();
 	}
 
 	void D3D12GraphicsInfra::StartFrame()
