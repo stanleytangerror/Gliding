@@ -55,7 +55,7 @@ FileTexture::FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const 
 	, mTextureExtension(Utils::GetTextureExtension(filePath))
 	, mImage(infra->CreateFromImageMemory(Utils::GetTextureExtension(filePath), mContent))
 {
-
+	
 }
 
 void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)

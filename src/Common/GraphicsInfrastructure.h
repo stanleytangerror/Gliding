@@ -852,6 +852,8 @@ namespace GI
     class GD_COMMON_API IGraphicsInfra
     {
     public:
+        virtual ~IGraphicsInfra() = 0 {}
+
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
 

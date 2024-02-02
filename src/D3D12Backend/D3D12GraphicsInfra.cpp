@@ -12,6 +12,13 @@ namespace D3D12Backend
 		mDevice = new D3D12Device;
 	}
 
+
+	D3D12GraphicsInfra::~D3D12GraphicsInfra()
+	{
+		mDevice->Destroy();
+		Utils::SafeDelete(mDevice);
+	}
+
 	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResource(const GI::MemoryResourceDesc& desc)
 	{
 		return std::move(mDevice->GetResourceManager()->CreateResource(desc));

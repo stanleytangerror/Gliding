@@ -39,7 +39,7 @@ protected:
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	RenderTarget*							mSceneHdrRt = nullptr;
+	std::unique_ptr<RenderTarget>			mSceneHdrRt;
 
 	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
 

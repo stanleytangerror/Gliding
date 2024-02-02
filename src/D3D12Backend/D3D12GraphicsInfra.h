@@ -18,6 +18,7 @@ namespace D3D12Backend
 	{
 	public:
 		D3D12GraphicsInfra();
+		~D3D12GraphicsInfra() override;
 
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::MemoryResourceDesc& desc) override;
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::IImage& image) override;

@@ -2,13 +2,13 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/TransformHierarchy.h"
+#include "RenderTarget.h"
+#include "Texture.h"
+#include "Geometry.h"
+#include "RenderMaterial.h"
+#include "Light.h"
 
 class RenderModule;
-class Geometry;
-class FileTexture;
-class RenderTarget;
-struct RenderMaterial;
-struct DirectionalLight;
 
 class GD_RENDER_API WorldRenderer
 {
@@ -50,11 +50,11 @@ private:
 	RenderModule* mRenderModule = nullptr;
 	Vec2u const mRenderSize = {};
 
-	Geometry* mQuad = nullptr;
-	Geometry* mSphere = nullptr;
+	std::unique_ptr<Geometry> mQuad;
+	std::unique_ptr<Geometry> mSphere;
 
-	FileTexture* mSkyTexture = nullptr;
-	RenderTarget* mPanoramicSkyRt = nullptr;
+	std::unique_ptr<FileTexture> mSkyTexture;
+	std::unique_ptr<RenderTarget> mPanoramicSkyRt;
 	GI::SamplerDesc mPanoramicSkySampler;
 	f32	mSkyLightIntensity = 50.f;
 
@@ -87,13 +87,15 @@ private:
 	std::array<GI::SrvUsage, 3> mGBufferSrvs = {};
 	std::array<GI::RtvUsage, 3> mGBufferRtvs = {};
 
-	RenderTarget* mShadowMask = nullptr;
+	std::unique_ptr<RenderTarget> mShadowMask;
 
 public:
 	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf			mCameraTrans;
 
-	TransformNode<std::pair<
+	std::unique_ptr<
+		TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>* mTestModel;
+		std::shared_ptr<RenderMaterial>>>
+		>							mTestModel;
 };

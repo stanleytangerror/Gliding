@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/GraphicsInfrastructure.h"
+#include "Texture.h"
 
 class Timer;
 class RenderModule;
@@ -19,5 +20,5 @@ protected:
 	GI::SamplerDesc		mImGuiSampler;
 
 	GI::SrvUsage			mFontAtlasSrvDesc;
-	class InMemoryTexture*	mFontAtlas = nullptr;
+	std::unique_ptr<InMemoryTexture>	mFontAtlas;
 };

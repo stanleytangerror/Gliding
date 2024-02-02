@@ -142,7 +142,7 @@ namespace D3D12Backend
 			q->Execute();
 		}
 
-		for (auto [_, swapChain] : mResMgr->GetSwapChains())
+		for (auto swapChain : mResMgr->GetSwapChains())
 		{
 			swapChain->Present();
 		}
@@ -182,11 +182,15 @@ namespace D3D12Backend
 		for (D3D12GpuQueue*& q : mGpuQueues)
 		{
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
-			Utils::SafeDelete(q);
 		}
 
 		mResMgr->Update();
 		mResMgr = nullptr;
+
+		for (D3D12GpuQueue*& q : mGpuQueues)
+		{
+			Utils::SafeDelete(q);
+		}
 
 		Utils::SafeDelete(mPipelineStateLib);
 		Utils::SafeDelete(mShaderLib);

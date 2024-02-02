@@ -16,11 +16,11 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 {
 	auto infra = mRenderModule->GetGraphicsInfra();
 
-	mSphere = Geometry::GenerateSphere(40);
-	mQuad = Geometry::GenerateQuad();
+	mSphere.reset(Geometry::GenerateSphere(40));
+	mQuad.reset(Geometry::GenerateQuad());
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = new FileTexture(infra, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	mSkyTexture = std::make_unique<FileTexture>(infra, skyTexPath, Utils::LoadFileContent(skyTexPath));
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -102,7 +102,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1); 
 
-	mShadowMask = new RenderTarget(infra, { mRenderSize.x(), mRenderSize.y(), 1 }, GI::Format::FORMAT_R16_FLOAT, "ShadowMask");
+	mShadowMask = std::make_unique<RenderTarget>(infra, Vec3u{ mRenderSize.x(), mRenderSize.y(), 1 }, GI::Format::FORMAT_R16_FLOAT, "ShadowMask");
 
 	mSunLight = new DirectionalLight;
 	{
@@ -148,8 +148,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	mTestModel = RenderUtils::FromSceneRawData(mRenderModule->GetGraphicsInfra(), sceneRawData);
-	//mTestModel = RenderUtils::GenerateMaterialProbes(device);
+	mTestModel.reset(RenderUtils::FromSceneRawData(mRenderModule->GetGraphicsInfra(), sceneRawData));
+	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(device));
 
 	//mTestModel->mRelTransform = UniScalingf(10.f);
 	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
@@ -164,11 +164,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 
 WorldRenderer::~WorldRenderer()
 {
-	Utils::SafeDelete(mTestModel);
-	Utils::SafeDelete(mQuad);
-	Utils::SafeDelete(mSphere);
-	Utils::SafeDelete(mSkyTexture);
-	Utils::SafeDelete(mPanoramicSkyRt);
+
 }
 
 void WorldRenderer::TickFrame(Timer* timer)
@@ -197,7 +193,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
 			const Vec3u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
-			mPanoramicSkyRt = new RenderTarget(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
+			mPanoramicSkyRt = std::make_unique<RenderTarget>(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
@@ -436,7 +432,7 @@ void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvUsage& tar
 
 	GI::GraphicsPass pass;
 
-	Geometry* geometry = mQuad;
+	Geometry* geometry = mQuad.get();
 	const Transformf& transform = Transformf(UniScalingf(1000.f));
 
 	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";

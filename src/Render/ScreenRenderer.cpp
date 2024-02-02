@@ -7,12 +7,12 @@
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	mQuad = Geometry::GenerateQuad();
+	mQuad.reset(Geometry::GenerateQuad());
 }
 
 ScreenRenderer::~ScreenRenderer()
 {
-	Utils::SafeDelete(mQuad);
+
 }
 
 void ScreenRenderer::TickFrame(Timer* timer)

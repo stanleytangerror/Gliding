@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Common/GraphicsInfrastructure.h"
+#include "Geometry.h"
 
 class RenderModule;
-class Geometry;
 
 class GD_RENDER_API ScreenRenderer
 {
@@ -21,7 +21,7 @@ private:
 private:
 	RenderModule* mRenderModule = nullptr;
 
-	Geometry* mQuad = nullptr;
+	std::unique_ptr<Geometry> mQuad;
 
 	f32 mSecondsSinceLaunch = 0.f;
 	f32 mLastFrameDeltaTimeInSeconds = 0.f;

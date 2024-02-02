@@ -35,13 +35,17 @@ void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 
 void RenderModule::Initial()
 {
+	mGraphicInfra->StartRecording();
+
 	const Vec2u& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
 	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = new RenderTarget(mGraphicInfra, { mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+
+	mGraphicInfra->EndRecording(false);
 }
 
 void RenderModule::TickFrame(Timer* timer)
@@ -110,5 +114,7 @@ void RenderModule::Destroy()
 {
 	mScreenRenderer = nullptr;
 	mWorldRenderer = nullptr;
-	Utils::SafeDelete(mSceneHdrRt);
+	mSceneHdrRt = nullptr;
+
+	Utils::SafeDelete(mGraphicInfra);
 }

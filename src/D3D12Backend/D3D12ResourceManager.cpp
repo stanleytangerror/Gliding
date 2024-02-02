@@ -18,6 +18,7 @@ namespace D3D12Backend
 	ResourceManager::~ResourceManager()
 	{
 		Assert(mReleaseQueue.empty());
+		mSwapChains.clear();
 	}
 
 	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(const GI::MemoryResourceDesc& desc)
@@ -285,14 +286,25 @@ namespace D3D12Backend
 		Assert(mSwapChains.find(windowId) == mSwapChains.end());
 
 		const auto& swapChain = new SwapChain(mDevice, windowHandle, size, frameCount);
-		mSwapChains[windowId] = swapChain;
+		mSwapChains.emplace(windowId, swapChain);
 		return swapChain;
 	}
 
-	D3D12Backend::SwapChain* ResourceManager::GetSwapChain(u32 windowId) const
+	SwapChain* ResourceManager::GetSwapChain(u32 windowId) const
 	{
 		auto it = mSwapChains.find(windowId);
-		return it->second;
+		return it->second.get();
+	}
+
+
+	std::vector<SwapChain*> ResourceManager::GetSwapChains() const
+	{
+		auto result = std::vector<SwapChain*>();
+		for (const auto& [_, swapChain] : mSwapChains)
+		{
+			result.push_back(swapChain.get());
+		}
+		return result;
 	}
 
 }
