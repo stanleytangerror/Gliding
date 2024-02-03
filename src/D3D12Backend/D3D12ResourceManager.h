@@ -19,9 +19,8 @@ namespace D3D12Backend
 
 		void			Update();
 
-		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const D3D12_RESOURCE_DESC& desc, D3D12_HEAP_TYPE heapType, const char* name, D3D12_RESOURCE_STATES currentState);
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const GI::MemoryResourceDesc& desc);
-		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
+		std::unique_ptr<GI::IGraphicMemoryResource>	PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
 		void				ReleaseResource(GI::CommittedResourceId id);
 		CommitedResource*	GetResource(GI::CommittedResourceId id) const;
 

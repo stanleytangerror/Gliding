@@ -86,7 +86,7 @@ namespace D3D12Backend
 			AssertHResultOk(mSwapChain->GetBuffer(n, IID_PPV_ARGS(&resource)));
 
 			mBuffers.push_back(
-				mDevice->GetResourceManager()->CreateResource(
+				mDevice->GetResourceManager()->PossessResourceWithOwnership(
 					resource,
 					Utils::FormatString("BackBuffer_%d", n).c_str(),
 					D3D12_RESOURCE_STATE_COMMON));

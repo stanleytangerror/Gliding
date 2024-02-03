@@ -153,7 +153,7 @@ namespace
 		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
 		ID3D12Resource* defaultResource = nullptr;
 		AssertHResultOk(DirectX::CreateTexture(device->GetDevice(), image.GetMetadata(), &defaultResource));
-		auto result = device->GetResourceManager()->CreateResource(defaultResource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
+		auto result = device->GetResourceManager()->PossessResourceWithOwnership(defaultResource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
 		auto resultDeviceResource = device->GetResourceManager()->GetResource(result->GetResourceId());
 
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;

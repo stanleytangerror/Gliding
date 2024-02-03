@@ -64,7 +64,7 @@ namespace D3D12Backend
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
 	}
 
-	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState)
+	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState)
 	{
 		auto resourceId = mResourceIdAllocator.Alloc();
 
@@ -77,36 +77,6 @@ namespace D3D12Backend
 		result->mSize = { u32(desc.Width), u32(desc.Height), desc.DepthOrArraySize };
 		result->mDesc = desc;
 		result->mState = currentState;
-
-		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
-		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
-
-		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
-	}
-
-
-	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::CreateResource(const D3D12_RESOURCE_DESC& desc, D3D12_HEAP_TYPE heapType, const char* name, D3D12_RESOURCE_STATES currentState)
-	{
-		auto resourceId = mResourceIdAllocator.Alloc();
-
-		ID3D12Resource* resource = nullptr;
-		CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(heapType);
-		AssertHResultOk(mDevice->GetDevice()->CreateCommittedResource(
-			&heapProp,
-			D3D12_HEAP_FLAG_NONE,
-			&desc,
-			currentState,
-			nullptr,
-			IID_PPV_ARGS(&resource)));
-		NAME_RAW_D3D12_OBJECT(resource, name);
-
-		CommitedResource* result = new CommitedResource;
-		result->mDevice = mDevice;
-		result->mResource = resource;
-		result->mSize = { u32(desc.Width), desc.Height, desc.DepthOrArraySize };
-		result->mDesc = desc;
-		result->mState = currentState;
-		result->mHeapType = GI::HeapType::Enum(heapType);
 
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);

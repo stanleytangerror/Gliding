@@ -817,6 +817,25 @@ namespace GI
         CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlag::Flags, Flags);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
+
+    public:
+        static MemoryResourceDesc Buffer(u64 size, HeapType::Enum heapType, ResourceState::Enum initialState, ResourceFlag::Flags flags, u8 alignment)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::BUFFER)
+                .SetAlignment(alignment)
+                .SetWidth(size)
+                .SetHeight(1)
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(Format::FORMAT_UNKNOWN)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_ROW_MAJOR)
+                .SetFlags(flags)
+                .SetHeapType(heapType)
+                .SetInitState(initialState);
+        }
     };
 
     class GD_COMMON_API IImage

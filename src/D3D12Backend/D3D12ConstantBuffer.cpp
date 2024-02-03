@@ -9,22 +9,15 @@ namespace D3D12Backend
 		, mSize(Math::Align(size, msGpuAddrAlignment))
 	{
 		auto res = mDevice->GetResourceManager()->CreateResource(
-			CD3DX12_RESOURCE_DESC::Buffer(mSize), 
-			D3D12_HEAP_TYPE_UPLOAD, 
-			"ConstBufferBlock", 
-			D3D12_RESOURCE_STATE_GENERIC_READ);
+			GI::MemoryResourceDesc::Buffer(
+				mSize,
+				GI::HeapType::UPLOAD,
+				GI::ResourceState::STATE_GENERIC_READ,
+				0,
+				0)
+			.SetName("ConstBufferBlock"));
 
 		std::swap(res, mGpuResource);
-
-		//CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
-		//CD3DX12_RESOURCE_DESC uploadBuffer = CD3DX12_RESOURCE_DESC::Buffer(mSize);
-		//device->GetDevice()->CreateCommittedResource(
-		//	&heapUpload,
-		//	D3D12_HEAP_FLAG_NONE,
-		//	&uploadBuffer,
-		//	D3D12_RESOURCE_STATE_GENERIC_READ,
-		//	nullptr,
-		//	IID_PPV_ARGS(&mGpuResource));
 
 		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource->GetResourceId())->GetD3D12Resource();
 
