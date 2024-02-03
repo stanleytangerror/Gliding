@@ -26,6 +26,8 @@ protected:
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static HWND CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 
+	HMODULE							mGraphicsBackendModule = {};
+
 	std::atomic_bool				mWindowCreated = false;
 	WindowRuntimeInfo				mMainWindowInfo = {};
 	WindowRuntimeInfo				mDebugWindowInfo = {};

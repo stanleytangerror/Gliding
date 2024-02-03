@@ -16,7 +16,9 @@ class ImGuiRenderer;
 class GD_RENDER_API RenderModule
 {
 public:
-	RenderModule();
+	using CreateGraphicsInfra = GI::IGraphicsInfra* ();
+
+	RenderModule(CreateGraphicsInfra* createGraphicsBackend);
 
 	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
 	void OnResizeWindow(u8 windowId, const Vec2u& size);
@@ -32,7 +34,7 @@ public:
 	void				Destroy();
 
 protected:
-	HMODULE									mGraphicsBackendModule = {};
+	CreateGraphicsInfra*					mCreateGraphicsInfra = nullptr;
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 

@@ -34,8 +34,15 @@ void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
+#ifdef _DEBUG
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Debug_x64.dll");
+#else
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Release_x64.dll");
+#endif
+
 	Profile::Initial();
-	mRenderModule = std::make_unique<RenderModule>();
+	auto createInfraFunc = reinterpret_cast<RenderModule::CreateGraphicsInfra*>(GetProcAddress(mGraphicsBackendModule, "CreateGraphicsInfra"));
+	mRenderModule = std::make_unique<RenderModule>(createInfraFunc);
 	ImGuiIntegration::Initial();
 }
 
@@ -51,6 +58,8 @@ void Application::Destroy()
 	mAppLifeCycle = AppLifeCycle::Destroying;
 	mRenderModule->Destroy();
 	Profile::Destroy();
+
+	FreeLibrary(mGraphicsBackendModule);
 }
 
 void Application::Run()
