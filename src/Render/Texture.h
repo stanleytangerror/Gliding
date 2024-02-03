@@ -9,9 +9,9 @@ public:
 	FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const std::vector<b8>& content);
 
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
-	bool							IsD3DResourceReady() const { return mResource != nullptr; }
+	bool							IsGraphicsResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
-	GI::SrvUsage						GetSrv() const;
+	GI::SrvUsage					GetSrv() const;
 
 protected:
 	std::vector<b8>	const			mContent;
@@ -29,7 +29,7 @@ public:
 	InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 
 	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
-	bool							IsD3DResourceReady() const { return mResource != nullptr; }
+	bool							IsGraphicsResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
 
 protected:

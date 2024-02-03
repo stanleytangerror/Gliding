@@ -187,7 +187,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			mSphere->CreateAndInitialResource(infra);
 		}
 
-		if (!mSkyTexture->IsD3DResourceReady())
+		if (!mSkyTexture->IsGraphicsResourceReady())
 		{
 			mSkyTexture->CreateAndInitialResource(infra);
 
@@ -550,7 +550,7 @@ void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,
 	for (const auto& [usage, paramName] : semanticSlots)
 	{
 		const auto& attr = material->mMatAttriSlots[usage];
-		if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
+		if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
 		{
 			gbufferPass.mShaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
 
@@ -620,7 +620,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	const char* paramName = "BaseColorTex";
 
 	const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
-	if (attr.mTexture && attr.mTexture->IsD3DResourceReady())
+	if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
 	{
 		pass.AddSrv(paramName, attr.mTexture->GetSrv());
 		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), attr.mSampler);
