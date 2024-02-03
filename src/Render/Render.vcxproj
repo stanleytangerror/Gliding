@@ -137,9 +137,6 @@
     <ProjectReference Include="..\Common\Common.vcxproj">
       <Project>{3de1d1e4-5c2a-4a60-bf90-c4ca19948bac}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\D3D12Backend\D3D12Backend.vcxproj">
-      <Project>{e9a8e828-0b5e-4fc1-81cc-cab60f6346bb}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\ImGuiIntegration\ImGuiIntegration.vcxproj">
       <Project>{1122a6ae-e522-4a89-95c9-cefde43c0b04}</Project>
     </ProjectReference>
