@@ -30,6 +30,24 @@ namespace D3D12Backend
 		return D3D12Utils::CreateResourceFromImage(mCurrentRecorder->GetContext(), dxScratchImage);
 	}
 
+
+	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResourceFromTexture2DData(const GI::ReadOnly2DResourceDesc& desc)
+	{
+		auto image = std::make_unique<DirectX::ScratchImage>();
+		image->Initialize2D(D3D12Utils::ToDxgiFormat(desc.GetFormat()), desc.GetWidth(), desc.GetHeight(), desc.GetArraySize(), desc.GetMipLevel());
+		memcpy(image->GetImage(0, 0, 0)->pixels, desc.GetData().data(), desc.GetData().size());
+
+		Assert(image->GetImageCount() > 0);
+		ID3D12Resource* resource = nullptr;
+		AssertHResultOk(DirectX::CreateTexture(mDevice->GetDevice(), image->GetMetadata(), &resource));
+		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
+		auto result = mDevice->GetResourceManager()->PossessResourceWithOwnership(resource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		mCurrentRecorder->AddInitialTextureResourceOperation(result.get(), *image);
+
+		return std::move(result);
+	}
+
 	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)
 	{
 		Assert(resource->GetDimension() == GI::ResourceDimension::BUFFER);
@@ -754,6 +772,48 @@ namespace D3D12Backend
 #if DEFERRED_EXECUTE
 		);
 #endif
+	}
+
+	void D3D12GraphicsRecorder::AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, const DirectX::ScratchImage& image)
+	{
+		auto device = mContext->GetDevice();
+		auto resourceManager = device->GetResourceManager();
+
+		auto resourceId = res->GetResourceId();
+
+		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
+		auto deviceResource = device->GetResourceManager()->GetResource(res->GetResourceId());
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(deviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
+
+		auto uploadResource = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
+			.SetDimension(GI::ResourceDimension::BUFFER)
+			.SetAlignment(0)
+			.SetWidth(uploadBufferSize)
+			.SetHeight(1)
+			.SetDepthOrArraySize(1)
+			.SetMipLevels(1)
+			.SetFormat(GI::Format::FORMAT_UNKNOWN)
+			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+			.SetFlags(GI::ResourceFlag::NONE)
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD));
+		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
+		auto uploadResourceId = uploadResource->GetResourceId();
+
+		mCommands.push([this, resourceManager, resourceId, uploadResourceId, subresources]()
+			{
+				auto deviceResource = resourceManager->GetResource(resourceId);
+				auto uploadDeviceResource = resourceManager->GetResource(uploadResourceId);
+
+				UpdateSubresources(
+					mContext->GetCommandList(),
+					deviceResource->GetD3D12Resource(),
+					uploadDeviceResource->GetD3D12Resource(),
+					0, 0, static_cast<unsigned int>(subresources.size()),
+					subresources.data());
+			});
 	}
 
 	void D3D12GraphicsRecorder::Finalize(bool dropAllCommands)

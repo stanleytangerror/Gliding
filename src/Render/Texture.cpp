@@ -33,13 +33,19 @@ InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum for
 	, mName(name)
 	, mMipLevelCount(mipLevel)
 	, mFormat(format)
-	, mImage(infra->CreateFromScratch(mFormat, content, size, mipLevel, name))
+	//, mImage(infra->CreateFromScratch(mFormat, content, size, mipLevel, name))
 {
 
 }
 
 void InMemoryTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 {
-	auto res = infra->CreateMemoryResource(*mImage.get());
-	std::swap(mResource, res);
+	mResource = infra->CreateMemoryResourceFromTexture2DData(GI::ReadOnly2DResourceDesc()
+		.SetData(mContent)
+		.SetFormat(mFormat)
+		.SetWidth(mSize.x())
+		.SetHeight(mSize.y())
+		.SetArraySize(mSize.z())
+		.SetMipLevel(mMipLevelCount)
+		.SetName(mName.c_str()));
 }

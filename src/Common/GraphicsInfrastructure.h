@@ -838,6 +838,17 @@ namespace GI
         }
     };
 
+    class GD_COMMON_API ReadOnly2DResourceDesc
+    {
+        CONTINOUS_SETTER(ReadOnly2DResourceDesc, std::vector<b8>, Data);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, Format::Enum, Format);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Width);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Height);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, ArraySize);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, MipLevel);
+		CONTINOUS_SETTER_VALUE(ReadOnly2DResourceDesc, const char*, Name, nullptr);
+    };
+
     class GD_COMMON_API IImage
     {
     public:
@@ -874,7 +885,8 @@ namespace GI
         virtual ~IGraphicsInfra() = 0 {}
 
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
-        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResourceFromTexture2DData(const ReadOnly2DResourceDesc& desc) = 0;
 
         virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
 

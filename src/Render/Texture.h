@@ -28,7 +28,7 @@ class GD_RENDER_API InMemoryTexture
 public:
 	InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 
-	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
+	void							CreateAndInitialResource(GI::IGraphicsInfra* infra);
 	bool							IsGraphicsResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
 
@@ -39,7 +39,7 @@ protected:
 	i32 const				mMipLevelCount = 1;
 	GI::Format::Enum const	mFormat = GI::Format::FORMAT_UNKNOWN;
 	
-	std::unique_ptr<GI::IImage>		mImage;
+	//std::unique_ptr<GI::IImage>		mImage;
 
 	std::unique_ptr<GI::IGraphicMemoryResource>	mResource;
 };
