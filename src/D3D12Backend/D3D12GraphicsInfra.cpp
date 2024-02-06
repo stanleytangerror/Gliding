@@ -33,7 +33,7 @@ namespace D3D12Backend
 
 	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResourceFromTexture2DData(const GI::ReadOnly2DResourceDesc& desc)
 	{
-		auto image = std::make_unique<DirectX::ScratchImage>();
+		auto image = new DirectX::ScratchImage();
 		image->Initialize2D(D3D12Utils::ToDxgiFormat(desc.GetFormat()), desc.GetWidth(), desc.GetHeight(), desc.GetArraySize(), desc.GetMipLevel());
 		memcpy(image->GetImage(0, 0, 0)->pixels, desc.GetData().data(), desc.GetData().size());
 
@@ -43,7 +43,7 @@ namespace D3D12Backend
 		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
 		auto result = mDevice->GetResourceManager()->PossessResourceWithOwnership(resource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
 
-		mCurrentRecorder->AddInitialTextureResourceOperation(result.get(), *image);
+		mCurrentRecorder->AddInitialTextureResourceOperation(result.get(), image);
 
 		return std::move(result);
 	}
@@ -338,8 +338,8 @@ namespace D3D12Backend
 				if (numRtvs == 0 && !d3d12Pass.mDsv.GetResourceId()) { return; }
 				for (auto i = 0; i < numRtvs; ++i)
 				{
-					rtvs.push_back(resourceManager->CreateRtvDescriptor(d3d12Pass.mRtvs[i].GetResourceId(), d3d12Pass.mRtvs[i]));
-					rtvFormats.push_back(D3D12Utils::ToDxgiFormat(d3d12Pass.mRtvs[i].GetFormat()));
+					rtvs.emplace_back(resourceManager->CreateRtvDescriptor(d3d12Pass.mRtvs[i].GetResourceId(), d3d12Pass.mRtvs[i]));
+					rtvFormats.emplace_back(D3D12Utils::ToDxgiFormat(d3d12Pass.mRtvs[i].GetFormat()));
 				}
 
 				std::map<std::string, DescriptorPtr> samplers;
@@ -774,7 +774,7 @@ namespace D3D12Backend
 #endif
 	}
 
-	void D3D12GraphicsRecorder::AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, const DirectX::ScratchImage& image)
+	void D3D12GraphicsRecorder::AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, DirectX::ScratchImage* image)
 	{
 		auto device = mContext->GetDevice();
 		auto resourceManager = device->GetResourceManager();
@@ -784,7 +784,7 @@ namespace D3D12Backend
 		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
 		auto deviceResource = device->GetResourceManager()->GetResource(res->GetResourceId());
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), subresources));
+		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image->GetImages(), image->GetImageCount(), image->GetMetadata(), subresources));
 		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(deviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
 
 		auto uploadResource = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
@@ -802,19 +802,33 @@ namespace D3D12Backend
 		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
 		auto uploadResourceId = uploadResource->GetResourceId();
 
-		mCommands.push([this, resourceManager, resourceId, uploadResourceId, subresources]()
-			{
-				auto deviceResource = resourceManager->GetResource(resourceId);
-				auto uploadDeviceResource = resourceManager->GetResource(uploadResourceId);
+		// https://stackoverflow.com/a/20669290/2131563
+		mCommands.push([this, image, resourceManager, resourceId, uploadResourceId, subresources]() mutable
+		{
+			auto deviceResource = resourceManager->GetResource(resourceId);
+			auto uploadDeviceResource = resourceManager->GetResource(uploadResourceId);
 
-				UpdateSubresources(
-					mContext->GetCommandList(),
-					deviceResource->GetD3D12Resource(),
-					uploadDeviceResource->GetD3D12Resource(),
-					0, 0, static_cast<unsigned int>(subresources.size()),
-					subresources.data());
-			});
+			UpdateSubresources(
+				mContext->GetCommandList(),
+				deviceResource->GetD3D12Resource(),
+				uploadDeviceResource->GetD3D12Resource(),
+				0, 0, static_cast<unsigned int>(subresources.size()),
+				subresources.data());
+
+			delete image;
+		});
 	}
+
+	// TODO investigate this https://stackoverflow.com/a/20669290/2131563
+	//int func()
+	//{
+	//	auto ptr = std::unique_ptr<int>(new int{ 1 });
+
+	//	auto logInt = [ptr = std::move(ptr)](){ *ptr; };
+	//	
+	//	std::vector<std::function<void()>> loggers;
+	//	loggers.push_back(std::move(logInt));
+	//}
 
 	void D3D12GraphicsRecorder::Finalize(bool dropAllCommands)
 	{

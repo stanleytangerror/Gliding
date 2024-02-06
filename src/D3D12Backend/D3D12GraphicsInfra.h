@@ -55,6 +55,8 @@ namespace D3D12Backend
 		using Command = std::function<void()>;
 
 		D3D12GraphicsRecorder(D3D12CommandContext* context);
+		D3D12GraphicsRecorder(const D3D12GraphicsRecorder& other) = delete;
+		D3D12GraphicsRecorder& operator=(const D3D12GraphicsRecorder& other) = delete;
 
 		void AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value) override;
 		void AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) override;
@@ -65,7 +67,8 @@ namespace D3D12Backend
 		void AddBeginEvent(const char* mark) override;
 		void AddEndEvent() override;
 
-		void AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, const DirectX::ScratchImage& image);
+
+		void AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, DirectX::ScratchImage* image); // TODO make image unique_ptr
 
 		void Finalize(bool dropAllCommands);
 

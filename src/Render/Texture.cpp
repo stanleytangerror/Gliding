@@ -33,7 +33,6 @@ InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum for
 	, mName(name)
 	, mMipLevelCount(mipLevel)
 	, mFormat(format)
-	//, mImage(infra->CreateFromScratch(mFormat, content, size, mipLevel, name))
 {
 
 }

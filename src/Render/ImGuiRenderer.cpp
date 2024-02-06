@@ -37,7 +37,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData)
 {
-	//if (!mFontAtlas->IsGraphicsResourceReady())
+	if (!mFontAtlas->IsGraphicsResourceReady())
 	{
 		mFontAtlas->CreateAndInitialResource(infra);
 

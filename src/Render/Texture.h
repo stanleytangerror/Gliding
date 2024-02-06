@@ -39,7 +39,5 @@ protected:
 	i32 const				mMipLevelCount = 1;
 	GI::Format::Enum const	mFormat = GI::Format::FORMAT_UNKNOWN;
 	
-	//std::unique_ptr<GI::IImage>		mImage;
-
 	std::unique_ptr<GI::IGraphicMemoryResource>	mResource;
 };
