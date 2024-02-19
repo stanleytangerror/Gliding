@@ -38,7 +38,7 @@ public:
 
 	void Push(Index idx)
 	{
-		Assert(mAvailableIndices.size() + 1 < mSize);
+		Assert(mAvailableIndices.size() + 1 <= mSize);
 		Assert(idx != InvalidIndex && idx < mSize);
 		Assert(std::find(mAvailableIndices.begin(), mAvailableIndices.end(), idx) == mAvailableIndices.end());
 
