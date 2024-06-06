@@ -58,6 +58,7 @@ namespace D3D12Backend
 	{
 	public:
 		ShaderPiece(const char* file, enum ShaderType type, const std::vector<GI::ShaderMacro>& macros);
+		~ShaderPiece();
 
 		const enum ShaderType						GetType() const { return mType; }
 		ID3DBlob* GetShader() const { return mShader; }
@@ -84,6 +85,8 @@ namespace D3D12Backend
 	class D3D12ShaderLibrary
 	{
 	public:
+		~D3D12ShaderLibrary();
+
 		ShaderPiece* CreateVs(const char* file, const std::vector<GI::ShaderMacro>& macros);
 		ShaderPiece* CreatePs(const char* file, const std::vector<GI::ShaderMacro>& macros);
 		ShaderPiece* CreateCs(const char* file, const std::vector<GI::ShaderMacro>& macros);
@@ -101,8 +104,8 @@ namespace D3D12Backend
 			};
 		};
 
-		std::map<Entry, ShaderPiece*, Entry::Less> mVsCache;
-		std::map<Entry, ShaderPiece*, Entry::Less> mPsCache;
-		std::map<Entry, ShaderPiece*, Entry::Less> mCsCache;
+		std::map<Entry, std::unique_ptr<ShaderPiece>, Entry::Less> mVsCache;
+		std::map<Entry, std::unique_ptr<ShaderPiece>, Entry::Less> mPsCache;
+		std::map<Entry, std::unique_ptr<ShaderPiece>, Entry::Less> mCsCache;
 	};
 }

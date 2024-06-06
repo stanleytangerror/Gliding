@@ -41,10 +41,11 @@ namespace D3D12Backend
 		D3D12Device* const			mDevice = nullptr;
 		std::vector<ReleaseItem>	mReleaseQueue;
 
-		std::array<D3D12DescriptorAllocator*, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator = {};
+		std::array<std::unique_ptr<D3D12DescriptorAllocator>, D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES> mDescAllocator;
 
 		IndexAllocator<GI::CommittedResourceId>			mResourceIdAllocator;
 
 		std::map<GI::CommittedResourceId, std::unique_ptr<CommitedResource>, GI::CommittedResourceId::Less> mResourceIdMapping;
+		std::map<GI::CommittedResourceId, std::vector<std::pair<D3D12DescriptorAllocator*, DescriptorPtr>>, GI::CommittedResourceId::Less> mResourceViewMapping;
 	};
 }

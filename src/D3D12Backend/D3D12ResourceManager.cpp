@@ -11,7 +11,7 @@ namespace D3D12Backend
 	{
 		for (i32 i = 0; i < mDescAllocator.size(); ++i)
 		{
-			mDescAllocator[i] = new D3D12DescriptorAllocator(mDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i));
+			mDescAllocator[i].reset(new D3D12DescriptorAllocator(mDevice->GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE(i)));
 		}
 	}
 
@@ -110,8 +110,11 @@ namespace D3D12Backend
 		}
 
 		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
-		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
+		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].get();
+		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
+
+		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
 		return { ptr };
 	}
 
@@ -138,8 +141,11 @@ namespace D3D12Backend
 		}
 
 		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
-		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->AllocCpuDesc();
+		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].get();
+		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
+
+		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
 		return { ptr };
 	}
 
@@ -159,8 +165,11 @@ namespace D3D12Backend
 		}
 
 		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
-		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->AllocCpuDesc();
+		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV].get();
+		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
+
+		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
 		return { ptr };
 	}
 
@@ -180,8 +189,11 @@ namespace D3D12Backend
 		}
 
 		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
-		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->AllocCpuDesc();
+		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV].get();
+		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
+
+		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
 		return { ptr };
 	}
 
@@ -214,6 +226,23 @@ namespace D3D12Backend
 		ReleaseItem item;
 		item.mResourceId = id;
 
+		// release view
+		u64 plannedValue = 0;
+		for (i32 t = 0; t < Count; ++t)
+		{
+			auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+			plannedValue = std::max(plannedValue, q->GetGpuPlannedValue());
+		};
+		auto it = mResourceViewMapping.find(id);
+		if (it != mResourceViewMapping.end())
+		{
+			for (auto& [allocator, descPtr] : it->second)
+			{
+				allocator->ReleaseCpuDesc(plannedValue, descPtr);
+			}
+		}
+		
+		// release resource
 		for (i32 t = 0; t < Count; ++t)
 		{
 			D3D12GpuQueue* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
@@ -231,6 +260,17 @@ namespace D3D12Backend
 
 	void ResourceManager::Update()
 	{
+		//u64 completedValue = std::numeric_limits<u64>::max();
+		//for (i32 t = 0; t < Count; ++t)
+		//{
+		//	auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+		//	completedValue = std::min(completedValue, q->GetGpuCompletedValue());
+		//};
+		//for (auto & allocator : mDescAllocator)
+		//{
+		//	allocator->UpdateCompletedFenceValue(completedValue);
+		//}
+
 		for (auto it = mReleaseQueue.begin(); it != mReleaseQueue.end();)
 		{
 			const ReleaseItem& item = *it;
