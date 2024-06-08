@@ -45,7 +45,9 @@ namespace D3D12Backend
 
 		IndexAllocator<GI::CommittedResourceId>			mResourceIdAllocator;
 
+		using HashValue = u32;
 		std::map<GI::CommittedResourceId, std::unique_ptr<CommitedResource>, GI::CommittedResourceId::Less> mResourceIdMapping;
-		std::map<GI::CommittedResourceId, std::vector<std::pair<D3D12DescriptorAllocator*, DescriptorPtr>>, GI::CommittedResourceId::Less> mResourceViewMapping;
+		std::map<GI::CommittedResourceId, std::map<HashValue, std::pair<D3D12DescriptorAllocator*, DescriptorPtr>>, GI::CommittedResourceId::Less> mResourceViewMapping;
+		std::map<HashValue, std::pair<D3D12DescriptorAllocator*, DescriptorPtr>> mSamplerMapping;
 	};
 }

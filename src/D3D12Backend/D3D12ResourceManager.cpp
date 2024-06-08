@@ -86,6 +86,20 @@ namespace D3D12Backend
 
 	DescriptorPtr ResourceManager::CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc)
 	{
+		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
+		{
+			mResourceViewMapping[resourceId] = {};
+		}
+
+		auto& viewMapping = mResourceViewMapping[resourceId];
+
+		const auto hash = Utils::HashPod(desc);
+		auto it = viewMapping.find(hash);
+		if (it != viewMapping.end())
+		{
+			return it->second.second;
+		}
+
 		D3D12_SHADER_RESOURCE_VIEW_DESC d3d12Desc = {};
 		{
 			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
@@ -114,12 +128,26 @@ namespace D3D12Backend
 		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
 
-		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
+		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
 	}
 
 	DescriptorPtr ResourceManager::CreateUavDescriptor(GI::CommittedResourceId resourceId, const GI::UavDesc& desc)
 	{
+		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
+		{
+			mResourceViewMapping[resourceId] = {};
+		}
+
+		auto& viewMapping = mResourceViewMapping[resourceId];
+
+		const auto hash = Utils::HashPod(desc);
+		auto it = viewMapping.find(hash);
+		if (it != viewMapping.end())
+		{
+			return it->second.second;
+		}
+
 		D3D12_UNORDERED_ACCESS_VIEW_DESC d3d12Desc = {};
 		{
 			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
@@ -145,12 +173,26 @@ namespace D3D12Backend
 		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
 
-		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
+		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
 	}
 
 	DescriptorPtr ResourceManager::CreateRtvDescriptor(GI::CommittedResourceId resourceId, const GI::RtvDesc& desc)
 	{
+		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
+		{
+			mResourceViewMapping[resourceId] = {};
+		}
+
+		auto& viewMapping = mResourceViewMapping[resourceId];
+
+		const auto hash = Utils::HashPod(desc);
+		auto it = viewMapping.find(hash);
+		if (it != viewMapping.end())
+		{
+			return it->second.second;
+		}
+
 		D3D12_RENDER_TARGET_VIEW_DESC d3d12Desc = {};
 		{
 			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
@@ -169,12 +211,26 @@ namespace D3D12Backend
 		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
 
-		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
+		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
 	}
 
 	DescriptorPtr ResourceManager::CreateDsvDescriptor(GI::CommittedResourceId resourceId, const GI::DsvDesc& desc)
 	{
+		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
+		{
+			mResourceViewMapping[resourceId] = {};
+		}
+
+		auto& viewMapping = mResourceViewMapping[resourceId];
+
+		const auto hash = Utils::HashPod(desc);
+		auto it = viewMapping.find(hash);
+		if (it != viewMapping.end())
+		{
+			return it->second.second;
+		}
+
 		D3D12_DEPTH_STENCIL_VIEW_DESC d3d12Desc = {};
 		{
 			d3d12Desc.Format = D3D12Utils::ToDxgiFormat(desc.GetFormat());
@@ -193,12 +249,19 @@ namespace D3D12Backend
 		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
 
-		mResourceViewMapping[resourceId].emplace_back(descAlloc, ptr);
+		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
 	}
 
 	DescriptorPtr ResourceManager::CreateSampler(const GI::SamplerDesc& desc)
 	{
+		const auto hash = Utils::HashPod(desc);
+		auto it = mSamplerMapping.find(hash);
+		if (it != mSamplerMapping.end())
+		{
+			return it->second.second;
+		}
+
 		D3D12_SAMPLER_DESC d3d12Desc = {};
 		{
 			d3d12Desc.Filter = D3D12_FILTER(desc.GetFilter());
@@ -216,8 +279,11 @@ namespace D3D12Backend
 			d3d12Desc.MaxLOD = desc.GetMaxLOD();
 		}
 
-		const auto& ptr = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER]->AllocCpuDesc();
+		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].get();
+		const auto& ptr = descAlloc->AllocCpuDesc();
 		mDevice->GetDevice()->CreateSampler(&d3d12Desc, ptr.Get());
+
+		mSamplerMapping[hash] = { descAlloc, ptr };
 		return { ptr };
 	}
 
@@ -236,9 +302,9 @@ namespace D3D12Backend
 		auto it = mResourceViewMapping.find(id);
 		if (it != mResourceViewMapping.end())
 		{
-			for (auto& [allocator, descPtr] : it->second)
+			for (auto& [_, p] : it->second)
 			{
-				allocator->ReleaseCpuDesc(plannedValue, descPtr);
+				p.first->ReleaseCpuDesc(plannedValue, p.second);
 			}
 		}
 		
@@ -260,16 +326,16 @@ namespace D3D12Backend
 
 	void ResourceManager::Update()
 	{
-		//u64 completedValue = std::numeric_limits<u64>::max();
-		//for (i32 t = 0; t < Count; ++t)
-		//{
-		//	auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
-		//	completedValue = std::min(completedValue, q->GetGpuCompletedValue());
-		//};
-		//for (auto & allocator : mDescAllocator)
-		//{
-		//	allocator->UpdateCompletedFenceValue(completedValue);
-		//}
+		u64 completedValue = std::numeric_limits<u64>::max();
+		for (i32 t = 0; t < Count; ++t)
+		{
+			auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+			completedValue = std::min(completedValue, q->GetGpuCompletedValue());
+		};
+		for (auto & allocator : mDescAllocator)
+		{
+			allocator->UpdateCompletedFenceValue(completedValue);
+		}
 
 		for (auto it = mReleaseQueue.begin(); it != mReleaseQueue.end();)
 		{
