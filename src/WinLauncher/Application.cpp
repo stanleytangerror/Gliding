@@ -165,7 +165,8 @@ void Application::LogicThread()
 					}
 
 					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
-					Math::CameraTransformf& camTrans = worldRenderer->mCameraTrans;
+					
+					Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
 					{
 						/* +x: camera right, +y: camera down */
 						const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
