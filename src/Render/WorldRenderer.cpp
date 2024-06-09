@@ -479,8 +479,6 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 		{
 			RENDER_EVENT(infra, Sky);
 
-
-
 			GI::GraphicsPass pass;
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
@@ -528,7 +526,6 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
-
 }
 
 void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,

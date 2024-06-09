@@ -49,7 +49,7 @@ public:
 	struct Item : public ItemBase, T
 	{
 		T mContent;
-		static u16 sSlotIndex;
+		inline static u16 sSlotIndexCache = Blackboard::sInvalidSlotIndex; // used to speed up mTypeToSlotIndex lookup
 	};
 
 private:
@@ -60,7 +60,7 @@ private:
 		Assert(mTypeToSlotIndex.find(name) == mTypeToSlotIndex.end());
 
 		mTypeToSlotIndex[name] = sSlotCounter;
-		Item<T>::sSlotIndex = sSlotCounter;
+		Item<T>::sSlotIndexCache = sSlotCounter;
 		sSlotCounter++;
 
 		while (mItems.size() < sSlotCounter)
@@ -68,36 +68,30 @@ private:
 			mItems.push_back(nullptr);
 		}
 
-		return Item<T>::sSlotIndex;
+		return Item<T>::sSlotIndexCache;
 	}
 
 	template<typename T>
 	u16 GetSlotIndex() const
 	{
-		if (Item<T>::sSlotIndex == sInvalidSlotIndex)
+		if (Item<T>::sSlotIndexCache == sInvalidSlotIndex)
 		{
 			const auto& name = typeid(T).name();
 
 			auto it = mTypeToSlotIndex.find(name);
 			Assert(it != mTypeToSlotIndex.end());
-			Item<T>::sSlotIndex = it->second;
+			Item<T>::sSlotIndexCache = it->second;
 		}
 
-		return Item<T>::sSlotIndex;
+		return Item<T>::sSlotIndexCache;
 	}
 
 private:
-	std::vector<ItemBase*>	mItems;
-	std::map<std::string, u16> mTypeToSlotIndex;
-
-	inline static u16 sSlotCounter = 0;
-
-public:
-	inline static u16 sInvalidSlotIndex = (-1);
+	std::vector<ItemBase*>		mItems;
+	std::map<std::string, u16>	mTypeToSlotIndex;
+	u16							sSlotCounter = 0;
+	inline static const u16		sInvalidSlotIndex = (-1);
 };
-
-template<typename T>
-u16 Blackboard::Item<typename T>::sSlotIndex = Blackboard::sInvalidSlotIndex;
 
 class GD_RENDER_API FrameGraph
 {
