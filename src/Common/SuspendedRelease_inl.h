@@ -36,7 +36,7 @@ T* SuspendedReleasePool<T>::AllocItem()
 }
 
 template <class T>
-void SuspendedReleasePool<T>::ReleaseItem(u64 releasingTime, T*& object)
+void SuspendedReleasePool<T>::ScheduleReleaseItemAtTimestamp(u64 releasingTime, T*& object)
 {
 	Assert(mAliveItems.find(object) != mAliveItems.end());
 	mAliveItems.erase(mAliveItems.find(object));
@@ -61,11 +61,11 @@ void SuspendedReleasePool<T>::UpdateTime(u64 time)
 }
 
 template <class T>
-void SuspendedReleasePool<T>::ReleaseAllActiveItems(u64 releasingTime)
+void SuspendedReleasePool<T>::ScheduleReleaseAllActiveItemsAtTimestamp(u64 releasingTime)
 {
 	std::unordered_set<T*> copiedItems = mAliveItems;
 	for (T* item : copiedItems)
 	{
-		ReleaseItem(releasingTime, item);
+		ScheduleReleaseItemAtTimestamp(releasingTime, item);
 	}
 }

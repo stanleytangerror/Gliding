@@ -103,14 +103,18 @@ namespace D3D12Backend
 
 		for (u8 i = 0; i < u8(D3D12GpuQueueType::Count); ++i)
 		{
-			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i));
+			mGpuQueues[i] = new D3D12GpuQueue(this, D3D12GpuQueueType(i), Utils::FormatString("GPU queue %s", 
+				i == D3D12GpuQueueType::Graphic ? "Graphic" :
+				i == D3D12GpuQueueType::Compute ? "Compute" :
+				i == D3D12GpuQueueType::Copy ? "Copy" : "Unknown"
+			).c_str());
 		}
 
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(GI::SrvDesc()
-			.SetResource(nullptr)
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor({},
+			GI::SrvDesc()
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
 			.SetTexture2D_MipLevels(1)
@@ -119,35 +123,6 @@ namespace D3D12Backend
 		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
 			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
 			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
-	}
-
-	void D3D12Device::CreateSwapChain(PresentPortType type, HWND windowHandle, const Vec2i& initWindowSize)
-	{
-		Assert(mPresentPorts.find(type) == mPresentPorts.end());
-
-		// Describe and create the swap chain.
-		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-		swapChainDesc.BufferCount = mSwapChainBufferCount;
-		swapChainDesc.Width = initWindowSize.x();
-		swapChainDesc.Height = initWindowSize.y();
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.SampleDesc.Count = 1;
-
-		IDXGISwapChain1* swapChain1 = nullptr;
-		AssertHResultOk(mFactory->CreateSwapChainForHwnd(
-			mGpuQueues[D3D12GpuQueueType::Graphic]->GetCommandQueue(),
-			windowHandle,
-			&swapChainDesc,
-			nullptr,
-			nullptr,
-			&swapChain1
-		));
-
-		SwapChainBuffers* swapChain = new SwapChainBuffers(this, reinterpret_cast<IDXGISwapChain3*>(swapChain1), mSwapChainBufferCount);
-
-		mPresentPorts[type] = swapChain;
 	}
 
 	void D3D12Device::StartFrame()
@@ -167,17 +142,42 @@ namespace D3D12Backend
 			q->Execute();
 		}
 
-		for (auto& [_, presentPort] : mPresentPorts)
+		for (auto* q : mGpuQueues)
 		{
-			presentPort->Present();
+			for (auto swapChain : q->GetSwapChains())
+			{
+				swapChain->Present();
+			}
 		}
 
 		for (D3D12GpuQueue* q : mGpuQueues)
 		{
-			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 1 ? q->GetGpuPlannedValue() - 1 : 0);
+			q->CpuWaitForThisQueue(q->GetGpuPlannedValue() >= 2 ? q->GetGpuPlannedValue() - 2 : 0);
 		}
 
 		mResMgr->Update();
+
+		bool postSyncQueueNotEmpty = std::any_of(mPostSyncQueues.begin(), mPostSyncQueues.end(), [](const auto& q) { return !q.empty(); });
+		if (postSyncQueueNotEmpty)
+		{
+			while (!mPostSyncQueues[PreRelease].empty())
+			{
+				mPostSyncQueues[PreRelease].front()();
+				mPostSyncQueues[PreRelease].pop();
+			}
+
+			for (D3D12GpuQueue* q : mGpuQueues)
+			{
+				q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
+			}
+			mResMgr->Update();
+
+			while (!mPostSyncQueues[PostRelease].empty())
+			{
+				mPostSyncQueues[PostRelease].front()();
+				mPostSyncQueues[PostRelease].pop();
+			}
+		}
 	}
 
 	void D3D12Device::Destroy()
@@ -185,16 +185,16 @@ namespace D3D12Backend
 		for (D3D12GpuQueue*& q : mGpuQueues)
 		{
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
-			Utils::SafeDelete(q);
+			q->ReleaseSwapChainResources();
 		}
-
-		//for (auto& [_, presentPort] : mPresentPorts)
-		//{
-		//	Utils::SafeDelete(presentPort);
-		//}
 
 		mResMgr->Update();
 		mResMgr = nullptr;
+
+		for (D3D12GpuQueue*& q : mGpuQueues)
+		{
+			Utils::SafeDelete(q);
+		}
 
 		Utils::SafeDelete(mPipelineStateLib);
 		Utils::SafeDelete(mShaderLib);
@@ -208,15 +208,14 @@ namespace D3D12Backend
 	}
 
 
-	D3D12Backend::SwapChainBuffers* D3D12Device::GetSwapChainBuffers(PresentPortType type) const
+	IDXGIFactory4* D3D12Device::GetFactory() const
 	{
-		auto it = mPresentPorts.find(type);
-		return it != mPresentPorts.end() ? it->second : nullptr;
+		return mFactory;
 	}
 
-	void D3D12Device::ReleaseD3D12Resource(ID3D12Resource*& res)
+	void D3D12Device::PushPostSyncOperation(D3D12Device::PostSyncStage stage, const PostSyncOperation& operation)
 	{
-		mResMgr->ReleaseResource(res);
-		res = nullptr;
+		mPostSyncQueues[stage].push(operation);
 	}
+
 }

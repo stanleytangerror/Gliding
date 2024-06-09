@@ -3,62 +3,94 @@
 
 namespace D3D12Backend
 {
-	SwapChainBufferResource::SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name)
-		: mName(name)
-	{
-		mResource = D3D12Backend::CommitedResource::CommitedResource::Possessor()
-			.SetName(name)
-			.SetCurrentState(D3D12_RESOURCE_STATE_COMMON)
-			.SetResource(res)
-			.Possess(device);
-
-		mRtv
-			.SetResource(mResource)
-			.SetFormat(mResource->GetFormat())
-			.SetViewDimension(GI::RtvDimension::TEXTURE2D);
-	}
-
-	void SwapChainBufferResource::PrepareForPresent(D3D12Backend::D3D12CommandContext* context)
-	{
-		mResource->Transition(context, D3D12_RESOURCE_STATE_PRESENT);
-	}
-
-	Vec3i SwapChainBufferResource::GetSize() const
-	{
-		return mResource->GetSize();
-	}
-
-	SwapChainBuffers::SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount)
+	SwapChain::SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount)
 		: mDevice(device)
-		, mSwapChain(swapChain)
+		, mGpuQueue(gpuQueue)
+		, mWindowHandle(windowHandle)
+		, mSize(size)
 		, mFrameCount(frameCount)
-		, mRenderTargets(frameCount)
 	{
-		for (int32_t n = 0; n < mFrameCount; n++)
-		{
-			ID3D12Resource* rt = nullptr;
-			AssertHResultOk(swapChain->GetBuffer(n, IID_PPV_ARGS(&rt)));
+		// Describe and create the swap chain.
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+		swapChainDesc.BufferCount = frameCount;
+		swapChainDesc.Width = size.x();
+		swapChainDesc.Height = size.y();
+		swapChainDesc.Format = mFormat;
+		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.Flags = 0;
 
-			mRenderTargets[n] = new SwapChainBufferResource(device, rt, Utils::FormatString("BackBuffer_%d", n).c_str());
-		}
+		IDXGISwapChain1* swapChain1 = nullptr;
+		AssertHResultOk(device->GetFactory()->CreateSwapChainForHwnd(
+			mGpuQueue->GetCommandQueue(),
+			windowHandle,
+			&swapChainDesc,
+			nullptr,
+			nullptr,
+			&swapChain1
+		));
+		mSwapChain = swapChain1;
+		// Query the interface for ID3D12SwapChain4
+		//IDXGISwapChain3* swapChain3 = nullptr;
+		//AssertHResultOk(swapChain1->QueryInterface(IID_PPV_ARGS(&swapChain3)));
+		//mSwapChain = swapChain3;
 
-		mSize = mRenderTargets[0]->GetSize();
+		InitialBuffers();
 	}
 
-	SwapChainBufferResource* SwapChainBuffers::GetBuffer() const
+	GI::IGraphicMemoryResource* SwapChain::GetBuffer() const
 	{
-		return mRenderTargets[mCurrentBackBufferIndex];
+		return mBuffers[mCurrentBackBufferIndex].get();
 	}
 
-	void SwapChainBuffers::Present()
+	void SwapChain::Present()
 	{
 		DEBUG_PRINT(" ================ Begin Present ===================== ");
-		DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
+		DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mCurrentBackBufferIndex);
 
 		AssertHResultOk(mSwapChain->Present(0, 0));
 		mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
 
-		DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mSwapChain->GetCurrentBackBufferIndex());
+		DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mCurrentBackBufferIndex);
 		DEBUG_PRINT(" ================ End Present ======================= ");
 	}
+
+	void SwapChain::Resize(const Vec2u& newSize)
+	{
+		Assert(mSize != newSize);
+		
+		AssertHResultOk(mSwapChain->ResizeBuffers(mFrameCount, newSize.x(), newSize.y(), mFormat, 0));
+		mSize = newSize;
+
+		InitialBuffers();
+		mCurrentBackBufferIndex = 0;
+	}
+
+	void SwapChain::ClearBuffers()
+	{
+		//for (auto b : mBuffers)
+		//{
+		//	delete b;
+		//}
+		mBuffers.clear();
+	}
+		
+	void SwapChain::InitialBuffers()
+	{
+		Assert(mBuffers.empty());
+
+		for (auto n = 0; n < mFrameCount; n++)
+		{
+			ID3D12Resource* resource = nullptr;
+			AssertHResultOk(mSwapChain->GetBuffer(n, IID_PPV_ARGS(&resource)));
+
+			mBuffers.push_back(
+				mDevice->GetResourceManager()->PossessResourceWithOwnership(
+					resource,
+					Utils::FormatString("BackBuffer_%d", n).c_str(),
+					D3D12_RESOURCE_STATE_COMMON));
+		}
+	}
+
 }

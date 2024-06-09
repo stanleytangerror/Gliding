@@ -196,16 +196,26 @@ namespace D3D12Backend
 		}
 	}
 
+	ShaderPiece::~ShaderPiece()
+	{
+		mShader->Release();
+	}
+
+	D3D12ShaderLibrary::~D3D12ShaderLibrary()
+	{
+		
+	}
+
 	ShaderPiece* D3D12ShaderLibrary::CreateVs(const char* file, const std::vector<GI::ShaderMacro>& macros)
 	{
 		const Entry entry = { file, macros };
 		if (mVsCache.find(entry) == mVsCache.end())
 		{
-			ShaderPiece* vs = new ShaderPiece(file, ShaderType::eVs, macros);
-			mVsCache[entry] = vs;
+			ShaderPiece* shader = new ShaderPiece(file, ShaderType::eVs, macros);
+			mVsCache.emplace(entry, shader);
 		}
 
-		return mVsCache[entry];
+		return mVsCache[entry].get();
 	}
 
 	ShaderPiece* D3D12ShaderLibrary::CreatePs(const char* file, const std::vector<GI::ShaderMacro>& macros)
@@ -213,11 +223,11 @@ namespace D3D12Backend
 		const Entry entry = { file, macros };
 		if (mPsCache.find(entry) == mPsCache.end())
 		{
-			ShaderPiece* vs = new ShaderPiece(file, ShaderType::ePs, macros);
-			mPsCache[entry] = vs;
+			ShaderPiece* shader = new ShaderPiece(file, ShaderType::ePs, macros);
+			mPsCache.emplace(entry, shader);
 		}
 
-		return mPsCache[entry];
+		return mPsCache[entry].get();
 	}
 
 	ShaderPiece* D3D12ShaderLibrary::CreateCs(const char* file, const std::vector<GI::ShaderMacro>& macros)
@@ -225,11 +235,11 @@ namespace D3D12Backend
 		const Entry entry = { file, macros };
 		if (mCsCache.find(entry) == mCsCache.end())
 		{
-			ShaderPiece* cs = new ShaderPiece(file, ShaderType::eCs, macros);
-			mCsCache[entry] = cs;
+			ShaderPiece* shader = new ShaderPiece(file, ShaderType::eCs, macros);
+			mCsCache.emplace(entry, shader);
 		}
 
-		return mCsCache[entry];
+		return mCsCache[entry].get();
 	}
 
 	bool D3D12ShaderLibrary::Entry::Less::operator()(Entry const& o0, Entry const& o1) const

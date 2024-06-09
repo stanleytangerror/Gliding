@@ -16,11 +16,14 @@ class ImGuiRenderer;
 class GD_RENDER_API RenderModule
 {
 public:
-	RenderModule();
+	using CreateGraphicsInfra = GI::IGraphicsInfra* ();
+
+	RenderModule(CreateGraphicsInfra* createGraphicsBackend);
 
 	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
+	void OnResizeWindow(u8 windowId, const Vec2u& size);
 
-	void Initial();
+	void Initial(const Vec2u& initialSize);
 
 	void TickFrame(Timer* timer);
 	void Render();
@@ -31,6 +34,7 @@ public:
 	void				Destroy();
 
 protected:
+	CreateGraphicsInfra*					mCreateGraphicsInfra = nullptr;
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
@@ -38,7 +42,7 @@ protected:
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	RenderTarget*							mSceneHdrRt = nullptr;
+	std::unique_ptr<RenderTarget>			mSceneHdrRt;
 
 	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
 

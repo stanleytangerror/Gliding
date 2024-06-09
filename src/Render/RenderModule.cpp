@@ -4,7 +4,6 @@
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
 #include "RenderTarget.h"
-#include "D3D12Backend/D3D12GraphicsInfra.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -12,13 +11,10 @@
 #define ENABLE_RENDER_DOC_PLUGIN 0
 #endif
 
-RenderModule::RenderModule()
+RenderModule::RenderModule(CreateGraphicsInfra* createGraphicsBackend)
+	: mCreateGraphicsInfra(createGraphicsBackend)
 {
-#if ENABLE_RENDER_DOC_PLUGIN
-	mRenderDoc = new RenderDocIntegration;
-#endif
 
-	mGraphicInfra = new D3D12Backend::D3D12GraphicsInfra();
 }
 
 void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
@@ -27,15 +23,29 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 	mGraphicInfra->AdaptToWindow(u8(type), windowInfo);
 }
 
-void RenderModule::Initial()
+
+void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 {
-	const Vec2i& mainPortBackBufferSize = mWindowInfo[PresentPortType::MainPort].mSize;
+	mGraphicInfra->ResizeWindow(windowId, size);
+}
+
+void RenderModule::Initial(const Vec2u& initialSize)
+{
+#if ENABLE_RENDER_DOC_PLUGIN
+	mRenderDoc = new RenderDocIntegration;
+#endif
+
+	mGraphicInfra = mCreateGraphicsInfra();
+
+	mGraphicInfra->StartRecording();
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, mainPortBackBufferSize);
+	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = new RenderTarget(mGraphicInfra, { mainPortBackBufferSize.x(), mainPortBackBufferSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ initialSize.x(), initialSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
+
+	mGraphicInfra->EndRecording(false);
 }
 
 void RenderModule::TickFrame(Timer* timer)
@@ -64,7 +74,13 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
-			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::MainPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
+			auto target = GI::RtvUsage(backBuffer);
+			target
+				.SetFormat(backBuffer->GetFormat())
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+				.SetTexture2D_MipSlice(0)
+				.SetTexture2D_PlaneSlice(0);
 			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
 		}
@@ -72,14 +88,20 @@ void RenderModule::Render()
 		{
 			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
-			const auto& target = mGraphicInfra->GetWindowBackBufferRtv(u8(PresentPortType::DebugPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
+			auto target = GI::RtvUsage(backBuffer);
+			target
+				.SetFormat(backBuffer->GetFormat())
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+				.SetTexture2D_MipSlice(0)
+				.SetTexture2D_PlaneSlice(0);
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
 			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
 	mGraphicInfra->EndFrame();
-
+	
 	mGraphicInfra->Present();
 
 	if (mRenderDoc)
@@ -92,5 +114,8 @@ void RenderModule::Destroy()
 {
 	mScreenRenderer = nullptr;
 	mWorldRenderer = nullptr;
-	Utils::SafeDelete(mSceneHdrRt);
+	mSceneHdrRt = nullptr;
+	mImGuiRenderer = nullptr;
+
+	Utils::SafeDelete(mGraphicInfra);
 }

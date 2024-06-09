@@ -22,10 +22,20 @@
 	public:		using CAT(Temp, __LINE__) = Type; \
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  } \
                 CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
+#define CONSTRUCTOR_WITH_RESOURCE(Type, Base) \
+	public:     Type() {} \
+	            Type(IGraphicMemoryResource* resource) : mResource(resource) {} \
+	            Type(const Type& other) : Base(other), mResource(other.mResource) {} \
+	            Type(const std::unique_ptr<IGraphicMemoryResource>& resource) : mResource(resource.get()) {} \
+                CommittedResourceId GetResourceId() const { return mResource->GetResourceId(); } \
+                IGraphicMemoryResource* GetResource() const { return mResource; } \
+	private:    IGraphicMemoryResource* mResource = nullptr;
 
 #define RENDER_EVENT(infra, format)\
-	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format);
-	//Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
+	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format); \
+	PROFILE_EVENT(format)
+
+//Profile::ScopedCpuEvent _Profile_ScopedCpuEvent_##_FILE_##_LINE_NO_(#format);
 
 namespace GI 
 {
@@ -550,15 +560,46 @@ namespace GI
         CONTINOUS_SETTER_VALUE(Viewport, f32, MaxDepth, 1.0f);
     };
 
-    class IGraphicMemoryResource;
+    struct GD_COMMON_API CommittedResourceId
+    {
+		// TODO add const
+		u64 mId = ~0ULL;
+        operator bool() const { return mId != ~0ULL; }
+
+        static CommittedResourceId FromInt(u64 v) { return { v }; }
+
+        struct Less
+        {
+            constexpr bool operator() (const CommittedResourceId& left, const CommittedResourceId& right) const { return left.mId < right.mId; }
+        };
+    };
+
+    class GD_COMMON_API IGraphicMemoryResource
+    {
+    public:
+        IGraphicMemoryResource(CommittedResourceId id) : mId(id) {}
+        /* https://stackoverflow.com/a/3628611/2131563
+         * You can add the pure specifier to an interface's destructor, but the linker will still want an implementation for it like so: virtual ~IAnimal() = 0 {}. */
+        virtual                         ~IGraphicMemoryResource() {}
+
+        CommittedResourceId			    GetResourceId() const { return mId; }
+
+        virtual HeapType::Enum          GetHeapType() const = 0;
+        virtual ResourceDimension::Enum GetDimension() const = 0;
+        virtual Vec3u                   GetSize() const = 0;
+        virtual Format::Enum            GetFormat() const = 0;
+        virtual u16                     GetMipLevelCount() const = 0;
+
+    protected:
+        const CommittedResourceId       mId;
+    };
 
     struct GD_COMMON_API SrvDesc
     {
         using ShaderComponentMapping4 = std::array<u8, 4>;
         static ShaderComponentMapping4 NormalMapping() { return { 0, 1, 2, 3}; };
 
-        CONTINOUS_SETTER(SrvDesc, IGraphicMemoryResource*, Resource);
-        CONTINOUS_SETTER(SrvDesc, Format::Enum, Format);
+		CONTINOUS_SETTER(SrvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(SrvDesc, SrvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER_VALUE(SrvDesc, ShaderComponentMapping4, Shader4ComponentMapping, NormalMapping());
         CONTINOUS_SETTER(SrvDesc, u64, Buffer_FirstElement);
@@ -571,29 +612,41 @@ namespace GI
         CONTINOUS_SETTER(SrvDesc, f32, Texture2D_ResourceMinLODClamp);
     };
 
+    struct GD_COMMON_API SrvUsage : public SrvDesc
+    {
+		CONSTRUCTOR_WITH_RESOURCE(SrvUsage, SrvDesc);
+    };
+
     struct GD_COMMON_API RtvDesc
     {
-        CONTINOUS_SETTER(RtvDesc, IGraphicMemoryResource*, Resource);
-        CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
+		CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(RtvDesc, RtvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(RtvDesc, u32, Texture2D_MipSlice);
         CONTINOUS_SETTER(RtvDesc, u32, Texture2D_PlaneSlice);
     };
 
+	struct GD_COMMON_API RtvUsage : public RtvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE(RtvUsage, RtvDesc);
+	};
+
     struct GD_COMMON_API DsvDesc
     {
-        CONTINOUS_SETTER(DsvDesc, IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(DsvDesc, bool, Enabled);
         CONTINOUS_SETTER(DsvDesc, Format::Enum, Format);
         CONTINOUS_SETTER(DsvDesc, DsvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(DsvDesc, DsvFlag::Enum, Flags);
         CONTINOUS_SETTER(DsvDesc, u32, Texture2D_MipSlice);
-    };
+	};
+
+	struct GD_COMMON_API DsvUsage : public DsvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE(DsvUsage, DsvDesc);
+	};
 
     struct GD_COMMON_API UavDesc
     {
-        CONTINOUS_SETTER(UavDesc, IGraphicMemoryResource*, Resource);
-        CONTINOUS_SETTER(UavDesc, Format::Enum, Format);
+		CONTINOUS_SETTER(UavDesc, Format::Enum, Format);
         CONTINOUS_SETTER(UavDesc, UavDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(UavDesc, u64, Buffer_FirstElement);
         CONTINOUS_SETTER(UavDesc, u32, Buffer_NumElements);
@@ -603,6 +656,11 @@ namespace GI
         CONTINOUS_SETTER(UavDesc, u32, Texture2D_MipSlice);
         CONTINOUS_SETTER(UavDesc, u32, Texture2D_PlaneSlice);
     };
+
+	struct GD_COMMON_API UavUsage : public UavDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE(UavUsage, UavDesc);
+	};
 
     struct GD_COMMON_API SamplerDesc
     {
@@ -631,17 +689,25 @@ namespace GI
 
     struct GD_COMMON_API VbvDesc
     {
-        CONTINOUS_SETTER(VbvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(VbvDesc, i32, SizeInBytes);
         CONTINOUS_SETTER(VbvDesc, i32, StrideInBytes);
     };
 
+	struct GD_COMMON_API VbvUsage : public VbvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE(VbvUsage, VbvDesc);
+	};
+
     struct GD_COMMON_API IbvDesc
     {
-        CONTINOUS_SETTER(IbvDesc, const IGraphicMemoryResource*, Resource);
         CONTINOUS_SETTER(IbvDesc, i32, SizeInBytes);
         CONTINOUS_SETTER_VALUE(IbvDesc, Format::Enum, Format, Format::FORMAT_R16_UINT);
     };
+
+	struct GD_COMMON_API IbvUsage : public IbvDesc
+	{
+		CONSTRUCTOR_WITH_RESOURCE(IbvUsage, IbvDesc);
+	};
 
     struct GD_COMMON_API ShaderMacro
     {
@@ -655,6 +721,12 @@ namespace GI
 				mName > other.mName ? false :
 				mDefinition < other.mDefinition;
 		}
+    };
+
+    struct GD_COMMON_API RootSignatureDesc
+    {
+		std::string mFile;
+		const char* mEntry = nullptr;
     };
 
     struct GD_COMMON_API RasterizerDesc
@@ -729,48 +801,6 @@ namespace GI
         return ComparisonFunction::ALWAYS;
     }
 
-    template <typename T>
-    inline std::vector<b8> ToGpuConstBufferParamData(const T& var)
-    {
-        std::vector<b8> result(sizeof(T), b8{});
-        memcpy(result.data(), &var, sizeof(T));
-        return result;
-    }
-
-    template <>
-    inline std::vector<b8> ToGpuConstBufferParamData(const Mat33f& var)
-    {
-        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), b8{});
-        Assert(false);
-        return result;
-    }
-
-
-    template <>
-    inline std::vector<b8> ToGpuConstBufferParamData(const std::vector<f32>& var)
-    {
-        const auto size = var.size() * sizeof(f32);
-
-        std::vector<b8> result(size, b8{});
-        memcpy_s(result.data(), size, var.data(), size);
-        return result;
-    }
-
-    class GD_COMMON_API IGraphicMemoryResource
-    {
-    public:
-        virtual HeapType::Enum          GetHeapType() const = 0;
-        virtual ResourceDimension::Enum GetDimension() const = 0;
-        virtual Vec3i                   GetSize() const = 0;
-        virtual Format::Enum            GetFormat() const = 0;
-        virtual u16                     GetMipLevelCount() const = 0;
-    };
-
-    class GD_COMMON_API ResouceViewUtils
-    {
-        //static GI::RtvDesc CreateFullRtv(const IGraphicMemoryResource* resource, GI::Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice);
-    };
-
     class GD_COMMON_API MemoryResourceDesc
     {
         CONTINOUS_SETTER(MemoryResourceDesc, HeapType::Enum, HeapType);
@@ -787,6 +817,36 @@ namespace GI
         CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlag::Flags, Flags);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
+
+    public:
+        static MemoryResourceDesc Buffer(u64 size, HeapType::Enum heapType, ResourceState::Enum initialState, ResourceFlag::Flags flags, u8 alignment)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::BUFFER)
+                .SetAlignment(alignment)
+                .SetWidth(size)
+                .SetHeight(1)
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(Format::FORMAT_UNKNOWN)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_ROW_MAJOR)
+                .SetFlags(flags)
+                .SetHeapType(heapType)
+                .SetInitState(initialState);
+        }
+    };
+
+    class GD_COMMON_API ReadOnly2DResourceDesc
+    {
+        CONTINOUS_SETTER(ReadOnly2DResourceDesc, std::vector<b8>, Data);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, Format::Enum, Format);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Width);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Height);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, ArraySize);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, MipLevel);
+		CONTINOUS_SETTER_VALUE(ReadOnly2DResourceDesc, const char*, Name, nullptr);
     };
 
     class GD_COMMON_API IImage
@@ -800,8 +860,8 @@ namespace GI
     class GD_COMMON_API IGraphicsRecorder
 	{
 	public:
-		virtual void    AddClearOperation(const RtvDesc& rtv, const Vec4f& value) = 0;
-		virtual void    AddClearOperation(const GI::DsvDesc& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) = 0;
+		virtual void    AddClearOperation(const RtvUsage& rtv, const Vec4f& value) = 0;
+		virtual void    AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) = 0;
         virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
@@ -822,23 +882,27 @@ namespace GI
     class GD_COMMON_API IGraphicsInfra
     {
     public:
-        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
-        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+        virtual ~IGraphicsInfra() = 0 {}
 
-        virtual void                                        CopyToUploadMemoryResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
+        virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
+		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResourceFromTexture2DData(const ReadOnly2DResourceDesc& desc) = 0;
+
+        virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
 
         virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const = 0;
         virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
 
 		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
-		virtual RtvDesc                     GetWindowBackBufferRtv(u8 windowId) = 0;
+		virtual void                        ResizeWindow(u8 windowId, const Vec2u& windowSize) = 0;
+		virtual IGraphicMemoryResource*     GetWindowBackBuffer(u8 windowId) = 0;
 
 		virtual void                        StartFrame() = 0;
 		virtual void                        EndFrame() = 0;
 		virtual void                        Present() = 0;
 
 		virtual void                        StartRecording() = 0;
-		virtual void                        EndRecording() = 0;
+		virtual void                        EndRecording(bool dropAllCommands) = 0;
         virtual IGraphicsRecorder*          GetRecorder() const = 0;
 
         virtual DevicePtr                   GetNativeDevicePtr() const = 0;
@@ -881,10 +945,10 @@ namespace GI
         void AddCbVar(const std::string& name, const T& var)
         {
             Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = ToGpuConstBufferParamData(var);
+            mCbParams[name] = ToConstBufferParamData(var);
         }
 
-        void AddSrv(const std::string& name, const SrvDesc& srv)
+        void AddSrv(const std::string& name, const SrvUsage& srv)
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
             mSrvParams[name] = srv;
@@ -896,20 +960,40 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
-    public:
-        struct
+        void SetDsv(const DsvUsage& dsv)
         {
-            std::string	mFile;
-            const char* mEntry = nullptr;
-        }				                            mRootSignatureDesc;
+			mDsv = dsv;
+            mHasDsv = true;
+        }
 
+		void SetRtv(u8 index, const RtvUsage& rtv)
+		{
+            mRtvs[index] = rtv;
+            mRtvCount = std::max<u8>(mRtvCount, index + 1);
+		}
+
+        void PushVbv(const VbvUsage& vbv)
+        {
+            mVbvs.push_back(vbv);
+        }
+
+        void SetIbv(const IbvUsage& ibv)
+        {
+            mIbv = ibv;
+        }
+
+        bool IsReadyForExecute() const;
+
+	public:
+		RootSignatureDesc			                mRootSignatureDesc;
         std::string                                 mVsFile;
         std::string                                 mPsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
 
-    public:
-        std::array<RtvDesc, 8>               		mRtvs;
-        DsvDesc                                     mDsv;
+        std::array<RtvUsage, 8>               	    mRtvs;
+        u8                                          mRtvCount = 0;
+        DsvUsage                                    mDsv;
+        bool                                        mHasDsv = false;
 
         std::vector<InputElementDesc>               mInputLayout;
 
@@ -917,8 +1001,8 @@ namespace GI
         DepthStencilDesc                            mDepthStencilDesc;
         BlendDesc                                   mBlendDesc;
 
-        std::vector<VbvDesc>	                    mVbvs;
-        IbvDesc                 					mIbv = {};
+        std::vector<VbvUsage>	                    mVbvs;
+        IbvUsage                 					mIbv;
         i32 										mVertexStartLocation = 0;
         i32 										mIndexStartLocation = 0;
         i32 										mIndexCount = 0;
@@ -928,9 +1012,8 @@ namespace GI
         Math::Rect  								mScissorRect = {};
         u32     									mStencilRef = 0;
 
-    //protected:
         std::map<std::string, std::vector<b8>>      mCbParams;
-        std::map<std::string, SrvDesc>	            mSrvParams;
+        std::map<std::string, SrvUsage>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
     };
 
@@ -941,16 +1024,16 @@ namespace GI
         void AddCbVar(const std::string& name, const T& var)
         {
             Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = ToConstBufferParamData(var);
+			mCbParams[name] = ToConstBufferParamData(var);
         }
 
-        void AddSrv(const std::string& name, const SrvDesc& srv)
+        void AddSrv(const std::string& name, const SrvUsage& srv)
         {
             Assert(mSrvParams.find(name) == mSrvParams.end());
             mSrvParams[name] = srv;
         }
 
-        void AddUav(const std::string& name, const UavDesc& uav)
+        void AddUav(const std::string& name, const UavUsage& uav)
         {
             Assert(mUavParams.find(name) == mUavParams.end());
             mUavParams[name] = uav;
@@ -962,20 +1045,16 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
-    public:
-        struct
-        {
-            std::string mFile;
-            const char* mEntry = nullptr;
-        }					mRootSignatureDesc;
+		bool IsReadyForExecute() const;
 
-        std::string mCsFile;
-        std::vector<ShaderMacro>	mShaderMacros;
+	public:
+        RootSignatureDesc		                	mRootSignatureDesc;
+        std::string                                 mCsFile;
+        std::vector<ShaderMacro>	                mShaderMacros;
 
-    public:
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
-        std::map<std::string, GI::SrvDesc>  		mSrvParams;
-        std::map<std::string, GI::UavDesc>	        mUavParams;
+        std::map<std::string, GI::SrvUsage>  		mSrvParams;
+        std::map<std::string, GI::UavUsage>	        mUavParams;
         std::map<std::string, std::vector<b8>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};

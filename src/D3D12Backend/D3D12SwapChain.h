@@ -3,51 +3,39 @@
 #include "D3D12Headers.h"
 #include "Common/Math.h"
 #include "D3D12Device.h"
-#include "D3D12ResourceView.h"
 #include "D3D12Resource.h"
 
 namespace D3D12Backend
 {
 	class D3D12Device;
-	class D3D12CommandContext;
-	class RenderTargetView;
+	class D3D12GpuQueue;
 
-	class GD_D3D12BACKEND_API SwapChainBufferResource
+	class SwapChain
 	{
 	public:
-		SwapChainBufferResource(D3D12Device* device, ID3D12Resource* res, const char* name);
+		SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount);
+		SwapChain(const SwapChain& other) = delete;
 
-		void					PrepareForPresent(D3D12Backend::D3D12CommandContext* context);
+		GI::IGraphicMemoryResource*		GetBuffer() const;
+		HWND							GetWindowHandle() const { return mWindowHandle; }
+		void							Present();
+		Vec2u							GetSize() const { return mSize; }
 
-		GI::RtvDesc				GetRtv() const { return mRtv; }
-		Vec3i					GetSize() const;
+		void							Resize(const Vec2u& newSize);
 
-	protected:
-		D3D12Backend::CommitedResource* mResource = nullptr;
-		GI::RtvDesc				mRtv;
-
-	public:
-		std::string const		mName;
-		i32						mWidth = 0;
-		i32						mHeight = 0;
-	};
-
-	class GD_D3D12BACKEND_API SwapChainBuffers
-	{
-	public:
-		SwapChainBuffers(D3D12Device* device, IDXGISwapChain3* swapChain, const int32_t frameCount);
-
-		SwapChainBufferResource* GetBuffer() const;
-		Vec3i					GetSize() const { return mSize; }
-
-		void					Present();
+		void							ClearBuffers();
+		void							InitialBuffers();
 
 	protected:
 		D3D12Device* const						mDevice = nullptr;
-		IDXGISwapChain3* mSwapChain = nullptr;
-		const int32_t							mFrameCount;
+		D3D12GpuQueue* const					mGpuQueue = nullptr;
+		IDXGISwapChain1*						mSwapChain = nullptr;
+		HWND									mWindowHandle = {};
+		const DXGI_FORMAT						mFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		const u32								mFrameCount;
 		i32										mCurrentBackBufferIndex = 0;
-		std::vector<SwapChainBufferResource*>	mRenderTargets;
-		Vec3i									mSize = {};
+		std::vector<std::unique_ptr<GI::IGraphicMemoryResource>>
+												mBuffers;
+		Vec2u									mSize = {};
 	};
 }

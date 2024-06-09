@@ -2,7 +2,7 @@
 #include "EnvironmentMap.h"
 #include "Geometry.h"
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GenerateIrradianceMap(GI::IGraphicsInfra* infra, const GI::SrvDesc& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
+std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIrradianceMap(GI::IGraphicsInfra* infra, const GI::SrvUsage& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -33,13 +33,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetName("IrradianceMap")
 		.SetHeapType(GI::HeapType::DEFAULT));
 		
-	const auto& rtv = GI::RtvDesc()
-		.SetResource(irradianceMap.get())
+	auto rtv = GI::RtvUsage(irradianceMap);
+	rtv
 		.SetFormat(format)
 		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 
-	const auto& srv = GI::SrvDesc()
-		.SetResource(irradianceMap.get())
+	auto srv = GI::SrvUsage(irradianceMap);
+	srv
 		.SetFormat(format)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
@@ -64,14 +64,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = rtv;
+	pass.SetRtv(0, rtv);
 	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -88,7 +87,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	return std::make_tuple(std::move(irradianceMap), srv);
 }
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GenerateIntegratedBRDF(GI::IGraphicsInfra* infra, i32 resolution)
+std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIntegratedBRDF(GI::IGraphicsInfra* infra, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -120,13 +119,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetName("IntegratedBRDF")
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	const auto& rtv = GI::RtvDesc()
-		.SetResource(integratedBRDF.get())
+	auto rtv = GI::RtvUsage(integratedBRDF);
+	rtv
 		.SetFormat(format)
 		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
 
-	const auto& srv = GI::SrvDesc()
-		.SetResource(integratedBRDF.get())
+	auto srv = GI::SrvUsage(integratedBRDF);
+	srv
 		.SetFormat(format)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
@@ -151,14 +150,13 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = rtv;
+	pass.SetRtv(0, rtv);
 	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -168,11 +166,11 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 	return std::make_tuple(std::move(integratedBRDF), srv);
 }
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> EnvironmentMap::GeneratePrefilteredEnvironmentMap
-(GI::IGraphicsInfra* infra, const GI::SrvDesc& src, i32 resolution)
+std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GeneratePrefilteredEnvironmentMap
+(GI::IGraphicsInfra* infra, const GI::SrvUsage& src, i32 resolution)
 {
 	const auto& originSize = src.GetResource()->GetSize();
-	const auto& format = src.GetResource()->GetFormat();
+	const auto& format = src.GetFormat();
 	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
 
 	auto result = infra->CreateMemoryResource(
@@ -190,32 +188,31 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 		.SetName("FilteredEnvMap")
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	std::vector<GI::RtvDesc> rtvs;
-	std::vector<GI::SrvDesc> srvs;
+	std::vector<GI::RtvUsage> rtvs;
+	std::vector<GI::SrvUsage> srvs;
 
 	for (i32 i = 0; i < levelCount; ++i)
 	{
-		rtvs.push_back(
-			GI::RtvDesc()
-			.SetResource(result.get())
+		auto rtv = GI::RtvUsage(result);
+		rtv
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 			.SetTexture2D_MipSlice(i)
-			.SetTexture2D_PlaneSlice(0));
+			.SetTexture2D_PlaneSlice(0);
+		rtvs.push_back(rtv);
 
-		srvs.push_back(
-			GI::SrvDesc()
-			.SetResource(result.get())
+		auto srv = GI::SrvUsage(result);
+		srv
 			.SetFormat(result->GetFormat())
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetTexture2D_MostDetailedMip(i)
 			.SetTexture2D_MipLevels(1)
-			.SetTexture2D_PlaneSlice(0));
+			.SetTexture2D_PlaneSlice(0);
+		srvs.push_back(srv);
 	}
 
-	GI::SrvDesc fullSrv;
+	auto fullSrv = GI::SrvUsage(result);
 	fullSrv
-		.SetResource(result.get())
 		.SetFormat(result->GetFormat())
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MostDetailedMip(0)
@@ -236,7 +233,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvDesc> Environment
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap
-(GI::IGraphicsInfra* infra, const GI::RtvDesc& target, const GI::SrvDesc& src, const Vec2i& targetSize, f32 roughness)
+(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& src, const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -268,14 +265,13 @@ void EnvironmentMap::PrefilterEnvironmentMap
 
 	pass.mInputLayout = geometry->mVertexElementDescs;
 
-	pass.mRtvs[0] = target;
+	pass.SetRtv(0, target);
 	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 	pass.mStencilRef = 0;
 
-	pass.mVbvs.clear();
-	pass.mVbvs.push_back(geometry->GetVbvDesc());
-	pass.mIbv = geometry->GetIbvDesc();
+	pass.PushVbv(geometry->GetVbvDesc());
+	pass.SetIbv(geometry->GetIbvDesc());
 	pass.mIndexCount = geometry->mIndices.size();
 
 	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });

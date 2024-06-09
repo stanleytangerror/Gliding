@@ -16,7 +16,7 @@ public:
 
 	T Alloc()
 	{
-		Assert(mWorkingThreadId == std::this_thread::get_id());
+		//Assert(mWorkingThreadId == std::this_thread::get_id());
 		const u64 newIndex = mAllocedIndex++;
 		return T::FromInt(newIndex);
 	}

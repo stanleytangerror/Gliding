@@ -123,7 +123,7 @@ namespace WinGui
 			});
 	}
 
-	WindowId GuiSystem::CreateNewWindow(const wchar_t* title, const Vec2i& size)
+	WindowId GuiSystem::CreateNewWindow(const wchar_t* title, const Vec2u& size)
 	{
 		std::lock_guard<std::mutex> guard(mWindowManageMutex);
 		
@@ -192,7 +192,7 @@ WINGUI_API void FlushMessages(WinGui::GuiSystem* system)
 	system->PeakAllMessages();
 }
 
-WINGUI_API WinGui::WindowId CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2i& size)
+WINGUI_API WinGui::WindowId CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2u& size)
 {
 	return system->CreateNewWindow(title, size);
 }

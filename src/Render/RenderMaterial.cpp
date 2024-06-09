@@ -6,7 +6,7 @@ void RenderMaterial::UpdateGpuResources(GI::IGraphicsInfra* infra)
 {
 	for (const auto& slot : mMatAttriSlots)
 	{
-		if (slot.mTexture && !slot.mTexture->IsD3DResourceReady())
+		if (slot.mTexture && !slot.mTexture->IsGraphicsResourceReady())
 		{
 			slot.mTexture->CreateAndInitialResource(infra);
 		}
@@ -17,9 +17,9 @@ bool RenderMaterial::IsGpuResourceReady() const
 {
 	for (const auto& slot : mMatAttriSlots)
 	{
-		if (slot.mTexture && !slot.mTexture->IsD3DResourceReady())
+		if (slot.mTexture && !slot.mTexture->IsGraphicsResourceReady())
 		{
-			if (!slot.mTexture->IsD3DResourceReady())
+			if (!slot.mTexture->IsGraphicsResourceReady())
 			{
 				return false;
 			}

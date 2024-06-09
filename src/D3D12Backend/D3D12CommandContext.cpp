@@ -87,11 +87,8 @@ namespace D3D12Backend
 		}
 	}
 
-	void D3D12CommandContext::CopyResource(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src)
+	void D3D12CommandContext::CopyResource(CommitedResource* destRes, CommitedResource* srcRes)
 	{
-		auto destRes = reinterpret_cast<CommitedResource*>(dst);
-		auto srcRes = reinterpret_cast<CommitedResource*>(src);
-
 		Assert(destRes->GetSize() == srcRes->GetSize());
 		Assert(destRes->GetD3D12Resource()->GetDesc() == destRes->GetD3D12Resource()->GetDesc());
 
@@ -101,11 +98,8 @@ namespace D3D12Backend
 		mCommandList->CopyResource(destRes->GetD3D12Resource(), srcRes->GetD3D12Resource());
 	}
 
-	void D3D12CommandContext::CopyBuffer2D(GI::IGraphicMemoryResource* dst, GI::IGraphicMemoryResource* src)
+	void D3D12CommandContext::CopyBuffer2D(CommitedResource* destRes, CommitedResource* srcRes)
 	{
-		auto destRes = reinterpret_cast<CommitedResource*>(dst);
-		auto srcRes = reinterpret_cast<CommitedResource*>(src);
-
 		Assert(destRes->GetSize() == srcRes->GetSize());
 
 		destRes->Transition(this, D3D12_RESOURCE_STATE_COPY_DEST);

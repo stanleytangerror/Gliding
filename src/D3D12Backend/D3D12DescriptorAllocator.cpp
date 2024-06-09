@@ -77,7 +77,7 @@ namespace D3D12Backend
 			DescriptorPool* block = *it;
 			if (block->AllFreed())
 			{
-				mBlockPool.ReleaseItem(fenceValue, block);
+				mBlockPool.ScheduleReleaseItemAtTimestamp(fenceValue, block);
 				it = mActiveBlocks.erase(it);
 			}
 			else

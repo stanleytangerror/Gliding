@@ -1,9 +1,11 @@
 #include "WinLauncherPch.h"
 #include "Application.h"
 #include "Common/PresentPort.h"
+#include "Common/Math.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
 #include "Render/WorldRenderer.h"
 #include <mutex>
+#include <map>
 
 struct WinMessage
 {
@@ -12,13 +14,13 @@ struct WinMessage
 	WPARAM wParam = 0;
 	LPARAM lParam = 0;
 };
-static std::vector<WinMessage>			sMessages;
+static std::queue<WinMessage>			sMessages;
 static std::mutex						sMessageMutex;
 
-std::vector<WinMessage> ReadMessages()
+std::queue<WinMessage> ReadMessages()
 {
 	std::lock_guard<std::mutex> guard(sMessageMutex);
-	std::vector<WinMessage> result;
+	std::queue<WinMessage> result;
 	std::swap(result, sMessages);
 	return result;
 }
@@ -26,14 +28,21 @@ std::vector<WinMessage> ReadMessages()
 void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	std::lock_guard<std::mutex> guard(sMessageMutex);
-	sMessages.push_back(WinMessage{ hWnd, message, wParam, lParam });
+	sMessages.push(WinMessage{ hWnd, message, wParam, lParam });
 }
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
+#ifdef _DEBUG
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Debug_x64.dll");
+#else
+	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Release_x64.dll");
+#endif
+
 	Profile::Initial();
-	mRenderModule = std::make_unique<RenderModule>();
+	auto createInfraFunc = reinterpret_cast<RenderModule::CreateGraphicsInfra*>(GetProcAddress(mGraphicsBackendModule, "CreateGraphicsInfra"));
+	mRenderModule = std::make_unique<RenderModule>(createInfraFunc);
 	ImGuiIntegration::Initial();
 }
 
@@ -49,6 +58,8 @@ void Application::Destroy()
 	mAppLifeCycle = AppLifeCycle::Destroying;
 	mRenderModule->Destroy();
 	Profile::Destroy();
+
+	FreeLibrary(mGraphicsBackendModule);
 }
 
 void Application::Run()
@@ -96,17 +107,39 @@ void Application::LogicThread()
 
 	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mNativeHandle);
 
+	mRenderModule->Initial(mMainWindowInfo.mSize);
+
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
-	mRenderModule->Initial();
 
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
 		mTimer->OnStartNewFrame();
 
-		for (const WinMessage& msg : ReadMessages())
+		auto messages = ReadMessages();
+		std::map<u8, Vec2u> newSizes;
+		while (!messages.empty())
 		{
+			auto msg = messages.front();
+			messages.pop();
+
+			if (msg.message == WM_SIZE)
+			{
+				UINT width = LOWORD(msg.lParam);
+				UINT height = HIWORD(msg.lParam);
+				u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
+				newSizes[windowId] = { width, height };
+			}
+
 			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
+		}
+
+		for (const auto& p : newSizes)
+		{
+			auto windowId = p.first;
+			auto newSize = p.second;
+			mRenderModule->OnResizeWindow(windowId, newSize);
+			DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
 		}
 
 		ImGuiIntegration::BeginUI();

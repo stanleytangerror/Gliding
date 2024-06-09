@@ -3,24 +3,43 @@
 
 namespace GI
 {
-	//RtvDesc ResouceViewUtils::CreateFullRtv(const IGraphicMemoryResource* resource, Format::Enum rtvFormat, u32 mipSlice, u32 planeSlice)
-	//{
-	//	switch (resource->GetDimension())
-	//	{
-	//	case GI::ResourceDimension::BUFFER:
+	bool GraphicsPass::IsReadyForExecute() const
+	{
+		for (const auto& [_, srv] : mSrvParams)
+		{
+			if (!srv.GetResource()->GetResourceId()) { return false; }
+		}
 
-	//	case GI::ResourceDimension::TEXTURE1D:
-	//	case GI::ResourceDimension::TEXTURE2D:
-	//		return GI::RtvDesc()
-	//			.SetResource(resource)
-	//			.SetFormat(rtvFormat)
-	//			.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-	//			.SetTexture2D_MipSlice(mipSlice)
-	//			.SetTexture2D_PlaneSlice(planeSlice);
-	//	case GI::ResourceDimension::TEXTURE3D:
-	//		break;
-	//	}
+		for (auto i = 0; i < mRtvCount; ++i)
+		{
+			if (!mRtvs[i].GetResource()->GetResourceId()) { return false; }
+		}
 
-	//	return GI::RtvDesc();
-	//}
+		for (const auto& vbv : mVbvs)
+		{
+			if (!vbv.GetResource()->GetResourceId()) { return false; }
+		}
+
+		if (!mIbv.GetResource()->GetResourceId()) { return false; }
+
+		if (mHasDsv && !mDsv.GetResource()->GetResourceId()) { return false; }
+
+		return true;
+	}
+
+	bool ComputePass::IsReadyForExecute() const
+	{
+		for (const auto& [_, srv] : mSrvParams)
+		{
+			if (!srv.GetResource()->GetResourceId()) { return false; }
+		}
+
+		for (const auto& [_, srv] : mUavParams)
+		{
+			if (!srv.GetResource()->GetResourceId()) { return false; }
+		}
+
+		return true;
+	}
+
 }

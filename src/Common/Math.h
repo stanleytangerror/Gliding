@@ -12,9 +12,11 @@ template <typename T> using Vec4 = Eigen::Vector4<T>;
 template <typename T> using Quat = Eigen::Quaternion<T>;
 
 using Vec2i = Vec2<i32>;
+using Vec2u = Vec2<u32>;
 using Vec2f = Vec2<f32>;
 using Vec3f = Vec3<f32>;
 using Vec3i = Vec3<i32>;
+using Vec3u = Vec3<u32>;
 using Vec4f = Vec4<f32>;
 
 // use column-major storage, independent of computation logic
