@@ -9,6 +9,7 @@
 #include "RenderUtils.h"
 #include "Light.h"
 #include "EnvironmentMap.h"
+#include "FrameGraph.h"
 
 WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize)
 	: mRenderModule(renderModule)
@@ -428,56 +429,87 @@ void WorldRenderer::RenderSky(GI::IGraphicsInfra* infra, const GI::RtvUsage& tar
 {
 	if (!mPanoramicSkyRt) { return; }
 
-	RENDER_EVENT(infra, Sky);
+	struct SkyPassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SrvUsage panoramicSky;
+		GI::SamplerDesc panoramicSampler;
+		GI::RtvUsage target;
+		GI::DsvUsage depth;
+	};
 
-	GI::GraphicsPass pass;
+	auto frameGraph = mRenderModule->GetFrameGraph();
+	frameGraph->AddPass<SkyPassData>("RenderSky",
+		[this, &target, &depth]
+		(SkyPassData& data) 
+		{
+			data.geoVertices = mQuad->GetVbvDesc();
+			data.geoIndices = mQuad->GetIbvDesc();
+			data.panoramicSky = mPanoramicSkyRt->GetSrv();
+			data.panoramicSampler = mPanoramicSkySampler;
+			data.target = target;
+			data.depth = depth;
+		},
+		[
+			camProj = mCameraProj, 
+			camTrans = mCameraTrans,
+			inputLayout = mQuad->mVertexElementDescs,
+			indexCount = mQuad->mIndices.size(),
+			targetSize = target.GetResource()->GetSize()
+		]
+		(const SkyPassData& data, GI::IGraphicsInfra* infra)
+		{
+			RENDER_EVENT(infra, Sky);
 
-	Geometry* geometry = mQuad.get();
-	const Transformf& transform = Transformf(UniScalingf(1000.f));
+			GI::GraphicsPass pass;
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
-	pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
+			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(true)
-		.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky))
-		.SetStencilWriteMask(RenderUtils::WorldStencilMask_Sky);
-	pass.mDepthStencilDesc.FrontFace
-		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
-		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-		.SetStencilPassOp(GI::StencilOp::REPLACE)
-		.SetStencilFailOp(GI::StencilOp::KEEP);
-	pass.mDepthStencilDesc.BackFace
-		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
-		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-		.SetStencilPassOp(GI::StencilOp::REPLACE)
-		.SetStencilFailOp(GI::StencilOp::KEEP);
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
+			pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
 
-	pass.mInputLayout = geometry->mVertexElementDescs;
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(true)
+				.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky))
+				.SetStencilWriteMask(RenderUtils::WorldStencilMask_Sky);
+			pass.mDepthStencilDesc.FrontFace
+				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+				.SetStencilPassOp(GI::StencilOp::REPLACE)
+				.SetStencilFailOp(GI::StencilOp::KEEP);
+			pass.mDepthStencilDesc.BackFace
+				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+				.SetStencilPassOp(GI::StencilOp::REPLACE)
+				.SetStencilFailOp(GI::StencilOp::KEEP);
 
-	pass.SetRtv(0, target);
-	pass.SetDsv(depth);
-	const auto& targetSize = target.GetResource()->GetSize();
-	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-	pass.mStencilRef = 0;
+			pass.mInputLayout = inputLayout;
 
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
+			pass.SetRtv(0, data.target);
+			pass.SetDsv(data.depth);
+			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			pass.mStencilRef = 0;
 
-	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-	pass.AddCbVar("FrustumInfo", Vec4f{ mCameraProj.GetHalfFovHorizontal(), mCameraProj.GetHalfFovVertical(), mCameraProj.mNear, mCameraProj.mFar });
-	pass.AddCbVar("CameraDir", mCameraTrans.CamDirInWorldSpace());
-	pass.AddCbVar("InvViewMat", mCameraTrans.ComputeInvViewMatrix());
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
 
-	pass.AddSrv("PanoramicSky", mPanoramicSkyRt->GetSrv());
-	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCbVar("FrustumInfo", Vec4f{ camProj.GetHalfFovHorizontal(), camProj.GetHalfFovVertical(), camProj.mNear, camProj.mFar });
+			pass.AddCbVar("CameraDir", camTrans.CamDirInWorldSpace());
+			pass.AddCbVar("InvViewMat", camTrans.ComputeInvViewMatrix());
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			pass.AddSrv("PanoramicSky", data.panoramicSky);
+			pass.AddSampler("PanoramicSkySampler", data.panoramicSampler);
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
+
 }
 
 void WorldRenderer::RenderGeometryWithMaterial(GI::IGraphicsInfra* infra,

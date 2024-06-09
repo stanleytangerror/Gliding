@@ -36,6 +36,7 @@ void RenderModule::Initial(const Vec2u& initialSize)
 #endif
 
 	mGraphicInfra = mCreateGraphicsInfra();
+	mFrameGraph = std::make_unique<FrameGraph>(mGraphicInfra);
 
 	mGraphicInfra->StartRecording();
 

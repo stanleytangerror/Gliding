@@ -7,6 +7,7 @@
 #include "Common/PresentPort.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "imgui.h"
+#include "FrameGraph.h"
 
 class ScreenRenderer;
 class RenderDocIntegration;
@@ -28,6 +29,7 @@ public:
 	void TickFrame(Timer* timer);
 	void Render();
 
+	FrameGraph*					GetFrameGraph() const { return mFrameGraph.get(); }
 	GI::IGraphicsInfra*			GetGraphicsInfra() const { return mGraphicInfra; }
 	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
 
@@ -38,6 +40,7 @@ protected:
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
+	std::unique_ptr<FrameGraph>				mFrameGraph;
 	std::unique_ptr<ScreenRenderer>			mScreenRenderer;
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;

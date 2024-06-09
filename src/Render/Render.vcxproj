@@ -104,6 +104,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="EnvironmentMap.h" />
+    <ClInclude Include="FrameGraph.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Geometry_inl.h" />
     <ClInclude Include="ImGuiRenderer.h" />
@@ -121,6 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EnvironmentMap.cpp" />
+    <ClCompile Include="FrameGraph.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImGuiRenderer.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
