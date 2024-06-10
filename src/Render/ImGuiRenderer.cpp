@@ -158,7 +158,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 				std::vector<GI::InputElementDesc> inputLayout;
 			};
 
-			frameGraph->AddPass<PassData>("GenerateIntegratedBRDF",
+			frameGraph->AddPass<PassData>("ImGuiElementRender",
 				[&]
 				(RenderPassBuilder& builder, PassData& data)
 				{

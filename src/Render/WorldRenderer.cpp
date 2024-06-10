@@ -206,7 +206,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			mPanoramicSkyRt = std::make_unique<RenderTarget>(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
-			RenderUtils::CopyTexture(infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
+			RenderUtils::CopyTexture(frameGraph, infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(frameGraph, infra, mPanoramicSkyRt->GetSrv(), 8, 10);
 			std::swap(mIrradianceMap, irradMap);
@@ -216,7 +216,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			std::swap(mFilteredEnvMap, filterEnvMap);
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
-			RenderUtils::GaussianBlur(infra, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
+			RenderUtils::GaussianBlur(frameGraph, infra, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
 		}
 
 		if (!mBRDFIntegrationMap)
@@ -313,7 +313,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 	{
 		const auto& [idx, unary] = gbufferSemantics[i];
 
-		RenderUtils::CopyTexture(infra, 
+		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
 			target, { i * width, 0.f }, { width, height }, 
 			mGBufferSrvs[idx], mNoMipMapLinearSampler, unary);
 	}
@@ -325,7 +325,7 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI:
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
-	RenderUtils::CopyTexture(infra,
+	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
 		target, { 0.f, targetSize.y() - height }, { width, height },
 		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
@@ -335,7 +335,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const
 	const auto& targetSize = target.GetResource()->GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
-	RenderUtils::CopyTexture(infra,
+	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
 		target, { 0.f, size }, { size, size },
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }

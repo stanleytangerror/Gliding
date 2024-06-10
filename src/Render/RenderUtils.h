@@ -4,20 +4,21 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "Geometry.h"
 #include "RenderMaterial.h"
+#include "FrameGraph.h"
 
 struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(GI::IGraphicsInfra* infra,
+	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		const GI::RtvUsage& target, const Vec2f& targetOffset, const Vec2f& targetRect,
 		const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
-	void CopyTexture(GI::IGraphicsInfra* infra,
+	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		const GI::RtvUsage& target, 
 		const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler);
 
-	void GaussianBlur(GI::IGraphicsInfra* infra,
+	void GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		const GI::RtvUsage& target, 
 		const GI::SrvUsage& source, i32 kernelSizeInPixel);
 

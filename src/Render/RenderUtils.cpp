@@ -30,7 +30,7 @@ namespace
 	}
 }
 
-void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
+void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	const GI::RtvUsage& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
 	const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
@@ -40,94 +40,151 @@ void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra,
 		quad->CreateAndInitialResource(infra); 
 	}
 
-	GI::GraphicsPass pass;
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SrvUsage source;
+		GI::SamplerDesc sourceSampler;
+		GI::RtvUsage target;
+		Vec3u targetSize;
+	};
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/CopyTexture.hlsl";
-	pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color"});
+	frameGraph->AddPass<PassData>("RenderUtils::CopyTexture",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.source = builder.Read(source);
+			data.geoVertices = builder.Read(quad->GetVbvDesc());
+			data.geoIndices = builder.Read(quad->GetIbvDesc());
+			data.sourceSampler = builder.Read(sourceSampler);
+			data.targetSize = target.GetResource()->GetSize();
+			data.target = builder.Write(target);
+		},
+		[
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
+			sourcePixelUnary, targetOffset, targetRect
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass pass;
 
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/CopyTexture.hlsl";
+			pass.mPsFile = "res/Shader/CopyTexture.hlsl";
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color" });
 
-	pass.mInputLayout = quad->mVertexElementDescs;
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
 
-	const Vec3u& targetSize = target.GetResource()->GetSize();
-	pass.SetRtv(0, target);
-	pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
-	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			pass.mInputLayout = inputLayout;
 
-	pass.PushVbv(quad->GetVbvDesc());
-	pass.SetIbv(quad->GetIbvDesc());
-	pass.mIndexCount = quad->mIndices.size();
+			pass.SetRtv(0, data.target);
+			pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
+			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
-	pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
-	pass.AddSrv("SourceTex", source);
-	pass.AddSampler("SourceTexSampler", sourceSampler);
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
+			pass.AddSrv("SourceTex", data.source);
+			pass.AddSampler("SourceTexSampler", data.sourceSampler);
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 }
 
-void RenderUtils::CopyTexture(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler)
+void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler)
 {
 	const auto& targetSize = target.GetResource()->GetSize();
-	CopyTexture(infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
+	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
 	const auto& size = source.GetResource()->GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
-	GI::GraphicsPass pass;
-
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
-	pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1"});
-
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
-
-	pass.mInputLayout = quad->mVertexElementDescs;
-
-	pass.SetRtv(0, target);
-	pass.mViewPort.SetWidth(size.x()).SetHeight(size.y());
-	pass.mScissorRect = { 0, 0, i32(size.x()), i32(size.y()) };
-
-	pass.PushVbv(quad->GetVbvDesc());
-	pass.SetIbv(quad->GetIbvDesc());
-	pass.mIndexCount = quad->mIndices.size();
-
-	pass.AddCbVar("BlurTargetSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
-	pass.AddSrv("SourceTex", source);
-	pass.AddSampler("SourceTexSampler", sampler);
-
-	std::vector<f32> weights;
-	f32 totalWeight = 0.f;
-	for (i32 i = 0; i < weight4fSize * 4; ++i)
+	struct PassData
 	{
-		f32 w = NormalDistPdf(i, kernelSizeInPixel * 0.5f);
-		weights.push_back(w);
-		totalWeight += (i == 0) ? w : w * 2;
-	}
-	for (auto& w : weights)
-	{
-		w /= totalWeight;
-	}
-	pass.AddCbVar("Weights", weights);
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SrvUsage source;
+		GI::SamplerDesc sampler;
+		GI::RtvUsage target;
+		Vec3u size;
+	};
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+	frameGraph->AddPass<PassData>("GaussianBlur1D",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.source = builder.Read(source);
+			data.geoVertices = builder.Read(quad->GetVbvDesc());
+			data.geoIndices = builder.Read(quad->GetIbvDesc());
+			data.sampler = builder.Read(sampler);
+			data.size = target.GetResource()->GetSize();
+			data.target = builder.Write(target);
+		},
+		[
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
+			isHorizontal, weight4fSize, NormalDistPdf, kernelSizeInPixel
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass pass;
+
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
+			pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1" });
+
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
+
+			pass.mInputLayout = inputLayout;
+
+			pass.SetRtv(0, data.target);
+			pass.mViewPort.SetWidth(data.size.x()).SetHeight(data.size.y());
+			pass.mScissorRect = { 0, 0, i32(data.size.x()), i32(data.size.y()) };
+
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
+
+			pass.AddCbVar("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
+			pass.AddSrv("SourceTex", data.source);
+			pass.AddSampler("SourceTexSampler", data.sampler);
+
+			std::vector<f32> weights;
+			f32 totalWeight = 0.f;
+			for (i32 i = 0; i < weight4fSize * 4; ++i)
+			{
+				f32 w = NormalDistPdf(i, kernelSizeInPixel * 0.5f);
+				weights.push_back(w);
+				totalWeight += (i == 0) ? w : w * 2;
+			}
+			for (auto& w : weights)
+			{
+				w /= totalWeight;
+			}
+			pass.AddCbVar("Weights", weights);
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 }
 
-void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
 	static Geometry* quad = Geometry::GenerateQuad();
@@ -144,8 +201,8 @@ void RenderUtils::GaussianBlur(GI::IGraphicsInfra* infra, const GI::RtvUsage& ta
 	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
 
 	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(frameGraph, infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(frameGraph, infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<
