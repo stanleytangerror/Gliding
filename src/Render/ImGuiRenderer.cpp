@@ -37,6 +37,8 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData)
 {
+	auto frameGraph = mRenderModule->GetFrameGraph();
+
 	if (!mFontAtlas->IsGraphicsResourceReady())
 	{
 		mFontAtlas->CreateAndInitialResource(infra);
@@ -140,50 +142,91 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 			const auto* srv = reinterpret_cast<const GI::SrvUsage*>(cmd->GetTexID());
 
-			GI::GraphicsPass pass;
-
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-			pass.mVsFile = "res/Shader/ImGui.hlsl";
-			pass.mPsFile = "res/Shader/ImGui.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "USE_TEXTURE", srv ? "1" : "0" });
-
-			pass.mBlendDesc.SetAlphaToCoverageEnable(false);
-			pass.mBlendDesc.RtBlendDesc[0]
-				.SetBlendEnable(true)
-				.SetSrcBlend(GI::Blend::SRC_ALPHA)
-				.SetDestBlend(GI::Blend::INV_SRC_ALPHA)
-				.SetBlendOp(GI::BlendOp::ADD)
-				.SetSrcBlendAlpha(GI::Blend::ONE)
-				.SetDestBlendAlpha(GI::Blend::INV_SRC_ALPHA)
-				.SetBlendOpAlpha(GI::BlendOp::ADD);
-
-			pass.mDepthStencilDesc
-				.SetDepthEnable(false)
-				.SetStencilEnable(false);
-
-			pass.mInputLayout = geo->mVertexElementDescs;
-
-			const Vec3u& targetSize = target.GetResource()->GetSize();
-			pass.SetRtv(0, target);
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = scissorRect;
-
-			pass.PushVbv(geo->GetVbvDesc());
-			pass.SetIbv(geo->GetIbvDesc());
-			pass.mIndexCount = cmd->ElemCount;
-			pass.mIndexStartLocation = indexOffset + cmd->IdxOffset;
-			pass.mVertexStartLocation = vertexOffset + cmd->VtxOffset;
-
-			if (srv)
+			struct PassData
 			{
-				pass.AddSrv("SourceTex", *srv);
-				pass.AddSampler("SourceTexSampler", mImGuiSampler);
-			}
+				GI::VbvUsage geoVertices;
+				GI::IbvUsage geoIndices;
+				GI::SamplerDesc sampler;
+				GI::SrvUsage srv;
+				GI::RtvUsage target;
+				bool hasSrv = false;
+				i32 indexCount;
+				i32 indexStartLocation;
+				i32 vertexStartLocation;
+				Vec3u targetSize;
+				Math::Rect scissorRect;
+				std::vector<GI::InputElementDesc> inputLayout;
+			};
 
-			pass.AddCbVar("WvpMat", wvpMat);
+			frameGraph->AddPass<PassData>("GenerateIntegratedBRDF",
+				[&]
+				(RenderPassBuilder& builder, PassData& data)
+				{
+					data.geoVertices = builder.Read(geo->GetVbvDesc());
+					data.geoIndices = builder.Read(geo->GetIbvDesc());
+					data.sampler = builder.Read(mImGuiSampler);
+					data.hasSrv = srv != nullptr;
+					if (srv)
+					{
+						data.srv = builder.Read(*srv);
+					}
+					data.target = builder.Write(target);
+					data.indexCount = cmd->ElemCount;
+					data.indexStartLocation = indexOffset + cmd->IdxOffset;
+					data.vertexStartLocation = vertexOffset + cmd->VtxOffset;
+					data.targetSize = target.GetResource()->GetSize();
+					data.scissorRect = scissorRect;
+					data.inputLayout = geo->mVertexElementDescs;
+				},
+				[
+					wvpMat
+				]
+				(const PassData& data, GI::IGraphicsInfra* infra)
+				{
+					GI::GraphicsPass pass;
 
-			infra->GetRecorder()->AddGraphicsPass(pass);
+					pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+					pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+					pass.mVsFile = "res/Shader/ImGui.hlsl";
+					pass.mPsFile = "res/Shader/ImGui.hlsl";
+					pass.mShaderMacros.push_back(GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });
+
+					pass.mBlendDesc.SetAlphaToCoverageEnable(false);
+					pass.mBlendDesc.RtBlendDesc[0]
+						.SetBlendEnable(true)
+						.SetSrcBlend(GI::Blend::SRC_ALPHA)
+						.SetDestBlend(GI::Blend::INV_SRC_ALPHA)
+						.SetBlendOp(GI::BlendOp::ADD)
+						.SetSrcBlendAlpha(GI::Blend::ONE)
+						.SetDestBlendAlpha(GI::Blend::INV_SRC_ALPHA)
+						.SetBlendOpAlpha(GI::BlendOp::ADD);
+
+					pass.mDepthStencilDesc
+						.SetDepthEnable(false)
+						.SetStencilEnable(false);
+
+					pass.mInputLayout = data.inputLayout;
+
+					pass.SetRtv(0, data.target);
+					pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
+					pass.mScissorRect = data.scissorRect;
+
+					pass.PushVbv(data.geoVertices);
+					pass.SetIbv(data.geoIndices);
+					pass.mIndexCount = data.indexCount;
+					pass.mIndexStartLocation = data.indexStartLocation;
+					pass.mVertexStartLocation = data.vertexStartLocation;
+
+					if (data.hasSrv)
+					{
+						pass.AddSrv("SourceTex", data.srv);
+						pass.AddSampler("SourceTexSampler", data.sampler);
+					}
+
+					pass.AddCbVar("WvpMat", wvpMat);
+
+					infra->GetRecorder()->AddGraphicsPass(pass);
+				});
 		}
 		indexOffset += cmdList->IdxBuffer.Size;
 		vertexOffset += cmdList->VtxBuffer.Size;
