@@ -353,18 +353,18 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	const auto& dsSize = mMainDepth->GetSize();
 
 	auto tmpDepth = infra->CreateMemoryResource(
-			GI::MemoryResourceDesc()
-			.SetDimension(GI::ResourceDimension::TEXTURE2D)
-			.SetWidth(dsSize.x())
-			.SetHeight(dsSize.y())
-			.SetDepthOrArraySize(dsSize.z())
-			.SetMipLevels(1)
-			.SetFormat(mMainDepth->GetFormat())
-			.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-			.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
-			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
-			.SetName("TempDepthRt")
-			.SetHeapType(GI::HeapType::DEFAULT));
+		GI::MemoryResourceDesc()
+		.SetDimension(GI::ResourceDimension::TEXTURE2D)
+		.SetWidth(dsSize.x())
+		.SetHeight(dsSize.y())
+		.SetDepthOrArraySize(dsSize.z())
+		.SetMipLevels(1)
+		.SetFormat(mMainDepth->GetFormat())
+		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
+		.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
+		.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
+		.SetName("TempDepthRt")
+		.SetHeapType(GI::HeapType::DEFAULT));
 
 	auto tmpDepthDsv = GI::DsvUsage(tmpDepth);
 	tmpDepthDsv
@@ -374,69 +374,121 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 	infra->GetRecorder()->AddCopyOperation(tmpDepth.get(), mMainDepth.get());
 
-	GI::GraphicsPass lightingPass;
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		std::array<GI::SrvUsage, 3> gBufferSrvs;
+		GI::SrvUsage mainDepth;
+		GI::SrvUsage shadowMask;
+		GI::SamplerDesc lightingSceneSampler;
+		GI::SrvUsage filteredEnvMapSrv;
+		GI::SamplerDesc filteredEnvMapSampler;
+		u16 filteredEnvMapMipCount;
+		GI::SrvUsage irradianceMapSrv;
+		GI::SamplerDesc panoramicSkySampler;
+		GI::SrvUsage brdfIntegrationMapSrv;
+		GI::SamplerDesc brdfIntegrationMapSampler;
+		GI::RtvUsage target;
+		GI::DsvUsage dsv;
+		Vec3u targetSize;
+		Vec3u dsSize;
+	};
 
-	lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
-	lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
+	frameGraph->AddPass<PassData>("DeferredLighting",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
+			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
+			data.gBufferSrvs[0] = builder.Read(mGBufferSrvs[0]);
+			data.gBufferSrvs[1] = builder.Read(mGBufferSrvs[1]);
+			data.gBufferSrvs[2] = builder.Read(mGBufferSrvs[2]);
+			data.mainDepth = builder.Read(mMainDepthSrv);
+			data.shadowMask = builder.Read(mShadowMask->GetSrv());
+			data.filteredEnvMapSrv = builder.Read(mFilteredEnvMapSrv);
+			data.filteredEnvMapSampler = builder.Read(mFilteredEnvMapSampler);
+			data.filteredEnvMapMipCount = mFilteredEnvMap->GetMipLevelCount();
+			data.irradianceMapSrv = builder.Read(mIrradianceMapSrv);
+			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
+			data.brdfIntegrationMapSrv = builder.Read(mBRDFIntegrationMapSrv);
+			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
+			data.target = builder.Write(target);
+			data.dsv = builder.Write(tmpDepthDsv);
+			data.targetSize = target.GetResource()->GetSize();
+		},
+		[
+			inputLayout = mQuad->mVertexElementDescs,
+			indexCount = mQuad->mIndices.size(),
+				cameraProj, cameraTrans, sunLight
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass lightingPass;
 
-	lightingPass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(true)
-		.SetStencilReadMask(RenderUtils::WorldStencilMask_OpaqueObject)
-		.SetStencilWriteMask(0);
-	lightingPass.mDepthStencilDesc.FrontFace
-		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
-		.SetStencilPassOp(GI::StencilOp::KEEP)
-		.SetStencilFailOp(GI::StencilOp::KEEP);
-	lightingPass.mDepthStencilDesc.BackFace
-		.SetStencilFunc(GI::ComparisonFunction::EQUAL)
-		.SetStencilPassOp(GI::StencilOp::KEEP)
-		.SetStencilFailOp(GI::StencilOp::KEEP);
+			lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
+			lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
 
-	lightingPass.mInputLayout = mQuad->mVertexElementDescs;
+			lightingPass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(true)
+				.SetStencilReadMask(RenderUtils::WorldStencilMask_OpaqueObject)
+				.SetStencilWriteMask(0);
+			lightingPass.mDepthStencilDesc.FrontFace
+				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+				.SetStencilPassOp(GI::StencilOp::KEEP)
+				.SetStencilFailOp(GI::StencilOp::KEEP);
+			lightingPass.mDepthStencilDesc.BackFace
+				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
+				.SetStencilPassOp(GI::StencilOp::KEEP)
+				.SetStencilFailOp(GI::StencilOp::KEEP);
 
-	const auto& targetSize = target.GetResource()->GetSize();
-	lightingPass.SetRtv(0, target);
-	lightingPass.SetDsv(tmpDepthDsv);
-	lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-	lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+			lightingPass.mInputLayout = inputLayout;
 
-	lightingPass.PushVbv(mQuad->GetVbvDesc());
-	lightingPass.SetIbv(mQuad->GetIbvDesc());
-	lightingPass.mIndexCount = mQuad->mIndices.size();
+			const auto& targetSize = data.targetSize;
+			lightingPass.SetRtv(0, data.target);
+			lightingPass.SetDsv(data.dsv);
+			lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-	lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-	lightingPass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
-	lightingPass.AddSrv("GBuffer0", mGBufferSrvs[0]);
-	lightingPass.AddSrv("GBuffer1", mGBufferSrvs[1]);
-	lightingPass.AddSrv("GBuffer2", mGBufferSrvs[2]);
-	lightingPass.AddSrv("ShadowMask", mShadowMask->GetSrv());
-	lightingPass.AddSampler("ShadowMaskSampler", mLightingSceneSampler);
-	lightingPass.AddSrv("SceneDepth", mMainDepthSrv);
-	lightingPass.AddSampler("GBufferSampler", mLightingSceneSampler);
+			lightingPass.PushVbv(data.geoVertices);
+			lightingPass.SetIbv(data.geoIndices);
+			lightingPass.mIndexCount = indexCount;
 
-	lightingPass.AddCbVar("InvViewMat", cameraTrans.ComputeInvViewMatrix());
-	lightingPass.AddCbVar("InvProjMat", cameraProj.ComputeInvProjectionMatrix());
+			lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			lightingPass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
+			lightingPass.AddSrv("GBuffer0", data.gBufferSrvs[0]);
+			lightingPass.AddSrv("GBuffer1", data.gBufferSrvs[1]);
+			lightingPass.AddSrv("GBuffer2", data.gBufferSrvs[2]);
+			lightingPass.AddSrv("ShadowMask", data.shadowMask);
+			lightingPass.AddSampler("ShadowMaskSampler", data.lightingSceneSampler);
+			lightingPass.AddSrv("SceneDepth", data.mainDepth);
+			lightingPass.AddSampler("GBufferSampler", data.lightingSceneSampler);
 
-	lightingPass.AddSrv("PrefilteredEnvMap", mFilteredEnvMapSrv);
-	lightingPass.AddSampler("PrefilteredEnvMapSampler", mFilteredEnvMapSampler);
-	lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(mFilteredEnvMap->GetMipLevelCount()), 0.f, 0.f, 0.f });
-	
-	lightingPass.AddSrv("IrradianceMap", mIrradianceMapSrv);
-	lightingPass.AddSampler("IrradianceMapSampler", mPanoramicSkySampler);
+			lightingPass.AddCbVar("InvViewMat", cameraTrans.ComputeInvViewMatrix());
+			lightingPass.AddCbVar("InvProjMat", cameraProj.ComputeInvProjectionMatrix());
 
-	lightingPass.AddSrv("BRDFIntegrationMap", mBRDFIntegrationMapSrv);
-	lightingPass.AddSampler("BRDFIntegrationMapSampler", mBRDFIntegrationMapSampler);
+			lightingPass.AddSrv("PrefilteredEnvMap", data.filteredEnvMapSrv);
+			lightingPass.AddSampler("PrefilteredEnvMapSampler", data.filteredEnvMapSampler);
+			lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(data.filteredEnvMapMipCount), 0.f, 0.f, 0.f });
 
-	lightingPass.AddCbVar("CameraDir", cameraTrans.CamDirInWorldSpace());
-	lightingPass.AddCbVar("CameraPos", cameraTrans.CamPosInWorldSpace());
-	lightingPass.AddCbVar("LightDir", sunLight.mWorldTransform.CamDirInWorldSpace());
-	lightingPass.AddCbVar("LightColor", (sunLight.mLightColor * sunLight.mLightIntensity).eval());
+			lightingPass.AddSrv("IrradianceMap", data.irradianceMapSrv);
+			lightingPass.AddSampler("IrradianceMapSampler", data.panoramicSkySampler);
 
-	infra->GetRecorder()->AddGraphicsPass(lightingPass);
+			lightingPass.AddSrv("BRDFIntegrationMap", data.brdfIntegrationMapSrv);
+			lightingPass.AddSampler("BRDFIntegrationMapSampler", data.brdfIntegrationMapSampler);
+
+			lightingPass.AddCbVar("CameraDir", cameraTrans.CamDirInWorldSpace());
+			lightingPass.AddCbVar("CameraPos", cameraTrans.CamPosInWorldSpace());
+			lightingPass.AddCbVar("LightDir", sunLight.mWorldTransform.CamDirInWorldSpace());
+			lightingPass.AddCbVar("LightColor", (sunLight.mLightColor * sunLight.mLightIntensity).eval());
+
+			infra->GetRecorder()->AddGraphicsPass(lightingPass);
+		});
 }
 
 void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target, const GI::DsvUsage& depth) const
@@ -539,88 +591,131 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 	const auto& cameraProj = camState.mCameraProj;
 	const auto& cameraTrans = camState.mCameraTrans;
 
-	GI::GraphicsPass gbufferPass;
-
-	gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
-	gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
-
-	gbufferPass.mRasterizerDesc
-		.SetCullMode(GI::CullMode::NONE);
-
-	gbufferPass.mDepthStencilDesc
-		.SetDepthEnable(true)
-		.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
-		.SetStencilEnable(true)
-		.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene)
-		.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject);
-	gbufferPass.mDepthStencilDesc.FrontFace
-		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-		.SetStencilFailOp(GI::StencilOp::KEEP)
-		.SetStencilPassOp(GI::StencilOp::REPLACE)
-		.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
-	gbufferPass.mDepthStencilDesc.BackFace
-		.SetStencilDepthFailOp(GI::StencilOp::KEEP)
-		.SetStencilFailOp(GI::StencilOp::KEEP)
-		.SetStencilPassOp(GI::StencilOp::REPLACE)
-		.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
-
-	gbufferPass.mInputLayout = geometry->mVertexElementDescs;
-
-	for (i32 i = 0; i < gbufferRtvs.size(); ++i)
+	struct PassData
 	{
-		gbufferPass.SetRtv(i, gbufferRtvs[i]);
-	}
-	gbufferPass.SetDsv(depthView);
-
-	const auto& targetSize = gbufferRtvs[0].GetResource()->GetSize();
-	gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	gbufferPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-	gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
-
-	gbufferPass.PushVbv(geometry->GetVbvDesc());
-	gbufferPass.SetIbv(geometry->GetIbvDesc());
-
-	gbufferPass.mIndexCount = geometry->mIndices.size();
-
-	gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-
-	gbufferPass.AddCbVar("worldMat", transform.matrix());
-	gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
-	gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
-
-	const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
-	{
-		{ TextureUsage_Normal,			 "Normal" },
-		{ TextureUsage_Metalness,		 "Metallic" },
-		{ TextureUsage_BaseColor,		 "BaseColor" },
-		{ TextureUsage_Roughness,		 "Roughness" },
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		std::vector<GI::ShaderMacro> shaderMacros;
+		std::vector<std::pair<std::string, GI::SrvUsage>> srvs;
+		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
+		std::vector<std::pair<std::string, Vec4f>> cbvs;
+		std::array<GI::RtvUsage, 3> gbufferRtvs;
+		GI::DsvUsage depthView;
+		Vec3u targetSize;
 	};
 
-	for (const auto& [usage, paramName] : semanticSlots)
-	{
-		const auto& attr = material->mMatAttriSlots[usage];
-		if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+	frameGraph->AddPass<PassData>("GaussianBlur1D",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
 		{
-			gbufferPass.mShaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
+			const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
+			{
+				{ TextureUsage_Normal,			 "Normal" },
+				{ TextureUsage_Metalness,		 "Metallic" },
+				{ TextureUsage_BaseColor,		 "BaseColor" },
+				{ TextureUsage_Roughness,		 "Roughness" },
+			};
 
-			auto res = attr.mTexture->GetResource();
-			auto srv = GI::SrvUsage(res);
-			srv
-				.SetFormat(res->GetFormat())
-				.SetViewDimension(GI::GetSrvDimension(res->GetDimension()))
-				.SetTexture2D_MipLevels(res->GetMipLevelCount());
-			gbufferPass.AddSrv((paramName + "Tex").c_str(), srv);
-			gbufferPass.AddSampler((paramName + "Sampler").c_str(), attr.mSampler);
-		}
-		else
+			for (const auto& [usage, paramName] : semanticSlots)
+			{
+				const auto& attr = material->mMatAttriSlots[usage];
+				if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+				{
+					data.shaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
+
+					auto res = attr.mTexture->GetResource();
+					const auto& srvName = paramName + "Tex";
+					const auto& srv = builder.Read(res,
+							GI::SrvDesc{}
+							.SetFormat(res->GetFormat())
+							.SetViewDimension(GI::GetSrvDimension(res->GetDimension()))
+							.SetTexture2D_MipLevels(res->GetMipLevelCount()));
+					data.srvs.emplace_back(srvName, srv);
+
+					const auto& samplerName = paramName + "Sampler";
+					const auto& sampler = attr.mSampler;
+					data.samplers.emplace_back(samplerName, sampler);
+				}
+				else
+				{
+					data.cbvs.emplace_back(paramName + "ConstantValue", attr.mConstantValue);
+				}
+			}
+
+			data.geoVertices = builder.Read(geometry->GetVbvDesc());
+			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			for (i32 i = 0; i < gbufferRtvs.size(); ++i)
+			{
+				data.gbufferRtvs[i] = builder.Write(gbufferRtvs[i]);
+			}
+			data.depthView = builder.Write(depthView);
+			data.targetSize = gbufferRtvs[0].GetResource()->GetSize();
+		},
+		[
+			inputLayout = geometry->mVertexElementDescs,
+				indexCount = geometry->mIndices.size(),
+				cameraProj, cameraTrans, transform
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
 		{
-			gbufferPass.AddCbVar((paramName + "ConstantValue").c_str(), attr.mConstantValue);
-		}
-	}
+			GI::GraphicsPass gbufferPass;
 
-	infra->GetRecorder()->AddGraphicsPass(gbufferPass);
+			gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
+			gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
+
+			gbufferPass.mRasterizerDesc
+				.SetCullMode(GI::CullMode::NONE);
+
+			gbufferPass.mDepthStencilDesc
+				.SetDepthEnable(true)
+				.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
+				.SetStencilEnable(true)
+				.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene)
+				.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject);
+			gbufferPass.mDepthStencilDesc.FrontFace
+				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+				.SetStencilFailOp(GI::StencilOp::KEEP)
+				.SetStencilPassOp(GI::StencilOp::REPLACE)
+				.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
+			gbufferPass.mDepthStencilDesc.BackFace
+				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
+				.SetStencilFailOp(GI::StencilOp::KEEP)
+				.SetStencilPassOp(GI::StencilOp::REPLACE)
+				.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
+
+			gbufferPass.mInputLayout = inputLayout;
+
+			for (i32 i = 0; i < data.gbufferRtvs.size(); ++i)
+			{
+				gbufferPass.SetRtv(i, data.gbufferRtvs[i]);
+			}
+			gbufferPass.SetDsv(data.depthView);
+
+			const auto& targetSize = data.targetSize;
+			gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			gbufferPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+
+			gbufferPass.PushVbv(data.geoVertices);
+			gbufferPass.SetIbv(data.geoIndices);
+
+			gbufferPass.mIndexCount = indexCount;
+
+			gbufferPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+			gbufferPass.AddCbVar("worldMat", transform.matrix());
+			gbufferPass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
+			gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+
+			gbufferPass.mShaderMacros = data.shaderMacros;
+			for (const auto& [n, srv] : data.srvs) { gbufferPass.AddSrv(n, srv); }
+			for (const auto& [n, sampler] : data.samplers) { gbufferPass.AddSampler(n, sampler); }
+			for (const auto& [n, v] : data.cbvs) { gbufferPass.AddCbVar(n, v); }
+			
+			infra->GetRecorder()->AddGraphicsPass(gbufferPass);
+		});
 }
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(
