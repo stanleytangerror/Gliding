@@ -208,11 +208,11 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
-			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(infra, mPanoramicSkyRt->GetSrv(), 8, 10);
+			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(frameGraph, infra, mPanoramicSkyRt->GetSrv(), 8, 10);
 			std::swap(mIrradianceMap, irradMap);
 			mIrradianceMapSrv = irradMapSrv;
 
-			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(infra, mPanoramicSkyRt->GetSrv(), 1024);
+			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, mPanoramicSkyRt->GetSrv(), 1024);
 			std::swap(mFilteredEnvMap, filterEnvMap);
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
@@ -221,7 +221,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 		if (!mBRDFIntegrationMap)
 		{
-			auto [map, srv] = EnvironmentMap::GenerateIntegratedBRDF(infra, 1024);
+			auto [map, srv] = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
 			std::swap(mBRDFIntegrationMap, map);
 			mBRDFIntegrationMapSrv = srv;
 		}
@@ -459,14 +459,14 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 
 	frameGraph->AddPass<PassData>("RenderSky",
 		[this, &target, &depth]
-		(PassData& data) 
+		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = mQuad->GetVbvDesc();
-			data.geoIndices = mQuad->GetIbvDesc();
-			data.panoramicSky = mPanoramicSkyRt->GetSrv();
-			data.panoramicSampler = mPanoramicSkySampler;
-			data.target = target;
-			data.depth = depth;
+			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
+			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.panoramicSky = builder.Read(mPanoramicSkyRt->GetSrv());
+			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
+			data.target = builder.Write(target);
+			data.depth = builder.Write(depth);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,

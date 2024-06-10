@@ -30,17 +30,21 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, Vec3u size, GI::Format::En
 	mRtv
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
+	mRtvDesc = mRtv;
 
 	mUav = GI::UavUsage(mResource);
 	mUav
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::UavDimension::TEXTURE2D);
+	mUavDesc = mUav;
 
 	mSrv = GI::SrvUsage(mResource);
 	mSrv
 		.SetFormat(mFormat)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(u32(mMipLevelCount));
+	mSrvDesc = mSrv;
+
 }
 
 RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI::Format::Enum format, const char* name)
@@ -70,6 +74,7 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetBuffer_NumElements(count)
 		.SetBuffer_StructureByteStride(u32(stride))
 		.SetBuffer_FlagRawRatherThanNone(false);
+	mUavDesc = mUav;
 
 	mSrv = GI::SrvUsage(mResource);
 	mSrv
@@ -78,4 +83,5 @@ RenderTarget::RenderTarget(GI::IGraphicsInfra* infra, i32 count, i32 stride, GI:
 		.SetBuffer_FirstElement(0)
 		.SetBuffer_NumElements(count)
 		.SetBuffer_FlagRawRatherThanNone(false);
+	mSrvDesc = mSrv;
 }

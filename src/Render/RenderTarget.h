@@ -12,6 +12,11 @@ public:
 	GI::RtvUsage			GetRtv() const { return mRtv; }
 	GI::UavUsage			GetUav() const { return mUav; }
 	GI::SrvUsage			GetSrv() const { return mSrv; }
+	GI::RtvDesc				GetRtvDesc() const { return mRtvDesc; }
+	GI::UavDesc				GetUavDesc() const { return mUavDesc; }
+	GI::SrvDesc				GetSrvDesc() const { return mSrvDesc; }
+
+	GI::IGraphicMemoryResource* GetResource() const { return mResource.get(); }
 
 protected:
 	std::unique_ptr<GI::IGraphicMemoryResource> mResource;
@@ -19,7 +24,11 @@ protected:
 	i32							mMipLevelCount = 1;
 	GI::Format::Enum			mFormat;
 
-	GI::RtvUsage					mRtv;
-	GI::UavUsage					mUav;
-	GI::SrvUsage					mSrv;
+	GI::RtvUsage				mRtv;
+	GI::UavUsage				mUav;
+	GI::SrvUsage				mSrv;
+
+	GI::RtvDesc					mRtvDesc;
+	GI::UavDesc					mUavDesc;
+	GI::SrvDesc					mSrvDesc;
 };

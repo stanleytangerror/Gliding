@@ -2,7 +2,7 @@
 #include "EnvironmentMap.h"
 #include "Geometry.h"
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIrradianceMap(GI::IGraphicsInfra* infra, const GI::SrvUsage& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
+std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIrradianceMap(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::SrvUsage& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -33,61 +33,85 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 		.SetName("IrradianceMap")
 		.SetHeapType(GI::HeapType::DEFAULT));
 		
-	auto rtv = GI::RtvUsage(irradianceMap);
-	rtv
-		.SetFormat(format)
-		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
-
 	auto srv = GI::SrvUsage(irradianceMap);
 	srv
 		.SetFormat(format)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
 
-	RENDER_EVENT(infra, GenerateIrradianceMap);
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SrvUsage sky;
+		GI::SamplerDesc panoramicSkySampler;
+		GI::RtvUsage rtv;
+	};
 
-	GI::GraphicsPass pass;
+	frameGraph->AddPass<PassData>("GenerateIrradianceMap",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.sky = builder.Read(sky);
+			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
+			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
 
-	Geometry* geometry = mQuad;
-	const Transformf& transform = Transformf(UniScalingf(1000.f));
+			data.rtv = builder.Write(irradianceMap.get(),
+				GI::RtvDesc{}
+				.SetFormat(format)
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D));
+		},
+		[
+			inputLayout = mQuad->mVertexElementDescs,
+			indexCount = mQuad->mIndices.size(),
+			rtSize, semiSphereBusbarSampleCount
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			RENDER_EVENT(infra, GenerateIrradianceMap);
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
+			GI::GraphicsPass pass;
 
-	
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
+			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-	pass.mInputLayout = geometry->mVertexElementDescs;
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
 
-	pass.SetRtv(0, rtv);
-	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
-	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
-	pass.mStencilRef = 0;
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
 
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
+			pass.mInputLayout = inputLayout;
 
-	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
+			pass.SetRtv(0, data.rtv);
+			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
+			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
+			pass.mStencilRef = 0;
 
-	const f32 deltaRad = Math::Pi<f32>() / 2.f / semiSphereBusbarSampleCount;
-	const f32 sampleCount = semiSphereBusbarSampleCount * semiSphereBusbarSampleCount * 4.f;
-	pass.AddCbVar("SemiSphereSampleInfo", Vec4f{ deltaRad, sampleCount, 1.f / sampleCount, 0.f });
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
 
-	pass.AddSrv("PanoramicSky", sky);
-	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			const f32 deltaRad = Math::Pi<f32>() / 2.f / semiSphereBusbarSampleCount;
+			const f32 sampleCount = semiSphereBusbarSampleCount * semiSphereBusbarSampleCount * 4.f;
+			pass.AddCbVar("SemiSphereSampleInfo", Vec4f{ deltaRad, sampleCount, 1.f / sampleCount, 0.f });
+
+			pass.AddSrv("PanoramicSky", data.sky);
+			pass.AddSampler("PanoramicSkySampler", data.panoramicSkySampler);
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 
 	return std::make_tuple(std::move(irradianceMap), srv);
 }
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIntegratedBRDF(GI::IGraphicsInfra* infra, i32 resolution)
+std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GenerateIntegratedBRDF(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -119,55 +143,76 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 		.SetName("IntegratedBRDF")
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	auto rtv = GI::RtvUsage(integratedBRDF);
-	rtv
-		.SetFormat(format)
-		.SetViewDimension(GI::RtvDimension::TEXTURE2D);
-
 	auto srv = GI::SrvUsage(integratedBRDF);
 	srv
 		.SetFormat(format)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 		.SetTexture2D_MipLevels(1);
 
-	RENDER_EVENT(infra, GenerateIntegratedBRDF);
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::RtvUsage rtv;
+	};
 
-	GI::GraphicsPass pass;
+	frameGraph->AddPass<PassData>("GenerateIntegratedBRDF",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
+			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 
-	Geometry* geometry = mQuad;
-	const Transformf& transform = Transformf(UniScalingf(1000.f));
+			data.rtv = builder.Write(integratedBRDF.get(),
+				GI::RtvDesc{}
+				.SetFormat(format)
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D));
+		},
+		[
+			inputLayout = mQuad->mVertexElementDescs,
+				indexCount = mQuad->mIndices.size(),
+				rtSize
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			RENDER_EVENT(infra, GenerateIntegratedBRDF);
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
+			GI::GraphicsPass pass;
 
-	
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
+			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-	pass.mInputLayout = geometry->mVertexElementDescs;
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
 
-	pass.SetRtv(0, rtv);
-	pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
-	pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
-	pass.mStencilRef = 0;
 
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
 
-	pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
+			pass.mInputLayout = inputLayout;
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			pass.SetRtv(0, data.rtv);
+			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
+			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
+			pass.mStencilRef = 0;
+
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
+
+			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 
 	return std::make_tuple(std::move(integratedBRDF), srv);
 }
 
 std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> EnvironmentMap::GeneratePrefilteredEnvironmentMap
-(GI::IGraphicsInfra* infra, const GI::SrvUsage& src, i32 resolution)
+(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::SrvUsage& src, i32 resolution)
 {
 	const auto& originSize = src.GetResource()->GetSize();
 	const auto& format = src.GetFormat();
@@ -225,7 +270,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(infra, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(frameGraph, infra, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
@@ -233,7 +278,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap
-(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& src, const Vec2i& targetSize, f32 roughness)
+(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& src, const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
