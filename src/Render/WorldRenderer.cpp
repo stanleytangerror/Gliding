@@ -604,7 +604,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 		Vec3u targetSize;
 	};
 
-	frameGraph->AddPass<PassData>("GaussianBlur1D",
+	frameGraph->AddPass<PassData>("RenderGeometryWithMaterial",
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
@@ -730,52 +730,81 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	const auto& cameraProj = camState.mLightViewProj;
 	const auto& cameraTrans = camState.mWorldTransform;
 
-	GI::GraphicsPass pass;
-
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
-	pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
-
-	pass.mRasterizerDesc
-		.SetCullMode(GI::CullMode::NONE)
-		.SetDepthBias(10000)
-		.SetSlopeScaledDepthBias(10);
-
-	pass.mDepthStencilDesc
-		.SetDepthEnable(true)
-		.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
-		.SetStencilEnable(false);
-
-	pass.mInputLayout = geometry->mVertexElementDescs;
-
-	pass.SetDsv(depthView);
-
-	const auto& targetSize = depthView.GetResource()->GetSize();
-	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-	pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
-
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
-
-	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-
-	pass.AddCbVar("worldMat", transform.matrix());
-	pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
-	pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
-
-	const char* paramName = "BaseColorTex";
-
-	const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
-	if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+	struct PassData
 	{
-		pass.AddSrv(paramName, attr.mTexture->GetSrv());
-		pass.AddSampler((std::string(paramName) + "Sampler").c_str(), attr.mSampler);
-	}
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		std::vector<std::pair<std::string, GI::SrvUsage>> srvs;
+		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
+		GI::DsvUsage depthView;
+		Vec3u targetSize;
+	};
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+	frameGraph->AddPass<PassData>("RenderGeometryDepthWithMaterial",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			const char* paramName = "BaseColorTex";
+			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
+			if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+			{
+				data.srvs.emplace_back(paramName, builder.Read(attr.mTexture->GetSrv()));
+				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
+			}
+
+			data.geoVertices = builder.Read(geometry->GetVbvDesc());
+			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			data.depthView = builder.Write(depthView);
+			data.targetSize = depthView.GetResource()->GetSize();
+		},
+		[
+			inputLayout = geometry->mVertexElementDescs,
+			indexCount = geometry->mIndices.size(),
+			cameraProj, cameraTrans, transform
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass pass;
+
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
+			pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
+
+			pass.mRasterizerDesc
+				.SetCullMode(GI::CullMode::NONE)
+				.SetDepthBias(10000)
+				.SetSlopeScaledDepthBias(10);
+
+			pass.mDepthStencilDesc
+				.SetDepthEnable(true)
+				.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
+				.SetStencilEnable(false);
+
+			pass.mInputLayout = inputLayout;
+
+			pass.SetDsv(data.depthView);
+
+			const auto& targetSize = data.targetSize;
+			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
+
+			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+
+			pass.AddCbVar("worldMat", transform.matrix());
+			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
+			pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+
+			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, srv); }
+			for (const auto& [n, sampler] : data.samplers) { pass.AddSampler(n, sampler); }
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 }
 
 void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
@@ -801,45 +830,79 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		geometry->CreateAndInitialResource(infra);
 	}
 
-	GI::GraphicsPass pass;
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SrvUsage lightViewDepth;
+		GI::SamplerDesc lightViewDepthSampler;
+		GI::SrvUsage cameraViewDepth;
+		GI::SamplerDesc cameraViewDepthSampler;
+		GI::RtvUsage shadowMask;
+		Vec3u targetSize;
+	};
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
-	pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
+	frameGraph->AddPass<PassData>("RenderShadowMask",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.geoVertices = builder.Read(geometry->GetVbvDesc());
+			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			data.lightViewDepth = builder.Read(lightViewDepth);
+			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
+			data.cameraViewDepth = builder.Read(cameraViewDepth);
+			data.cameraViewDepthSampler = builder.Read(cameraViewDepthSampler);
+			data.targetSize = shadowMask.GetResource()->GetSize();
+			data.shadowMask = builder.Write(shadowMask);
+		},
+		[
+			inputLayout = geometry->mVertexElementDescs,
+			indexCount = geometry->mIndices.size(),
+			cameraTrans, cameraProj,
+			lightViewTrans, lightViewProj
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass pass;
 
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
-	
-	pass.mInputLayout = geometry->mVertexElementDescs;
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
+			pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
 
-	pass.SetRtv(0, shadowMask);
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
 
-	const auto& targetSize = shadowMask.GetResource()->GetSize();
-	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			pass.mInputLayout = inputLayout;
 
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
+			pass.SetRtv(0, data.shadowMask);
 
-	pass.AddSrv("LightViewDepth", lightViewDepth);
-	pass.AddSampler("LightViewDepthSampler", lightViewDepthSampler);
-	pass.AddSrv("CameraViewDepth", cameraViewDepth);
-	pass.AddSampler("CameraViewDepthSampler", cameraViewDepthSampler);
+			const auto& targetSize = data.targetSize;
+			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
-	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-	pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
 
-	pass.AddCbVar("CameraViewMat", cameraTrans.ComputeViewMatrix());
-	pass.AddCbVar("CameraInvViewMat", cameraTrans.ComputeInvViewMatrix());
-	pass.AddCbVar("CameraProjMat", cameraProj.ComputeProjectionMatrix());
-	pass.AddCbVar("CameraInvProjMat", cameraProj.ComputeInvProjectionMatrix());
+			pass.AddSrv("LightViewDepth", data.lightViewDepth);
+			pass.AddSampler("LightViewDepthSampler", data.lightViewDepthSampler);
+			pass.AddSrv("CameraViewDepth", data.cameraViewDepth);
+			pass.AddSampler("CameraViewDepthSampler", data.cameraViewDepthSampler);
 
-	pass.AddCbVar("LightViewMat", lightViewTrans.ComputeViewMatrix());
-	pass.AddCbVar("LightProjMat", lightViewProj.ComputeProjectionMatrix());
+			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			pass.AddCbVar("CameraViewMat", cameraTrans.ComputeViewMatrix());
+			pass.AddCbVar("CameraInvViewMat", cameraTrans.ComputeInvViewMatrix());
+			pass.AddCbVar("CameraProjMat", cameraProj.ComputeProjectionMatrix());
+			pass.AddCbVar("CameraInvProjMat", cameraProj.ComputeInvProjectionMatrix());
+
+			pass.AddCbVar("LightViewMat", lightViewTrans.ComputeViewMatrix());
+			pass.AddCbVar("LightProjMat", lightViewProj.ComputeProjectionMatrix());
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 }
 
