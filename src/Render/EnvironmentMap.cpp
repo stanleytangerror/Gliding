@@ -292,38 +292,65 @@ void EnvironmentMap::PrefilterEnvironmentMap
 		mQuad->CreateAndInitialResource(infra);
 	}
 
-	GI::GraphicsPass pass;
+	struct PassData
+	{
+		GI::VbvUsage geoVertices;
+		GI::IbvUsage geoIndices;
+		GI::SamplerDesc sampler;
+		GI::SrvUsage src;
+		GI::RtvUsage target;
+	};
 
-	Geometry* geometry = mQuad;
-	const Transformf& transform = Transformf(UniScalingf(1000.f));
+	frameGraph->AddPass<PassData>("GenerateIntegratedBRDF",
+		[&]
+		(RenderPassBuilder& builder, PassData& data)
+		{
+			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
+			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.sampler = mPanoramicSkySampler;
+			data.src = builder.Read(src);
 
-	pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-	pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-	pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-	pass.mShaderMacros.push_back(GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
+			data.target = builder.Write(target);
+		},
+		[
+			inputLayout = mQuad->mVertexElementDescs,
+				indexCount = mQuad->mIndices.size(),
+				targetSize, roughness
+		]
+		(const PassData& data, GI::IGraphicsInfra* infra)
+		{
+			GI::GraphicsPass pass;
 
-	
-	pass.mDepthStencilDesc
-		.SetDepthEnable(false)
-		.SetStencilEnable(false);
+			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-	pass.mInputLayout = geometry->mVertexElementDescs;
+			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
+			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
+			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
 
-	pass.SetRtv(0, target);
-	pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-	pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-	pass.mStencilRef = 0;
 
-	pass.PushVbv(geometry->GetVbvDesc());
-	pass.SetIbv(geometry->GetIbvDesc());
-	pass.mIndexCount = geometry->mIndices.size();
+			pass.mDepthStencilDesc
+				.SetDepthEnable(false)
+				.SetStencilEnable(false);
 
-	pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-	pass.AddCbVar("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });
+			pass.mInputLayout = inputLayout;
 
-	pass.AddSrv("PanoramicSky", src);
-	pass.AddSampler("PanoramicSkySampler", mPanoramicSkySampler);
+			pass.SetRtv(0, data.target);
+			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
+			pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
+			pass.mStencilRef = 0;
 
-	infra->GetRecorder()->AddGraphicsPass(pass);
+			pass.PushVbv(data.geoVertices);
+			pass.SetIbv(data.geoIndices);
+			pass.mIndexCount = indexCount;
+
+			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCbVar("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });
+
+			pass.AddSrv("PanoramicSky", data.src);
+			pass.AddSampler("PanoramicSkySampler", data.sampler);
+
+			infra->GetRecorder()->AddGraphicsPass(pass);
+		});
 }
