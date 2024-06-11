@@ -2,13 +2,14 @@
 #include "RenderMaterial.h"
 #include "Texture.h"
 
-void RenderMaterial::UpdateGpuResources(GI::IGraphicsInfra* infra)
+void RenderMaterial::UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInfra* infra)
 {
-	for (const auto& slot : mMatAttriSlots)
+	for (auto& slot : mMatAttriSlots)
 	{
 		if (slot.mTexture && !slot.mTexture->IsGraphicsResourceReady())
 		{
 			slot.mTexture->CreateAndInitialResource(infra);
+			slot.mResource = frameGraph->Import(slot.mTexture->GetResource());
 		}
 	}
 }

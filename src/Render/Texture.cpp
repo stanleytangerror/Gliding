@@ -27,6 +27,14 @@ GI::SrvUsage FileTexture::GetSrv() const
 	return result;
 }
 
+GI::SrvDesc FileTexture::GetSrvDesc() const
+{
+	return GI::SrvDesc()
+		.SetFormat(mResource->GetFormat())
+		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		.SetTexture2D_MipLevels(mResource->GetMipLevelCount());
+}
+
 InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 	: mSize(size)
 	, mContent(content)

@@ -259,7 +259,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 				{
 					if (!mat->IsGpuResourceReady())
 					{
-						mat->UpdateGpuResources(mRenderModule->GetGraphicsInfra());
+						mat->UpdateGpuResources(frameGraph, mRenderModule->GetGraphicsInfra());
 					}
 				}
 			});
@@ -682,13 +682,15 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 				{
 					data.shaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
 
-					auto res = attr.mTexture->GetResource();
+					auto res = attr.mResource;
+					const auto& resDesc = frameGraph->GetResourceDesc(res);
+
 					const auto& srvName = paramName + "Tex";
 					const auto& srv = builder.Read(res,
 							GI::SrvDesc{}
-							.SetFormat(res->GetFormat())
-							.SetViewDimension(GI::GetSrvDimension(res->GetDimension()))
-							.SetTexture2D_MipLevels(res->GetMipLevelCount()));
+							.SetFormat(resDesc.GetFormat())
+							.SetViewDimension(GI::GetSrvDimension(resDesc.GetDimension()))
+							.SetTexture2D_MipLevels(resDesc.GetMipLevels()));
 					data.srvs.emplace_back(srvName, srv);
 
 					const auto& samplerName = paramName + "Sampler";
@@ -806,7 +808,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
 			if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
 			{
-				data.srvs.emplace_back(paramName, builder.Read(attr.mTexture->GetSrv()));
+				data.srvs.emplace_back(paramName, builder.Read({ attr.mResource, attr.mTexture->GetSrvDesc() }));
 				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
 			}
 

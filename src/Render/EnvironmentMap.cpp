@@ -252,22 +252,22 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 
 	for (i32 i = 0; i < levelCount; ++i)
 	{
-		rtvs.emplace_back(
+		rtvs.push_back({
 			filteredMap,
 			GI::RtvDesc()
 				.SetFormat(result->GetFormat())
 				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 				.SetTexture2D_MipSlice(i)
-				.SetTexture2D_PlaneSlice(0));
+				.SetTexture2D_PlaneSlice(0) });
 
-		srvs.emplace_back(
+		srvs.push_back({
 			filteredMap,
 			GI::SrvDesc()
 				.SetFormat(result->GetFormat())
 				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 				.SetTexture2D_MostDetailedMip(i)
 				.SetTexture2D_MipLevels(1)
-				.SetTexture2D_PlaneSlice(0));
+				.SetTexture2D_PlaneSlice(0) });
 	}
 
 	auto fullSrv = GI::SrvUsage(result);

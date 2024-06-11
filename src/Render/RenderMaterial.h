@@ -2,19 +2,21 @@
 
 #include "World/Scene.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "FrameGraph.h"
 
 struct RenderMaterial
 {
 	struct MaterialAttriSlot
 	{
 		class FileTexture* mTexture = nullptr;
+		FrameGraphResource mResource;
 		GI::SamplerDesc mSampler;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
 
-	void UpdateGpuResources(GI::IGraphicsInfra* infra);
+	void UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInfra* infra);
 	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(

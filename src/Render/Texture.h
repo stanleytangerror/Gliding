@@ -12,6 +12,7 @@ public:
 	bool							IsGraphicsResourceReady() const { return mResource != nullptr; }
 	GI::IGraphicMemoryResource*		GetResource() const { return mResource.get(); }
 	GI::SrvUsage					GetSrv() const;
+	GI::SrvDesc						GetSrvDesc() const;
 
 protected:
 	std::vector<b8>	const			mContent;
