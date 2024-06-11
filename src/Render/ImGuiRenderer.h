@@ -13,12 +13,12 @@ public:
 	ImGuiRenderer(RenderModule* renderModule);
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData);
+	void Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target, ImDrawData* uiData);
 
 protected:
 	RenderModule*		mRenderModule = nullptr;
 	GI::SamplerDesc		mImGuiSampler;
 
-	GI::SrvUsage			mFontAtlasSrvDesc;
+	SrvUsageFuture			mFontAtlasSrvDesc;
 	std::unique_ptr<InMemoryTexture>	mFontAtlas;
 };

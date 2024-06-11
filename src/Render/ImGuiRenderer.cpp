@@ -35,7 +35,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target, ImDrawData* uiData)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 
@@ -44,13 +44,13 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 		mFontAtlas->CreateAndInitialResource(infra);
 
 		auto resource = mFontAtlas->GetResource();
-		mFontAtlasSrvDesc = GI::SrvUsage(resource);
-		mFontAtlasSrvDesc
-			.SetFormat(resource->GetFormat())
-			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-			.SetTexture2D_MipLevels(resource->GetMipLevelCount());
+		//mFontAtlasSrvDesc = GI::SrvDesc();
+		//mFontAtlasSrvDesc
+		//	.SetFormat(resource->GetFormat())
+		//	.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		//	.SetTexture2D_MipLevels(resource->GetMipLevelCount());
 
-		ImGui::GetIO().Fonts->SetTexID(&mFontAtlasSrvDesc);
+		ImGui::GetIO().Fonts->SetTexID(resource);
 	}
 
 	RENDER_EVENT(infra, ImGuiRenderer::Render);
@@ -140,15 +140,16 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 			const Math::Rect scissorRect = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
 
-			const auto* srv = reinterpret_cast<const GI::SrvUsage*>(cmd->GetTexID());
+			auto* res = reinterpret_cast<GI::IGraphicMemoryResource*>(cmd->GetTexID());
+			auto fontAtlas = res ? frameGraph->Import(res) : FrameGraphMutableResource{};
 
 			struct PassData
 			{
 				GI::VbvUsage geoVertices;
 				GI::IbvUsage geoIndices;
 				GI::SamplerDesc sampler;
-				GI::SrvUsage srv;
-				GI::RtvUsage target;
+				SrvUsageFuture srv;
+				RtvUsageFuture target;
 				bool hasSrv = false;
 				i32 indexCount;
 				i32 indexStartLocation;
@@ -165,16 +166,22 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 					data.geoVertices = builder.Read(geo->GetVbvDesc());
 					data.geoIndices = builder.Read(geo->GetIbvDesc());
 					data.sampler = builder.Read(mImGuiSampler);
-					data.hasSrv = srv != nullptr;
-					if (srv)
+					data.hasSrv = res != nullptr;
+					if (data.hasSrv)
 					{
-						data.srv = builder.Read(*srv);
+						const auto& resDesc = frameGraph->GetResourceDesc(fontAtlas);
+						data.srv = builder.Read(SrvUsageFuture{
+							fontAtlas,
+							GI::SrvDesc()
+								.SetFormat(resDesc.GetFormat())
+								.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+								.SetTexture2D_MipLevels(resDesc.GetMipLevels()) });
 					}
 					data.target = builder.Write(target);
 					data.indexCount = cmd->ElemCount;
 					data.indexStartLocation = indexOffset + cmd->IdxOffset;
 					data.vertexStartLocation = vertexOffset + cmd->VtxOffset;
-					data.targetSize = target.GetResource()->GetSize();
+					data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 					data.scissorRect = scissorRect;
 					data.inputLayout = geo->mVertexElementDescs;
 				},
@@ -207,7 +214,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 					pass.mInputLayout = data.inputLayout;
 
-					pass.SetRtv(0, data.target);
+					pass.SetRtv(0, resources.Get(data.target));
 					pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
 					pass.mScissorRect = data.scissorRect;
 
@@ -219,7 +226,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 					if (data.hasSrv)
 					{
-						pass.AddSrv("SourceTex", data.srv);
+						pass.AddSrv("SourceTex", resources.Get(data.srv));
 						pass.AddSampler("SourceTexSampler", data.sampler);
 					}
 
