@@ -31,8 +31,10 @@ namespace
 }
 
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-	const GI::RtvUsage& target, const Vec2f& targetOffset, const Vec2f& targetRect, 
-	const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
+	const RtvUsageFuture& target,
+	const Vec2f& targetOffset, const Vec2f& targetRect,
+	const SrvUsageFuture& source,
+	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
 	static Geometry* quad = Geometry::GenerateQuad();
 	if (!quad->IsGraphicsResourceReady()) 
@@ -44,9 +46,9 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		GI::SrvUsage source;
+		SrvUsageFuture source;
 		GI::SamplerDesc sourceSampler;
-		GI::RtvUsage target;
+		RtvUsageFuture target;
 		Vec3u targetSize;
 	};
 
@@ -58,7 +60,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
-			data.targetSize = target.GetResource()->GetSize();
+			data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 			data.target = builder.Write(target);
 		},
 		[
@@ -82,7 +84,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 
 			pass.mInputLayout = inputLayout;
 
-			pass.SetRtv(0, data.target);
+			pass.SetRtv(0, resources.Get(data.target));
 			pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
@@ -91,17 +93,20 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
-			pass.AddSrv("SourceTex", data.source);
+			pass.AddSrv("SourceTex", resources.Get(data.source));
 			pass.AddSampler("SourceTexSampler", data.sourceSampler);
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 }
 
-void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler)
+void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	const RtvUsageFuture& target,
+	const SrvUsageFuture& source,
+	const GI::SamplerDesc& sourceSampler)
 {
-	const auto& targetSize = target.GetResource()->GetSize();
-	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), { targetSize.x(), targetSize.y() }, source, sourceSampler);
+	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
+	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
 void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
