@@ -66,23 +66,25 @@ void RenderModule::Render()
 	}
 
 	mGraphicInfra->StartFrame();
+	auto sceneHdr = mFrameGraph->Import(mSceneHdrRt->GetResource());
 	{
 		{
 			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
-			mWorldRenderer->Render(mGraphicInfra, mSceneHdrRt->GetRtv());
+			mWorldRenderer->Render(mGraphicInfra, { sceneHdr, mSceneHdrRt->GetRtvDesc() });
 		}
 
 		{
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
-			auto target = GI::RtvUsage(backBuffer);
-			target
-				.SetFormat(backBuffer->GetFormat())
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-				.SetTexture2D_MipSlice(0)
-				.SetTexture2D_PlaneSlice(0);
-			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
+			auto target = RtvUsageFuture {
+				mFrameGraph->Import(backBuffer),
+				GI::RtvDesc()
+					.SetFormat(backBuffer->GetFormat())
+					.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+					.SetTexture2D_MipSlice(0)
+					.SetTexture2D_PlaneSlice(0) };
+			mScreenRenderer->Render(mGraphicInfra, SrvUsageFuture{ sceneHdr, mSceneHdrRt->GetRtvDesc() }, target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
 		}
 
@@ -90,12 +92,13 @@ void RenderModule::Render()
 			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
-			auto target = GI::RtvUsage(backBuffer);
-			target
-				.SetFormat(backBuffer->GetFormat())
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-				.SetTexture2D_MipSlice(0)
-				.SetTexture2D_PlaneSlice(0);
+			auto target = RtvUsageFuture{
+				mFrameGraph->Import(backBuffer),
+				GI::RtvDesc()
+					.SetFormat(backBuffer->GetFormat())
+					.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+					.SetTexture2D_MipSlice(0)
+					.SetTexture2D_PlaneSlice(0) };
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
 			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);

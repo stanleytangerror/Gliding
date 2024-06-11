@@ -190,6 +190,7 @@ public:
 	GI::SrvUsage	Get(const SrvUsageFuture& usage) const;
 	GI::RtvUsage	Get(const RtvUsageFuture& usage) const;
 	GI::DsvUsage	Get(const DsvUsageFuture& usage) const;
+	GI::UavUsage	Get(const UavUsageFuture& usage) const;
 };
 
 class GD_RENDER_API FrameGraph

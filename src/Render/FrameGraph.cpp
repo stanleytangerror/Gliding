@@ -148,6 +148,12 @@ GI::DsvUsage RenderPassResources::Get(const DsvUsageFuture& usage) const
 	return GI::DsvUsage();
 }
 
+GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
+{
+	// TODO
+	return GI::DsvUsage();
+}
+
 
 FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
 	: mInfra(infra)
