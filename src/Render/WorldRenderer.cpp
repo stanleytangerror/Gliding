@@ -423,7 +423,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			indexCount = mQuad->mIndices.size(),
 				cameraProj, cameraTrans, sunLight
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass lightingPass;
 
@@ -527,7 +527,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 			camProj = camState.mCameraProj,
 			camTrans = camState.mCameraTrans
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, Sky);
 
@@ -656,7 +656,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 				indexCount = geometry->mIndices.size(),
 				cameraProj, cameraTrans, transform
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass gbufferPass;
 
@@ -762,7 +762,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			indexCount = geometry->mIndices.size(),
 			cameraProj, cameraTrans, transform
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass pass;
 
@@ -861,7 +861,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			cameraTrans, cameraProj,
 			lightViewTrans, lightViewProj
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass pass;
 

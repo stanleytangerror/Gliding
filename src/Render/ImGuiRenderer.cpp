@@ -181,7 +181,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 				[
 					wvpMat
 				]
-				(const PassData& data, GI::IGraphicsInfra* infra)
+				(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 				{
 					GI::GraphicsPass pass;
 

@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/CommonUtils.h"
+#include "Common/Container.h"
 
 class GD_RENDER_API Blackboard
 {
@@ -95,7 +96,7 @@ private:
 
 struct GD_RENDER_API FrameGraphResource
 {
-	const u64 mId = ~0ULL;
+	u64 mId = ~0ULL;
 	operator bool() const { return mId != ~0ULL; }
 	struct Less
 	{
@@ -113,12 +114,46 @@ class GD_RENDER_API ResourceRegistry
 public:
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
+	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
 protected:
 	std::map<u64, GI::MemoryResourceDesc> mTransienceResources;
-	std::map<u64, GI::IGraphicMemoryResource*> mImportedResources;
+
+	BijectionMap<u64, GI::IGraphicMemoryResource*> mImportedResources;
+
 	u64	mResourceIdCounter = 0;
 };
+
+#define MUTABLE_RESOURCE_USAGE_FUTURE(Name) \
+struct GD_RENDER_API Name##UsageFuture \
+{ \
+	FrameGraphMutableResource resource; \
+	GI::##Name##Desc desc; \
+	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
+	{ \
+		this->resource = o.resource; \
+		this->desc = o.desc; \
+		return *this; \
+	} \
+};
+
+#define RESOURCE_USAGE_FUTURE(Name) \
+struct GD_RENDER_API Name##UsageFuture \
+{ \
+	FrameGraphResource resource; \
+	GI::##Name##Desc desc; \
+	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
+	{ \
+		this->resource = o.resource; \
+		this->desc = o.desc; \
+		return *this; \
+	} \
+};
+
+MUTABLE_RESOURCE_USAGE_FUTURE(Dsv);
+MUTABLE_RESOURCE_USAGE_FUTURE(Rtv);
+MUTABLE_RESOURCE_USAGE_FUTURE(Uav);
+RESOURCE_USAGE_FUTURE(Srv);
 
 class GD_RENDER_API RenderPassBuilder
 {
@@ -135,8 +170,26 @@ public:
 	GI::RtvUsage	Write(GI::IGraphicMemoryResource* resource, const GI::RtvDesc& desc);
 	GI::DsvUsage	Write(const GI::DsvUsage& usage);
 
+	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
+	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
+	RtvUsageFuture	Write(const RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	RtvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
+	DsvUsageFuture	Write(const DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	DsvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
+	UavUsageFuture	Write(const UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	UavUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc);
+
 protected:
+	ResourceRegistry*	mResourceRegistry = nullptr;
 	const std::string	mPassName;
+};
+
+class GD_RENDER_API RenderPassResources
+{
+public:
+	GI::SrvUsage	Get(const SrvUsageFuture& usage) const;
+	GI::RtvUsage	Get(const RtvUsageFuture& usage) const;
+	GI::DsvUsage	Get(const DsvUsageFuture& usage) const;
 };
 
 class GD_RENDER_API FrameGraph
@@ -148,20 +201,22 @@ public:
 	void AddPass(
 		const char* name,
 		std::function<void(RenderPassBuilder& builder, TPassData& data)> setup,
-		std::function<void(const TPassData& data, GI::IGraphicsInfra* infra)> execute)
+		std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)> execute)
 	{
 		auto builder = new RenderPassBuilder(name);
 
 		TPassData data = {};
 		setup(*builder, data);
 
-
-		execute(data, mInfra);
+		RenderPassResources resources;
+		execute(data, resources, mInfra);
 	}
 
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
-	ResourceRegistry* GetResourceRegistry() const { return mResourceRegistry.get(); }
+	FrameGraphMutableResource	Create(const GI::MemoryResourceDesc& desc);
+	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
+	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
 private:
 	std::unique_ptr<Blackboard>			mBlackboard;

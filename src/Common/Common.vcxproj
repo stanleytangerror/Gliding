@@ -16,6 +16,7 @@
     <ClInclude Include="CommonPch.h" />
     <ClInclude Include="CommonTypes.h" />
     <ClInclude Include="CommonUtils.h" />
+    <ClInclude Include="Container.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="GraphicsInfrastructure.h" />
     <ClInclude Include="IndexAllocator.h" />

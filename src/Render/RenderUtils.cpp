@@ -66,7 +66,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			indexCount = quad->mIndices.size(),
 			sourcePixelUnary, targetOffset, targetRect
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass pass;
 
@@ -137,7 +137,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI:
 			indexCount = quad->mIndices.size(),
 			isHorizontal, weight4fSize, NormalDistPdf, kernelSizeInPixel
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass pass;
 

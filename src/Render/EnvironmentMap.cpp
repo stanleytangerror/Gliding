@@ -67,7 +67,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 			indexCount = mQuad->mIndices.size(),
 			rtSize, semiSphereBusbarSampleCount
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, GenerateIrradianceMap);
 
@@ -173,7 +173,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, GI::SrvUsage> Environmen
 				indexCount = mQuad->mIndices.size(),
 				rtSize
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, GenerateIntegratedBRDF);
 
@@ -317,7 +317,7 @@ void EnvironmentMap::PrefilterEnvironmentMap
 				indexCount = mQuad->mIndices.size(),
 				targetSize, roughness
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			GI::GraphicsPass pass;
 

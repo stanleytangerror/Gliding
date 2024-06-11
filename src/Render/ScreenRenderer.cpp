@@ -60,7 +60,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvU
 			data.histogram = builder.Write(histogram->GetUav());
 		},
 		[brightMin, brightMax, histogramSize]
-		(const BrightnessHistogramPassData& data, GI::IGraphicsInfra* infra)
+		(const BrightnessHistogramPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, BrightnessHistogram);
 
@@ -99,7 +99,7 @@ void ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvU
 			data.exposureRt = builder.Write(exposureRt);
 		},
 		[this, brightMin, brightMax, histogramSize]
-		(const HistogramReducePassData& data, GI::IGraphicsInfra* infra)
+		(const HistogramReducePassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, HistogramReduce);
 
@@ -155,7 +155,7 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvUsage& 
 			inputLayout = mQuad->mVertexElementDescs,
 			indexCount = mQuad->mIndices.size()
 		]
-		(const PassData& data, GI::IGraphicsInfra* infra)
+		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			RENDER_EVENT(infra, ToneMapping);
 
