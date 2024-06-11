@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Texture.h"
+#include "FrameGraph.h"
 
 class Timer;
 class RenderModule;

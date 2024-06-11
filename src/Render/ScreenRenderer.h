@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Geometry.h"
+#include "FrameGraph.h"
 
 class RenderModule;
 

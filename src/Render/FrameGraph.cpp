@@ -151,7 +151,7 @@ GI::DsvUsage RenderPassResources::Get(const DsvUsageFuture& usage) const
 GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 {
 	// TODO
-	return GI::DsvUsage();
+	return GI::UavUsage();
 }
 
 
