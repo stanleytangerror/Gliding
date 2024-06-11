@@ -16,7 +16,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	, mRenderSize(renderSize)
 {
 	auto infra = mRenderModule->GetGraphicsInfra();
-	auto* blackboard = renderModule->GetFrameGraph()->GetBlackboard();
+	auto* frameGraph = renderModule->GetFrameGraph();
+	auto* blackboard = frameGraph->GetBlackboard();
 
 	auto& cam = blackboard->Add<MainCameraState>();
 	{
@@ -86,16 +87,19 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 			.SetName(Utils::FormatString("GBuffer%d", i).c_str())
 			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-		mGBufferSrvs[i] = GI::SrvUsage(mGBuffers[i]);
-		mGBufferSrvs[i]
-			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
-			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-			.SetTexture2D_MipLevels(1); 
+		auto gbufferFg = frameGraph->Import(mGBuffers[i].get());
+		mGBufferSrvs[i] = {
+			gbufferFg,
+			GI::SrvDesc()
+				.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
+				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+				.SetTexture2D_MipLevels(1) };
 		
-		mGBufferRtvs[i] = GI::RtvUsage(mGBuffers[i]);
-		mGBufferRtvs[i]
-			.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
-			.SetViewDimension(GI::RtvDimension::TEXTURE2D);
+		mGBufferRtvs[i] = {
+			gbufferFg,
+			GI::RtvDesc()
+				.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
+				.SetViewDimension(GI::RtvDimension::TEXTURE2D) };
 	}
 
 	mMainDepth = infra->CreateMemoryResource(
@@ -112,45 +116,51 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 			.SetName("SceneDepthStencil")
 			.SetHeapType(GI::HeapType::DEFAULT)); 
 
-	mMainDepthDsv = GI::DsvUsage(mMainDepth);
-	mMainDepthDsv
+	auto mainDepthFg = frameGraph->Import(mMainDepth.get());
+	mMainDepthDsv = {
+		mainDepthFg,
+		GI::DsvDesc()
 		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 		.SetFormat(GI::Format::FORMAT_D32_FLOAT_S8X24_UINT)
-		.SetFlags(GI::DsvFlag::NONE);
+		.SetFlags(GI::DsvFlag::NONE) };
 
-	mMainDepthSrv = GI::SrvUsage(mMainDepth);
-	mMainDepthSrv
+	mMainDepthSrv = {
+		mainDepthFg,
+		GI::SrvDesc()
 		.SetFormat(GI::Format::FORMAT_R32_FLOAT_X8X24_TYPELESS)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MipLevels(1); 
+		.SetTexture2D_MipLevels(1) };
 
 	mShadowMask = std::make_unique<RenderTarget>(infra, Vec3u{ mRenderSize.x(), mRenderSize.y(), 1 }, GI::Format::FORMAT_R16_FLOAT, "ShadowMask");
 
 	mLightViewDepth = infra->CreateMemoryResource(
-			GI::MemoryResourceDesc()
-			.SetDimension(GI::ResourceDimension::TEXTURE2D)
-			.SetWidth(mRenderSize.x())
-			.SetHeight(mRenderSize.y())
-			.SetDepthOrArraySize(1)
-			.SetMipLevels(1)
-			.SetFormat(GI::Format::FORMAT_R24G8_TYPELESS)
-			.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-			.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
-			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
-			.SetName("LightViewDepth")
-			.SetHeapType(GI::HeapType::DEFAULT)); 
+		GI::MemoryResourceDesc()
+		.SetDimension(GI::ResourceDimension::TEXTURE2D)
+		.SetWidth(mRenderSize.x())
+		.SetHeight(mRenderSize.y())
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(GI::Format::FORMAT_R24G8_TYPELESS)
+		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
+		.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
+		.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
+		.SetName("LightViewDepth")
+		.SetHeapType(GI::HeapType::DEFAULT));
 
-	mLightViewDepthDsv = GI::DsvUsage(mLightViewDepth);
-	mLightViewDepthDsv
+	auto lightViewDepthFg = frameGraph->Import(mLightViewDepth.get());
+	mLightViewDepthDsv = {
+		lightViewDepthFg,
+		GI::DsvDesc()
 		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 		.SetFormat(GI::Format::FORMAT_D24_UNORM_S8_UINT)
-		.SetFlags(GI::DsvFlag::NONE);
+		.SetFlags(GI::DsvFlag::NONE) };
 
-	mLightViewDepthSrv = GI::SrvUsage(mLightViewDepth);
-	mLightViewDepthSrv
+	mLightViewDepthSrv = {
+		lightViewDepthFg,
+		GI::SrvDesc()
 		.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
 		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MipLevels(1);
+		.SetTexture2D_MipLevels(1) };
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
@@ -177,7 +187,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
+void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
 {
 	auto* frameGraph = mRenderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -204,15 +214,25 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
 			const Vec3u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x(), 1 };
 			mPanoramicSkyRt = std::make_unique<RenderTarget>(infra, skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT, "PanoramicSkyRt");
-
+			
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
-			RenderUtils::CopyTexture(frameGraph, infra, mPanoramicSkyRt->GetRtv(), Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() }, mSkyTexture->GetSrv(), mNoMipMapLinearSampler, customSkyColor.c_str());
 
-			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(frameGraph, infra, mPanoramicSkyRt->GetSrv(), 8, 10);
-			std::swap(mIrradianceMap, irradMap);
+			auto panoramicSkyRt = frameGraph->Import(mPanoramicSkyRt->GetResource());
+			auto skyTexture = frameGraph->Import(mSkyTexture->GetResource());
+
+			RenderUtils::CopyTexture(frameGraph, infra, 
+				{ panoramicSkyRt, mPanoramicSkyRt->GetRtvDesc() }, 
+				Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
+				{ skyTexture, mSkyTexture->GetSrv() }, 
+				mNoMipMapLinearSampler, customSkyColor.c_str());
+
+			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(frameGraph, infra, 
+				{ panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 8, 10);
+
+			//std::swap(mIrradianceMap, irradMap);
 			mIrradianceMapSrv = irradMapSrv;
 
-			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, mPanoramicSkyRt->GetSrv(), 1024);
+			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, { panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 1024);
 			std::swap(mFilteredEnvMap, filterEnvMap);
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
@@ -246,11 +266,19 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 	}
 
 	//////////////////////////////////////////////////////////////////////////
-
+	
 	{
 		RENDER_EVENT(infra, LightViewDepth);
 
-		infra->GetRecorder()->AddClearOperation(mLightViewDepthDsv, true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
+		frameGraph->AddPass<DsvUsageFuture>("InitialLightViewDepth",
+			[this](RenderPassBuilder& builder, DsvUsageFuture& dsv)
+			{
+				dsv = builder.Write(mLightViewDepthDsv);
+			},
+			[sunLight](const DsvUsageFuture& dsv, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+			{
+				infra->GetRecorder()->AddClearOperation(resources.Get(dsv), true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
+			});
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -269,11 +297,32 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 	{
 		RENDER_EVENT(infra, GBuffer);
 
-		for (const auto& rt : mGBufferRtvs)
+		struct PassData
 		{
-			infra->GetRecorder()->AddClearOperation(rt, { 0.f, 0.f, 0.f, 1.f });
-		}
-		infra->GetRecorder()->AddClearOperation(mMainDepthDsv, true, blackboard->Get<MainCameraState>().mCameraProj.GetFarPlaneDeviceDepth(), true, 0);
+			std::array<RtvUsageFuture, 3> gbufferRtvs;
+			DsvUsageFuture depthDsv;
+		};
+		
+		frameGraph->AddPass<PassData>("InitialLightViewDepth",
+			[this](RenderPassBuilder& builder, PassData& data)
+			{
+				for (auto i = 0; i < mGBufferRtvs.size(); ++i)
+				{
+					data.gbufferRtvs[i] = builder.Write(mGBufferRtvs[i]);
+				}
+				data.depthDsv = builder.Write(mMainDepthDsv);
+			},
+			[
+				sunLight, 
+				camProj = blackboard->Get<MainCameraState>().mCameraProj
+			](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+			{
+				for (const auto& rt : data.gbufferRtvs)
+				{
+					infra->GetRecorder()->AddClearOperation(resources.Get(rt), { 0.f, 0.f, 0.f, 1.f });
+				}
+				infra->GetRecorder()->AddClearOperation(resources.Get(data.depthDsv), true, camProj.GetFarPlaneDeviceDepth(), true, 0);
+			});
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -289,13 +338,16 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(frameGraph, infra, mShadowMask->GetRtv(), mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
+	auto shadowMask = frameGraph->Import(mShadowMask->GetResource());
+	RenderShadowMask(frameGraph, infra, { shadowMask, mShadowMask->GetRtvDesc() }, mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
 	DeferredLighting(frameGraph, infra, target);
 	RenderSky(frameGraph, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
+void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
 {
+	auto frameGraph = mRenderModule->GetFrameGraph();
+
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
 		{ 1, "float4(LinearToSrgb(color.xyz), 1)" },		// BaseColor,
@@ -305,7 +357,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 		{ 2, "float4(LinearToSrgb(color.zzz), 1)" },		// Reflection,
 	};
 	
-	const auto& targetSize = target.GetResource()->GetSize();
+	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 	const f32 width = f32(targetSize.x()) / Utils::GetArrayLength(gbufferSemantics);
 	const f32 height = width / targetSize.x() * targetSize.y();
 
@@ -319,28 +371,34 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const GI::R
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
+void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
 {
-	const auto& targetSize = target.GetResource()->GetSize();
+	auto frameGraph = mRenderModule->GetFrameGraph();
+	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;;
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
-		target, { 0.f, targetSize.y() - height }, { width, height },
-		mShadowMask->GetSrv(), mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
+		target, 
+		{ 0.f, targetSize.y() - height }, { width, height },
+		{ frameGraph->Import(mShadowMask->GetResource()), mShadowMask->GetSrvDesc() },
+		mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
+void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
 {
-	const auto& targetSize = target.GetResource()->GetSize();
+	auto frameGraph = mRenderModule->GetFrameGraph();
+	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
-		target, { 0.f, size }, { size, size },
+		target, 
+		{ 0.f, size }, { size, size },
 		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target)
+void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	const RtvUsageFuture& target)
 {
 	auto& camState = frameGraph->GetBlackboard()->Get<MainCameraState>();
 	const auto& cameraProj = camState.mCameraProj;
@@ -366,11 +424,12 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		.SetName("TempDepthRt")
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	auto tmpDepthDsv = GI::DsvUsage(tmpDepth);
-	tmpDepthDsv
-		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
-		.SetFormat(mMainDepthDsv.GetFormat())
-		.SetFlags(GI::DsvFlag::NONE);
+	auto tmpDepthDsv = DsvUsageFuture{
+		frameGraph->Import(tmpDepth.get()),
+		GI::DsvDesc()
+			.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+			.SetFormat(mMainDepthDsv.desc.GetFormat())
+			.SetFlags(GI::DsvFlag::NONE) };
 
 	infra->GetRecorder()->AddCopyOperation(tmpDepth.get(), mMainDepth.get());
 
@@ -378,19 +437,19 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		std::array<GI::SrvUsage, 3> gBufferSrvs;
-		GI::SrvUsage mainDepth;
-		GI::SrvUsage shadowMask;
+		std::array<SrvUsageFuture, 3> gBufferSrvs;
+		SrvUsageFuture mainDepth;
+		SrvUsageFuture shadowMask;
 		GI::SamplerDesc lightingSceneSampler;
-		GI::SrvUsage filteredEnvMapSrv;
+		SrvUsageFuture filteredEnvMapSrv;
 		GI::SamplerDesc filteredEnvMapSampler;
 		u16 filteredEnvMapMipCount;
-		GI::SrvUsage irradianceMapSrv;
+		SrvUsageFuture irradianceMapSrv;
 		GI::SamplerDesc panoramicSkySampler;
-		GI::SrvUsage brdfIntegrationMapSrv;
+		SrvUsageFuture brdfIntegrationMapSrv;
 		GI::SamplerDesc brdfIntegrationMapSampler;
-		GI::RtvUsage target;
-		GI::DsvUsage dsv;
+		RtvUsageFuture target;
+		DsvUsageFuture dsv;
 		Vec3u targetSize;
 		Vec3u dsSize;
 	};
@@ -406,7 +465,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.gBufferSrvs[1] = builder.Read(mGBufferSrvs[1]);
 			data.gBufferSrvs[2] = builder.Read(mGBufferSrvs[2]);
 			data.mainDepth = builder.Read(mMainDepthSrv);
-			data.shadowMask = builder.Read(mShadowMask->GetSrv());
+			data.shadowMask = builder.Read({ frameGraph->Import(mShadowMask->GetResource()), mShadowMask->GetSrvDesc() });
 			data.filteredEnvMapSrv = builder.Read(mFilteredEnvMapSrv);
 			data.filteredEnvMapSampler = builder.Read(mFilteredEnvMapSampler);
 			data.filteredEnvMapMipCount = mFilteredEnvMap->GetMipLevelCount();
@@ -416,7 +475,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.Write(target);
 			data.dsv = builder.Write(tmpDepthDsv);
-			data.targetSize = target.GetResource()->GetSize();
+			data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,
@@ -449,8 +508,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			lightingPass.mInputLayout = inputLayout;
 
 			const auto& targetSize = data.targetSize;
-			lightingPass.SetRtv(0, data.target);
-			lightingPass.SetDsv(data.dsv);
+			lightingPass.SetRtv(0, resources.Get(data.target));
+			lightingPass.SetDsv(resources.Get(data.dsv));
 			lightingPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
@@ -461,25 +520,25 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 			lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 			lightingPass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
-			lightingPass.AddSrv("GBuffer0", data.gBufferSrvs[0]);
-			lightingPass.AddSrv("GBuffer1", data.gBufferSrvs[1]);
-			lightingPass.AddSrv("GBuffer2", data.gBufferSrvs[2]);
-			lightingPass.AddSrv("ShadowMask", data.shadowMask);
+			lightingPass.AddSrv("GBuffer0", resources.Get(data.gBufferSrvs[0]));
+			lightingPass.AddSrv("GBuffer1", resources.Get(data.gBufferSrvs[1]));
+			lightingPass.AddSrv("GBuffer2", resources.Get(data.gBufferSrvs[2]));
+			lightingPass.AddSrv("ShadowMask", resources.Get(data.shadowMask));
 			lightingPass.AddSampler("ShadowMaskSampler", data.lightingSceneSampler);
-			lightingPass.AddSrv("SceneDepth", data.mainDepth);
+			lightingPass.AddSrv("SceneDepth", resources.Get(data.mainDepth));
 			lightingPass.AddSampler("GBufferSampler", data.lightingSceneSampler);
 
 			lightingPass.AddCbVar("InvViewMat", cameraTrans.ComputeInvViewMatrix());
 			lightingPass.AddCbVar("InvProjMat", cameraProj.ComputeInvProjectionMatrix());
 
-			lightingPass.AddSrv("PrefilteredEnvMap", data.filteredEnvMapSrv);
+			lightingPass.AddSrv("PrefilteredEnvMap", resources.Get(data.filteredEnvMapSrv));
 			lightingPass.AddSampler("PrefilteredEnvMapSampler", data.filteredEnvMapSampler);
 			lightingPass.AddCbVar("PrefilteredInfo", Vec4f{ f32(data.filteredEnvMapMipCount), 0.f, 0.f, 0.f });
 
-			lightingPass.AddSrv("IrradianceMap", data.irradianceMapSrv);
+			lightingPass.AddSrv("IrradianceMap", resources.Get(data.irradianceMapSrv));
 			lightingPass.AddSampler("IrradianceMapSampler", data.panoramicSkySampler);
 
-			lightingPass.AddSrv("BRDFIntegrationMap", data.brdfIntegrationMapSrv);
+			lightingPass.AddSrv("BRDFIntegrationMap", resources.Get(data.brdfIntegrationMapSrv));
 			lightingPass.AddSampler("BRDFIntegrationMapSampler", data.brdfIntegrationMapSampler);
 
 			lightingPass.AddCbVar("CameraDir", cameraTrans.CamDirInWorldSpace());
@@ -491,7 +550,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		});
 }
 
-void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target, const GI::DsvUsage& depth) const
+void WorldRenderer::RenderSky(FrameGraph* frameGraph, const RtvUsageFuture& target, const DsvUsageFuture& depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
@@ -499,10 +558,10 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		GI::SrvUsage panoramicSky;
+		SrvUsageFuture panoramicSky;
 		GI::SamplerDesc panoramicSampler;
-		GI::RtvUsage target;
-		GI::DsvUsage depth;
+		RtvUsageFuture target;
+		DsvUsageFuture depth;
 	};
 
 	auto& camState = frameGraph->GetBlackboard()->Get<MainCameraState>();
@@ -510,12 +569,12 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 	const auto& cameraTrans = camState.mCameraTrans;
 
 	frameGraph->AddPass<PassData>("RenderSky",
-		[this, &target, &depth]
+		[this, &target, &depth, frameGraph]
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
-			data.panoramicSky = builder.Read(mPanoramicSkyRt->GetSrv());
+			data.panoramicSky = builder.Read({ frameGraph->Import(mPanoramicSkyRt->GetResource()), mPanoramicSkyRt->GetSrvDesc() });
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.Write(target);
 			data.depth = builder.Write(depth);
@@ -523,7 +582,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 		[
 			inputLayout = mQuad->mVertexElementDescs,
 			indexCount = mQuad->mIndices.size(),
-			targetSize = target.GetResource()->GetSize(),
+			targetSize = frameGraph->GetResourceDesc(target.resource).GetSize(),
 			camProj = camState.mCameraProj,
 			camTrans = camState.mCameraTrans
 		]
@@ -558,8 +617,8 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 
 			pass.mInputLayout = inputLayout;
 
-			pass.SetRtv(0, data.target);
-			pass.SetDsv(data.depth);
+			pass.SetRtv(0, resources.Get(data.target));
+			pass.SetDsv(resources.Get(data.depth));
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			pass.mStencilRef = 0;
@@ -573,7 +632,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 			pass.AddCbVar("CameraDir", camTrans.CamDirInWorldSpace());
 			pass.AddCbVar("InvViewMat", camTrans.ComputeInvViewMatrix());
 
-			pass.AddSrv("PanoramicSky", data.panoramicSky);
+			pass.AddSrv("PanoramicSky", resources.Get(data.panoramicSky));
 			pass.AddSampler("PanoramicSkySampler", data.panoramicSampler);
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
@@ -583,7 +642,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const GI::RtvUsage& target
 void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
-	const std::array<GI::RtvUsage, 3>& gbufferRtvs, const GI::DsvUsage& depthView)
+	const std::array<RtvUsageFuture, 3>& gbufferRtvs, const DsvUsageFuture& depthView)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
 	
@@ -596,11 +655,11 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
 		std::vector<GI::ShaderMacro> shaderMacros;
-		std::vector<std::pair<std::string, GI::SrvUsage>> srvs;
+		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
 		std::vector<std::pair<std::string, Vec4f>> cbvs;
-		std::array<GI::RtvUsage, 3> gbufferRtvs;
-		GI::DsvUsage depthView;
+		std::array<RtvUsageFuture, 3> gbufferRtvs;
+		DsvUsageFuture depthView;
 		Vec3u targetSize;
 	};
 
@@ -649,7 +708,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 				data.gbufferRtvs[i] = builder.Write(gbufferRtvs[i]);
 			}
 			data.depthView = builder.Write(depthView);
-			data.targetSize = gbufferRtvs[0].GetResource()->GetSize();
+			data.targetSize = frameGraph->GetResourceDesc(gbufferRtvs[0].resource).GetSize();
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
@@ -689,9 +748,9 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 
 			for (i32 i = 0; i < data.gbufferRtvs.size(); ++i)
 			{
-				gbufferPass.SetRtv(i, data.gbufferRtvs[i]);
+				gbufferPass.SetRtv(i, resources.Get(data.gbufferRtvs[i]));
 			}
-			gbufferPass.SetDsv(data.depthView);
+			gbufferPass.SetDsv(resources.Get(data.depthView));
 
 			const auto& targetSize = data.targetSize;
 			gbufferPass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
@@ -710,7 +769,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 			gbufferPass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
 			gbufferPass.mShaderMacros = data.shaderMacros;
-			for (const auto& [n, srv] : data.srvs) { gbufferPass.AddSrv(n, srv); }
+			for (const auto& [n, srv] : data.srvs) { gbufferPass.AddSrv(n, resources.Get(srv)); }
 			for (const auto& [n, sampler] : data.samplers) { gbufferPass.AddSampler(n, sampler); }
 			for (const auto& [n, v] : data.cbvs) { gbufferPass.AddCbVar(n, v); }
 			
@@ -722,7 +781,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
-	const GI::DsvUsage& depthView)
+	const DsvUsageFuture& depth)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -734,10 +793,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		std::vector<std::pair<std::string, GI::SrvUsage>> srvs;
+		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
-		GI::DsvUsage depthView;
-		Vec3u targetSize;
+		DsvUsageFuture depthView;
 	};
 
 	frameGraph->AddPass<PassData>("RenderGeometryDepthWithMaterial",
@@ -754,8 +812,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 			data.geoVertices = builder.Read(geometry->GetVbvDesc());
 			data.geoIndices = builder.Read(geometry->GetIbvDesc());
-			data.depthView = builder.Write(depthView);
-			data.targetSize = depthView.GetResource()->GetSize();
+			data.depthView = builder.Write(depth);
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
@@ -783,9 +840,10 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 			pass.mInputLayout = inputLayout;
 
-			pass.SetDsv(data.depthView);
+			const auto& dsv = resources.Get(data.depthView);
+			pass.SetDsv(dsv);
 
-			const auto& targetSize = data.targetSize;
+			const auto& targetSize = dsv.GetResource()->GetSize();
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
@@ -800,7 +858,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
 			pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
-			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, srv); }
+			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, resources.Get(srv)); }
 			for (const auto& [n, sampler] : data.samplers) { pass.AddSampler(n, sampler); }
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
@@ -808,9 +866,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 }
 
 void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-	const GI::RtvUsage& shadowMask, 
-	const GI::SrvUsage& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler, 
-	const GI::SrvUsage& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler)
+	const RtvUsageFuture& shadowMask,
+	const SrvUsageFuture& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
+	const SrvUsageFuture& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler)
 {
 	auto* blackboard = frameGraph->GetBlackboard();
 
@@ -834,11 +892,11 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		GI::SrvUsage lightViewDepth;
+		SrvUsageFuture lightViewDepth;
 		GI::SamplerDesc lightViewDepthSampler;
-		GI::SrvUsage cameraViewDepth;
+		SrvUsageFuture cameraViewDepth;
 		GI::SamplerDesc cameraViewDepthSampler;
-		GI::RtvUsage shadowMask;
+		RtvUsageFuture shadowMask;
 		Vec3u targetSize;
 	};
 
@@ -852,7 +910,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
 			data.cameraViewDepth = builder.Read(cameraViewDepth);
 			data.cameraViewDepthSampler = builder.Read(cameraViewDepthSampler);
-			data.targetSize = shadowMask.GetResource()->GetSize();
+			data.targetSize = frameGraph->GetResourceDesc(shadowMask.resource).GetSize();
 			data.shadowMask = builder.Write(shadowMask);
 		},
 		[
@@ -876,7 +934,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 			pass.mInputLayout = inputLayout;
 
-			pass.SetRtv(0, data.shadowMask);
+			pass.SetRtv(0, resources.Get(data.shadowMask));
 
 			const auto& targetSize = data.targetSize;
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
@@ -886,9 +944,9 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			pass.SetIbv(data.geoIndices);
 			pass.mIndexCount = indexCount;
 
-			pass.AddSrv("LightViewDepth", data.lightViewDepth);
+			pass.AddSrv("LightViewDepth", resources.Get(data.lightViewDepth));
 			pass.AddSampler("LightViewDepthSampler", data.lightViewDepthSampler);
-			pass.AddSrv("CameraViewDepth", data.cameraViewDepth);
+			pass.AddSrv("CameraViewDepth", resources.Get(data.cameraViewDepth));
 			pass.AddSampler("CameraViewDepthSampler", data.cameraViewDepthSampler);
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
