@@ -589,7 +589,6 @@ namespace GI
         virtual Vec3u                   GetSize() const = 0;
         virtual Format::Enum            GetFormat() const = 0;
         virtual u16                     GetMipLevelCount() const = 0;
-        virtual GI::MemoryResourceDesc  GetDescription() const = 0;
 
     protected:
         const CommittedResourceId       mId;
@@ -820,7 +819,7 @@ namespace GI
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
 
         MemoryResourceDesc& SetSize(const Vec3u& size) { return SetWidth(size.x()).SetHeight(size.y()).SetDepthOrArraySize(size.z()); }
-        Vec3u GetSize() const { return { GetWidth(), GetHeight(), GetDepthOrArraySize() }; }
+        Vec3u GetSize() const { return { (u32) GetWidth(), (u32) GetHeight(), (u32) GetDepthOrArraySize() }; }
 
     public:
         static MemoryResourceDesc Buffer(u64 size, HeapType::Enum heapType, ResourceState::Enum initialState, ResourceFlag::Flags flags, u8 alignment)
