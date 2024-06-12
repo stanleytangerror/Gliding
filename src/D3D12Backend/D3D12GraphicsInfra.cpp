@@ -208,7 +208,7 @@ namespace D3D12Backend
 
 	}
 
-#define DEFERRED_EXECUTE 1
+#define DEFERRED_EXECUTE 0
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();

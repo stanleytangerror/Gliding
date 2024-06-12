@@ -28,6 +28,23 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 	return result;
 }
 
+GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResource& resource) const
+{
+	if (mTransienceResources.find(resource.mId) != mTransienceResources.end())
+	{
+		Assert(false);
+		return nullptr;
+		//return mTransienceResources.find(resource.mId)->second;
+	}
+	else if (mImportedResources.ContainsKey(resource.mId))
+	{
+		return mImportedResources.FindKey(resource.mId).second;
+	}
+
+	Assert(false);
+	return nullptr;
+}
+
 GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResource& resource) const
 {
 	if (mTransienceResources.find(resource.mId) != mTransienceResources.end())
@@ -130,28 +147,40 @@ UavUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resourc
 	return { resource, desc };
 }
 
+RenderPassResources::RenderPassResources(ResourceRegistry* resourceRegistry)
+	: mResourceRegistry(resourceRegistry)
+{}
+
 GI::SrvUsage RenderPassResources::Get(const SrvUsageFuture& usage) const
 {
-	// TODO
-	return GI::SrvUsage();
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::SrvUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::SrvDesc));
+	return result;
 }
 
 GI::RtvUsage RenderPassResources::Get(const RtvUsageFuture& usage) const
 {
-	// TODO
-	return GI::RtvUsage();
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::RtvUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::RtvDesc));
+	return result;
 }
 
 GI::DsvUsage RenderPassResources::Get(const DsvUsageFuture& usage) const
 {
-	// TODO
-	return GI::DsvUsage();
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::DsvUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::DsvDesc));
+	return result;
 }
 
 GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 {
-	// TODO
-	return GI::UavUsage();
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::UavUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::UavDesc));
+	return result;
 }
 
 

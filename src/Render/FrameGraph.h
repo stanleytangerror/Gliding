@@ -114,6 +114,7 @@ class GD_RENDER_API ResourceRegistry
 public:
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
+	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
 protected:
@@ -187,10 +188,15 @@ protected:
 class GD_RENDER_API RenderPassResources
 {
 public:
+	RenderPassResources(ResourceRegistry* resourceRegistry);
+
 	GI::SrvUsage	Get(const SrvUsageFuture& usage) const;
 	GI::RtvUsage	Get(const RtvUsageFuture& usage) const;
 	GI::DsvUsage	Get(const DsvUsageFuture& usage) const;
 	GI::UavUsage	Get(const UavUsageFuture& usage) const;
+
+protected:
+	ResourceRegistry* mResourceRegistry = nullptr;
 };
 
 class GD_RENDER_API FrameGraph
@@ -209,7 +215,7 @@ public:
 		TPassData data = {};
 		setup(*builder, data);
 
-		RenderPassResources resources;
+		RenderPassResources resources = { mResourceRegistry.get() };
 		execute(data, resources, mInfra);
 	}
 

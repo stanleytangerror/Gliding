@@ -229,7 +229,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 			auto [irradMap, irradMapSrv] = EnvironmentMap::GenerateIrradianceMap(frameGraph, infra, 
 				{ panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 8, 10);
 
-			//std::swap(mIrradianceMap, irradMap);
+			std::swap(mIrradianceMap, irradMap);
 			mIrradianceMapSrv = irradMapSrv;
 
 			auto [filterEnvMap, filterEnvMapSrv] = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, { panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 1024);

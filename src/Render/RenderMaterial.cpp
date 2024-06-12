@@ -6,10 +6,17 @@ void RenderMaterial::UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInf
 {
 	for (auto& slot : mMatAttriSlots)
 	{
-		if (slot.mTexture && !slot.mTexture->IsGraphicsResourceReady())
+		if (slot.mTexture)
 		{
-			slot.mTexture->CreateAndInitialResource(infra);
-			slot.mResource = frameGraph->Import(slot.mTexture->GetResource());
+			if (!slot.mTexture->IsGraphicsResourceReady())
+			{
+				slot.mTexture->CreateAndInitialResource(infra);
+			}
+
+			if (slot.mTexture->IsGraphicsResourceReady())
+			{
+				slot.mResource = frameGraph->Import(slot.mTexture->GetResource());
+			}
 		}
 	}
 }
@@ -18,9 +25,9 @@ bool RenderMaterial::IsGpuResourceReady() const
 {
 	for (const auto& slot : mMatAttriSlots)
 	{
-		if (slot.mTexture && !slot.mTexture->IsGraphicsResourceReady())
+		if (slot.mTexture)
 		{
-			if (!slot.mTexture->IsGraphicsResourceReady())
+			if (!slot.mTexture->IsGraphicsResourceReady() || !slot.mResource)
 			{
 				return false;
 			}
