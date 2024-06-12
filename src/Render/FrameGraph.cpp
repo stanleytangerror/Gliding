@@ -22,8 +22,8 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 	}
 
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
-	Assert(!mImportedResources.ContainsKey(result));
-	mImportedResources.Insert(result, resource);
+	Assert(!mImportedResources.ContainsKey(result.mId));
+	mImportedResources.Insert(result.mId, resource);
 
 	return result;
 }
