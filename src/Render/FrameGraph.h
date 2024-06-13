@@ -163,13 +163,7 @@ public:
 
 	GI::VbvUsage	Read(const GI::VbvUsage& usage);
 	GI::IbvUsage	Read(const GI::IbvUsage& usage);
-	GI::SrvUsage	Read(const GI::SrvUsage& usage);
-	GI::SrvUsage	Read(GI::IGraphicMemoryResource* resource, const GI::SrvDesc& desc);
 	GI::SamplerDesc	Read(const GI::SamplerDesc& usage);
-	GI::UavUsage	Write(const GI::UavUsage& usage);
-	GI::RtvUsage	Write(const GI::RtvUsage& usage);
-	GI::RtvUsage	Write(GI::IGraphicMemoryResource* resource, const GI::RtvDesc& desc);
-	GI::DsvUsage	Write(const GI::DsvUsage& usage);
 
 	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
@@ -204,11 +198,20 @@ class GD_RENDER_API FrameGraph
 public:
 	FrameGraph(GI::IGraphicsInfra* infra);
 
+	void StartFrame();
+	void EndFrame();
+
+	template<typename TPassData>
+	using SetupFunction = std::function<void(RenderPassBuilder& builder, TPassData& data)>;
+	
+	template<typename TPassData>
+	using ExecuteFunction = std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)>;
+	
 	template<typename TPassData>
 	void AddPass(
 		const char* name,
-		std::function<void(RenderPassBuilder& builder, TPassData& data)> setup,
-		std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)> execute)
+		SetupFunction<TPassData> setup,
+		ExecuteFunction<TPassData> execute)
 	{
 		auto builder = new RenderPassBuilder(name);
 

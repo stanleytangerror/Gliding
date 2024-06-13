@@ -236,7 +236,9 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 			std::swap(mFilteredEnvMap, filterEnvMap);
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
-			RenderUtils::GaussianBlur(frameGraph, infra, mPanoramicSkyRt->GetRtv(), mPanoramicSkyRt->GetSrv(), 2);
+			RenderUtils::GaussianBlur(frameGraph, infra, 
+				{ panoramicSkyRt, mPanoramicSkyRt->GetRtvDesc() }, 
+				{ panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 2);
 		}
 
 		if (!mBRDFIntegrationMap)

@@ -86,45 +86,10 @@ GI::IbvUsage	RenderPassBuilder::Read(const GI::IbvUsage& usage)
 	return usage;
 }
 
-GI::SrvUsage	RenderPassBuilder::Read(const GI::SrvUsage& usage)
-{
-	return usage;
-}
-
-GI::SrvUsage	RenderPassBuilder::Read(GI::IGraphicMemoryResource* resource, const GI::SrvDesc& desc)
-{
-	auto result = GI::SrvUsage(resource);
-	std::memcpy(&result, &desc, sizeof(GI::SrvDesc));
-	return result;
-}
-
 GI::SamplerDesc	RenderPassBuilder::Read(const GI::SamplerDesc& usage)
 {
 	return usage;
 
-}
-
-GI::UavUsage	RenderPassBuilder::Write(const GI::UavUsage& usage)
-{
-	return usage;
-
-}
-
-GI::RtvUsage	RenderPassBuilder::Write(const GI::RtvUsage& usage)
-{
-	return usage;
-}
-
-GI::RtvUsage	RenderPassBuilder::Write(GI::IGraphicMemoryResource* resource, const GI::RtvDesc& desc)
-{
-	auto result = GI::RtvUsage(resource);
-	std::memcpy(&result, &desc, sizeof(GI::RtvDesc));
-	return result;
-}
-
-GI::DsvUsage	RenderPassBuilder::Write(const GI::DsvUsage& usage)
-{
-	return usage;
 }
 
 SrvUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::SrvDesc& desc)
@@ -190,6 +155,15 @@ FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
 	mBlackboard = std::make_unique<Blackboard>();
 	mResourceRegistry = std::make_unique<ResourceRegistry>();
 	//mRenderPassBuilder = std::make_unique<RenderPassBuilder>();
+}
+
+void FrameGraph::StartFrame()
+{
+}
+
+void FrameGraph::EndFrame()
+{
+
 }
 
 FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)

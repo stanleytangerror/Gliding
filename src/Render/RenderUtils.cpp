@@ -109,20 +109,20 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const RtvUsageFuture& target, const SrvUsageFuture& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
-	const auto& size = source.GetResource()->GetSize();
+	const auto& size = frameGraph->GetResourceDesc(source.resource).GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
 	struct PassData
 	{
 		GI::VbvUsage geoVertices;
 		GI::IbvUsage geoIndices;
-		GI::SrvUsage source;
+		SrvUsageFuture source;
 		GI::SamplerDesc sampler;
-		GI::RtvUsage target;
+		RtvUsageFuture target;
 		Vec3u size;
 	};
 
@@ -134,7 +134,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI:
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sampler = builder.Read(sampler);
-			data.size = target.GetResource()->GetSize();
+			data.size = size;
 			data.target = builder.Write(target);
 		},
 		[
@@ -159,7 +159,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI:
 
 			pass.mInputLayout = inputLayout;
 
-			pass.SetRtv(0, data.target);
+			pass.SetRtv(0, resources.Get(data.target));
 			pass.mViewPort.SetWidth(data.size.x()).SetHeight(data.size.y());
 			pass.mScissorRect = { 0, 0, i32(data.size.x()), i32(data.size.y()) };
 
@@ -168,7 +168,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI:
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
-			pass.AddSrv("SourceTex", data.source);
+			pass.AddSrv("SourceTex", resources.Get(data.source));
 			pass.AddSampler("SourceTexSampler", data.sampler);
 
 			std::vector<f32> weights;
@@ -189,7 +189,8 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI:
 		});
 }
 
-void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const GI::RtvUsage& target, const GI::SrvUsage& source, i32 kernelSizeInPixel)
+void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	const RtvUsageFuture& target, const SrvUsageFuture& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
 	static Geometry* quad = Geometry::GenerateQuad();
@@ -203,11 +204,14 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 		quad->CreateAndInitialResource(infra);
 	}
 
-	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, source.GetResource()->GetSize(), source.GetFormat(), "GaussianBlurIntermediateRT");
+	auto sourceDesc = frameGraph->GetResourceDesc(source.resource);
+
+	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, sourceDesc.GetSize(), sourceDesc.GetFormat(), "GaussianBlurIntermediateRT");
+	auto interRtFg = frameGraph->Import(interRt->GetResource());
 
 	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(frameGraph, infra, interRt->GetRtv(), source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(frameGraph, infra, target, interRt->GetSrv(), kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(frameGraph, infra, { interRtFg, interRt->GetRtvDesc() }, source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(frameGraph, infra, target, { interRtFg, interRt->GetSrvDesc() }, kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<

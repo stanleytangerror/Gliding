@@ -66,6 +66,9 @@ void RenderModule::Render()
 	}
 
 	mGraphicInfra->StartFrame();
+
+	mFrameGraph->StartFrame();
+
 	auto sceneHdr = mFrameGraph->Import(mSceneHdrRt->GetResource());
 	{
 		{
@@ -104,6 +107,9 @@ void RenderModule::Render()
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
 		}
 	}
+
+	mFrameGraph->EndFrame();
+
 	mGraphicInfra->EndFrame();
 	
 	mGraphicInfra->Present();

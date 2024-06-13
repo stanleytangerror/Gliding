@@ -22,8 +22,8 @@ namespace RenderUtils
 		const GI::SamplerDesc& sourceSampler);
 
 	void GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		const GI::RtvUsage& target, 
-		const GI::SrvUsage& source, i32 kernelSizeInPixel);
+		const RtvUsageFuture& target, 
+		const SrvUsageFuture& source, i32 kernelSizeInPixel);
 
 	enum WorldStencilMask : u8
 	{
