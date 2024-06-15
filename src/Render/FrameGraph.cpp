@@ -11,8 +11,8 @@ Blackboard::~Blackboard()
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
-	Assert(mTransienceResourceDescs.find(result) == mTransienceResourceDescs.end());
-	mTransienceResourceDescs[result] = desc;
+	Assert(mTransienceResourceDescs.find(result.mId) == mTransienceResourceDescs.end());
+	mTransienceResourceDescs[result.mId] = desc;
 	return result;
 }
 

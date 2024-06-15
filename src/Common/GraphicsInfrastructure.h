@@ -841,6 +841,26 @@ namespace GI
                 .SetInitState(initialState);
         }
 
+        static MemoryResourceDesc Buffer2(u64 size, bool allowRtv, bool allowUav, const char* name)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::BUFFER)
+                .SetAlignment(0)
+                .SetWidth(size)
+                .SetHeight(1)
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(Format::FORMAT_UNKNOWN)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_ROW_MAJOR)
+                .SetFlags((allowRtv ? GI::ResourceFlag::ALLOW_RENDER_TARGET : 0)
+                    | (allowUav ? GI::ResourceFlag::ALLOW_UNORDERED_ACCESS : 0))
+                .SetHeapType(GI::HeapType::DEFAULT)
+                .SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
+                .SetName(name);
+        }
+
         static MemoryResourceDesc RenderTarget2D(Vec2u size, Format::Enum format, bool allowUav, const char* name)
         {
             return MemoryResourceDesc()
@@ -881,6 +901,27 @@ namespace GI
             return UavDesc()
                 .SetFormat(resDesc.GetFormat())
                 .SetViewDimension(GI::UavDimension::TEXTURE2D);
+        }
+
+        static UavDesc AsBufferUav(const MemoryResourceDesc& resDesc, u32 numElements, u32 stride)
+        {
+            return UavDesc()
+                .SetFormat(GI::Format::FORMAT_UNKNOWN)
+                .SetViewDimension(GI::UavDimension::BUFFER)
+                .SetBuffer_FirstElement(0)
+                .SetBuffer_NumElements(numElements)
+                .SetBuffer_StructureByteStride(u32(stride))
+                .SetBuffer_FlagRawRatherThanNone(false);
+        }
+
+        static SrvDesc AsBufferSrv(const MemoryResourceDesc& resDesc, u32 numElements, u32 stride)
+        {
+            return SrvDesc()
+                .SetFormat(GI::Format::FORMAT_R32_UINT)
+                .SetViewDimension(GI::SrvDimension::BUFFER)
+                .SetBuffer_FirstElement(0)
+                .SetBuffer_NumElements(numElements)
+                .SetBuffer_FlagRawRatherThanNone(false);
         }
     };
 
