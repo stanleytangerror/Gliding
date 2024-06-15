@@ -11,8 +11,8 @@ Blackboard::~Blackboard()
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
-	Assert(mTransienceResources.find(result) == mTransienceResources.end());
-	mTransienceResources[result] = desc;
+	Assert(mTransienceResourceDescs.find(result) == mTransienceResourceDescs.end());
+	mTransienceResourceDescs[result] = desc;
 	return result;
 }
 
@@ -34,9 +34,7 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 {
 	if (mTransienceResources.find(resource.mId) != mTransienceResources.end())
 	{
-		Assert(false);
-		return nullptr;
-		//return mTransienceResources.find(resource.mId)->second;
+		return mTransienceResources.find(resource.mId)->second.get();
 	}
 	else if (mImportedResources.ContainsKey(resource.mId))
 	{
@@ -49,9 +47,9 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 
 GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResource& resource) const
 {
-	if (mTransienceResources.find(resource.mId) != mTransienceResources.end())
+	if (mTransienceResourceDescs.find(resource.mId) != mTransienceResourceDescs.end())
 	{
-		return mTransienceResources.find(resource.mId)->second;
+		return mTransienceResourceDescs.find(resource.mId)->second;
 	}
 	else if (mImportedResources.ContainsKey(resource.mId))
 	{
@@ -67,6 +65,19 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 
 	Assert(false);
 	return {};
+}
+
+void ResourceRegistry::OnSubmitPass(GI::IGraphicsInfra* infra)
+{
+	for (const auto& [id, desc] : mTransienceResourceDescs)
+	{
+		mTransienceResources.insert({ id, infra->CreateMemoryResource(desc) });
+	}
+}
+
+void ResourceRegistry::OnEndFrame()
+{
+	mTransienceResources.clear();
 }
 
 RenderPassBuilder::RenderPassBuilder(FrameGraphBuilder* builder, const char* passName)
@@ -224,8 +235,12 @@ void FrameGraph::StartFrame()
 
 void FrameGraph::EndFrame()
 {
+	mResourceRegistry->OnSubmitPass(mInfra);
+
 	mFrameGraphBuilder->SubmitPasses();
 	mFrameGraphBuilder = nullptr;
+
+	mResourceRegistry->OnEndFrame();
 }
 
 FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)

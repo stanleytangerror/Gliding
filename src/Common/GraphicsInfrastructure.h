@@ -840,6 +840,48 @@ namespace GI
                 .SetHeapType(heapType)
                 .SetInitState(initialState);
         }
+
+        static MemoryResourceDesc RenderTarget2D(Vec2u size, Format::Enum format, bool allowUav, const char* name)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::TEXTURE2D)
+                .SetAlignment(0)
+                .SetWidth(size.x())
+                .SetHeight(size.y())
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(format)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_UNKNOWN)
+                .SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | (allowUav ? GI::ResourceFlag::ALLOW_UNORDERED_ACCESS : 0))
+                .SetHeapType(GI::HeapType::DEFAULT)
+                .SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
+                .SetName(name);
+        }
+
+        static SrvDesc AsTexture2DSrv(const MemoryResourceDesc& resDesc)
+        {
+            return SrvDesc()
+                .SetFormat(resDesc.GetFormat())
+                .SetViewDimension(GI::SrvDimension::TEXTURE2D)
+                .SetTexture2D_MipLevels(resDesc.GetMipLevels());
+        }
+
+        static RtvDesc AsTexture2DRtv(const MemoryResourceDesc& resDesc)
+        {
+            return RtvDesc()
+                .SetFormat(resDesc.GetFormat())
+                .SetViewDimension(GI::RtvDimension::TEXTURE2D)
+                .SetTexture2D_MipSlice(resDesc.GetMipLevels());
+        }
+
+        static UavDesc AsTexture2DUav(const MemoryResourceDesc& resDesc)
+        {
+            return UavDesc()
+                .SetFormat(resDesc.GetFormat())
+                .SetViewDimension(GI::UavDimension::TEXTURE2D);
+        }
     };
 
     class GD_COMMON_API ReadOnly2DResourceDesc

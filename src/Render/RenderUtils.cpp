@@ -206,12 +206,12 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 
 	auto sourceDesc = frameGraph->GetResourceDesc(source.resource);
 
-	std::unique_ptr<RenderTarget> interRt = std::make_unique<RenderTarget>(infra, sourceDesc.GetSize(), sourceDesc.GetFormat(), "GaussianBlurIntermediateRT");
-	auto interRtFg = frameGraph->Import(interRt->GetResource());
+	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), false, "GaussianBlurIntermediateRt");
+	auto interRtFg = frameGraph->Create(desc);
 
 	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(frameGraph, infra, { interRtFg, interRt->GetRtvDesc() }, source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(frameGraph, infra, target, { interRtFg, interRt->GetSrvDesc() }, kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(frameGraph, infra, { interRtFg, GI::MemoryResourceDesc::AsTexture2DRtv(desc) }, source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(frameGraph, infra, target, { interRtFg, GI::MemoryResourceDesc::AsTexture2DSrv(desc) }, kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<

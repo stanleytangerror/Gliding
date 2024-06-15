@@ -117,17 +117,25 @@ class GD_RENDER_API FrameGraphMutableResource : public FrameGraphResource
 class GD_RENDER_API ResourceRegistry
 {
 public:
+	ResourceRegistry() {}
+	ResourceRegistry(const ResourceRegistry&) = delete;
+	ResourceRegistry& operator=(const ResourceRegistry&) = delete;
+
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
 	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
+	void						OnSubmitPass(GI::IGraphicsInfra* infra);
+	void						OnEndFrame();
+
 protected:
-	std::map<u64, GI::MemoryResourceDesc> mTransienceResources;
+	std::map<FrameGraphResource::Id, GI::MemoryResourceDesc> mTransienceResourceDescs;
+	std::map<FrameGraphResource::Id, std::unique_ptr<GI::IGraphicMemoryResource>> mTransienceResources;
 
-	BijectionMap<u64, GI::IGraphicMemoryResource*> mImportedResources;
+	BijectionMap<FrameGraphResource::Id, GI::IGraphicMemoryResource*> mImportedResources;
 
-	u64	mResourceIdCounter = 0;
+	FrameGraphResource::Id	mResourceIdCounter = 0;
 };
 
 #define MUTABLE_RESOURCE_USAGE_FUTURE(Name) \
