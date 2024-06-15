@@ -89,6 +89,7 @@ void RenderModule::Render()
 					.SetTexture2D_PlaneSlice(0) };
 			mScreenRenderer->Render(mGraphicInfra, SrvUsageFuture{ sceneHdr, mSceneHdrRt->GetSrvDesc() }, target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
+			mFrameGraph->Present(target.resource);
 		}
 
 		{
@@ -105,6 +106,7 @@ void RenderModule::Render()
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
 			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
+			mFrameGraph->Present(target.resource);
 		}
 	}
 

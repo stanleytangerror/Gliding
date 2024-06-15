@@ -589,6 +589,7 @@ namespace GI
         virtual Vec3u                   GetSize() const = 0;
         virtual Format::Enum            GetFormat() const = 0;
         virtual u16                     GetMipLevelCount() const = 0;
+        virtual const char*             GetDebugName() const = 0;
 
     protected:
         const CommittedResourceId       mId;

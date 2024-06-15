@@ -12,7 +12,7 @@ namespace D3D12Backend
 	class GraphicMemoryResource : public GI::IGraphicMemoryResource
 	{
 	public:
-									GraphicMemoryResource(D3D12Device* device, GI::CommittedResourceId id);
+									GraphicMemoryResource(D3D12Device* device, GI::CommittedResourceId id, const char* name);
 									~GraphicMemoryResource() override;
 
 		GI::HeapType::Enum			GetHeapType() const override;
@@ -20,9 +20,11 @@ namespace D3D12Backend
 		Vec3u						GetSize() const override;
 		GI::Format::Enum			GetFormat() const override;
 		u16							GetMipLevelCount() const override;
+		const char*					GetDebugName() const override;
 	
 	protected:
 		D3D12Device*				mDevice = nullptr;
+		std::string					mDebugName;
 	};
 
 	class CommitedResource

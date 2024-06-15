@@ -3,9 +3,10 @@
 
 namespace D3D12Backend
 {
-	GraphicMemoryResource::GraphicMemoryResource(D3D12Device* device, GI::CommittedResourceId id)
+	GraphicMemoryResource::GraphicMemoryResource(D3D12Device* device, GI::CommittedResourceId id, const char* name)
 		: GI::IGraphicMemoryResource(id)
 		, mDevice(device)
+		, mDebugName(name ? name : "")
 	{
 
 	}
@@ -45,6 +46,11 @@ namespace D3D12Backend
 	u16 GraphicMemoryResource::GetMipLevelCount() const
 	{
 		return mDevice->GetResourceManager()->GetResource(mId)->GetMipLevelCount();
+	}
+
+	const char* GraphicMemoryResource::GetDebugName() const
+	{
+		return mDebugName.c_str();
 	}
 
 	//CommitedResource* CommitedResource::Builder::Build(CommittedResourceId id, D3D12Device* device, GI::HeapType::Enum heapType) const

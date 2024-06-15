@@ -67,6 +67,9 @@
     <ClInclude Include="Container.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="DirectedGraph.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
@@ -94,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="GraphicsInfrastructure.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectedGraph.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

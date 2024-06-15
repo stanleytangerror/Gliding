@@ -1,6 +1,8 @@
 #include "RenderPch.h"
 #include "FrameGraph.h"
 
+#define DEBUG_FRAME_GRAPH 1
+
 Blackboard::~Blackboard()
 {
 	Clear();
@@ -67,13 +69,10 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 	return {};
 }
 
-#define DEBUG_RENDER_PASS_BUILDER 1
-RenderPassBuilder::RenderPassBuilder(const char* passName)
-	: mPassName(passName)
+RenderPassBuilder::RenderPassBuilder(FrameGraphBuilder* builder, const char* passName)
+	: mBuilder(builder)
+	, mPassName(passName)
 {
-#if DEBUG_RENDER_PASS_BUILDER
-	Utils::FormatString("[Pass] %s\n", mPassName.c_str());
-#endif
 }
 
 GI::VbvUsage	RenderPassBuilder::Read(const GI::VbvUsage& usage)
@@ -89,26 +88,29 @@ GI::IbvUsage	RenderPassBuilder::Read(const GI::IbvUsage& usage)
 GI::SamplerDesc	RenderPassBuilder::Read(const GI::SamplerDesc& usage)
 {
 	return usage;
-
 }
 
 SrvUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::SrvDesc& desc)
 {
+	mInputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
 RtvUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
 {
+	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
 DsvUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
 {
+	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
 UavUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc)
 {
+	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
@@ -148,22 +150,82 @@ GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 	return result;
 }
 
+void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
+{
+	auto tryAddResourceNode = [this](const FrameGraphResource::Id& resource)
+		{
+			auto it = mResourceNodes.find(resource);
+			if (it != mResourceNodes.end())
+			{
+				return it->second;
+			}
+
+			auto nodeHandle = mResourceGraph.AddNode();
+			mResourceNodes.insert({ resource, nodeHandle });
+			return nodeHandle;
+		};
+
+	PassHandle passHandle = mPasses.size();
+	mPasses.push_back({ passBuilder.mPassName, passBuilder.mPassFunction });
+	
+	for (const auto& input : passBuilder.mInputResources)
+	{
+		for (const auto& output : passBuilder.mOutputResources)
+		{
+			auto inputNode = tryAddResourceNode(input);
+			auto outputNode = tryAddResourceNode(output);
+			auto edge = mResourceGraph.AddEdge(inputNode, outputNode);
+			mPassEdges.insert({ edge, passHandle });
+		}
+	}
+}
+
+void FrameGraphBuilder::MarkOutputNode(const FrameGraphResource& resource)
+{
+	Assert(mResourceNodes.find(resource.mId) != mResourceNodes.end());
+	mPresentResources.insert(resource.mId);
+}
+
+void FrameGraphBuilder::SubmitPasses()
+{
+	Assert(!mPresentResources.empty());
+	std::vector<DirectedGraph::NodeHandle> outputNodes(mPresentResources.size());
+	std::transform(mPresentResources.begin(), mPresentResources.end(),
+		outputNodes.begin(),
+		[this](FrameGraphResource::Id id) { return mResourceNodes[id]; });
+	
+	auto edges = DirectedGraph::CullAndSort(mResourceGraph, outputNodes);
+
+	std::set<PassHandle> finished;
+	for (auto e : edges)
+	{
+		auto it = mPassEdges.find(e);
+		Assert(it != mPassEdges.end());
+
+		auto passHandle = it->second;
+		const auto& pass = mPasses[passHandle];
+		pass.mExecute();
+
+		finished.insert(passHandle);
+	}
+}
 
 FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
 	: mInfra(infra)
 {
 	mBlackboard = std::make_unique<Blackboard>();
 	mResourceRegistry = std::make_unique<ResourceRegistry>();
-	//mRenderPassBuilder = std::make_unique<RenderPassBuilder>();
 }
 
 void FrameGraph::StartFrame()
 {
+	mFrameGraphBuilder = std::make_unique<FrameGraphBuilder>();
 }
 
 void FrameGraph::EndFrame()
 {
-
+	mFrameGraphBuilder->SubmitPasses();
+	mFrameGraphBuilder = nullptr;
 }
 
 FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)
@@ -173,7 +235,21 @@ FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)
 
 FrameGraphMutableResource FrameGraph::Import(GI::IGraphicMemoryResource* resource)
 {
-	return mResourceRegistry->ImportResource(resource);
+	auto result = mResourceRegistry->ImportResource(resource);
+
+#if DEBUG_FRAME_GRAPH
+	Utils::FormatString("Import: resource name = %s, graph infra resource id = %d, frame graph resource id = %d", 
+		resource->GetDebugName(), resource->GetResourceId(), result.mId);
+#endif
+
+	return result;
+}
+
+void FrameGraph::Present(FrameGraphMutableResource resource)
+{
+	Assert(mFrameGraphBuilder != nullptr);
+
+	mFrameGraphBuilder->MarkOutputNode(resource);
 }
 
 GI::MemoryResourceDesc FrameGraph::GetResourceDesc(const FrameGraphResource& resource) const

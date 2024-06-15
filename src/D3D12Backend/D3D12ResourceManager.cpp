@@ -61,7 +61,7 @@ namespace D3D12Backend
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
 
-		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, desc.GetName()));
 	}
 
 	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState)
@@ -81,7 +81,7 @@ namespace D3D12Backend
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
 
-		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId));
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, name));
 	}
 
 	DescriptorPtr ResourceManager::CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc)

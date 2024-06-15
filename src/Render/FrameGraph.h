@@ -3,6 +3,9 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/CommonUtils.h"
 #include "Common/Container.h"
+#include "Common/DirectedGraph.h"
+
+class RenderPassResources;
 
 class GD_RENDER_API Blackboard
 {
@@ -96,7 +99,9 @@ private:
 
 struct GD_RENDER_API FrameGraphResource
 {
-	u64 mId = ~0ULL;
+	using Id = u64;
+
+	Id mId = ~0ULL;
 	operator bool() const { return mId != ~0ULL; }
 	struct Less
 	{
@@ -158,8 +163,9 @@ RESOURCE_USAGE_FUTURE(Srv);
 
 class GD_RENDER_API RenderPassBuilder
 {
+	friend class FrameGraphBuilder;
 public:
-	RenderPassBuilder(const char* passName);
+	RenderPassBuilder(FrameGraphBuilder* builder, const char* passName);
 
 	GI::VbvUsage	Read(const GI::VbvUsage& usage);
 	GI::IbvUsage	Read(const GI::IbvUsage& usage);
@@ -174,9 +180,14 @@ public:
 	UavUsageFuture	Write(const UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	UavUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc);
 
+	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
+
 protected:
-	ResourceRegistry*	mResourceRegistry = nullptr;
-	const std::string	mPassName;
+	FrameGraphBuilder* mBuilder;
+	std::string mPassName;
+	std::vector<FrameGraphResource::Id>	mInputResources;
+	std::vector<FrameGraphResource::Id>	mOutputResources;
+	std::function<void()>				mPassFunction;
 };
 
 class GD_RENDER_API RenderPassResources
@@ -193,6 +204,29 @@ protected:
 	ResourceRegistry* mResourceRegistry = nullptr;
 };
 
+class GD_RENDER_API FrameGraphBuilder
+{
+public:
+	struct Pass {
+		std::string mPassName;
+		std::function<void()> mExecute;
+	};
+	using PassHandle = u32;
+	
+	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
+	void						MarkOutputNode(const FrameGraphResource& resource);
+	void						SubmitPasses();
+
+protected:
+	ResourceRegistry* mResourceRegistry = nullptr;
+
+	std::map<FrameGraphResource::Id, DirectedGraph::NodeHandle>	mResourceNodes;
+	std::map<DirectedGraph::EdgeHandle, PassHandle>				mPassEdges;
+	std::vector<Pass>	mPasses;
+	DirectedGraph		mResourceGraph;
+	std::set<FrameGraphResource::Id>	mPresentResources;
+};
+
 class GD_RENDER_API FrameGraph
 {
 public:
@@ -202,36 +236,37 @@ public:
 	void EndFrame();
 
 	template<typename TPassData>
-	using SetupFunction = std::function<void(RenderPassBuilder& builder, TPassData& data)>;
-	
-	template<typename TPassData>
-	using ExecuteFunction = std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)>;
-	
-	template<typename TPassData>
 	void AddPass(
 		const char* name,
-		SetupFunction<TPassData> setup,
-		ExecuteFunction<TPassData> execute)
+		std::function<void(RenderPassBuilder& builder, TPassData& data)> setup,
+		std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)> execute)
 	{
-		auto builder = new RenderPassBuilder(name);
+		auto builder = RenderPassBuilder(mFrameGraphBuilder.get(), name);
 
 		TPassData data = {};
-		setup(*builder, data);
-
-		RenderPassResources resources = { mResourceRegistry.get() };
-		execute(data, resources, mInfra);
+		setup(builder, data);
+		
+		builder.SetPassFunction([data, this, execute] ()
+		{
+			RenderPassResources resources = { mResourceRegistry.get() };
+			execute(data, resources, mInfra);
+		});
+		
+		mFrameGraphBuilder->HandlePassBuilder(builder);
 	}
 
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
 	FrameGraphMutableResource	Create(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
+	void						Present(FrameGraphMutableResource resource);
+
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
 private:
 	std::unique_ptr<Blackboard>			mBlackboard;
 	std::unique_ptr<ResourceRegistry>	mResourceRegistry;
-	//std::unique_ptr<RenderPassBuilder>	mRenderPassBuilder;
+	std::unique_ptr<FrameGraphBuilder>	mFrameGraphBuilder;
 	GI::IGraphicsInfra*					mInfra = nullptr;
 };
 
