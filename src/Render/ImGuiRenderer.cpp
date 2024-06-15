@@ -102,9 +102,10 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
-	std::unique_ptr<Geometry> geo;
+	// TODO fix this
+	//std::unique_ptr<Geometry> geo;
 
-	geo.reset(Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
+	Geometry* geo = Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
 		{
 			GI::InputElementDesc()
 				.SetSemanticName("POSITION")
@@ -118,7 +119,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 				.SetSemanticName("COLOR")
 				.SetFormat(GI::Format::FORMAT_R32_UINT)
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
-		}));
+		});
 
 	geo->CreateAndInitialResource(infra);
 
