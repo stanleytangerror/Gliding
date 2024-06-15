@@ -107,6 +107,12 @@ SrvUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const
 	return { resource, desc };
 }
 
+UavUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::UavDesc& desc)
+{
+	mInputResources.push_back(resource.mId);
+	return { resource, desc };
+}
+
 RtvUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
 {
 	mOutputResources.push_back(resource.mId);

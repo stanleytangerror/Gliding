@@ -181,6 +181,8 @@ public:
 
 	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
+	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
+	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
 	RtvUsageFuture	Write(const RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	RtvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
 	DsvUsageFuture	Write(const DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
