@@ -26,7 +26,7 @@ namespace D3D12Backend
 
 		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
 
-		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const override;
+		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const override;
 		std::unique_ptr<GI::IImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const override;
 
 		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;

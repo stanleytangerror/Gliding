@@ -69,15 +69,17 @@ namespace D3D12Utils
 	class WindowsImage : public GI::IImage
 	{
 	public:
-		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content);
+		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name);
 		static std::unique_ptr<WindowsImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 
-		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image);
+		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name);
 
 		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
+		const char*				GetName() const { return mName.c_str(); }
 
 	protected:
 		const std::unique_ptr<DirectX::ScratchImage> mImage;
+		const std::string mName;
 	};
 }
 

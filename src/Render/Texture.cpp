@@ -6,7 +6,7 @@ FileTexture::FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const 
 	: mFilePath(filePath)
 	, mContent(content)
 	, mTextureExtension(Utils::GetTextureExtension(filePath))
-	, mImage(infra->CreateFromImageMemory(Utils::GetTextureExtension(filePath), mContent))
+	, mImage(infra->CreateFromImageMemory(Utils::GetTextureExtension(filePath), mContent, filePath))
 {
 	
 }

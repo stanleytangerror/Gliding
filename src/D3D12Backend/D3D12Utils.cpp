@@ -146,14 +146,14 @@ namespace
 		return image;
 	}
 
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const DirectX::ScratchImage& image)
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const DirectX::ScratchImage& image, const char* name)
 	{
 		D3D12Backend::D3D12Device* device = context->GetDevice();
 
 		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
 		ID3D12Resource* defaultResource = nullptr;
 		AssertHResultOk(DirectX::CreateTexture(device->GetDevice(), image.GetMetadata(), &defaultResource));
-		auto result = device->GetResourceManager()->PossessResourceWithOwnership(defaultResource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
+		auto result = device->GetResourceManager()->PossessResourceWithOwnership(defaultResource, name, D3D12_RESOURCE_STATE_COPY_DEST);
 		auto resultDeviceResource = device->GetResourceManager()->GetResource(result->GetResourceId());
 
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
@@ -216,23 +216,24 @@ namespace
 
 namespace D3D12Utils
 {
-	WindowsImage::WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image)
+	WindowsImage::WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name)
 		: mImage(std::forward<std::unique_ptr<DirectX::ScratchImage>>(image))
+		, mName(name)
 	{}
 
-	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content)
+	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name)
 	{
 		switch (ext)
 		{
 		case TextureFileExt::DDS:
-			return std::make_unique<WindowsImage>(LoadDDSImageFromMemory(content.data(), content.size()));
+			return std::make_unique<WindowsImage>(LoadDDSImageFromMemory(content.data(), content.size()), name);
 		case TextureFileExt::PNG:
 		case TextureFileExt::BMP:
 		case TextureFileExt::GIF:
 		case TextureFileExt::TIFF:
 		case TextureFileExt::JPEG:
 		case TextureFileExt::JPG:
-			return std::make_unique<WindowsImage>(LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size()));
+			return std::make_unique<WindowsImage>(LoadSpecificFormatImageFromMemory_PngBmpGifTiffJpeg(content.data(), content.size()), name);
 		default:
 			Assert(false);
 			return nullptr;
@@ -245,7 +246,7 @@ namespace D3D12Utils
 		image->Initialize2D(ToDxgiFormat(format), size.x(), size.y(), size.z(), mipLevel);
 		memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
-		return std::make_unique<WindowsImage>(std::move(image));
+		return std::make_unique<WindowsImage>(std::move(image), name);
 	}
 }
 
@@ -272,7 +273,7 @@ std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromImageMe
 
 	if (image->GetImageCount() != 0)
 	{
-		return CreateD3DResFromScratchImage(context, *image);
+		return CreateD3DResFromScratchImage(context, *image, nullptr); // HERE
 	}
 
 	Assert(false);
@@ -285,7 +286,7 @@ std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromRawMemo
 	image->Initialize2D(format, size.x(), size.y(), size.z(), mipLevel);
 	memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
 
-	auto resource = CreateD3DResFromScratchImage(context, *image);
+	auto resource = CreateD3DResFromScratchImage(context, *image, name);
 	auto deviceResource = context->GetDevice()->GetResourceManager()->GetResource(resource->GetResourceId());
 	NAME_RAW_D3D12_OBJECT(deviceResource->GetD3D12Resource(), name);
 
@@ -294,7 +295,7 @@ std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromRawMemo
 
 std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image)
 {
-	return CreateD3DResFromScratchImage(context, *(image.GetImage()));
+	return CreateD3DResFromScratchImage(context, *(image.GetImage()), image.GetName());
 }
 
 D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareState& state)

@@ -15,7 +15,8 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
 		.SetFlags(GI::ResourceFlag::NONE)
 		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		.SetHeapType(GI::HeapType::UPLOAD));
+		.SetHeapType(GI::HeapType::UPLOAD)
+		.SetName("GeometryVertices"));
 
 	infra->CopyToUploadBufferResource(mVb.get(), mVertices);
 
@@ -31,7 +32,8 @@ void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
 		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
 		.SetFlags(GI::ResourceFlag::NONE)
 		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		.SetHeapType(GI::HeapType::UPLOAD));
+		.SetHeapType(GI::HeapType::UPLOAD)
+		.SetName("GeometryIndices"));
 
 	std::vector<b8> buf(mIndices.size() * sizeof(u16));
 	std::memcpy(buf.data(), mIndices.data(), buf.size());

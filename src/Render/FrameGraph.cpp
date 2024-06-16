@@ -259,7 +259,7 @@ FrameGraphMutableResource FrameGraph::Import(GI::IGraphicMemoryResource* resourc
 	auto result = mResourceRegistry->ImportResource(resource);
 
 #if DEBUG_FRAME_GRAPH
-	Utils::FormatString("Import: resource name = %s, graph infra resource id = %d, frame graph resource id = %d", 
+	DEBUG_PRINT("Import: resource name = %s, graph infra resource id = %d, frame graph resource id = %d", 
 		resource->GetDebugName(), resource->GetResourceId(), result.mId);
 #endif
 
