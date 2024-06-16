@@ -211,6 +211,10 @@ void FrameGraphBuilder::SubmitPasses()
 		outputNodes.begin(),
 		[this](FrameGraphResource::Id id) { return mResourceNodes[id]; });
 	
+#if DEBUG_FRAME_GRAPH
+	DebugOutputGraph();
+#endif
+
 	auto edges = DirectedGraph::CullAndSort(mResourceGraph, outputNodes);
 
 	std::set<PassHandle> finished;
@@ -224,6 +228,40 @@ void FrameGraphBuilder::SubmitPasses()
 		pass.mExecute();
 
 		finished.insert(passHandle);
+	}
+}
+
+void FrameGraphBuilder::DebugOutputGraph()
+{
+	auto printNode = [&]
+	(const char* prefix, DirectedGraph::NodeHandle node)
+	{
+		for (const auto& [id, n] : mResourceNodes)
+		{
+			if (n == node)
+			{
+				DEBUG_PRINT("\t %d", id);
+			}
+		}
+	};
+
+	for (auto passHandle = 0; passHandle < mPasses.size(); ++passHandle)
+	{
+		DEBUG_PRINT("[Pass] %d %s", passHandle, mPasses[passHandle].mPassName.c_str());
+
+		std::set<DirectedGraph::NodeHandle> inputs, outputs;
+		for (const auto& [e, p] : mPassEdges)
+		{
+			if (p == passHandle)
+			{
+				auto be = mResourceGraph.GetEdge(e);
+				inputs.insert(be.mBegin);
+				outputs.insert(be.mEnd);
+			}
+		}
+
+		for (const auto& n : inputs) { printNode("\t - ", n); }
+		for (const auto& n : outputs) { printNode("\t + ", n); }
 	}
 }
 
@@ -259,8 +297,8 @@ FrameGraphMutableResource FrameGraph::Import(GI::IGraphicMemoryResource* resourc
 	auto result = mResourceRegistry->ImportResource(resource);
 
 #if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("Import: resource name = %s, graph infra resource id = %d, frame graph resource id = %d", 
-		resource->GetDebugName(), resource->GetResourceId(), result.mId);
+	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)", 
+		result.mId, resource->GetDebugName(), resource->GetResourceId());
 #endif
 
 	return result;

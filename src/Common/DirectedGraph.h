@@ -132,6 +132,12 @@ public:
 		return result;
 	}
 
+	Edge GetEdge(const EdgeHandle& h) const
+	{
+		Assert(IsValidEdgeHandle(h));
+		return mEdges.find(h)->second;
+	}
+
 	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
 	static std::vector<NodeHandle> CullAndSort(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
@@ -139,12 +145,6 @@ public:
 protected:
 	bool IsValidNodeHandle(const NodeHandle& h) const { return mNodes.find(h) != mNodes.end(); }
 	bool IsValidEdgeHandle(const EdgeHandle& h) const { return mEdges.find(h) != mEdges.end(); }
-	
-	Edge GetEdge(const EdgeHandle& h) const
-	{
-		Assert(IsValidEdgeHandle(h));
-		return mEdges.find(h)->second;
-	}
 
 protected:
 	std::set<NodeHandle>		mNodes;

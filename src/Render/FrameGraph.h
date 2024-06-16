@@ -226,6 +226,7 @@ public:
 	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
 	void						MarkOutputNode(const FrameGraphResource& resource);
 	void						SubmitPasses();
+	void						DebugOutputGraph();
 
 protected:
 	ResourceRegistry* mResourceRegistry = nullptr;
