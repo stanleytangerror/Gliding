@@ -217,6 +217,8 @@ protected:
 class GD_RENDER_API FrameGraphBuilder
 {
 public:
+	FrameGraphBuilder(ResourceRegistry* registry);
+
 	struct Pass {
 		std::string mPassName;
 		std::function<void()> mExecute;

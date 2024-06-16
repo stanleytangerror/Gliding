@@ -13,6 +13,12 @@ FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::Me
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
 	Assert(mTransienceResourceDescs.find(result.mId) == mTransienceResourceDescs.end());
 	mTransienceResourceDescs[result.mId] = desc;
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Create] %d:\t%s",
+		result.mId, desc.GetName());
+#endif
+
 	return result;
 }
 
@@ -26,6 +32,11 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
 	Assert(!mImportedResources.ContainsKey(result.mId));
 	mImportedResources.Insert(result.mId, resource);
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
+		result.mId, resource->GetDebugName(), resource->GetResourceId());
+#endif
 
 	return result;
 }
@@ -60,7 +71,8 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 			.SetHeight(rawResource->GetSize().y())
 			.SetDepthOrArraySize(rawResource->GetSize().z())
 			.SetFormat(rawResource->GetFormat())
-			.SetMipLevels(rawResource->GetMipLevelCount());
+			.SetMipLevels(rawResource->GetMipLevelCount())
+			.SetName(rawResource->GetDebugName());
 	}
 
 	Assert(false);
@@ -167,6 +179,11 @@ GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 	return result;
 }
 
+FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
+	: mResourceRegistry(registry)
+{
+}
+
 void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 {
 	auto tryAddResourceNode = [this](const FrameGraphResource::Id& resource)
@@ -233,6 +250,13 @@ void FrameGraphBuilder::SubmitPasses()
 
 void FrameGraphBuilder::DebugOutputGraph()
 {
+	for (const auto& [id, n] : mResourceNodes)
+	{
+		DEBUG_PRINT("[Resource] %d [node:%d][name:%s]", 
+			id, n, 
+			mResourceRegistry->GetResourceDesc({ id }).GetName());
+	}
+
 	auto printNode = [&]
 	(const char* prefix, DirectedGraph::NodeHandle node)
 	{
@@ -240,7 +264,7 @@ void FrameGraphBuilder::DebugOutputGraph()
 		{
 			if (n == node)
 			{
-				DEBUG_PRINT("\t %d", id);
+				DEBUG_PRINT("%s%d [node:%d]", prefix, id, n);
 			}
 		}
 	};
@@ -274,7 +298,7 @@ FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
 
 void FrameGraph::StartFrame()
 {
-	mFrameGraphBuilder = std::make_unique<FrameGraphBuilder>();
+	mFrameGraphBuilder = std::make_unique<FrameGraphBuilder>(mResourceRegistry.get());
 }
 
 void FrameGraph::EndFrame()
@@ -294,14 +318,7 @@ FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)
 
 FrameGraphMutableResource FrameGraph::Import(GI::IGraphicMemoryResource* resource)
 {
-	auto result = mResourceRegistry->ImportResource(resource);
-
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)", 
-		result.mId, resource->GetDebugName(), resource->GetResourceId());
-#endif
-
-	return result;
+	return mResourceRegistry->ImportResource(resource);
 }
 
 void FrameGraph::Present(FrameGraphMutableResource resource)
