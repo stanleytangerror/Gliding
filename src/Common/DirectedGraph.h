@@ -18,129 +18,24 @@ public:
 		NodeHandle mEnd;
 	};
 
-	NodeHandle AddNode()
-	{
-		auto n = mNodeCounter++;
-		mNodes.insert(n);
-		return n;
-	}
+	NodeHandle AddNode();
+	EdgeHandle AddEdge(const NodeHandle& begin, const NodeHandle& end);
 
-	void TryAddNode(NodeHandle n)
-	{
-		if (!IsValidNodeHandle(n))
-		{
-			mNodeCounter = std::max(mNodeCounter, n + 1);
-			mNodes.insert(n);
-		}
-	}
+	void RemoveEdge(const EdgeHandle& edge);
+	void RemoveNode(const NodeHandle& node);
 
-	EdgeHandle AddEdge(const NodeHandle& begin, const NodeHandle& end)
-	{
-		Assert(IsValidNodeHandle(begin));
-		Assert(IsValidNodeHandle(end));
+	std::vector<EdgeHandle>	GetIncomingEdges(const NodeHandle& node) const;
+	std::vector<EdgeHandle>	GetOutgoingEdges(const NodeHandle& node) const;
+	std::vector<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
+	std::vector<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
 
-		auto e = mEdgeCounter++;
-		mEdges[e] = { begin, end };
-		return e;
-	}
+	Edge GetEdge(const EdgeHandle& h) const;
 
-	void TryAddEdge(const NodeHandle& begin, const NodeHandle& end, const EdgeHandle& edge)
-	{
-		Assert(IsValidNodeHandle(begin));
-		Assert(IsValidNodeHandle(end));
-		if (IsValidEdgeHandle(edge))
-		{
-			auto e = GetEdge(edge);
-			Assert(e.mBegin == begin);
-			Assert(e.mEnd == end);
-		}
-
-		mEdgeCounter = std::max(mEdgeCounter, edge + 1);
-		mEdges[edge] = { begin, end };
-	}
-
-	void RemoveEdge(const EdgeHandle& edge)
-	{
-		Assert(IsValidEdgeHandle(edge));
-
-		mEdges.erase(mEdges.find(edge));
-	}
-	
-	void RemoveNode(const NodeHandle& node)
-	{
-		Assert(IsValidNodeHandle(node));
-
-		for (auto e : GetIncomingEdges(node))
-		{
-			RemoveEdge(e);
-		}
-		for (auto e : GetOutgoingEdges(node))
-		{
-			RemoveEdge(e);
-		}
-	}
-
-	std::vector<EdgeHandle>	GetIncomingEdges(const NodeHandle& node) const
-	{
-		std::vector<EdgeHandle> result;
-		for (const auto& [e, n] : mEdges)
-		{
-			if (n.mEnd == node)
-			{
-				result.push_back(e);
-			}
-		}
-		return result;
-	}
-
-	std::vector<EdgeHandle>	GetOutgoingEdges(const NodeHandle& node) const
-	{
-		std::vector<EdgeHandle> result;
-		for (const auto& [e, n] : mEdges)
-		{
-			if (n.mBegin == node)
-			{
-				result.push_back(e);
-			}
-		}
-		return result;
-	}
-
-	std::vector<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const
-	{
-		std::vector<NodeHandle> result;
-		for (const auto& [e, n] : mEdges)
-		{
-			if (n.mEnd == node)
-			{
-				result.push_back(n.mBegin);
-			}
-		}
-		return result;
-	}
-
-	std::vector<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const
-	{
-		std::vector<NodeHandle> result;
-		for (const auto& [e, n] : mEdges)
-		{
-			if (n.mBegin == node)
-			{
-				result.push_back(n.mEnd);
-			}
-		}
-		return result;
-	}
-
-	Edge GetEdge(const EdgeHandle& h) const
-	{
-		Assert(IsValidEdgeHandle(h));
-		return mEdges.find(h)->second;
-	}
+	std::set<NodeHandle>	GetAllNode() const { return mNodes; }
 
 	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
-	static std::vector<NodeHandle> CullAndSort(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
+	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
 protected:
 	bool IsValidNodeHandle(const NodeHandle& h) const { return mNodes.find(h) != mNodes.end(); }

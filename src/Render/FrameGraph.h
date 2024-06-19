@@ -241,12 +241,6 @@ protected:
 	};
 	using PassHandle = u32;
 
-	struct Node {
-		enum { Resource, Pass } mType;
-		FrameGraphResource::Id	mResourceId;
-		PassHandle				mPassHandle;
-	};
-
 protected:
 	ResourceRegistry* mResourceRegistry = nullptr;
 

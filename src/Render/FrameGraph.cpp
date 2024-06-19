@@ -264,7 +264,8 @@ void FrameGraphBuilder::CompileAndExecute()
 	DebugOutputGraph();
 #endif
 
-	auto nodes = DirectedGraph::CullAndSort(mResourceGraph, outputNodes);
+	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
+	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
 
 #if DEBUG_FRAME_GRAPH
 	DEBUG_PRINT("Culled");

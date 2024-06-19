@@ -1,9 +1,106 @@
 #include "CommonPch.h"
 #include "DirectedGraph.h"
 
+DirectedGraph::NodeHandle DirectedGraph::AddNode()
+{
+	auto n = mNodeCounter++;
+	mNodes.insert(n);
+	return n;
+}
+
+DirectedGraph::EdgeHandle DirectedGraph::AddEdge(const NodeHandle& begin, const NodeHandle& end)
+{
+	Assert(IsValidNodeHandle(begin));
+	Assert(IsValidNodeHandle(end));
+
+	auto e = mEdgeCounter++;
+	mEdges[e] = { begin, end };
+	return e;
+}
+
+void DirectedGraph::RemoveEdge(const EdgeHandle& edge)
+{
+	Assert(IsValidEdgeHandle(edge));
+
+	mEdges.erase(mEdges.find(edge));
+}
+
+void DirectedGraph::RemoveNode(const NodeHandle& node)
+{
+	Assert(IsValidNodeHandle(node));
+
+	for (auto e : GetIncomingEdges(node))
+	{
+		RemoveEdge(e);
+	}
+	for (auto e : GetOutgoingEdges(node))
+	{
+		RemoveEdge(e);
+	}
+}
+
+std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
+{
+	std::vector<EdgeHandle> result;
+	for (const auto& [e, n] : mEdges)
+	{
+		if (n.mEnd == node)
+		{
+			result.push_back(e);
+		}
+	}
+	return result;
+}
+
+std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetOutgoingEdges(const NodeHandle& node) const
+{
+	std::vector<EdgeHandle> result;
+	for (const auto& [e, n] : mEdges)
+	{
+		if (n.mBegin == node)
+		{
+			result.push_back(e);
+		}
+	}
+	return result;
+}
+
+
+std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
+{
+	std::vector<NodeHandle> result;
+	for (const auto& [e, n] : mEdges)
+	{
+		if (n.mEnd == node)
+		{
+			result.push_back(n.mBegin);
+		}
+	}
+	return result;
+}
+
+std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
+{
+	std::vector<NodeHandle> result;
+	for (const auto& [e, n] : mEdges)
+	{
+		if (n.mBegin == node)
+		{
+			result.push_back(n.mEnd);
+		}
+	}
+	return result;
+}
+
+DirectedGraph::Edge DirectedGraph::GetEdge(const DirectedGraph::EdgeHandle& h) const
+{
+	Assert(IsValidEdgeHandle(h));
+	return mEdges.find(h)->second;
+}
+
 DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
 {
-	DirectedGraph result;
+	DirectedGraph result = graph;
 
 	std::queue<NodeHandle> nodes;
 	std::set<NodeHandle> visitedNodes;
@@ -15,50 +112,57 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 		nodes.pop();
 		visitedNodes.insert(curNode);
 
-		result.TryAddNode(curNode);
-
-		for (auto e : graph.GetIncomingEdges(curNode))
+		for (auto n : graph.GetIncomingNodes(curNode))
 		{
-			auto be = graph.GetEdge(e);
-			result.TryAddNode(be.mBegin);
-			result.TryAddNode(be.mEnd);
-			result.TryAddEdge(be.mBegin, be.mEnd, e);
-
-			if (visitedNodes.find(be.mBegin) == visitedNodes.end())
+			if (visitedNodes.find(n) == visitedNodes.end())
 			{
-				nodes.push(be.mBegin);
+				nodes.push(n);
 			}
 		}
+	}
+
+	bool continu = true;
+	while (continu)
+	{
+		for (auto n : graph.GetAllNode())
+		{
+			if (visitedNodes.find(n) == visitedNodes.end())
+			{
+				result.RemoveNode(n);
+				continu = true;
+				break;
+			}
+		}
+		continu = false;
 	}
 
 	return result;
 }
 
-std::vector<DirectedGraph::NodeHandle> DirectedGraph::CullAndSort(const DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
+std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
 {
-	DirectedGraph culledGraph = Cull(graph, endNodes);
-
-	std::vector<DirectedGraph::EdgeHandle> result;
+	std::vector<DirectedGraph::NodeHandle> result;
 
 	std::queue<NodeHandle> nodes;
-	for (auto n : endNodes) { nodes.push(n); }
+	for (auto n : endNodes) 
+	{
+		Assert(graph.GetOutgoingNodes(n).empty());
+		nodes.push(n); 
+	}
 
 	while (!nodes.empty())
 	{
 		auto curNode = nodes.front();
 		nodes.pop();
 
-		for (auto e : culledGraph.GetIncomingEdges(curNode))
-		{
-			result.push_back(e);
-		}
+		result.push_back(curNode);
 
-		auto nextNodes = culledGraph.GetIncomingNodes(curNode);
+		const auto& incomingNodes = graph.GetIncomingNodes(curNode);
+		graph.RemoveNode(curNode);
 
-		culledGraph.RemoveNode(curNode);
-		for (auto n : nextNodes)
+		for (auto n : incomingNodes)
 		{
-			if (culledGraph.GetIncomingEdges(n).empty())
+			if (graph.GetOutgoingNodes(n).empty())
 			{
 				nodes.push(n);
 			}
