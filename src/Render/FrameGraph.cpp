@@ -323,7 +323,7 @@ void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::EdgeHandle edge, cons
 	Assert(mPassNodes.ContainsValue(edge));
 	
 	auto passHandle = mPassNodes.GetByValue(edge).first;
-	DEBUG_PRINT("%s[edge:%d]: %d\t%s", prefix ? prefix : "", edge, passHandle, mPasses[passHandle].mPassName.c_str());
+	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", edge, passHandle, mPasses[passHandle].mPassName.c_str());
 }
 
 FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)

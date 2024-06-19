@@ -477,7 +477,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.brdfIntegrationMapSrv = builder.Read(mBRDFIntegrationMapSrv);
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.Write(target);
-			data.dsv = builder.ReadWrite(tempDepth,
+			data.dsv = builder.Write(tempDepth,
 				GI::DsvDesc()
 				.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 				.SetFormat(mMainDepthDsv.desc.GetFormat())
