@@ -412,28 +412,29 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 	const auto& dsSize = mMainDepth->GetSize();
 
-	auto tmpDepth = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
-		.SetDimension(GI::ResourceDimension::TEXTURE2D)
-		.SetWidth(dsSize.x())
-		.SetHeight(dsSize.y())
-		.SetDepthOrArraySize(dsSize.z())
-		.SetMipLevels(1)
-		.SetFormat(mMainDepth->GetFormat())
-		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-		.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
-		.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
-		.SetName("TempDepthRt")
-		.SetHeapType(GI::HeapType::DEFAULT));
+	auto tempDepthDesc = GI::MemoryResourceDesc::RenderTarget2D(
+		{ dsSize.x(), dsSize.y() }, mMainDepth->GetFormat(), GI::ResourceFlag::ALLOW_DEPTH_STENCIL, "TempMainDepth")
+		.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE);
 
-	auto tmpDepthDsv = DsvUsageFuture{
-		frameGraph->Import(tmpDepth.get()),
-		GI::DsvDesc()
-			.SetViewDimension(GI::DsvDimension::TEXTURE2D)
-			.SetFormat(mMainDepthDsv.desc.GetFormat())
-			.SetFlags(GI::DsvFlag::NONE) };
+	auto tempDepth = frameGraph->Create(tempDepthDesc);
+	auto mainDepth = frameGraph->Import(mMainDepth.get());
 
-	infra->GetRecorder()->AddCopyOperation(tmpDepth.get(), mMainDepth.get());
+	struct CopyData
+	{
+		FrameGraphMutableResource copyDest;
+		FrameGraphResource copySrc;
+	};
+
+	frameGraph->AddPass<CopyData>("CopyMainDepth",
+		[&](RenderPassBuilder& builder, CopyData& data)
+		{
+			data.copyDest = builder.Write(tempDepth);
+			data.copySrc = builder.Read(mainDepth);
+		},
+		[](const CopyData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		{
+			infra->GetRecorder()->AddCopyOperation(resources.Get(data.copyDest.mId), resources.Get(data.copySrc.mId));
+		});
 
 	struct PassData
 	{
@@ -476,7 +477,11 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.brdfIntegrationMapSrv = builder.Read(mBRDFIntegrationMapSrv);
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.Write(target);
-			data.dsv = builder.Write(tmpDepthDsv);
+			data.dsv = builder.ReadWrite(tempDepth,
+				GI::DsvDesc()
+				.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+				.SetFormat(mMainDepthDsv.desc.GetFormat())
+				.SetFlags(GI::DsvFlag::NONE));
 			data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 		},
 		[

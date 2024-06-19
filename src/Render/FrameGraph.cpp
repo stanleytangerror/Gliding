@@ -26,7 +26,7 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 {
 	if (mImportedResources.ContainsValue(resource))
 	{
-		return { mImportedResources.FindValue(resource).first };
+		return { mImportedResources.GetByValue(resource).first };
 	}
 
 	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
@@ -49,7 +49,7 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 	}
 	else if (mImportedResources.ContainsKey(resource.mId))
 	{
-		return mImportedResources.FindKey(resource.mId).second;
+		return mImportedResources.GetByKey(resource.mId).second;
 	}
 
 	Assert(false);
@@ -64,7 +64,7 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 	}
 	else if (mImportedResources.ContainsKey(resource.mId))
 	{
-		auto rawResource = mImportedResources.FindKey(resource.mId).second;
+		auto rawResource = mImportedResources.GetByKey(resource.mId).second;
 		return GI::MemoryResourceDesc()
 			.SetDimension(rawResource->GetDimension())
 			.SetWidth(rawResource->GetSize().x())
@@ -113,6 +113,12 @@ GI::SamplerDesc	RenderPassBuilder::Read(const GI::SamplerDesc& usage)
 	return usage;
 }
 
+FrameGraphResource RenderPassBuilder::Read(const FrameGraphResource& resource)
+{
+	mInputResources.push_back(resource.mId);
+	return resource;
+}
+
 SrvUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::SrvDesc& desc)
 {
 	mInputResources.push_back(resource.mId);
@@ -143,9 +149,34 @@ UavUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resourc
 	return { resource, desc };
 }
 
+FrameGraphMutableResource RenderPassBuilder::Write(const FrameGraphMutableResource& resource)
+{
+	mOutputResources.push_back(resource.mId);
+	return resource;
+}
+
+UavUsageFuture RenderPassBuilder::ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc)
+{
+	mInputResources.push_back(resource.mId);
+	mOutputResources.push_back(resource.mId);
+	return { resource, desc };
+}
+
+DsvUsageFuture RenderPassBuilder::ReadWrite(const FrameGraphResource& resource, const GI::DsvDesc& desc)
+{
+	mInputResources.push_back(resource.mId);
+	mOutputResources.push_back(resource.mId);
+	return { resource, desc };
+}
+
 RenderPassResources::RenderPassResources(ResourceRegistry* resourceRegistry)
 	: mResourceRegistry(resourceRegistry)
 {}
+
+GI::IGraphicMemoryResource* RenderPassResources::Get(const FrameGraphResource::Id& resource) const
+{
+	return mResourceRegistry->GetResource({ resource });
+}
 
 GI::SrvUsage RenderPassResources::Get(const SrvUsageFuture& usage) const
 {
@@ -186,107 +217,112 @@ FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
 
 void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 {
-	auto tryAddResourceNode = [this](const FrameGraphResource::Id& resource)
-		{
-			auto it = mResourceNodes.find(resource);
-			if (it != mResourceNodes.end())
-			{
-				return it->second;
-			}
-
-			auto nodeHandle = mResourceGraph.AddNode();
-			mResourceNodes.insert({ resource, nodeHandle });
-			return nodeHandle;
-		};
-
 	PassHandle passHandle = mPasses.size();
 	mPasses.push_back({ passBuilder.mPassName, passBuilder.mPassFunction });
-	
+	const auto passNode = mResourceGraph.AddNode();
+
+	mPassNodes.Insert(passHandle, passNode);
+
+	auto tryAddResourceNode = [this](const FrameGraphResource::Id& resourceId)
+		{
+			if (!mResourceNodes.ContainsKey(resourceId))
+			{
+				mResourceNodes.Insert(resourceId, mResourceGraph.AddNode());
+			}
+
+			return mResourceNodes.GetByKey(resourceId).second;
+		};
+
 	for (const auto& input : passBuilder.mInputResources)
 	{
-		for (const auto& output : passBuilder.mOutputResources)
-		{
-			auto inputNode = tryAddResourceNode(input);
-			auto outputNode = tryAddResourceNode(output);
-			auto edge = mResourceGraph.AddEdge(inputNode, outputNode);
-			mPassEdges.insert({ edge, passHandle });
-		}
+		auto inputNode = tryAddResourceNode(input);
+		mResourceGraph.AddEdge(inputNode, passNode);
+	}
+
+	for (const auto& output : passBuilder.mOutputResources)
+	{
+		auto outputNode = tryAddResourceNode(output);
+		mResourceGraph.AddEdge(passNode, outputNode);
 	}
 }
 
 void FrameGraphBuilder::MarkOutputNode(const FrameGraphResource& resource)
 {
-	Assert(mResourceNodes.find(resource.mId) != mResourceNodes.end());
+	Assert(mResourceNodes.ContainsKey(resource.mId));
 	mPresentResources.insert(resource.mId);
 }
 
-void FrameGraphBuilder::SubmitPasses()
+void FrameGraphBuilder::CompileAndExecute()
 {
 	Assert(!mPresentResources.empty());
 	std::vector<DirectedGraph::NodeHandle> outputNodes(mPresentResources.size());
 	std::transform(mPresentResources.begin(), mPresentResources.end(),
 		outputNodes.begin(),
-		[this](FrameGraphResource::Id id) { return mResourceNodes[id]; });
+		[this](FrameGraphResource::Id id) { return mResourceNodes.GetByKey(id).second; });
 	
 #if DEBUG_FRAME_GRAPH
 	DebugOutputGraph();
 #endif
 
-	auto edges = DirectedGraph::CullAndSort(mResourceGraph, outputNodes);
+	auto nodes = DirectedGraph::CullAndSort(mResourceGraph, outputNodes);
 
-	std::set<PassHandle> finished;
-	for (auto e : edges)
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("Culled");
+#endif
+
+	std::vector<Pass> sortedPasses;
+	for (auto n : nodes)
 	{
-		auto it = mPassEdges.find(e);
-		Assert(it != mPassEdges.end());
+		if (mPassNodes.ContainsValue(n))
+		{
+			sortedPasses.push_back(mPasses[mPassNodes.GetByValue(n).first]);
 
-		auto passHandle = it->second;
-		const auto& pass = mPasses[passHandle];
+#if DEBUG_FRAME_GRAPH
+			DebugOutputPassNode(n, "[Pass] ");
+#endif
+		}
+	}
+
+	for (const auto& pass : sortedPasses)
+	{
 		pass.mExecute();
-
-		finished.insert(passHandle);
 	}
 }
 
 void FrameGraphBuilder::DebugOutputGraph()
 {
-	for (const auto& [id, n] : mResourceNodes)
+	for (const auto& [resourceId, node] : mResourceNodes)
 	{
-		DEBUG_PRINT("[Resource] %d [node:%d][name:%s]", 
-			id, n, 
-			mResourceRegistry->GetResourceDesc({ id }).GetName());
+		DebugOutputResourceNode(node, "[Resource] ");
 	}
 
-	auto printNode = [&]
-	(const char* prefix, DirectedGraph::NodeHandle node)
+	for (const auto& [passHandle, node] : mPassNodes)
 	{
-		for (const auto& [id, n] : mResourceNodes)
-		{
-			if (n == node)
-			{
-				DEBUG_PRINT("%s%d [node:%d]", prefix, id, n);
-			}
-		}
-	};
+		DebugOutputPassNode(node, "[Pass] ");
 
-	for (auto passHandle = 0; passHandle < mPasses.size(); ++passHandle)
-	{
-		DEBUG_PRINT("[Pass] %d %s", passHandle, mPasses[passHandle].mPassName.c_str());
+		auto inputs = mResourceGraph.GetIncomingNodes(node);
+		for (const auto& n : inputs) { DebugOutputResourceNode(n, "\t - "); }
 
-		std::set<DirectedGraph::NodeHandle> inputs, outputs;
-		for (const auto& [e, p] : mPassEdges)
-		{
-			if (p == passHandle)
-			{
-				auto be = mResourceGraph.GetEdge(e);
-				inputs.insert(be.mBegin);
-				outputs.insert(be.mEnd);
-			}
-		}
-
-		for (const auto& n : inputs) { printNode("\t - ", n); }
-		for (const auto& n : outputs) { printNode("\t + ", n); }
+		auto outputs = mResourceGraph.GetOutgoingNodes(node);
+		for (const auto& n : outputs) { DebugOutputResourceNode(n, "\t + "); }
 	}
+}
+
+void FrameGraphBuilder::DebugOutputResourceNode(DirectedGraph::NodeHandle node, const char* prefix)
+{
+	Assert(mResourceNodes.ContainsValue(node));
+
+	const auto& id = mResourceNodes.GetByValue(node).first;
+	const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
+	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, id, name);
+}
+
+void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::EdgeHandle edge, const char* prefix)
+{
+	Assert(mPassNodes.ContainsValue(edge));
+	
+	auto passHandle = mPassNodes.GetByValue(edge).first;
+	DEBUG_PRINT("%s[edge:%d]: %d\t%s", prefix ? prefix : "", edge, passHandle, mPasses[passHandle].mPassName.c_str());
 }
 
 FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
@@ -305,7 +341,7 @@ void FrameGraph::EndFrame()
 {
 	mResourceRegistry->OnSubmitPass(mInfra);
 
-	mFrameGraphBuilder->SubmitPasses();
+	mFrameGraphBuilder->CompileAndExecute();
 	mFrameGraphBuilder = nullptr;
 
 	mResourceRegistry->OnEndFrame();

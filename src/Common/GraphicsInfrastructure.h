@@ -861,7 +861,7 @@ namespace GI
                 .SetName(name);
         }
 
-        static MemoryResourceDesc RenderTarget2D(Vec2u size, Format::Enum format, bool allowUav, const char* name)
+        static MemoryResourceDesc RenderTarget2D(Vec2u size, Format::Enum format, GI::ResourceFlag::Flags flags, const char* name)
         {
             return MemoryResourceDesc()
                 .SetDimension(ResourceDimension::TEXTURE2D)
@@ -874,7 +874,7 @@ namespace GI
                 .SetSampleDesc_Count(1)
                 .SetSampleDesc_Quality(0)
                 .SetLayout(TextureLayout::LAYOUT_UNKNOWN)
-                .SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | (allowUav ? GI::ResourceFlag::ALLOW_UNORDERED_ACCESS : 0))
+                .SetFlags(flags)
                 .SetHeapType(GI::HeapType::DEFAULT)
                 .SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
                 .SetName(name);

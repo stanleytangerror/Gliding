@@ -206,7 +206,7 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 
 	auto sourceDesc = frameGraph->GetResourceDesc(source.resource);
 
-	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), false, "GaussianBlurIntermediateRt");
+	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), GI::ResourceFlag::ALLOW_RENDER_TARGET, "GaussianBlurIntermediateRt");
 	auto interRtFg = frameGraph->Create(desc);
 
 	RENDER_EVENT(infra, GaussianBlur);

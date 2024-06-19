@@ -11,12 +11,12 @@ public:
 		return map2.find(v) != map2.end();
 	}
 
-	std::pair<K, V> FindKey(const K& k) const
+	std::pair<K, V> GetByKey(const K& k) const
 	{
 		return *map1.find(k);
 	}
 
-	std::pair<K, V> FindValue(const V& v) const
+	std::pair<K, V> GetByValue(const V& v) const
 	{
 		auto it = map2.find(v);
 		return { it->second, it->first };
@@ -31,6 +31,16 @@ public:
 	{
 		map1[k] = v;
 		map2[v] = k;
+	}
+
+	typename std::map<K, V>::const_iterator begin() const
+	{
+		return map1.begin();
+	}
+
+	typename std::map<K, V>::const_iterator end() const
+	{
+		return map1.end();
 	}
 
 protected:

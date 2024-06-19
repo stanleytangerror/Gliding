@@ -179,6 +179,7 @@ public:
 	GI::IbvUsage	Read(const GI::IbvUsage& usage);
 	GI::SamplerDesc	Read(const GI::SamplerDesc& usage);
 
+	FrameGraphResource	Read(const FrameGraphResource& resource);
 	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
 	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
@@ -189,6 +190,11 @@ public:
 	DsvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 	UavUsageFuture	Write(const UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	UavUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc);
+	FrameGraphMutableResource	Write(const FrameGraphMutableResource& resource);
+	UavUsageFuture	ReadWrite(const UavUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
+	UavUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc);
+	DsvUsageFuture	ReadWrite(const DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
+	DsvUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::DsvDesc& desc);
 
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
 
@@ -205,6 +211,7 @@ class GD_RENDER_API RenderPassResources
 public:
 	RenderPassResources(ResourceRegistry* resourceRegistry);
 
+	GI::IGraphicMemoryResource*	Get(const FrameGraphResource::Id& resource) const;
 	GI::SrvUsage	Get(const SrvUsageFuture& usage) const;
 	GI::RtvUsage	Get(const RtvUsageFuture& usage) const;
 	GI::DsvUsage	Get(const DsvUsageFuture& usage) const;
@@ -219,25 +226,36 @@ class GD_RENDER_API FrameGraphBuilder
 public:
 	FrameGraphBuilder(ResourceRegistry* registry);
 
+	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
+	void						MarkOutputNode(const FrameGraphResource& resource);
+	void						CompileAndExecute();
+
+	void						DebugOutputGraph();
+	void						DebugOutputResourceNode(DirectedGraph::NodeHandle node, const char* prefix = nullptr);
+	void						DebugOutputPassNode(DirectedGraph::EdgeHandle edge, const char* prefix = nullptr);
+
+protected:
 	struct Pass {
 		std::string mPassName;
 		std::function<void()> mExecute;
 	};
 	using PassHandle = u32;
-	
-	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
-	void						MarkOutputNode(const FrameGraphResource& resource);
-	void						SubmitPasses();
-	void						DebugOutputGraph();
+
+	struct Node {
+		enum { Resource, Pass } mType;
+		FrameGraphResource::Id	mResourceId;
+		PassHandle				mPassHandle;
+	};
 
 protected:
 	ResourceRegistry* mResourceRegistry = nullptr;
 
-	std::map<FrameGraphResource::Id, DirectedGraph::NodeHandle>	mResourceNodes;
-	std::map<DirectedGraph::EdgeHandle, PassHandle>				mPassEdges;
-	std::vector<Pass>	mPasses;
-	DirectedGraph		mResourceGraph;
-	std::set<FrameGraphResource::Id>	mPresentResources;
+	BijectionMap<FrameGraphResource::Id, DirectedGraph::NodeHandle>	mResourceNodes;
+	BijectionMap<PassHandle, DirectedGraph::NodeHandle>				mPassNodes;
+	DirectedGraph													mResourceGraph;
+	
+	std::set<FrameGraphResource::Id>								mPresentResources;
+	std::vector<Pass>												mPasses;
 };
 
 class GD_RENDER_API FrameGraph

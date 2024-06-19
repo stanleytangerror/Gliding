@@ -28,7 +28,8 @@ void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const SrvUsageFuture& sce
 		mQuad->CreateAndInitialResource(infra);
 	}
 
-	const auto exposureDesc = GI::MemoryResourceDesc::RenderTarget2D({ 1, 1 }, GI::Format::FORMAT_R32G32B32A32_FLOAT, true, "ExposureRt");
+	const auto exposureDesc = GI::MemoryResourceDesc::RenderTarget2D({ 1, 1 }, GI::Format::FORMAT_R32G32B32A32_FLOAT, 
+		GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "ExposureRt");
 	auto exposureFg = mRenderModule->GetFrameGraph()->Create(exposureDesc);
 
 	CalcSceneExposure(infra, sceneHdr, { exposureFg, GI::MemoryResourceDesc::AsTexture2DUav(exposureDesc) });
