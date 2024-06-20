@@ -31,7 +31,8 @@ public:
 
 	Edge GetEdge(const EdgeHandle& h) const;
 
-	std::set<NodeHandle>	GetAllNode() const { return mNodes; }
+	std::set<NodeHandle>	GetAllNodes() const { return mNodes; }
+	std::map<EdgeHandle, Edge>	GetAllEdges() const { return mEdges; }
 
 	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 

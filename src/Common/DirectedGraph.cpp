@@ -43,6 +43,8 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 
 std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
 {
+	Assert(IsValidNodeHandle(node));
+
 	std::vector<EdgeHandle> result;
 	for (const auto& [e, n] : mEdges)
 	{
@@ -56,6 +58,8 @@ std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const Nod
 
 std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetOutgoingEdges(const NodeHandle& node) const
 {
+	Assert(IsValidNodeHandle(node));
+
 	std::vector<EdgeHandle> result;
 	for (const auto& [e, n] : mEdges)
 	{
@@ -70,6 +74,8 @@ std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetOutgoingEdges(const Nod
 
 std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
 {
+	Assert(IsValidNodeHandle(node));
+
 	std::vector<NodeHandle> result;
 	for (const auto& [e, n] : mEdges)
 	{
@@ -83,6 +89,8 @@ std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const Nod
 
 std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
 {
+	Assert(IsValidNodeHandle(node));
+
 	std::vector<NodeHandle> result;
 	for (const auto& [e, n] : mEdges)
 	{
@@ -127,7 +135,7 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 	while (continu)
 	{
 		continu = false;
-		for (auto n : result.GetAllNode())
+		for (auto n : result.GetAllNodes())
 		{
 			if (visitedNodes.find(n) == visitedNodes.end())
 			{
@@ -135,6 +143,32 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 				continu = true;
 				break;
 			}
+		}
+	}
+
+	struct EdgeComparer {
+		bool operator() (const Edge& lhs, const Edge& rhs) const {
+			return 
+				lhs.mBegin < rhs.mBegin ? true :
+				lhs.mBegin > rhs.mBegin ? false :
+				lhs.mEnd < rhs.mEnd;
+		}
+	};
+
+	continu = true;
+	while (continu)
+	{
+		continu = false;
+		std::set<Edge, EdgeComparer> edges;
+		for (auto [eh, e] : result.GetAllEdges())
+		{
+			if (edges.find(e) != edges.end())
+			{
+				result.RemoveEdge(eh);
+				continu = true;
+				break;
+			}
+			edges.insert(e);
 		}
 	}
 
