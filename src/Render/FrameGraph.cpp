@@ -307,6 +307,24 @@ void FrameGraphBuilder::DebugOutputGraph()
 		auto outputs = mResourceGraph.GetOutgoingNodes(node);
 		for (const auto& n : outputs) { DebugOutputResourceNode(n, "\t + "); }
 	}
+
+	auto serialized = DirectedGraph::Serialize(mResourceGraph, [this](auto n)
+		{
+			if (mResourceNodes.ContainsValue(n))
+			{
+				const auto& id = mResourceNodes.GetByValue(n).first;
+				const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
+				return Utils::FormatString("Resource: %s Id: %d", name, id);
+			}
+			else
+			{
+				auto passHandle = mPassNodes.GetByValue(n).first;
+				return Utils::FormatString("Pass: %s PassHandle: %d", mPasses[passHandle].mPassName.c_str(), passHandle);
+			}
+		},
+		[](auto e) { return ""; });
+
+	Utils::PrintDebugString(serialized.c_str());
 }
 
 void FrameGraphBuilder::DebugOutputResourceNode(DirectedGraph::NodeHandle node, const char* prefix)

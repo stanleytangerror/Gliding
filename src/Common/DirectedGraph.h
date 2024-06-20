@@ -37,6 +37,10 @@ public:
 
 	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
+	static std::string Serialize(const DirectedGraph& graph,
+		std::function<std::string(NodeHandle)> serializeNode,
+		std::function<std::string(EdgeHandle)> serializeEdge);
+
 protected:
 	bool IsValidNodeHandle(const NodeHandle& h) const { return mNodes.find(h) != mNodes.end(); }
 	bool IsValidEdgeHandle(const EdgeHandle& h) const { return mEdges.find(h) != mEdges.end(); }

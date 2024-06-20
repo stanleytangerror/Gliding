@@ -1,5 +1,6 @@
 #include "CommonPch.h"
 #include "DirectedGraph.h"
+#include "StringUtils.h"
 
 DirectedGraph::NodeHandle DirectedGraph::AddNode()
 {
@@ -170,5 +171,30 @@ std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& gr
 	}
 
 	std::reverse(result.begin(), result.end());
+	return result;
+}
+
+std::string DirectedGraph::Serialize(const DirectedGraph& graph,
+	std::function<std::string(NodeHandle)> serializeNode,
+	std::function<std::string(EdgeHandle)> serializeEdge)
+{
+	std::string result = R"({ "nodes": [)";
+	for (auto it = graph.mNodes.begin(); it != graph.mNodes.end(); ++it)
+	{
+		auto n = *it;
+		if (it != graph.mNodes.begin()) result += ",";
+		result += Utils::FormatString(
+			R"({"id":"%d", "value":"%s"})", 
+			n, serializeNode(n).c_str());
+	}
+	result += R"(], "edges": [)";
+	for (auto it = graph.mEdges.begin(); it != graph.mEdges.end(); ++it)
+	{
+		if (it != graph.mEdges.begin()) result += ",";
+		result += Utils::FormatString(
+			R"({"source":"%d", "target":"%d", "value":"%s"})", 
+			it->second.mBegin, it->second.mEnd, serializeEdge(it->first).c_str());
+	}
+	result += R"(] })";
 	return result;
 }
