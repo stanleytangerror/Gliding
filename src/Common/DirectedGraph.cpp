@@ -38,6 +38,7 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 	{
 		RemoveEdge(e);
 	}
+	mNodes.erase(node);
 }
 
 std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
@@ -125,7 +126,8 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 	bool continu = true;
 	while (continu)
 	{
-		for (auto n : graph.GetAllNode())
+		continu = false;
+		for (auto n : result.GetAllNode())
 		{
 			if (visitedNodes.find(n) == visitedNodes.end())
 			{
@@ -134,7 +136,6 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 				break;
 			}
 		}
-		continu = false;
 	}
 
 	return result;
