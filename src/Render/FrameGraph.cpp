@@ -338,32 +338,32 @@ void FrameGraphBuilder::CompileAndExecute()
 	DebugOutputGraph();
 #endif
 	
+	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
 
-	auto serialized = DirectedGraph::Serialize(mResourceGraph, [this](auto n)
+	auto serialized = DirectedGraph::Serialize(culledGraph, [this](auto n)
 		{
 			if (mResourceNodes.ContainsValue(n))
 			{
 				const auto& id = mResourceNodes.GetByValue(n).first;
 				const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
-				return Utils::FormatString("Resource: %s Id: %s", name, id.GetDebugName().c_str());
+				return std::make_tuple(
+					Utils::FormatString("%s\\nId: %s", Utils::EscapeString(name).c_str(), id.GetDebugName().c_str()),
+					"resource");
 			}
 			else
 			{
 				auto passHandle = mPassNodes.GetByValue(n).first;
-				return Utils::FormatString("Pass: %s PassHandle: %d", mPasses[passHandle].mPassName.c_str(), passHandle);
+				return std::make_tuple(
+					Utils::FormatString("%s\\nPassHandle: %d", mPasses[passHandle].mPassName.c_str(), passHandle),
+					"pass");
 			}
 		},
 		[](auto e) { return ""; });
 
 	Utils::PrintDebugString(serialized.c_str());
 
-	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
 
 	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
-
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("Culled");
-#endif
 
 	std::vector<Pass> sortedPasses;
 	for (auto n : nodes)

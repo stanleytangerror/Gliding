@@ -39,7 +39,7 @@ public:
 	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
 	static std::string Serialize(const DirectedGraph& graph,
-		std::function<std::string(NodeHandle)> serializeNode,
+		std::function<std::tuple<std::string, std::string>(NodeHandle)> serializeNode,
 		std::function<std::string(EdgeHandle)> serializeEdge);
 
 protected:

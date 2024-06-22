@@ -210,7 +210,7 @@ std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& gr
 }
 
 std::string DirectedGraph::Serialize(const DirectedGraph& graph,
-	std::function<std::string(NodeHandle)> serializeNode,
+	std::function<std::tuple<std::string, std::string>(NodeHandle)> serializeNode,
 	std::function<std::string(EdgeHandle)> serializeEdge)
 {
 	std::string result = R"({ "nodes": [)";
@@ -218,9 +218,10 @@ std::string DirectedGraph::Serialize(const DirectedGraph& graph,
 	{
 		auto n = *it;
 		if (it != graph.mNodes.begin()) result += ",";
+		auto [value, group] = serializeNode(n);
 		result += Utils::FormatString(
-			R"({"id":"%d", "value":"%s"})", 
-			n, serializeNode(n).c_str());
+			R"({"id":"%d", "value":"%s", "group":"%s"})", 
+			n, value.c_str(), group.c_str());
 	}
 	result += R"(], "edges": [)";
 	for (auto it = graph.mEdges.begin(); it != graph.mEdges.end(); ++it)

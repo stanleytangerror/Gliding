@@ -109,7 +109,7 @@
       .style("fill", function (d) { return color(d.value.substring(0, 10)) })
       .style("stroke", function(d) { return color(d.value.substring(0, 10)) })
       .attr("d", symbol.type(function (d) {
-        if (d.value.startsWith('Resource')) {
+        if (d.group === 'resource') {
           return d3.symbolCircle;
         }
         return d3.symbolSquare;

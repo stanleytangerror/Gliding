@@ -10,6 +10,7 @@ namespace Utils
 	GD_COMMON_API std::string ToString(const wchar_t* wstr);
 
 	GD_COMMON_API std::string FormatString(const char* format, ...);
+	GD_COMMON_API std::string EscapeString(const char* str);
 
 	GD_COMMON_API std::string GetDirFromPath(const char* path);
 
