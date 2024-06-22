@@ -13,11 +13,11 @@ public:
 	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, const RtvUsageFuture& screenRt);
+	void Render(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, RtvUsageFuture& screenRt);
 
 private:
-	void CalcSceneExposure(GI::IGraphicsInfra* infra, const SrvUsageFuture& input, const UavUsageFuture& exposureTex);
-	void ToneMapping(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, const SrvUsageFuture& exposure, const RtvUsageFuture& target);
+	void CalcSceneExposure(GI::IGraphicsInfra* infra, const SrvUsageFuture& input, UavUsageFuture& exposureTex);
+	void ToneMapping(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, const SrvUsageFuture& exposure, RtvUsageFuture& target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

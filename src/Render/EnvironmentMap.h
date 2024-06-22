@@ -17,5 +17,5 @@ public:
 
 protected:
 	static void PrefilterEnvironmentMap(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-		const RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness);
+		RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness);
 };

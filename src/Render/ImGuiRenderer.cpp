@@ -35,7 +35,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target, ImDrawData* uiData)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 

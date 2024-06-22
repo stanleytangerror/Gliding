@@ -72,8 +72,9 @@ void RenderModule::Render()
 	auto sceneHdr = mFrameGraph->Import(mSceneHdrRt->GetResource());
 	{
 		{
+			RtvUsageFuture sceneHdrRtv = { sceneHdr, mSceneHdrRt->GetRtvDesc() };
 			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
-			mWorldRenderer->Render(mGraphicInfra, { sceneHdr, mSceneHdrRt->GetRtvDesc() });
+			mWorldRenderer->Render(mGraphicInfra, sceneHdrRtv);
 		}
 
 		{

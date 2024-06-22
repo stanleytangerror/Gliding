@@ -11,18 +11,18 @@ struct SceneRawData;
 namespace RenderUtils
 {
 	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		const RtvUsageFuture& target,
+		RtvUsageFuture& target,
 		const Vec2f& targetOffset, const Vec2f& targetRect,
 		const SrvUsageFuture& source,
 		const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
 	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		const RtvUsageFuture& target,
+		RtvUsageFuture& target,
 		const SrvUsageFuture& source,
 		const GI::SamplerDesc& sourceSampler);
 
 	void GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		const RtvUsageFuture& target, 
+		RtvUsageFuture& target, 
 		const SrvUsageFuture& source, i32 kernelSizeInPixel);
 
 	enum WorldStencilMask : u8

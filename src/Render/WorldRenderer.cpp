@@ -187,7 +187,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
+void WorldRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 {
 	auto* frameGraph = mRenderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -218,10 +218,12 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 
 			auto panoramicSkyRt = frameGraph->Import(mPanoramicSkyRt->GetResource());
+			RtvUsageFuture panoramicSkyRtv = { panoramicSkyRt, mPanoramicSkyRt->GetRtvDesc() };
+
 			auto skyTexture = frameGraph->Import(mSkyTexture->GetResource());
 
 			RenderUtils::CopyTexture(frameGraph, infra, 
-				{ panoramicSkyRt, mPanoramicSkyRt->GetRtvDesc() }, 
+				panoramicSkyRtv,
 				Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
 				{ skyTexture, mSkyTexture->GetSrv() }, 
 				mNoMipMapLinearSampler, customSkyColor.c_str());
@@ -237,7 +239,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 			mFilteredEnvMapSrv = filterEnvMapSrv;
 
 			RenderUtils::GaussianBlur(frameGraph, infra, 
-				{ panoramicSkyRt, mPanoramicSkyRt->GetRtvDesc() }, 
+				panoramicSkyRtv,
 				{ panoramicSkyRt, mPanoramicSkyRt->GetSrvDesc() }, 2);
 		}
 
@@ -341,12 +343,13 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& targ
 	//////////////////////////////////////////////////////////////////////////
 
 	auto shadowMask = frameGraph->Import(mShadowMask->GetResource());
-	RenderShadowMask(frameGraph, infra, { shadowMask, mShadowMask->GetRtvDesc() }, mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
+	RtvUsageFuture shadowMaskRtv = { shadowMask, mShadowMask->GetRtvDesc() };
+	RenderShadowMask(frameGraph, infra, shadowMaskRtv, mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
 	DeferredLighting(frameGraph, infra, target);
 	RenderSky(frameGraph, target, mMainDepthDsv);
 }
 
-void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
+void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 
@@ -373,7 +376,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, const RtvUs
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
+void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
@@ -387,7 +390,7 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const Rtv
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target)
+void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
@@ -400,7 +403,7 @@ void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const
 }
 
 void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	const RtvUsageFuture& target)
+	RtvUsageFuture& target)
 {
 	auto& camState = frameGraph->GetBlackboard()->Get<MainCameraState>();
 	const auto& cameraProj = camState.mCameraProj;
@@ -477,7 +480,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.brdfIntegrationMapSrv = builder.Read(mBRDFIntegrationMapSrv);
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.Write(target);
-			data.dsv = builder.Write(tempDepth,
+			data.dsv = builder.ReadWrite(tempDepth,
 				GI::DsvDesc()
 				.SetViewDimension(GI::DsvDimension::TEXTURE2D)
 				.SetFormat(mMainDepthDsv.desc.GetFormat())
@@ -557,7 +560,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		});
 }
 
-void WorldRenderer::RenderSky(FrameGraph* frameGraph, const RtvUsageFuture& target, const DsvUsageFuture& depth) const
+void WorldRenderer::RenderSky(FrameGraph* frameGraph, RtvUsageFuture& target, DsvUsageFuture& depth) const
 {
 	if (!mPanoramicSkyRt) { return; }
 
@@ -584,7 +587,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const RtvUsageFuture& targ
 			data.panoramicSky = builder.Read({ frameGraph->Import(mPanoramicSkyRt->GetResource()), mPanoramicSkyRt->GetSrvDesc() });
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.Write(target);
-			data.depth = builder.Write(depth);
+			data.depth = builder.ReadWrite(depth);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,
@@ -649,7 +652,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, const RtvUsageFuture& targ
 void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
-	const std::array<RtvUsageFuture, 3>& gbufferRtvs, const DsvUsageFuture& depthView)
+	std::array<RtvUsageFuture, 3>& gbufferRtvs, DsvUsageFuture& depthView)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryWithMaterial);
 	
@@ -716,7 +719,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 			{
 				data.gbufferRtvs[i] = builder.Write(gbufferRtvs[i]);
 			}
-			data.depthView = builder.Write(depthView);
+			data.depthView = builder.ReadWrite(depthView);
 			data.targetSize = frameGraph->GetResourceDesc(gbufferRtvs[0].resource).GetSize();
 		},
 		[
@@ -790,7 +793,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
-	const DsvUsageFuture& depth)
+	DsvUsageFuture& depth)
 {
 	//RENDER_EVENT(infra, WorldRenderer::RenderGeometryDepthWithMaterial);
 
@@ -821,7 +824,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 			data.geoVertices = builder.Read(geometry->GetVbvDesc());
 			data.geoIndices = builder.Read(geometry->GetIbvDesc());
-			data.depthView = builder.Write(depth);
+			data.depthView = builder.ReadWrite(depth);
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
@@ -875,7 +878,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 }
 
 void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-	const RtvUsageFuture& shadowMask,
+	RtvUsageFuture& shadowMask,
 	const SrvUsageFuture& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 	const SrvUsageFuture& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler)
 {

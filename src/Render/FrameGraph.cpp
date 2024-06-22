@@ -10,46 +10,46 @@ Blackboard::~Blackboard()
 
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
-	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
-	Assert(mTransienceResourceDescs.find(result.mId) == mTransienceResourceDescs.end());
-	mTransienceResourceDescs[result.mId] = desc;
+	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
+	Assert(mTransienceResourceDescs.find(resourceId.mHandle) == mTransienceResourceDescs.end());
+	mTransienceResourceDescs[resourceId.mHandle] = desc;
 
 #if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Create] %d:\t%s",
-		result.mId, desc.GetName());
+	DEBUG_PRINT("[Create] %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
 #endif
 
-	return result;
+	return FrameGraphMutableResource{ resourceId };
 }
 
 FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryResource* resource)
 {
 	if (mImportedResources.ContainsValue(resource))
 	{
-		return { mImportedResources.GetByValue(resource).first };
+		FrameGraphResource::Id resourceId = { mImportedResources.GetByValue(resource).first.index };
+		return { resourceId };
 	}
 
-	auto result = FrameGraphMutableResource{ mResourceIdCounter++ };
-	Assert(!mImportedResources.ContainsKey(result.mId));
-	mImportedResources.Insert(result.mId, resource);
+	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
+	Assert(!mImportedResources.ContainsKey(resourceId.mHandle));
+	mImportedResources.Insert(resourceId.mHandle, resource);
 
 #if DEBUG_FRAME_GRAPH
 	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
-		result.mId, resource->GetDebugName(), resource->GetResourceId());
+		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
 #endif
 
-	return result;
+	return FrameGraphMutableResource{ resourceId };
 }
 
 GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResource& resource) const
 {
-	if (mTransienceResources.find(resource.mId) != mTransienceResources.end())
+	if (mTransienceResources.find(resource.mId.mHandle) != mTransienceResources.end())
 	{
-		return mTransienceResources.find(resource.mId)->second.get();
+		return mTransienceResources.find(resource.mId.mHandle)->second.get();
 	}
-	else if (mImportedResources.ContainsKey(resource.mId))
+	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
-		return mImportedResources.GetByKey(resource.mId).second;
+		return mImportedResources.GetByKey(resource.mId.mHandle).second;
 	}
 
 	Assert(false);
@@ -58,13 +58,13 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 
 GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResource& resource) const
 {
-	if (mTransienceResourceDescs.find(resource.mId) != mTransienceResourceDescs.end())
+	if (mTransienceResourceDescs.find(resource.mId.mHandle) != mTransienceResourceDescs.end())
 	{
-		return mTransienceResourceDescs.find(resource.mId)->second;
+		return mTransienceResourceDescs.find(resource.mId.mHandle)->second;
 	}
-	else if (mImportedResources.ContainsKey(resource.mId))
+	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
-		auto rawResource = mImportedResources.GetByKey(resource.mId).second;
+		auto rawResource = mImportedResources.GetByKey(resource.mId.mHandle).second;
 		return GI::MemoryResourceDesc()
 			.SetDimension(rawResource->GetDimension())
 			.SetWidth(rawResource->GetSize().x())
@@ -131,40 +131,46 @@ UavUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const
 	return { resource, desc };
 }
 
-RtvUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
+RtvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
 {
+	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
-DsvUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
+DsvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
 {
+	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
-UavUsageFuture RenderPassBuilder::Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc)
+UavUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc)
 {
+	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
-FrameGraphMutableResource RenderPassBuilder::Write(const FrameGraphMutableResource& resource)
+FrameGraphMutableResource RenderPassBuilder::Write(FrameGraphMutableResource& resource)
 {
+	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return resource;
 }
 
-UavUsageFuture RenderPassBuilder::ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc)
-{
-	mInputResources.push_back(resource.mId);
-	mOutputResources.push_back(resource.mId);
-	return { resource, desc };
-}
+//UavUsageFuture RenderPassBuilder::ReadWrite(FrameGraphResource& resource, const GI::UavDesc& desc)
+//{
+//	mInputResources.push_back(resource.mId);
+//	mOutputResources.push_back(resource.mId);
+//	return { resource, desc };
+//}
 
-DsvUsageFuture RenderPassBuilder::ReadWrite(const FrameGraphResource& resource, const GI::DsvDesc& desc)
+DsvUsageFuture RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
 {
 	mInputResources.push_back(resource.mId);
+
+	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
@@ -243,6 +249,17 @@ void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 	{
 		auto outputNode = tryAddResourceNode(output);
 		mResourceGraph.AddEdge(passNode, outputNode);
+
+		// TODO reduce versions
+		if (output.mVersion.index > 0)
+		{
+			auto prevVersion = FrameGraphResource::Id(output);
+			prevVersion.mVersion.index = output.mVersion.index - 1;
+			if (mResourceNodes.ContainsKey(prevVersion))
+			{
+				mResourceGraph.AddEdge(mResourceNodes.GetByKey(prevVersion).second, outputNode);
+			}
+		}
 	}
 }
 
@@ -263,17 +280,15 @@ void FrameGraphBuilder::CompileAndExecute()
 #if DEBUG_FRAME_GRAPH
 	DebugOutputGraph();
 #endif
+	
 
-	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
-
-
-	auto serialized = DirectedGraph::Serialize(culledGraph, [this](auto n)
+	auto serialized = DirectedGraph::Serialize(mResourceGraph, [this](auto n)
 		{
 			if (mResourceNodes.ContainsValue(n))
 			{
 				const auto& id = mResourceNodes.GetByValue(n).first;
 				const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
-				return Utils::FormatString("Resource: %s Id: %d", name, id);
+				return Utils::FormatString("Resource: %s Id: %s", name, id.GetDebugName().c_str());
 			}
 			else
 			{
@@ -284,6 +299,8 @@ void FrameGraphBuilder::CompileAndExecute()
 		[](auto e) { return ""; });
 
 	Utils::PrintDebugString(serialized.c_str());
+
+	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
 
 	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
 

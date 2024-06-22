@@ -7,6 +7,19 @@
 
 class RenderPassResources;
 
+template <typename T>
+struct BaseId {
+	u16 index = InvalidIndex;
+	inline static u16 InvalidIndex = ~0;
+
+	constexpr bool isValid() const { return index != InvalidIndex; }
+	constexpr bool operator==(const T& other) const { return index == other.index; }
+	constexpr bool operator!=(const T& other) const { return index != other.index; }
+	constexpr bool operator<(const T& other) const { return index < other.index; }
+
+	constexpr static T create(u16 idx) { T result; result.index = idx; return result; }
+};
+
 class GD_RENDER_API Blackboard
 {
 public:
@@ -99,10 +112,31 @@ private:
 
 struct GD_RENDER_API FrameGraphResource
 {
-	using Id = u64;
+	struct Id
+	{
+		struct Handle : BaseId<Handle> {};
+		struct Version : BaseId<Version> {};
+		
+		Handle mHandle;
+		Version mVersion;
 
-	Id mId = ~0ULL;
-	operator bool() const { return mId != ~0ULL; }
+		Id() {}
+		Id(u16 idx) : mHandle(Handle::create(idx)), mVersion(Version::create(0)) {}
+
+		constexpr operator bool() const { return mHandle.isValid() && mVersion.isValid(); }
+		constexpr bool operator==(const Id& other) const { return (mHandle == other.mHandle) && (mVersion == other.mVersion); }
+		constexpr bool operator!=(const Id& other) const { return (*this).operator==(other); }
+		constexpr bool operator<(const Id& other) const { 
+			return mHandle < other.mHandle ? true :
+					mHandle == other.mHandle ? mVersion < other.mVersion : false; }
+
+		std::string	GetDebugName() const { return Utils::FormatString("%d.%d", mHandle.index, mVersion.index); }
+	};
+
+	Id mId;
+
+	operator bool() const { return mId; }
+
 	struct Less
 	{
 		constexpr bool operator() (const FrameGraphResource& left, const FrameGraphResource& right) const { return left.mId < right.mId; }
@@ -111,7 +145,11 @@ struct GD_RENDER_API FrameGraphResource
 
 class GD_RENDER_API FrameGraphMutableResource : public FrameGraphResource
 {
-
+public:
+	void IncrementVersion() 
+	{ 
+		mId.mVersion = Id::Version::create(mId.mVersion.index + 1);
+	}
 };
 
 class GD_RENDER_API ResourceRegistry
@@ -130,12 +168,12 @@ public:
 	void						OnEndFrame();
 
 protected:
-	std::map<FrameGraphResource::Id, GI::MemoryResourceDesc> mTransienceResourceDescs;
-	std::map<FrameGraphResource::Id, std::unique_ptr<GI::IGraphicMemoryResource>> mTransienceResources;
+	std::map<FrameGraphResource::Id::Handle, GI::MemoryResourceDesc> mTransienceResourceDescs;
+	std::map<FrameGraphResource::Id::Handle, std::unique_ptr<GI::IGraphicMemoryResource>> mTransienceResources;
 
-	BijectionMap<FrameGraphResource::Id, GI::IGraphicMemoryResource*> mImportedResources;
+	BijectionMap<FrameGraphResource::Id::Handle, GI::IGraphicMemoryResource*> mImportedResources;
 
-	FrameGraphResource::Id	mResourceIdCounter = 0;
+	u16							mResourceIdCounter = 0;
 };
 
 #define MUTABLE_RESOURCE_USAGE_FUTURE(Name) \
@@ -184,17 +222,17 @@ public:
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
 	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
-	RtvUsageFuture	Write(const RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
-	RtvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
-	DsvUsageFuture	Write(const DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
-	DsvUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
-	UavUsageFuture	Write(const UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
-	UavUsageFuture	Write(const FrameGraphMutableResource& resource, const GI::UavDesc& desc);
-	FrameGraphMutableResource	Write(const FrameGraphMutableResource& resource);
-	UavUsageFuture	ReadWrite(const UavUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
-	UavUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc);
-	DsvUsageFuture	ReadWrite(const DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
-	DsvUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::DsvDesc& desc);
+	RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
+	DsvUsageFuture	Write(DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	DsvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
+	UavUsageFuture	Write(UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	UavUsageFuture	Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
+	FrameGraphMutableResource	Write(FrameGraphMutableResource& resource);
+	//UavUsageFuture	ReadWrite(const UavUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
+	//UavUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc);
+	DsvUsageFuture	ReadWrite(DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
+	DsvUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
 

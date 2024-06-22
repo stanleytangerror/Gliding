@@ -14,7 +14,7 @@ public:
 	ImGuiRenderer(RenderModule* renderModule);
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target, ImDrawData* uiData);
+	void Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target, ImDrawData* uiData);
 
 protected:
 	RenderModule*		mRenderModule = nullptr;

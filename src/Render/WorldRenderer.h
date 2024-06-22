@@ -24,28 +24,28 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, const RtvUsageFuture& target);
+	void Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
 
-	void RenderGBufferChannels(GI::IGraphicsInfra* infra, const RtvUsageFuture& target);
-	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target);
-	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, const RtvUsageFuture& target);
+	void RenderGBufferChannels(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
+	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
+	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
 
 private:
-	void RenderSky(FrameGraph* frameGraph, const RtvUsageFuture& target, const DsvUsageFuture& depth) const;
-	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, const RtvUsageFuture& target);
+	void RenderSky(FrameGraph* frameGraph, RtvUsageFuture& target, DsvUsageFuture& depth) const;
+	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageFuture& target);
 
 	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		const std::array<RtvUsageFuture, 3>& gbufferRtvs, const DsvUsageFuture& depthView);
+		std::array<RtvUsageFuture, 3>& gbufferRtvs, DsvUsageFuture& depthView);
 
 	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		const DsvUsageFuture& depthView);
+		DsvUsageFuture& depthView);
 
 	static void RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		const RtvUsageFuture& shadowMask,
+		RtvUsageFuture& shadowMask,
 		const SrvUsageFuture& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 		const SrvUsageFuture& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);
 

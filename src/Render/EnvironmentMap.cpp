@@ -303,7 +303,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 
 void EnvironmentMap::PrefilterEnvironmentMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	const RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness)
+	RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
