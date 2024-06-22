@@ -836,7 +836,7 @@ namespace GI
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Quality, 0);
         CONTINOUS_SETTER(MemoryResourceDesc, TextureLayout::Enum, Layout);
         CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlag::Flags, Flags);
-        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
+        CONTINOUS_SETTER(MemoryResourceDesc, std::string, Name);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
 
         MemoryResourceDesc& SetSize(const Vec3u& size) { return SetWidth(size.x()).SetHeight(size.y()).SetDepthOrArraySize(size.z()); }

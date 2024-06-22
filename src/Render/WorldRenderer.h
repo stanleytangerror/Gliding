@@ -16,6 +16,7 @@ struct GD_RENDER_API MainCameraState
 	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf			mCameraTrans;
 	FrameGraphMutableResource		mMainViewDepth;
+	FrameGraphMutableResource		mShadowMask;
 };
 
 class GD_RENDER_API WorldRenderer
@@ -69,11 +70,8 @@ private:
 	GI::SamplerDesc mBRDFIntegrationMapSampler;
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
-	std::array<std::unique_ptr<GI::IGraphicMemoryResource>, 3> mGBuffers = {};
+	std::array<FrameGraphMutableResource, 3> mGBuffers = {};
 	std::array<SrvUsageFuture, 3> mGBufferSrvs = {};
-	std::array<FrameGraphMutableResource, 3> mGBufferRtvs = {};
-
-	std::unique_ptr<RenderTarget> mShadowMask;
 
 public:
 

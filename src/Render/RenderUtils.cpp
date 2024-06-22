@@ -33,7 +33,7 @@ namespace
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	FrameGraphMutableResource& target,
 	const Vec2f& targetOffset, const Vec2f& targetRect,
-	const SrvUsageFuture& source,
+	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
 	static Geometry* quad = Geometry::GenerateQuad();
@@ -56,7 +56,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.source = builder.Read(source);
+			data.source = builder.ReadSrv(source);
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
@@ -102,7 +102,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
 	FrameGraphMutableResource& target,
-	const SrvUsageFuture& source,
+	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler)
 {
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();

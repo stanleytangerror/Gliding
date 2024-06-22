@@ -345,9 +345,9 @@ void FrameGraphBuilder::CompileAndExecute()
 			if (mResourceNodes.ContainsValue(n))
 			{
 				const auto& id = mResourceNodes.GetByValue(n).first;
-				const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
+				const auto& name = mResourceRegistry->GetResourceDesc({ id }).GetName();
 				return std::make_tuple(
-					Utils::FormatString("%s\\nId: %s", Utils::EscapeString(name).c_str(), id.GetDebugName().c_str()),
+					Utils::FormatString("%s\\nId: %s", Utils::EscapeString(name.c_str()).c_str(), id.GetDebugName().c_str()),
 					"resource");
 			}
 			else
@@ -408,8 +408,8 @@ void FrameGraphBuilder::DebugOutputResourceNode(DirectedGraph::NodeHandle node, 
 	Assert(mResourceNodes.ContainsValue(node));
 
 	const auto& id = mResourceNodes.GetByValue(node).first;
-	const char* name = mResourceRegistry->GetResourceDesc({ id }).GetName();
-	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, id, name);
+	const auto& name = mResourceRegistry->GetResourceDesc({ id }).GetName();
+	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, id, name.c_str());
 }
 
 void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::EdgeHandle edge, const char* prefix)

@@ -48,7 +48,7 @@ namespace D3D12Backend
 			D3D12_RESOURCE_STATES(desc.GetInitState()),
 			nullptr,
 			IID_PPV_ARGS(&resource)));
-		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
+		NAME_RAW_D3D12_OBJECT(resource, desc.GetName().c_str());
 		
 		CommitedResource* result = new CommitedResource;
 		result->mDevice = mDevice;
@@ -61,7 +61,7 @@ namespace D3D12Backend
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
 
-		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, desc.GetName()));
+		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, desc.GetName().c_str()));
 	}
 
 	std::unique_ptr<GI::IGraphicMemoryResource> ResourceManager::PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState)

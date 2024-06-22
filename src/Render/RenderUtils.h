@@ -13,12 +13,12 @@ namespace RenderUtils
 	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		FrameGraphMutableResource& target,
 		const Vec2f& targetOffset, const Vec2f& targetRect,
-		const SrvUsageFuture& source,
+		const FrameGraphResource& source,
 		const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
 	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		FrameGraphMutableResource& target,
-		const SrvUsageFuture& source,
+		const FrameGraphResource& source,
 		const GI::SamplerDesc& sourceSampler);
 
 	void GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
