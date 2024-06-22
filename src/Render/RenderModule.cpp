@@ -44,8 +44,6 @@ void RenderModule::Initial(const Vec2u& initialSize)
 	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
 	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
-	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ initialSize.x(), initialSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
-
 	mGraphicInfra->EndRecording(false);
 }
 
@@ -69,19 +67,15 @@ void RenderModule::Render()
 
 	mFrameGraph->StartFrame();
 
-	auto sceneHdr = mFrameGraph->Import(mSceneHdrRt->GetResource());
 	{
 		{
-			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
-			mWorldRenderer->Render(mGraphicInfra, sceneHdr);
-		}
+			auto sceneHdr = mWorldRenderer->Render(mGraphicInfra);
 
-		{
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
 			auto target = mFrameGraph->Import(backBuffer);
-			mScreenRenderer->Render(mGraphicInfra, SrvUsageFuture{ sceneHdr, mSceneHdrRt->GetSrvDesc() }, target);
+			mScreenRenderer->Render(mGraphicInfra, sceneHdr, target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
 			mFrameGraph->Present(target);
 		}

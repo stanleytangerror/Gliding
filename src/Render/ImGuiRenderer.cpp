@@ -171,12 +171,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 					if (data.hasSrv)
 					{
 						const auto& resDesc = frameGraph->GetResourceDesc(fontAtlas);
-						data.srv = builder.Read(SrvUsageFuture{
-							fontAtlas,
-							GI::SrvDesc()
-								.SetFormat(resDesc.GetFormat())
-								.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-								.SetTexture2D_MipLevels(resDesc.GetMipLevels()) });
+						data.srv = builder.ReadSrv(fontAtlas);
 					}
 					data.target = builder.WriteTex2DRtv(target);
 					data.indexCount = cmd->ElemCount;

@@ -225,7 +225,6 @@ public:
 	
 	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
 	
-	//RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	RtvUsageFuture	WriteTex2DRtv(FrameGraphMutableResource& resource);
 	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
 	

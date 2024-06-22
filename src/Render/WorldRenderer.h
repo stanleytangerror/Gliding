@@ -26,7 +26,7 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
+	FrameGraphMutableResource Render(GI::IGraphicsInfra* infra);
 
 	void RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
 	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
@@ -70,7 +70,6 @@ private:
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
 	std::array<FrameGraphMutableResource, 3> mGBuffers = {};
-	std::array<SrvUsageFuture, 3> mGBufferSrvs = {};
 
 public:
 

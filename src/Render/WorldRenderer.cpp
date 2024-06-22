@@ -98,13 +98,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 				GI::Format::FORMAT_R16G16B16A16_UNORM,
 				GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS,
 				Utils::FormatString("GBuffer%d", i).c_str()));
-
-		mGBufferSrvs[i] = {
-			mGBuffers[i],
-			GI::SrvDesc()
-				.SetFormat(GI::Format::FORMAT_R16G16B16A16_UNORM)
-				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-				.SetTexture2D_MipLevels(1) };
 	}
 
 	cam.mShadowMask = frameGraph->Create(GI::MemoryResourceDesc::RenderTarget2D(
@@ -135,7 +128,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-void WorldRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
+FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 {
 	auto* frameGraph = mRenderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -162,6 +155,12 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 				"SceneDepthStencil")
 			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE));
 	}
+
+	auto target = frameGraph->Create(GI::MemoryResourceDesc::RenderTarget2D(
+		mRenderSize, 
+		GI::Format::FORMAT_R11G11B10_FLOAT,
+		GI::ResourceFlag::ALLOW_RENDER_TARGET, 
+		"HdrRt"));
 
 	{
 		RENDER_EVENT(infra, InitialResources);
@@ -309,6 +308,8 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 	RenderShadowMask(frameGraph, infra, cameraView.mShadowMask, lightView.mLightViewDepth, mNoMipMapLinearDepthCmpSampler, cameraView.mMainViewDepth, mNoMipMapLinearSampler);
 	DeferredLighting(frameGraph, infra, target);
 	RenderSky(frameGraph, target, cameraView.mMainViewDepth);
+
+	return target;
 }
 
 void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
@@ -434,9 +435,9 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
-			data.gBufferSrvs[0] = builder.Read(mGBufferSrvs[0]);
-			data.gBufferSrvs[1] = builder.Read(mGBufferSrvs[1]);
-			data.gBufferSrvs[2] = builder.Read(mGBufferSrvs[2]);
+			data.gBufferSrvs[0] = builder.ReadSrv(mGBuffers[0]);
+			data.gBufferSrvs[1] = builder.ReadSrv(mGBuffers[1]);
+			data.gBufferSrvs[2] = builder.ReadSrv(mGBuffers[2]);
 			data.mainDepth = builder.ReadSrv(camState.mMainViewDepth);
 			data.shadowMask = builder.ReadSrv(camState.mShadowMask);
 			data.filteredEnvMapSrv = builder.Read(envLighting.mFilteredEnvMapSrv);
