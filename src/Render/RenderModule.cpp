@@ -72,42 +72,29 @@ void RenderModule::Render()
 	auto sceneHdr = mFrameGraph->Import(mSceneHdrRt->GetResource());
 	{
 		{
-			RtvUsageFuture sceneHdrRtv = { sceneHdr, mSceneHdrRt->GetRtvDesc() };
 			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
-			mWorldRenderer->Render(mGraphicInfra, sceneHdrRtv);
+			mWorldRenderer->Render(mGraphicInfra, sceneHdr);
 		}
 
 		{
 			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
-			auto target = RtvUsageFuture {
-				mFrameGraph->Import(backBuffer),
-				GI::RtvDesc()
-					.SetFormat(backBuffer->GetFormat())
-					.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-					.SetTexture2D_MipSlice(0)
-					.SetTexture2D_PlaneSlice(0) };
+			auto target = mFrameGraph->Import(backBuffer);
 			mScreenRenderer->Render(mGraphicInfra, SrvUsageFuture{ sceneHdr, mSceneHdrRt->GetSrvDesc() }, target);
 			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
-			mFrameGraph->Present(target.resource);
+			mFrameGraph->Present(target);
 		}
 
 		{
 			RENDER_EVENT(mGraphicInfra, DebugChannels);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
-			auto target = RtvUsageFuture{
-				mFrameGraph->Import(backBuffer),
-				GI::RtvDesc()
-					.SetFormat(backBuffer->GetFormat())
-					.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-					.SetTexture2D_MipSlice(0)
-					.SetTexture2D_PlaneSlice(0) };
+			auto target = mFrameGraph->Import(backBuffer);
 			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
 			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
 			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
-			mFrameGraph->Present(target.resource);
+			mFrameGraph->Present(target);
 		}
 	}
 

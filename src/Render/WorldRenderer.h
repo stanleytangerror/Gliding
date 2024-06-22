@@ -25,20 +25,20 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
+	void Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
 
-	void RenderGBufferChannels(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
-	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
-	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
+	void RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
+	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
+	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
 
 private:
-	void RenderSky(FrameGraph* frameGraph, RtvUsageFuture& target, FrameGraphMutableResource& depth) const;
-	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageFuture& target);
+	void RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource& target, FrameGraphMutableResource& depth) const;
+	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
 
 	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		std::array<RtvUsageFuture, 3>& gbufferRtvs, FrameGraphMutableResource& depthView);
+		std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView);
 
 	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
@@ -46,7 +46,7 @@ private:
 		FrameGraphMutableResource& depthView);
 
 	static void RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-		RtvUsageFuture& shadowMask,
+		FrameGraphMutableResource& shadowMask,
 		FrameGraphResource lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 		FrameGraphResource cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);
 
@@ -66,20 +66,12 @@ private:
 	GI::SamplerDesc mNoMipMapLinearSampler;
 	GI::SamplerDesc mNoMipMapLinearDepthCmpSampler;
 
-	std::unique_ptr<GI::IGraphicMemoryResource> mBRDFIntegrationMap;
-	SrvUsageFuture mBRDFIntegrationMapSrv;
 	GI::SamplerDesc mBRDFIntegrationMapSampler;
-
-	std::unique_ptr<GI::IGraphicMemoryResource> mIrradianceMap;
-	SrvUsageFuture mIrradianceMapSrv;
-
-	std::unique_ptr<GI::IGraphicMemoryResource> mFilteredEnvMap;
-	SrvUsageFuture mFilteredEnvMapSrv;
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
 	std::array<std::unique_ptr<GI::IGraphicMemoryResource>, 3> mGBuffers = {};
 	std::array<SrvUsageFuture, 3> mGBufferSrvs = {};
-	std::array<RtvUsageFuture, 3> mGBufferRtvs = {};
+	std::array<FrameGraphMutableResource, 3> mGBufferRtvs = {};
 
 	std::unique_ptr<RenderTarget> mShadowMask;
 

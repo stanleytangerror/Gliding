@@ -2,9 +2,9 @@
 #include "EnvironmentMap.h"
 #include "Geometry.h"
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> EnvironmentMap::GenerateIrradianceMap(
+SrvUsageFuture EnvironmentMap::GenerateIrradianceMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	const SrvUsageFuture& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
+	const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -21,7 +21,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 	const Vec2i& rtSize = { resolution * 2, resolution };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto irradianceMapRes = infra->CreateMemoryResource(
+	auto irradianceMap = frameGraph->Create(
 		GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
@@ -36,8 +36,6 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 		.SetName("IrradianceMap")
 		.SetHeapType(GI::HeapType::DEFAULT));
 
-	auto irradianceMap = frameGraph->Import(irradianceMapRes.get());
-
 	struct PassData
 	{
 		GI::VbvUsage geoVertices;
@@ -51,14 +49,12 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.sky = builder.Read(sky);
+			data.sky = builder.ReadSrv(sky);
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
 
-			data.rtv = builder.Write(irradianceMap, GI::RtvDesc{}
-				.SetFormat(format)
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D));
+			data.rtv = builder.WriteTex2DRtv(irradianceMap);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,
@@ -106,18 +102,16 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 
-	return std::make_tuple(
-		std::move(irradianceMapRes), 
-		SrvUsageFuture{ 
+	return SrvUsageFuture{ 
 			irradianceMap, 
 			GI::SrvDesc()
 				.SetFormat(format)
 				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 				.SetTexture2D_MipLevels(1)
-		});
+		};
 }
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> EnvironmentMap::GenerateIntegratedBRDF(
+SrvUsageFuture EnvironmentMap::GenerateIntegratedBRDF(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
@@ -135,8 +129,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 	const Vec2i& rtSize = { resolution, resolution };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto integratedBRDF = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
+	auto integrateBrdf = frameGraph->Create(GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
 		.SetWidth(rtSize.x())
@@ -149,8 +142,6 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
 		.SetName("IntegratedBRDF")
 		.SetHeapType(GI::HeapType::DEFAULT));
-
-	auto integrateBrdf = frameGraph->Import(integratedBRDF.get());
 
 	struct PassData
 	{
@@ -165,11 +156,7 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
-
-			data.rtv = builder.Write(integrateBrdf,
-				GI::RtvDesc{}
-				.SetFormat(format)
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D));
+			data.rtv = builder.WriteTex2DRtv(integrateBrdf);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,
@@ -210,28 +197,25 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 
-	return std::make_tuple(
-		std::move(integratedBRDF), 
-		SrvUsageFuture{
+	return SrvUsageFuture{
 			integrateBrdf,
 			GI::SrvUsage()
 				.SetFormat(format)
 				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 				.SetTexture2D_MipLevels(1)
-		});
+		};
 }
 
-std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> EnvironmentMap::GeneratePrefilteredEnvironmentMap(
+SrvUsageFuture EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	const SrvUsageFuture& src, i32 resolution)
+	const FrameGraphResource& src, i32 resolution)
 {
-	const auto& srcResDesc = frameGraph->GetResourceDesc(src.resource);
+	const auto& srcResDesc = frameGraph->GetResourceDesc(src);
 	const auto& originSize = srcResDesc.GetSize();
 	const auto& format = srcResDesc.GetFormat();
 	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
 
-	auto result = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
+	auto filteredMapDesc = GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
 		.SetWidth(originSize.x())
@@ -243,40 +227,28 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
 		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
 		.SetName("FilteredEnvMap")
-		.SetHeapType(GI::HeapType::DEFAULT));
+		.SetHeapType(GI::HeapType::DEFAULT);
 
-	auto filteredMap = frameGraph->Import(result.get());
+	auto filteredMap = frameGraph->Create(filteredMapDesc);
 
-	std::vector<RtvUsageFuture> rtvs;
-	std::vector<SrvUsageFuture> srvs;
+	std::vector<GI::RtvDesc> rtvs;
+	std::vector<GI::SrvDesc> srvs;
 
 	for (i32 i = 0; i < levelCount; ++i)
 	{
-		rtvs.push_back({
-			filteredMap,
-			GI::RtvDesc()
-				.SetFormat(result->GetFormat())
+		rtvs.push_back(GI::RtvDesc()
+				.SetFormat(filteredMapDesc.GetFormat())
 				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 				.SetTexture2D_MipSlice(i)
-				.SetTexture2D_PlaneSlice(0) });
+				.SetTexture2D_PlaneSlice(0));
 
-		srvs.push_back({
-			filteredMap,
-			GI::SrvDesc()
-				.SetFormat(result->GetFormat())
+		srvs.push_back(GI::SrvDesc()
+				.SetFormat(filteredMapDesc.GetFormat())
 				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 				.SetTexture2D_MostDetailedMip(i)
 				.SetTexture2D_MipLevels(1)
-				.SetTexture2D_PlaneSlice(0) });
+				.SetTexture2D_PlaneSlice(0));
 	}
-
-	auto fullSrv = GI::SrvUsage(result);
-	fullSrv
-		.SetFormat(result->GetFormat())
-		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MostDetailedMip(0)
-		.SetTexture2D_MipLevels(levelCount)
-		.SetTexture2D_PlaneSlice(0);
 
 	RENDER_EVENT(infra, FilterEnvironmentMap);
 
@@ -284,26 +256,26 @@ std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> Environm
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(frameGraph, infra, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(frameGraph, infra, filteredMap, rtvs[i], src, srvs[i], Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
-	return std::make_tuple(
-			std::move(result),
-			SrvUsageFuture{
-				filteredMap,
-				GI::SrvDesc()
-				.SetFormat(result->GetFormat())
-				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-				.SetTexture2D_MostDetailedMip(0)
-				.SetTexture2D_MipLevels(levelCount)
-				.SetTexture2D_PlaneSlice(0)
-		});
+	return SrvUsageFuture{
+		filteredMap,
+		GI::SrvDesc()
+		.SetFormat(filteredMapDesc.GetFormat())
+		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+		.SetTexture2D_MostDetailedMip(0)
+		.SetTexture2D_MipLevels(levelCount)
+		.SetTexture2D_PlaneSlice(0)
+		};
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness)
+	FrameGraphMutableResource targetResource, GI::RtvDesc& targetDesc, 
+	const FrameGraphResource& src, const GI::SrvDesc& srcDesc,
+	const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -333,9 +305,9 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.sampler = mPanoramicSkySampler;
-			data.src = builder.Read(src);
+			data.src = builder.Read(src, srcDesc);
 
-			data.target = builder.Write(target);
+			data.target = builder.Write(targetResource, targetDesc);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,

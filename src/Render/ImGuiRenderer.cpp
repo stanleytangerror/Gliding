@@ -35,7 +35,7 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, ImDrawData* uiData)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 
@@ -178,11 +178,11 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target, Im
 								.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 								.SetTexture2D_MipLevels(resDesc.GetMipLevels()) });
 					}
-					data.target = builder.Write(target);
+					data.target = builder.WriteTex2DRtv(target);
 					data.indexCount = cmd->ElemCount;
 					data.indexStartLocation = indexOffset + cmd->IdxOffset;
 					data.vertexStartLocation = vertexOffset + cmd->VtxOffset;
-					data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
+					data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 					data.scissorRect = scissorRect;
 					data.inputLayout = geo->mVertexElementDescs;
 				},

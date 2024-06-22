@@ -223,10 +223,10 @@ public:
 	SrvUsageFuture	ReadBufferSrv(const FrameGraphResource& resource, u32 numElements, u32 stride);
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
 	
-	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
 	
-	RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	//RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	RtvUsageFuture	WriteTex2DRtv(FrameGraphMutableResource& resource);
 	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
 	
 	DsvUsageFuture	WriteDsv(FrameGraphMutableResource& resource);

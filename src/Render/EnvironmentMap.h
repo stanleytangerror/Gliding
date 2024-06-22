@@ -6,16 +6,18 @@
 class EnvironmentMap
 {
 public:
-	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> GenerateIrradianceMap(
+	static SrvUsageFuture GenerateIrradianceMap(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-		const SrvUsageFuture& sky, i32 resolution, i32 semiSphereBusbarSampleCount);
-	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> GenerateIntegratedBRDF(
+		const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount);
+	static SrvUsageFuture GenerateIntegratedBRDF(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution);
-	static std::tuple<std::unique_ptr<GI::IGraphicMemoryResource>, SrvUsageFuture> GeneratePrefilteredEnvironmentMap(
+	static SrvUsageFuture GeneratePrefilteredEnvironmentMap(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-		const SrvUsageFuture& src, i32 resolution);
+		const FrameGraphResource& src, i32 resolution);
 
 protected:
 	static void PrefilterEnvironmentMap(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-		RtvUsageFuture& target, const SrvUsageFuture& src, const Vec2i& targetSize, f32 roughness);
+		FrameGraphMutableResource targetResource, GI::RtvDesc& targetDesc, 
+		const FrameGraphResource& src, const GI::SrvDesc& srcDesc,
+		const Vec2i& targetSize, f32 roughness);
 };

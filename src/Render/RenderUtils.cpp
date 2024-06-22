@@ -31,7 +31,7 @@ namespace
 }
 
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-	RtvUsageFuture& target,
+	FrameGraphMutableResource& target,
 	const Vec2f& targetOffset, const Vec2f& targetRect,
 	const SrvUsageFuture& source,
 	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
@@ -60,8 +60,8 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
-			data.targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
-			data.target = builder.Write(target);
+			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
+			data.target = builder.WriteTex2DRtv(target);
 		},
 		[
 			inputLayout = quad->mVertexElementDescs,
@@ -101,19 +101,19 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 }
 
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	RtvUsageFuture& target,
+	FrameGraphMutableResource& target,
 	const SrvUsageFuture& source,
 	const GI::SamplerDesc& sourceSampler)
 {
-	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
+	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
 	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageFuture& target, const SrvUsageFuture& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
-	const auto& size = frameGraph->GetResourceDesc(source.resource).GetSize();
+	const auto& size = frameGraph->GetResourceDesc(source).GetSize();
 	const auto& weight4fSize = (kernelSizeInPixel + 1 + 3) / 4;
 
 	struct PassData
@@ -130,12 +130,12 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageF
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.source = builder.Read(source);
+			data.source = builder.ReadSrv(source);
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sampler = builder.Read(sampler);
 			data.size = size;
-			data.target = builder.Write(target);
+			data.target = builder.WriteTex2DRtv(target);
 		},
 		[
 			inputLayout = quad->mVertexElementDescs,
@@ -190,7 +190,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageF
 }
 
 void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	RtvUsageFuture& target, const SrvUsageFuture& source, i32 kernelSizeInPixel)
+	FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
 	static Geometry* quad = Geometry::GenerateQuad();
@@ -204,16 +204,14 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 		quad->CreateAndInitialResource(infra);
 	}
 
-	auto sourceDesc = frameGraph->GetResourceDesc(source.resource);
+	auto sourceDesc = frameGraph->GetResourceDesc(source);
 
 	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), GI::ResourceFlag::ALLOW_RENDER_TARGET, "GaussianBlurIntermediateRt");
 	auto interRtFg = frameGraph->Create(desc);
 
-	RtvUsageFuture tempRtv = { interRtFg, GI::MemoryResourceDesc::AsTexture2DRtv(desc) };
-
 	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(frameGraph, infra, tempRtv, source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(frameGraph, infra, target, { interRtFg, GI::MemoryResourceDesc::AsTexture2DSrv(desc) }, kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(frameGraph, infra, interRtFg, source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(frameGraph, infra, target, interRtFg, kernelSizeInPixel, sampler, quad, false);
 }
 
 TransformNode<std::pair<

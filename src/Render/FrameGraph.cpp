@@ -153,6 +153,14 @@ UavUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const
 	return { resource, desc };
 }
 
+RtvUsageFuture RenderPassBuilder::WriteTex2DRtv(FrameGraphMutableResource& resource)
+{
+	Assert(resource.IsValid());
+
+	const auto& desc = mBuilder->GetResourceRegistry()->GetResourceDesc(resource);
+	return Write(resource, GI::MemoryResourceDesc::AsTexture2DRtv(desc));
+}
+
 RtvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
 {
 	Assert(resource.IsValid());
