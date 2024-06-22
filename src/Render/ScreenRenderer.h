@@ -16,8 +16,8 @@ public:
 	void Render(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, RtvUsageFuture& screenRt);
 
 private:
-	void CalcSceneExposure(GI::IGraphicsInfra* infra, const SrvUsageFuture& input, UavUsageFuture& exposureTex);
-	void ToneMapping(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, const SrvUsageFuture& exposure, RtvUsageFuture& target);
+	FrameGraphMutableResource CalcSceneExposure(GI::IGraphicsInfra* infra, const SrvUsageFuture& input);
+	void ToneMapping(GI::IGraphicsInfra* infra, const SrvUsageFuture& sceneHdr, const FrameGraphResource& exposure, RtvUsageFuture& target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

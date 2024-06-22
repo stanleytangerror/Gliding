@@ -11,6 +11,11 @@
 #include "EnvironmentMap.h"
 #include "FrameGraph.h"
 
+struct LightViewData
+{
+	FrameGraphMutableResource	mLightViewDepth;
+};
+
 WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize)
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
@@ -38,6 +43,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		sunLight.mLightViewProj.mViewHeight = 200.f;
 		sunLight.mLightViewProj.mViewWidth = 200.f;
 	}
+
+	auto& lightView = blackboard->Add<LightViewData>();
 
 	mSphere.reset(Geometry::GenerateSphere(40));
 	mQuad.reset(Geometry::GenerateQuad());
@@ -133,35 +140,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 
 	mShadowMask = std::make_unique<RenderTarget>(infra, Vec3u{ mRenderSize.x(), mRenderSize.y(), 1 }, GI::Format::FORMAT_R16_FLOAT, "ShadowMask");
 
-	mLightViewDepth = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
-		.SetDimension(GI::ResourceDimension::TEXTURE2D)
-		.SetWidth(mRenderSize.x())
-		.SetHeight(mRenderSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(GI::Format::FORMAT_R24G8_TYPELESS)
-		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-		.SetFlags(GI::ResourceFlag::ALLOW_DEPTH_STENCIL)
-		.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE)
-		.SetName("LightViewDepth")
-		.SetHeapType(GI::HeapType::DEFAULT));
-
-	auto lightViewDepthFg = frameGraph->Import(mLightViewDepth.get());
-	mLightViewDepthDsv = {
-		lightViewDepthFg,
-		GI::DsvDesc()
-		.SetViewDimension(GI::DsvDimension::TEXTURE2D)
-		.SetFormat(GI::Format::FORMAT_D24_UNORM_S8_UINT)
-		.SetFlags(GI::DsvFlag::NONE) };
-
-	mLightViewDepthSrv = {
-		lightViewDepthFg,
-		GI::SrvDesc()
-		.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
-		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MipLevels(1) };
-
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
 	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
@@ -193,6 +171,17 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 	auto* blackboard = frameGraph->GetBlackboard();
 
 	auto& sunLight = blackboard->Get<DirectionalLight>();
+	auto& lightView = blackboard->Get<LightViewData>();
+
+	{
+		lightView.mLightViewDepth = frameGraph->Create(
+			GI::MemoryResourceDesc::RenderTarget2D(
+				mRenderSize, 
+				GI::Format::FORMAT_R24G8_TYPELESS, 
+				GI::ResourceFlag::ALLOW_DEPTH_STENCIL, 
+				"LightViewDepth")
+			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE));
+	}
 
 	{
 		RENDER_EVENT(infra, InitialResources);
@@ -274,10 +263,17 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 	{
 		RENDER_EVENT(infra, LightViewDepth);
 
+		DsvUsageFuture lightViewDepthDsv = {
+			lightView.mLightViewDepth,
+				GI::DsvDesc()
+				.SetViewDimension(GI::DsvDimension::TEXTURE2D)
+				.SetFormat(GI::Format::FORMAT_D24_UNORM_S8_UINT)
+				.SetFlags(GI::DsvFlag::NONE) };
+
 		frameGraph->AddPass<DsvUsageFuture>("InitialLightViewDepth",
-			[this](RenderPassBuilder& builder, DsvUsageFuture& dsv)
+			[&](RenderPassBuilder& builder, DsvUsageFuture& dsv)
 			{
-				dsv = builder.Write(mLightViewDepthDsv);
+				dsv = builder.Write(lightViewDepthDsv);
 			},
 			[sunLight](const DsvUsageFuture& dsv, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 			{
@@ -291,7 +287,7 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, mLightViewDepthDsv);
+					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, lightViewDepthDsv);
 				}
 			});
 	}
@@ -344,7 +340,13 @@ void WorldRenderer::Render(GI::IGraphicsInfra* infra, RtvUsageFuture& target)
 
 	auto shadowMask = frameGraph->Import(mShadowMask->GetResource());
 	RtvUsageFuture shadowMaskRtv = { shadowMask, mShadowMask->GetRtvDesc() };
-	RenderShadowMask(frameGraph, infra, shadowMaskRtv, mLightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
+	SrvUsageFuture lightViewDepthSrv = {
+		lightView.mLightViewDepth,
+			GI::SrvDesc()
+			.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
+			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+			.SetTexture2D_MipLevels(1) };
+	RenderShadowMask(frameGraph, infra, shadowMaskRtv, lightViewDepthSrv, mNoMipMapLinearDepthCmpSampler, mMainDepthSrv, mNoMipMapLinearSampler);
 	DeferredLighting(frameGraph, infra, target);
 	RenderSky(frameGraph, target, mMainDepthDsv);
 }
@@ -395,11 +397,18 @@ void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, RtvUs
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	const auto& targetSize = frameGraph->GetResourceDesc(target.resource).GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
+	auto& lightView = frameGraph->GetBlackboard()->Get<LightViewData>();
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
 		target, 
 		{ 0.f, size }, { size, size },
-		mLightViewDepthSrv, mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
+		 { 
+			lightView.mLightViewDepth,
+			GI::SrvDesc()
+			.SetFormat(GI::Format::FORMAT_R24_UNORM_X8_TYPELESS)
+			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
+			.SetTexture2D_MipLevels(1) }
+		 , mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
 void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 

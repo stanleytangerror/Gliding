@@ -76,10 +76,6 @@ private:
 	SrvUsageFuture mFilteredEnvMapSrv;
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
-	std::unique_ptr<GI::IGraphicMemoryResource> mLightViewDepth;
-	DsvUsageFuture mLightViewDepthDsv;
-	SrvUsageFuture mLightViewDepthSrv;
-
 	std::unique_ptr<GI::IGraphicMemoryResource> mMainDepth;
 	DsvUsageFuture mMainDepthDsv;
 	SrvUsageFuture mMainDepthSrv;
