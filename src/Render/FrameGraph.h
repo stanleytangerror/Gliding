@@ -220,21 +220,23 @@ public:
 	FrameGraphResource	Read(const FrameGraphResource& resource);
 	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	SrvUsageFuture	ReadSrv(const FrameGraphResource& resource);
+	SrvUsageFuture	ReadBufferSrv(const FrameGraphResource& resource, u32 numElements, u32 stride);
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
+	
 	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
+	
 	RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
-	//DsvUsageFuture	Write(DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	
 	DsvUsageFuture	WriteDsv(FrameGraphMutableResource& resource);
 	DsvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
-	UavUsageFuture	Write(UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	
+	UavUsageFuture	WriteBufferUav(FrameGraphMutableResource& resource, u32 numElements, u32 stride);
 	UavUsageFuture	Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
 	FrameGraphMutableResource	Write(FrameGraphMutableResource& resource);
-	//UavUsageFuture	ReadWrite(const UavUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
-	//UavUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc);
+
 	DsvUsageFuture	ReadWriteDsv(FrameGraphMutableResource& resource);
-	//DsvUsageFuture	ReadWrite(DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
 	DsvUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }

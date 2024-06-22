@@ -45,7 +45,6 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 
 	const auto histogramDesc = GI::MemoryResourceDesc::Buffer2(histogramSize * stride, true, true, "BrightnessHistogram");
 	auto histogramFg = frameGraph->Create(histogramDesc);
-	UavUsageFuture histogramUav = { histogramFg, GI::MemoryResourceDesc::AsBufferUav(histogramDesc, histogramSize, stride) };
 
 	struct BrightnessHistogramPassData
 	{
@@ -60,7 +59,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 		{
 			data.sceneHdr = builder.Read(sceneHdr);
 			data.sceneHdrSize = frameGraph->GetResourceDesc(sceneHdr.resource).GetSize();
-			data.histogram = builder.Write(histogramUav);
+			data.histogram = builder.WriteBufferUav(histogramFg, histogramSize, stride);
 		},
 		[brightMin, brightMax, histogramSize]
 		(const BrightnessHistogramPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -102,7 +101,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 		(RenderPassBuilder& builder, HistogramReducePassData& data)
 		{
 			data.sceneHdrSize = frameGraph->GetResourceDesc(sceneHdr.resource).GetSize();
-			data.histogram = builder.Read({ histogramFg, GI::MemoryResourceDesc::AsBufferSrv(histogramDesc, histogramSize, stride) });
+			data.histogram = builder.ReadBufferSrv(histogramFg, histogramSize, stride);
 			data.exposureRt = builder.Write(exposureFg, GI::MemoryResourceDesc::AsTexture2DUav(exposureDesc));
 		},
 		[this, brightMin, brightMax, histogramSize]
