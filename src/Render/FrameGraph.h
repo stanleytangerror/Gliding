@@ -123,7 +123,7 @@ struct GD_RENDER_API FrameGraphResource
 		Id() {}
 		Id(u16 idx) : mHandle(Handle::create(idx)), mVersion(Version::create(0)) {}
 
-		constexpr operator bool() const { return mHandle.isValid() && mVersion.isValid(); }
+		constexpr bool IsValid() const { return mHandle.isValid() && mVersion.isValid(); }
 		constexpr bool operator==(const Id& other) const { return (mHandle == other.mHandle) && (mVersion == other.mVersion); }
 		constexpr bool operator!=(const Id& other) const { return (*this).operator==(other); }
 		constexpr bool operator<(const Id& other) const { 
@@ -135,7 +135,7 @@ struct GD_RENDER_API FrameGraphResource
 
 	Id mId;
 
-	operator bool() const { return mId; }
+	constexpr bool IsValid() const { return mId.IsValid(); }
 
 	struct Less
 	{
@@ -219,19 +219,22 @@ public:
 
 	FrameGraphResource	Read(const FrameGraphResource& resource);
 	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
+	SrvUsageFuture	ReadSrv(const FrameGraphResource& resource);
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
 	UavUsageFuture	Read(const UavUsageFuture& usage) { return Read(usage.resource, usage.desc); }
 	UavUsageFuture	Read(const FrameGraphResource& resource, const GI::UavDesc& desc);
 	RtvUsageFuture	Write(RtvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
-	DsvUsageFuture	Write(DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	//DsvUsageFuture	Write(DsvUsageFuture& usage) { return Write(usage.resource, usage.desc); }
+	DsvUsageFuture	WriteDsv(FrameGraphMutableResource& resource);
 	DsvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 	UavUsageFuture	Write(UavUsageFuture& usage) { return Write(usage.resource, usage.desc); }
 	UavUsageFuture	Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
 	FrameGraphMutableResource	Write(FrameGraphMutableResource& resource);
 	//UavUsageFuture	ReadWrite(const UavUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
 	//UavUsageFuture	ReadWrite(const FrameGraphResource& resource, const GI::UavDesc& desc);
-	DsvUsageFuture	ReadWrite(DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
+	DsvUsageFuture	ReadWriteDsv(FrameGraphMutableResource& resource);
+	//DsvUsageFuture	ReadWrite(DsvUsageFuture& usage) { return ReadWrite(usage.resource, usage.desc); }
 	DsvUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
@@ -263,6 +266,8 @@ class GD_RENDER_API FrameGraphBuilder
 {
 public:
 	FrameGraphBuilder(ResourceRegistry* registry);
+
+	ResourceRegistry*			GetResourceRegistry() const { return mResourceRegistry; }
 
 	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
 	void						MarkOutputNode(const FrameGraphResource& resource);

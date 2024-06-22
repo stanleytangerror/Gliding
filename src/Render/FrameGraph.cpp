@@ -115,31 +115,57 @@ GI::SamplerDesc	RenderPassBuilder::Read(const GI::SamplerDesc& usage)
 
 FrameGraphResource RenderPassBuilder::Read(const FrameGraphResource& resource)
 {
+	Assert(resource.IsValid());
+
 	mInputResources.push_back(resource.mId);
 	return resource;
 }
 
+SrvUsageFuture RenderPassBuilder::ReadSrv(const FrameGraphResource& resource)
+{
+	Assert(resource.IsValid());
+
+	const auto& desc = mBuilder->GetResourceRegistry()->GetResourceDesc(resource);
+	return Read(resource, GI::MemoryResourceDesc::AsTexture2DSrv(desc));
+}
+
 SrvUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::SrvDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	mInputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
 UavUsageFuture RenderPassBuilder::Read(const FrameGraphResource& resource, const GI::UavDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	mInputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
 RtvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
 }
 
+DsvUsageFuture RenderPassBuilder::WriteDsv(FrameGraphMutableResource& resource)
+{
+	Assert(resource.IsValid());
+
+	const auto& desc = mBuilder->GetResourceRegistry()->GetResourceDesc(resource);
+	return Write(resource, GI::MemoryResourceDesc::AsTexture2DDsv(desc));
+}
+
 DsvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
@@ -147,6 +173,8 @@ DsvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, con
 
 UavUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return { resource, desc };
@@ -154,20 +182,25 @@ UavUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, con
 
 FrameGraphMutableResource RenderPassBuilder::Write(FrameGraphMutableResource& resource)
 {
+	Assert(resource.IsValid());
+
 	resource.IncrementVersion();
 	mOutputResources.push_back(resource.mId);
 	return resource;
 }
 
-//UavUsageFuture RenderPassBuilder::ReadWrite(FrameGraphResource& resource, const GI::UavDesc& desc)
-//{
-//	mInputResources.push_back(resource.mId);
-//	mOutputResources.push_back(resource.mId);
-//	return { resource, desc };
-//}
+DsvUsageFuture RenderPassBuilder::ReadWriteDsv(FrameGraphMutableResource& resource)
+{
+	Assert(resource.IsValid());
+
+	const auto& desc = mBuilder->GetResourceRegistry()->GetResourceDesc(resource);
+	return ReadWrite(resource, GI::MemoryResourceDesc::AsTexture2DDsv(desc));
+}
 
 DsvUsageFuture RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
 {
+	Assert(resource.IsValid());
+
 	mInputResources.push_back(resource.mId);
 
 	resource.IncrementVersion();

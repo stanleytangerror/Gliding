@@ -27,7 +27,7 @@ bool RenderMaterial::IsGpuResourceReady() const
 	{
 		if (slot.mTexture)
 		{
-			if (!slot.mTexture->IsGraphicsResourceReady() || !slot.mResource)
+			if (!slot.mTexture->IsGraphicsResourceReady() || !slot.mResource.IsValid())
 			{
 				return false;
 			}

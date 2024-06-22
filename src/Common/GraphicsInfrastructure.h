@@ -550,6 +550,26 @@ namespace GI
         }
     }
 
+    constexpr Format::Enum GetDsvFormat(Format::Enum format)
+    {
+        switch (format)
+        {
+        case Format::FORMAT_R32G8X24_TYPELESS:  return Format::FORMAT_D32_FLOAT_S8X24_UINT;
+        case Format::FORMAT_R24G8_TYPELESS:     return Format::FORMAT_D24_UNORM_S8_UINT;
+        default:Assert(false); return Format::FORMAT_UNKNOWN;
+        }
+    }
+
+    constexpr Format::Enum GetSrvFormat(Format::Enum format)
+    {
+        switch (format)
+        {
+        case Format::FORMAT_R32G8X24_TYPELESS:  return Format::FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        case Format::FORMAT_R24G8_TYPELESS:     return Format::FORMAT_R24_UNORM_X8_TYPELESS;
+        default:Assert(false); return Format::FORMAT_UNKNOWN;
+        }
+    }
+
     struct GD_COMMON_API Viewport
     {
         CONTINOUS_SETTER_VALUE(Viewport, f32, TopLeftX, 0.0f);
@@ -901,6 +921,14 @@ namespace GI
             return UavDesc()
                 .SetFormat(resDesc.GetFormat())
                 .SetViewDimension(GI::UavDimension::TEXTURE2D);
+        }
+
+        static DsvDesc AsTexture2DDsv(const MemoryResourceDesc& resDesc)
+        {
+            return DsvDesc()
+                .SetFormat(GetDsvFormat(resDesc.GetFormat()))
+                .SetViewDimension(GI::DsvDimension::TEXTURE2D)
+                .SetFlags(GI::DsvFlag::NONE);
         }
 
         static UavDesc AsBufferUav(const MemoryResourceDesc& resDesc, u32 numElements, u32 stride)

@@ -15,6 +15,7 @@ struct GD_RENDER_API MainCameraState
 {
 	Math::PerspectiveProjectionf	mCameraProj;
 	Math::CameraTransformf			mCameraTrans;
+	FrameGraphMutableResource		mMainViewDepth;
 };
 
 class GD_RENDER_API WorldRenderer
@@ -31,23 +32,23 @@ public:
 	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, RtvUsageFuture& target);
 
 private:
-	void RenderSky(FrameGraph* frameGraph, RtvUsageFuture& target, DsvUsageFuture& depth) const;
+	void RenderSky(FrameGraph* frameGraph, RtvUsageFuture& target, FrameGraphMutableResource& depth) const;
 	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, RtvUsageFuture& target);
 
 	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		std::array<RtvUsageFuture, 3>& gbufferRtvs, DsvUsageFuture& depthView);
+		std::array<RtvUsageFuture, 3>& gbufferRtvs, FrameGraphMutableResource& depthView);
 
 	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
-		DsvUsageFuture& depthView);
+		FrameGraphMutableResource& depthView);
 
 	static void RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		RtvUsageFuture& shadowMask,
-		const SrvUsageFuture& lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
-		const SrvUsageFuture& cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);
+		FrameGraphResource lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
+		FrameGraphResource cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);
 
 private:
 	RenderModule*	mRenderModule = nullptr;
@@ -75,10 +76,6 @@ private:
 	std::unique_ptr<GI::IGraphicMemoryResource> mFilteredEnvMap;
 	SrvUsageFuture mFilteredEnvMapSrv;
 	GI::SamplerDesc mFilteredEnvMapSampler;
-
-	std::unique_ptr<GI::IGraphicMemoryResource> mMainDepth;
-	DsvUsageFuture mMainDepthDsv;
-	SrvUsageFuture mMainDepthSrv;
 
 	std::array<std::unique_ptr<GI::IGraphicMemoryResource>, 3> mGBuffers = {};
 	std::array<SrvUsageFuture, 3> mGBufferSrvs = {};
