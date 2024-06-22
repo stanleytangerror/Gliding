@@ -525,8 +525,6 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource& target, FrameGraphMutableResource& depth) const
 {
-	if (!mPanoramicSkyRt) { return; }
-
 	struct PassData
 	{
 		GI::VbvUsage geoVertices;
@@ -540,14 +538,14 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 	auto& camState = frameGraph->GetBlackboard()->Get<MainCameraState>();
 	const auto& cameraProj = camState.mCameraProj;
 	const auto& cameraTrans = camState.mCameraTrans;
+	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 
 	frameGraph->AddPass<PassData>("RenderSky",
-		[this, &target, &depth, frameGraph]
-		(RenderPassBuilder& builder, PassData& data)
+		[&](RenderPassBuilder& builder, PassData& data)
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
-			data.panoramicSky = builder.Read({ frameGraph->Import(mPanoramicSkyRt->GetResource()), mPanoramicSkyRt->GetSrvDesc() });
+			data.panoramicSky = builder.ReadSrv(envLighting.mPanoramicSky);
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.WriteTex2DRtv(target);
 			data.depth = builder.ReadWriteDsv(depth);

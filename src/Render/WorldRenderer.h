@@ -59,7 +59,6 @@ private:
 	std::unique_ptr<Geometry> mSphere;
 
 	std::unique_ptr<FileTexture> mSkyTexture;
-	std::unique_ptr<RenderTarget> mPanoramicSkyRt;
 	GI::SamplerDesc mPanoramicSkySampler;
 	f32	mSkyLightIntensity = 50.f;
 
