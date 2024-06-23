@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <queue>
+#include <set>
 #include <algorithm>
 #include "CommonTypes.h"
 #include "AssertUtils.h"
@@ -18,20 +19,26 @@ public:
 		NodeHandle mEnd;
 	};
 
+	struct Node
+	{
+		std::set<EdgeHandle> mIncomingEdges;
+		std::set<EdgeHandle> mOutgoingEdges;
+	};
+
 	NodeHandle AddNode();
 	EdgeHandle AddEdge(const NodeHandle& begin, const NodeHandle& end);
 
 	void RemoveEdge(const EdgeHandle& edge);
 	void RemoveNode(const NodeHandle& node);
 
-	std::vector<EdgeHandle>	GetIncomingEdges(const NodeHandle& node) const;
-	std::vector<EdgeHandle>	GetOutgoingEdges(const NodeHandle& node) const;
-	std::vector<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
-	std::vector<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
+	std::set<EdgeHandle>	GetIncomingEdges(const NodeHandle& node) const;
+	std::set<EdgeHandle>	GetOutgoingEdges(const NodeHandle& node) const;
+	std::set<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
+	std::set<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
 
 	Edge GetEdge(const EdgeHandle& h) const;
 
-	std::set<NodeHandle>	GetAllNodes() const { return mNodes; }
+	std::map<NodeHandle, Node>	GetAllNodes() const { return mNodes; }
 	std::map<EdgeHandle, Edge>	GetAllEdges() const { return mEdges; }
 
 	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
@@ -47,7 +54,7 @@ protected:
 	bool IsValidEdgeHandle(const EdgeHandle& h) const { return mEdges.find(h) != mEdges.end(); }
 
 protected:
-	std::set<NodeHandle>		mNodes;
+	std::map<NodeHandle, Node>	mNodes;
 	std::map<EdgeHandle, Edge>	mEdges;
 	NodeHandle					mNodeCounter = 0;
 	EdgeHandle					mEdgeCounter = 0;

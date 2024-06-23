@@ -5,7 +5,7 @@
 DirectedGraph::NodeHandle DirectedGraph::AddNode()
 {
 	auto n = mNodeCounter++;
-	mNodes.insert(n);
+	mNodes.insert({ n, Node{} });
 	return n;
 }
 
@@ -16,6 +16,8 @@ DirectedGraph::EdgeHandle DirectedGraph::AddEdge(const NodeHandle& begin, const 
 
 	auto e = mEdgeCounter++;
 	mEdges[e] = { begin, end };
+	mNodes[begin].mOutgoingEdges.insert(e);
+	mNodes[end].mIncomingEdges.insert(e);
 	return e;
 }
 
@@ -23,7 +25,13 @@ void DirectedGraph::RemoveEdge(const EdgeHandle& edge)
 {
 	Assert(IsValidEdgeHandle(edge));
 
+	auto be = mEdges.find(edge)->second;
+	Assert(IsValidNodeHandle(be.mBegin));
+	Assert(IsValidNodeHandle(be.mEnd));
+
 	mEdges.erase(mEdges.find(edge));
+	mNodes[be.mBegin].mOutgoingEdges.erase(edge);
+	mNodes[be.mEnd].mIncomingEdges.erase(edge);
 }
 
 void DirectedGraph::RemoveNode(const NodeHandle& node)
@@ -38,66 +46,46 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 	{
 		RemoveEdge(e);
 	}
+	
+	auto n = mNodes.find(node)->second;
+	Assert(n.mIncomingEdges.empty());
+	Assert(n.mOutgoingEdges.empty());
 	mNodes.erase(node);
 }
 
-std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
+std::set<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
+{
+	Assert(IsValidNodeHandle(node));
+	return mNodes.find(node)->second.mIncomingEdges;
+}
+
+std::set<DirectedGraph::EdgeHandle>	DirectedGraph::GetOutgoingEdges(const NodeHandle& node) const
+{
+	Assert(IsValidNodeHandle(node));
+	return mNodes.find(node)->second.mOutgoingEdges;
+}
+
+
+std::set<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
 
-	std::vector<EdgeHandle> result;
-	for (const auto& [e, n] : mEdges)
+	std::set<NodeHandle> result;
+	for (const auto& e : GetIncomingEdges(node))
 	{
-		if (n.mEnd == node)
-		{
-			result.push_back(e);
-		}
+		result.insert(GetEdge(e).mBegin);
 	}
 	return result;
 }
 
-std::vector<DirectedGraph::EdgeHandle>	DirectedGraph::GetOutgoingEdges(const NodeHandle& node) const
+std::set<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
 
-	std::vector<EdgeHandle> result;
-	for (const auto& [e, n] : mEdges)
+	std::set<NodeHandle> result;
+	for (const auto& e : GetOutgoingEdges(node))
 	{
-		if (n.mBegin == node)
-		{
-			result.push_back(e);
-		}
-	}
-	return result;
-}
-
-
-std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
-{
-	Assert(IsValidNodeHandle(node));
-
-	std::vector<NodeHandle> result;
-	for (const auto& [e, n] : mEdges)
-	{
-		if (n.mEnd == node)
-		{
-			result.push_back(n.mBegin);
-		}
-	}
-	return result;
-}
-
-std::vector<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
-{
-	Assert(IsValidNodeHandle(node));
-
-	std::vector<NodeHandle> result;
-	for (const auto& [e, n] : mEdges)
-	{
-		if (n.mBegin == node)
-		{
-			result.push_back(n.mEnd);
-		}
+		result.insert(GetEdge(e).mEnd);
 	}
 	return result;
 }
@@ -131,19 +119,17 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 		}
 	}
 
-	bool continu = true;
-	while (continu)
+	std::vector<NodeHandle> cullingNodes;
+	for (const auto& [n, _] : result.GetAllNodes())
 	{
-		continu = false;
-		for (auto n : result.GetAllNodes())
+		if (visitedNodes.find(n) == visitedNodes.end())
 		{
-			if (visitedNodes.find(n) == visitedNodes.end())
-			{
-				result.RemoveNode(n);
-				continu = true;
-				break;
-			}
+			cullingNodes.push_back(n);
 		}
+	}
+	for (const auto& n : cullingNodes)
+	{
+		result.RemoveNode(n);
 	}
 
 	struct EdgeComparer {
@@ -155,7 +141,7 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 		}
 	};
 
-	continu = true;
+	bool continu = true;
 	while (continu)
 	{
 		continu = false;
@@ -214,23 +200,30 @@ std::string DirectedGraph::Serialize(const DirectedGraph& graph,
 	std::function<std::string(EdgeHandle)> serializeEdge)
 {
 	std::string result = R"({ "nodes": [)";
+
 	for (auto it = graph.mNodes.begin(); it != graph.mNodes.end(); ++it)
 	{
-		auto n = *it;
 		if (it != graph.mNodes.begin()) result += ",";
-		auto [value, group] = serializeNode(n);
+
+		auto [value, group] = serializeNode(it->first);
+		
 		result += Utils::FormatString(
 			R"({"id":"%d", "value":"%s", "group":"%s"})", 
-			n, value.c_str(), group.c_str());
+			it->first, value.c_str(), group.c_str());
 	}
+	
 	result += R"(], "edges": [)";
+	
 	for (auto it = graph.mEdges.begin(); it != graph.mEdges.end(); ++it)
 	{
 		if (it != graph.mEdges.begin()) result += ",";
+
 		result += Utils::FormatString(
 			R"({"source":"%d", "target":"%d", "value":"%s"})", 
 			it->second.mBegin, it->second.mEnd, serializeEdge(it->first).c_str());
 	}
+
 	result += R"(] })";
+
 	return result;
 }
