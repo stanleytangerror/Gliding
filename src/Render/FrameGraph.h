@@ -218,7 +218,7 @@ public:
 	GI::SamplerDesc	Read(const GI::SamplerDesc& usage);
 
 	FrameGraphResource	Read(const FrameGraphResource& resource);
-	SrvUsageFuture	Read(const SrvUsageFuture& usage) { return Read(usage.resource, usage.desc); }
+
 	SrvUsageFuture	ReadSrv(const FrameGraphResource& resource);
 	SrvUsageFuture	ReadBufferSrv(const FrameGraphResource& resource, u32 numElements, u32 stride);
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
