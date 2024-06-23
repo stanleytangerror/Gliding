@@ -56,7 +56,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.source = builder.ReadSrv(source);
+			data.source = builder.ReadTex2DSrv(source);
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
@@ -130,7 +130,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.source = builder.ReadSrv(source);
+			data.source = builder.ReadTex2DSrv(source);
 			data.geoVertices = builder.Read(quad->GetVbvDesc());
 			data.geoIndices = builder.Read(quad->GetIbvDesc());
 			data.sampler = builder.Read(sampler);

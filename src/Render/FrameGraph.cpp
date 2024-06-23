@@ -121,7 +121,7 @@ FrameGraphResource RenderPassBuilder::Read(const FrameGraphResource& resource)
 	return resource;
 }
 
-SrvUsageFuture RenderPassBuilder::ReadSrv(const FrameGraphResource& resource)
+SrvUsageFuture RenderPassBuilder::ReadTex2DSrv(const FrameGraphResource& resource)
 {
 	Assert(resource.IsValid());
 
@@ -170,7 +170,7 @@ RtvUsageFuture RenderPassBuilder::Write(FrameGraphMutableResource& resource, con
 	return { resource, desc };
 }
 
-DsvUsageFuture RenderPassBuilder::WriteDsv(FrameGraphMutableResource& resource)
+DsvUsageFuture RenderPassBuilder::WriteTex2DDsv(FrameGraphMutableResource& resource)
 {
 	Assert(resource.IsValid());
 
@@ -213,7 +213,7 @@ FrameGraphMutableResource RenderPassBuilder::Write(FrameGraphMutableResource& re
 	return resource;
 }
 
-DsvUsageFuture RenderPassBuilder::ReadWriteDsv(FrameGraphMutableResource& resource)
+DsvUsageFuture RenderPassBuilder::ReadWriteTex2DDsv(FrameGraphMutableResource& resource)
 {
 	Assert(resource.IsValid());
 

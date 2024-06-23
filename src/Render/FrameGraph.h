@@ -219,7 +219,7 @@ public:
 
 	FrameGraphResource	Read(const FrameGraphResource& resource);
 
-	SrvUsageFuture	ReadSrv(const FrameGraphResource& resource);
+	SrvUsageFuture	ReadTex2DSrv(const FrameGraphResource& resource);
 	SrvUsageFuture	ReadBufferSrv(const FrameGraphResource& resource, u32 numElements, u32 stride);
 	SrvUsageFuture	Read(const FrameGraphResource& resource, const GI::SrvDesc& desc);
 	
@@ -228,14 +228,14 @@ public:
 	RtvUsageFuture	WriteTex2DRtv(FrameGraphMutableResource& resource);
 	RtvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::RtvDesc& desc);
 	
-	DsvUsageFuture	WriteDsv(FrameGraphMutableResource& resource);
+	DsvUsageFuture	WriteTex2DDsv(FrameGraphMutableResource& resource);
 	DsvUsageFuture	Write(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 	
 	UavUsageFuture	WriteBufferUav(FrameGraphMutableResource& resource, u32 numElements, u32 stride);
 	UavUsageFuture	Write(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
 	FrameGraphMutableResource	Write(FrameGraphMutableResource& resource);
 
-	DsvUsageFuture	ReadWriteDsv(FrameGraphMutableResource& resource);
+	DsvUsageFuture	ReadWriteTex2DDsv(FrameGraphMutableResource& resource);
 	DsvUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }

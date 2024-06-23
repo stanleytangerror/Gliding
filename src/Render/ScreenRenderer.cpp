@@ -57,7 +57,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 		[&]
 		(RenderPassBuilder& builder, BrightnessHistogramPassData& data)
 		{
-			data.sceneHdr = builder.ReadSrv(sceneHdr);
+			data.sceneHdr = builder.ReadTex2DSrv(sceneHdr);
 			data.sceneHdrSize = frameGraph->GetResourceDesc(sceneHdr).GetSize();
 			data.histogram = builder.WriteBufferUav(histogramFg, histogramSize, stride);
 		},
@@ -156,7 +156,7 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra,
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
-			data.sceneHdr = builder.ReadSrv(sceneHdr);
+			data.sceneHdr = builder.ReadTex2DSrv(sceneHdr);
 			data.exposure = builder.Read(exposure, GI::MemoryResourceDesc::AsTexture2DSrv(frameGraph->GetResourceDesc(exposure)));
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 			data.target = builder.WriteTex2DRtv(target);

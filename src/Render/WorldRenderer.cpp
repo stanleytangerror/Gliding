@@ -234,7 +234,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 		frameGraph->AddPass<DsvUsageFuture>("InitialLightViewDepth",
 			[&](RenderPassBuilder& builder, DsvUsageFuture& dsv)
 			{
-				dsv = builder.WriteDsv(lightView.mLightViewDepth);
+				dsv = builder.WriteTex2DDsv(lightView.mLightViewDepth);
 			},
 			[sunLight](const DsvUsageFuture& dsv, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 			{
@@ -271,7 +271,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				{
 					data.gbufferRtvs[i] = builder.WriteTex2DRtv(mGBuffers[i]);
 				}
-				data.depthDsv = builder.WriteDsv(cameraView.mMainViewDepth);
+				data.depthDsv = builder.WriteTex2DDsv(cameraView.mMainViewDepth);
 			},
 			[
 				sunLight, 
@@ -394,8 +394,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	frameGraph->AddPass<CopyData>("CopyMainDepth",
 		[&](RenderPassBuilder& builder, CopyData& data)
 		{
-			data.copyDest = builder.WriteDsv(tempDepth).resource;
-			data.copySrc = builder.ReadSrv(camState.mMainViewDepth).resource;
+			data.copyDest = builder.WriteTex2DDsv(tempDepth).resource;
+			data.copySrc = builder.ReadTex2DSrv(camState.mMainViewDepth).resource;
 		},
 		[](const CopyData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
@@ -429,20 +429,20 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
-			data.gBufferSrvs[0] = builder.ReadSrv(mGBuffers[0]);
-			data.gBufferSrvs[1] = builder.ReadSrv(mGBuffers[1]);
-			data.gBufferSrvs[2] = builder.ReadSrv(mGBuffers[2]);
-			data.mainDepth = builder.ReadSrv(camState.mMainViewDepth);
-			data.shadowMask = builder.ReadSrv(camState.mShadowMask);
-			data.filteredEnvMapSrv = builder.ReadSrv(envLighting.mFilteredEnvMap);
+			data.gBufferSrvs[0] = builder.ReadTex2DSrv(mGBuffers[0]);
+			data.gBufferSrvs[1] = builder.ReadTex2DSrv(mGBuffers[1]);
+			data.gBufferSrvs[2] = builder.ReadTex2DSrv(mGBuffers[2]);
+			data.mainDepth = builder.ReadTex2DSrv(camState.mMainViewDepth);
+			data.shadowMask = builder.ReadTex2DSrv(camState.mShadowMask);
+			data.filteredEnvMapSrv = builder.ReadTex2DSrv(envLighting.mFilteredEnvMap);
 			data.filteredEnvMapSampler = builder.Read(mFilteredEnvMapSampler);
 			data.filteredEnvMapMipCount = frameGraph->GetResourceDesc(envLighting.mFilteredEnvMap).GetMipLevels();
-			data.irradianceMapSrv = builder.ReadSrv(envLighting.mIrradianceMap);
+			data.irradianceMapSrv = builder.ReadTex2DSrv(envLighting.mIrradianceMap);
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
-			data.brdfIntegrationMapSrv = builder.ReadSrv(envLighting.mBRDFIntegrationMap);
+			data.brdfIntegrationMapSrv = builder.ReadTex2DSrv(envLighting.mBRDFIntegrationMap);
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.WriteTex2DRtv(target);
-			data.dsv = builder.ReadWriteDsv(tempDepth);
+			data.dsv = builder.ReadWriteTex2DDsv(tempDepth);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 		},
 		[
@@ -540,10 +540,10 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
-			data.panoramicSky = builder.ReadSrv(envLighting.mPanoramicSky);
+			data.panoramicSky = builder.ReadTex2DSrv(envLighting.mPanoramicSky);
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.WriteTex2DRtv(target);
-			data.depth = builder.ReadWriteDsv(depth);
+			data.depth = builder.ReadWriteTex2DDsv(depth);
 		},
 		[
 			inputLayout = mQuad->mVertexElementDescs,
@@ -675,7 +675,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 			{
 				data.gbufferRtvs[i] = builder.WriteTex2DRtv(gbufferRtvs[i]);
 			}
-			data.depthView = builder.ReadWriteDsv(depthView);
+			data.depthView = builder.ReadWriteTex2DDsv(depthView);
 			data.targetSize = frameGraph->GetResourceDesc(gbufferRtvs[0]).GetSize();
 		},
 		[
@@ -774,13 +774,13 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
 			if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
 			{
-				data.srvs.emplace_back(paramName, builder.Read({ attr.mResource, attr.mTexture->GetSrvDesc() }));
+				data.srvs.emplace_back(paramName, builder.ReadTex2DSrv(attr.mResource));
 				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
 			}
 
 			data.geoVertices = builder.Read(geometry->GetVbvDesc());
 			data.geoIndices = builder.Read(geometry->GetIbvDesc());
-			data.depthView = builder.ReadWriteDsv(depth);
+			data.depthView = builder.ReadWriteTex2DDsv(depth);
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
@@ -874,9 +874,9 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		{
 			data.geoVertices = builder.Read(geometry->GetVbvDesc());
 			data.geoIndices = builder.Read(geometry->GetIbvDesc());
-			data.lightViewDepth = builder.ReadSrv(lightViewDepth);
+			data.lightViewDepth = builder.ReadTex2DSrv(lightViewDepth);
 			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
-			data.cameraViewDepth = builder.ReadSrv(cameraViewDepth);
+			data.cameraViewDepth = builder.ReadTex2DSrv(cameraViewDepth);
 			data.cameraViewDepthSampler = builder.Read(cameraViewDepthSampler);
 			data.targetSize = frameGraph->GetResourceDesc(shadowMask).GetSize();
 			data.shadowMask = builder.WriteTex2DRtv(shadowMask);

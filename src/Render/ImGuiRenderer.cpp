@@ -166,7 +166,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 					if (data.hasSrv)
 					{
 						const auto& resDesc = frameGraph->GetResourceDesc(fontAtlas);
-						data.srv = builder.ReadSrv(fontAtlas);
+						data.srv = builder.ReadTex2DSrv(fontAtlas);
 					}
 					data.target = builder.WriteTex2DRtv(target);
 					data.indexCount = cmd->ElemCount;

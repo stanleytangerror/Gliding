@@ -49,7 +49,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.sky = builder.ReadSrv(sky);
+			data.sky = builder.ReadTex2DSrv(sky);
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
