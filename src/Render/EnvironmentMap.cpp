@@ -217,10 +217,9 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 		.SetName("FilteredEnvMap")
 		.SetHeapType(GI::HeapType::DEFAULT);
 
-	auto filteredMap = frameGraph->CreatePermanent(filteredMapDesc);
+	auto filteredMap = frameGraph->CreateTransient(filteredMapDesc);
 
 	std::vector<GI::RtvDesc> rtvs;
-	std::vector<GI::SrvDesc> srvs;
 
 	for (i32 i = 0; i < levelCount; ++i)
 	{
@@ -228,13 +227,6 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 				.SetFormat(filteredMapDesc.GetFormat())
 				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
 				.SetTexture2D_MipSlice(i)
-				.SetTexture2D_PlaneSlice(0));
-
-		srvs.push_back(GI::SrvDesc()
-				.SetFormat(filteredMapDesc.GetFormat())
-				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-				.SetTexture2D_MostDetailedMip(i)
-				.SetTexture2D_MipLevels(1)
 				.SetTexture2D_PlaneSlice(0));
 	}
 
@@ -244,7 +236,7 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(frameGraph, infra, filteredMap, rtvs[i], src, srvs[i], Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(frameGraph, infra, filteredMap, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
@@ -253,8 +245,8 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 
 void EnvironmentMap::PrefilterEnvironmentMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	FrameGraphMutableResource targetResource, GI::RtvDesc& targetDesc, 
-	const FrameGraphResource& src, const GI::SrvDesc& srcDesc,
+	FrameGraphMutableResource& targetResource, GI::RtvDesc& targetDesc, 
+	const FrameGraphResource& src,
 	const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
@@ -278,14 +270,14 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 		RtvUsageFuture target;
 	};
 
-	frameGraph->AddPass<PassData>("GenerateIntegratedBRDF",
+	frameGraph->AddPass<PassData>("FilterEnvironmentMap",
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.sampler = mPanoramicSkySampler;
-			data.src = builder.Read(src, srcDesc);
+			data.src = builder.ReadTex2DSrv(src);
 
 			data.target = builder.Write(targetResource, targetDesc);
 		},

@@ -1,7 +1,7 @@
 #include "RenderPch.h"
 #include "FrameGraph.h"
 
-#define DEBUG_FRAME_GRAPH 0
+#define DEBUG_FRAME_GRAPH 1
 
 Blackboard::~Blackboard()
 {

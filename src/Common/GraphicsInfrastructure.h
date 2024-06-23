@@ -905,7 +905,10 @@ namespace GI
             return SrvDesc()
                 .SetFormat(GetSrvFormat(resDesc.GetFormat()))
                 .SetViewDimension(GI::SrvDimension::TEXTURE2D)
-                .SetTexture2D_MipLevels(resDesc.GetMipLevels());
+                .SetTexture2D_MipLevels(resDesc.GetMipLevels())
+                .SetTexture2D_MostDetailedMip(0)
+                .SetTexture2D_PlaneSlice(0)
+                .SetTexture2D_ResourceMinLODClamp(0.f);
         }
 
         static RtvDesc AsTexture2DRtv(const MemoryResourceDesc& resDesc)

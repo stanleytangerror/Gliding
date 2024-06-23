@@ -204,13 +204,13 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				frameGraph, infra,
 				envLighting.mPanoramicSky, 8, 10);
 
-			envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
 
 			RenderUtils::GaussianBlur(frameGraph, infra, 
 				envLighting.mPanoramicSky,
 				envLighting.mPanoramicSky, 2);
 		}
 
+		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
 
 		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
 
@@ -255,7 +255,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, cameraView.mMainViewDepth);
+					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
 				}
 			});
 	}
@@ -271,7 +271,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			DsvUsageFuture depthDsv;
 		};
 		
-		frameGraph->AddPass<PassData>("InitialLightViewDepth",
+		frameGraph->AddPass<PassData>("InitialGBufferAndDepth",
 			[&](RenderPassBuilder& builder, PassData& data)
 			{
 				for (auto i = 0; i < gbufferData.mGBuffers.size(); ++i)

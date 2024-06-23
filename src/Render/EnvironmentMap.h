@@ -17,7 +17,7 @@ public:
 
 protected:
 	static void PrefilterEnvironmentMap(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-		FrameGraphMutableResource targetResource, GI::RtvDesc& targetDesc, 
-		const FrameGraphResource& src, const GI::SrvDesc& srcDesc,
+		FrameGraphMutableResource& targetResource, GI::RtvDesc& targetDesc, 
+		const FrameGraphResource& src, 
 		const Vec2i& targetSize, f32 roughness);
 };
