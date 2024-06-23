@@ -94,7 +94,8 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 
 	const auto exposureDesc = GI::MemoryResourceDesc::RenderTarget2D({ 1, 1 }, GI::Format::FORMAT_R32G32B32A32_FLOAT,
 		GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "ExposureRt");
-	auto exposureFg = mRenderModule->GetFrameGraph()->CreateTransient(exposureDesc);
+	
+	static auto exposureFg = mRenderModule->GetFrameGraph()->CreatePermanent(exposureDesc);
 
 	frameGraph->AddPass<HistogramReducePassData>("HistogramReduce",
 		[&]
@@ -102,7 +103,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 		{
 			data.sceneHdrSize = frameGraph->GetResourceDesc(sceneHdr).GetSize();
 			data.histogram = builder.ReadBufferSrv(histogramFg, histogramSize, stride);
-			data.exposureRt = builder.Write(exposureFg, GI::MemoryResourceDesc::AsTexture2DUav(exposureDesc));
+			data.exposureRt = builder.ReadWriteTex2DUav(exposureFg);
 		},
 		[this, brightMin, brightMax, histogramSize]
 		(const HistogramReducePassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -157,7 +158,7 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra,
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.sceneHdr = builder.ReadTex2DSrv(sceneHdr);
-			data.exposure = builder.Read(exposure, GI::MemoryResourceDesc::AsTexture2DSrv(frameGraph->GetResourceDesc(exposure)));
+			data.exposure = builder.ReadTex2DSrv(exposure);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 			data.target = builder.WriteTex2DRtv(target);
 		},

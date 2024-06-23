@@ -1,7 +1,7 @@
 #include "RenderPch.h"
 #include "FrameGraph.h"
 
-#define DEBUG_FRAME_GRAPH 1
+#define DEBUG_FRAME_GRAPH 0
 
 Blackboard::~Blackboard()
 {
@@ -251,6 +251,26 @@ DsvUsageFuture RenderPassBuilder::ReadWriteTex2DDsv(FrameGraphMutableResource& r
 }
 
 DsvUsageFuture RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc)
+{
+	Assert(resource.IsValid());
+
+	mInputResources.push_back(resource.mId);
+
+	resource.IncrementVersion();
+	mOutputResources.push_back(resource.mId);
+	return { resource, desc };
+}
+
+UavUsageFuture RenderPassBuilder::ReadWriteTex2DUav(FrameGraphMutableResource& resource)
+{
+	Assert(resource.IsValid());
+
+	const auto& desc = mBuilder->GetResourceRegistry()->GetResourceDesc(resource);
+	return ReadWrite(resource, GI::MemoryResourceDesc::AsTexture2DUav(desc));
+}
+
+
+UavUsageFuture RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource, const GI::UavDesc& desc)
 {
 	Assert(resource.IsValid());
 

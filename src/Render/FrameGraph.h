@@ -245,6 +245,9 @@ public:
 	DsvUsageFuture	ReadWriteTex2DDsv(FrameGraphMutableResource& resource);
 	DsvUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::DsvDesc& desc);
 
+	UavUsageFuture	ReadWriteTex2DUav(FrameGraphMutableResource& resource);
+	UavUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
+
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
 
 protected:
