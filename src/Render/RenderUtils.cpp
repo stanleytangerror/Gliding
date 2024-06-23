@@ -50,6 +50,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		GI::SamplerDesc sourceSampler;
 		RtvUsageFuture target;
 		Vec3u targetSize;
+		std::string sourcePixelUnary;
 	};
 
 	frameGraph->AddPass<PassData>("RenderUtils::CopyTexture",
@@ -62,11 +63,12 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			data.sourceSampler = builder.Read(sourceSampler);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 			data.target = builder.WriteTex2DRtv(target);
+			data.sourcePixelUnary = sourcePixelUnary;
 		},
 		[
 			inputLayout = quad->mVertexElementDescs,
 			indexCount = quad->mIndices.size(),
-			sourcePixelUnary, targetOffset, targetRect
+			targetOffset, targetRect
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
@@ -76,7 +78,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 			pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", sourcePixelUnary ? sourcePixelUnary : "color" });
+			pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", !data.sourcePixelUnary.empty() ? data.sourcePixelUnary : "color" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -207,7 +209,7 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 	auto sourceDesc = frameGraph->GetResourceDesc(source);
 
 	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), GI::ResourceFlag::ALLOW_RENDER_TARGET, "GaussianBlurIntermediateRt");
-	auto interRtFg = frameGraph->Create(desc);
+	auto interRtFg = frameGraph->CreateTransient(desc);
 
 	RENDER_EVENT(infra, GaussianBlur);
 	GaussianBlur1D(frameGraph, infra, interRtFg, source, kernelSizeInPixel, sampler, quad, true);

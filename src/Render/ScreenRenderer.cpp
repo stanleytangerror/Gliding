@@ -44,7 +44,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 	const f32 brightMax = 65536.f;
 
 	const auto histogramDesc = GI::MemoryResourceDesc::Buffer2(histogramSize * stride, true, true, "BrightnessHistogram");
-	auto histogramFg = frameGraph->Create(histogramDesc);
+	auto histogramFg = frameGraph->CreateTransient(histogramDesc);
 
 	struct BrightnessHistogramPassData
 	{
@@ -94,7 +94,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 
 	const auto exposureDesc = GI::MemoryResourceDesc::RenderTarget2D({ 1, 1 }, GI::Format::FORMAT_R32G32B32A32_FLOAT,
 		GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "ExposureRt");
-	auto exposureFg = mRenderModule->GetFrameGraph()->Create(exposureDesc);
+	auto exposureFg = mRenderModule->GetFrameGraph()->CreateTransient(exposureDesc);
 
 	frameGraph->AddPass<HistogramReducePassData>("HistogramReduce",
 		[&]

@@ -15,6 +15,7 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 
 	unsigned char* pixels = nullptr;
 	i32 width = 0, height = 0, bytesPerPixel = 0;
+	ImGui::GetIO().Fonts->SetTexID(ImTextureID(-1)); // initial as invalid
 	ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytesPerPixel);
 	Assert(bytesPerPixel == 4);
 
@@ -43,9 +44,10 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 	{
 		mFontAtlas->CreateAndInitialResource(infra);
 
-		auto resource = mFontAtlas->GetResource();
+		auto fontText = frameGraph->Import(mFontAtlas->GetResource());
 
-		ImGui::GetIO().Fonts->SetTexID(resource);
+		static_assert(sizeof(ImTextureID) >= sizeof(FrameGraphMutableResource), "FrameGraphMutableResource should be able to store as ImTextureID");
+		ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&fontText));
 	}
 
 	RENDER_EVENT(infra, ImGuiRenderer::Render);
@@ -135,9 +137,9 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 			if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) { continue; }
 
 			const Math::Rect scissorRect = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
-
-			auto* res = reinterpret_cast<GI::IGraphicMemoryResource*>(cmd->GetTexID());
-			auto fontAtlas = res ? frameGraph->Import(res) : FrameGraphMutableResource{};
+			
+			auto texId = cmd->GetTexID();
+			auto fontAtlas = *reinterpret_cast<FrameGraphResource*>(&texId);
 
 			struct PassData
 			{
@@ -162,7 +164,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 					data.geoVertices = builder.Read(geo->GetVbvDesc());
 					data.geoIndices = builder.Read(geo->GetIbvDesc());
 					data.sampler = builder.Read(mImGuiSampler);
-					data.hasSrv = res != nullptr;
+					data.hasSrv = fontAtlas.IsValid();
 					if (data.hasSrv)
 					{
 						const auto& resDesc = frameGraph->GetResourceDesc(fontAtlas);

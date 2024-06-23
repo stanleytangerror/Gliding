@@ -24,6 +24,11 @@ struct EnvLighting
 	FrameGraphResource			mBRDFIntegrationMap;
 };
 
+struct GBufferData
+{
+	std::array<FrameGraphMutableResource, 3> mGBuffers = {};
+};
+
 WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize)
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
@@ -31,6 +36,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	auto infra = mRenderModule->GetGraphicsInfra();
 	auto* frameGraph = renderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
+
+	blackboard->Add<LightViewData>();
+	blackboard->Add<EnvLighting>();
+	blackboard->Add<GBufferData>();
 
 	auto& cam = blackboard->Add<MainCameraState>();
 	{
@@ -51,9 +60,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		sunLight.mLightViewProj.mViewHeight = 200.f;
 		sunLight.mLightViewProj.mViewWidth = 200.f;
 	}
-
-	auto& lightView = blackboard->Add<LightViewData>();
-	auto& envLighting = blackboard->Add<EnvLighting>();
 
 	mSphere.reset(Geometry::GenerateSphere(40));
 	mQuad.reset(Geometry::GenerateQuad());
@@ -86,19 +92,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetAddress({ GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER })
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
-
-	for (i32 i = 0; i < mGBuffers.size(); ++i)
-	{
-		mGBuffers[i] = frameGraph->Create(
-			GI::MemoryResourceDesc::RenderTarget2D(
-				mRenderSize,
-				GI::Format::FORMAT_R16G16B16A16_UNORM,
-				GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS,
-				Utils::FormatString("GBuffer%d", i).c_str()));
-	}
-
-	cam.mShadowMask = frameGraph->Create(GI::MemoryResourceDesc::RenderTarget2D(
-		mRenderSize, GI::Format::FORMAT_R16_FLOAT, GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "ShadowMask"));
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
@@ -134,9 +127,10 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 	auto& lightView = blackboard->Get<LightViewData>();
 	auto& cameraView = blackboard->Get<MainCameraState>();
 	auto& envLighting = blackboard->Get<EnvLighting>();
+	auto& gbufferData = blackboard->Get<GBufferData>();
 
 	{
-		lightView.mLightViewDepth = frameGraph->Create(
+		lightView.mLightViewDepth = frameGraph->CreateTransient(
 			GI::MemoryResourceDesc::RenderTarget2D(
 				mRenderSize, 
 				GI::Format::FORMAT_R24G8_TYPELESS, 
@@ -144,16 +138,29 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				"LightViewDepth")
 			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE));
 
-		cameraView.mMainViewDepth = frameGraph->Create(
+		cameraView.mMainViewDepth = frameGraph->CreateTransient(
 			GI::MemoryResourceDesc::RenderTarget2D(
 				mRenderSize,
 				GI::Format::FORMAT_R32G8X24_TYPELESS,
 				GI::ResourceFlag::ALLOW_DEPTH_STENCIL,
 				"SceneDepthStencil")
 			.SetInitState(GI::ResourceState::STATE_DEPTH_WRITE));
+
+		cameraView.mShadowMask = frameGraph->CreateTransient(GI::MemoryResourceDesc::RenderTarget2D(
+			mRenderSize, GI::Format::FORMAT_R16_FLOAT, GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "ShadowMask"));
+
+		for (i32 i = 0; i < gbufferData.mGBuffers.size(); ++i)
+		{
+			gbufferData.mGBuffers[i] = frameGraph->CreateTransient(
+				GI::MemoryResourceDesc::RenderTarget2D(
+					mRenderSize,
+					GI::Format::FORMAT_R16G16B16A16_UNORM,
+					GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS,
+					Utils::FormatString("GBuffer%d", i).c_str()));
+		}
 	}
 
-	auto target = frameGraph->Create(GI::MemoryResourceDesc::RenderTarget2D(
+	auto target = frameGraph->CreateTransient(GI::MemoryResourceDesc::RenderTarget2D(
 		mRenderSize, 
 		GI::Format::FORMAT_R11G11B10_FLOAT,
 		GI::ResourceFlag::ALLOW_RENDER_TARGET, 
@@ -182,7 +189,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			const auto& panoramicSkyDesc = GI::MemoryResourceDesc::RenderTarget2D(skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT,
 				GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "PanoramicSkyRt");
 			
-			envLighting.mPanoramicSky = frameGraph->Create(panoramicSkyDesc);
+			envLighting.mPanoramicSky = frameGraph->CreatePermanent(panoramicSkyDesc);
 
 			auto skyTexture = frameGraph->Import(mSkyTexture->GetResource());
 
@@ -267,9 +274,9 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 		frameGraph->AddPass<PassData>("InitialLightViewDepth",
 			[&](RenderPassBuilder& builder, PassData& data)
 			{
-				for (auto i = 0; i < mGBuffers.size(); ++i)
+				for (auto i = 0; i < gbufferData.mGBuffers.size(); ++i)
 				{
-					data.gbufferRtvs[i] = builder.WriteTex2DRtv(mGBuffers[i]);
+					data.gbufferRtvs[i] = builder.WriteTex2DRtv(gbufferData.mGBuffers[i]);
 				}
 				data.depthDsv = builder.WriteTex2DDsv(cameraView.mMainViewDepth);
 			},
@@ -292,7 +299,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 				if (geo && mat && mat->IsGpuResourceReady())
 				{
-					RenderGeometryWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, mGBuffers, cameraView.mMainViewDepth);
+					RenderGeometryWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
 				}
 			});
 	}
@@ -309,6 +316,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
+	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
 
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -329,7 +337,7 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphM
 
 		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
 			target, { i * width, 0.f }, { width, height }, 
-			mGBuffers[idx], mNoMipMapLinearSampler, unary);
+			gbufferData.mGBuffers[idx], mNoMipMapLinearSampler, unary);
 	}
 }
 
@@ -371,13 +379,14 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 	auto& sunLight = frameGraph->GetBlackboard()->Get<DirectionalLight>();
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
+	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
 
 	RENDER_EVENT(infra, DeferredLighting);
 
 	const auto& mainDepthDesc = frameGraph->GetResourceDesc(camState.mMainViewDepth);
 	const auto& dsSize = mainDepthDesc.GetSize();
 
-	auto tempDepth = frameGraph->Create(
+	auto tempDepth = frameGraph->CreatePermanent(
 		GI::MemoryResourceDesc::RenderTarget2D(
 			{ dsSize.x(), dsSize.y() }, 
 			mainDepthDesc.GetFormat(),
@@ -429,9 +438,9 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
 			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
-			data.gBufferSrvs[0] = builder.ReadTex2DSrv(mGBuffers[0]);
-			data.gBufferSrvs[1] = builder.ReadTex2DSrv(mGBuffers[1]);
-			data.gBufferSrvs[2] = builder.ReadTex2DSrv(mGBuffers[2]);
+			data.gBufferSrvs[0] = builder.ReadTex2DSrv(gbufferData.mGBuffers[0]);
+			data.gBufferSrvs[1] = builder.ReadTex2DSrv(gbufferData.mGBuffers[1]);
+			data.gBufferSrvs[2] = builder.ReadTex2DSrv(gbufferData.mGBuffers[2]);
 			data.mainDepth = builder.ReadTex2DSrv(camState.mMainViewDepth);
 			data.shadowMask = builder.ReadTex2DSrv(camState.mShadowMask);
 			data.filteredEnvMapSrv = builder.ReadTex2DSrv(envLighting.mFilteredEnvMap);

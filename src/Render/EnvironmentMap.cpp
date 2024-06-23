@@ -21,7 +21,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 	const Vec2i& rtSize = { resolution * 2, resolution };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto irradianceMap = frameGraph->Create(
+	auto irradianceMap = frameGraph->CreatePermanent(
 		GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
@@ -123,7 +123,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 	const Vec2i& rtSize = { resolution, resolution };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto integrateBrdf = frameGraph->Create(GI::MemoryResourceDesc()
+	auto integrateBrdf = frameGraph->CreatePermanent(GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
 		.SetWidth(rtSize.x())
@@ -217,7 +217,7 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 		.SetName("FilteredEnvMap")
 		.SetHeapType(GI::HeapType::DEFAULT);
 
-	auto filteredMap = frameGraph->Create(filteredMapDesc);
+	auto filteredMap = frameGraph->CreatePermanent(filteredMapDesc);
 
 	std::vector<GI::RtvDesc> rtvs;
 	std::vector<GI::SrvDesc> srvs;

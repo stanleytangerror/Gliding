@@ -159,17 +159,24 @@ public:
 	ResourceRegistry(const ResourceRegistry&) = delete;
 	ResourceRegistry& operator=(const ResourceRegistry&) = delete;
 
+	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
 	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
-	void						OnSubmitPass(GI::IGraphicsInfra* infra);
+	void						OnCompile(GI::IGraphicsInfra* infra);
 	void						OnEndFrame();
 
 protected:
-	std::map<FrameGraphResource::Id::Handle, GI::MemoryResourceDesc> mTransienceResourceDescs;
-	std::map<FrameGraphResource::Id::Handle, std::unique_ptr<GI::IGraphicMemoryResource>> mTransienceResources;
+	struct ResourceData
+	{
+		GI::MemoryResourceDesc						mDesc;
+		std::unique_ptr<GI::IGraphicMemoryResource>	mRealResource;
+	};
+
+	std::map<FrameGraphResource::Id::Handle, ResourceData> mPermanentResources;
+	std::map<FrameGraphResource::Id::Handle, ResourceData> mTransienceResources;
 
 	BijectionMap<FrameGraphResource::Id::Handle, GI::IGraphicMemoryResource*> mImportedResources;
 
@@ -326,7 +333,8 @@ public:
 
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
-	FrameGraphMutableResource	Create(const GI::MemoryResourceDesc& desc);
+	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);
+	FrameGraphMutableResource	CreateTransient(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
 	void						Present(FrameGraphMutableResource resource);
 

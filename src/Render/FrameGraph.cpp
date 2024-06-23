@@ -1,21 +1,34 @@
 #include "RenderPch.h"
 #include "FrameGraph.h"
 
-#define DEBUG_FRAME_GRAPH 1
+#define DEBUG_FRAME_GRAPH 0
 
 Blackboard::~Blackboard()
 {
 	Clear();
 }
 
+FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc)
+{
+	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
+	Assert(mPermanentResources.find(resourceId.mHandle) == mPermanentResources.end());
+	mPermanentResources[resourceId.mHandle] = { desc, nullptr };
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Create] Permanent %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
+#endif
+
+	return FrameGraphMutableResource{ resourceId };
+}
+
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
-	Assert(mTransienceResourceDescs.find(resourceId.mHandle) == mTransienceResourceDescs.end());
-	mTransienceResourceDescs[resourceId.mHandle] = desc;
+	Assert(mTransienceResources.find(resourceId.mHandle) == mTransienceResources.end());
+	mTransienceResources[resourceId.mHandle] = { desc, nullptr };
 
 #if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Create] %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
+	DEBUG_PRINT("[Create] Transient %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
 #endif
 
 	return FrameGraphMutableResource{ resourceId };
@@ -45,7 +58,11 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 {
 	if (mTransienceResources.find(resource.mId.mHandle) != mTransienceResources.end())
 	{
-		return mTransienceResources.find(resource.mId.mHandle)->second.get();
+		return mTransienceResources.find(resource.mId.mHandle)->second.mRealResource.get();
+	}
+	else if (mPermanentResources.find(resource.mId.mHandle) != mPermanentResources.end())
+	{
+		return mPermanentResources.find(resource.mId.mHandle)->second.mRealResource.get();
 	}
 	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
@@ -58,9 +75,13 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 
 GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResource& resource) const
 {
-	if (mTransienceResourceDescs.find(resource.mId.mHandle) != mTransienceResourceDescs.end())
+	if (mTransienceResources.find(resource.mId.mHandle) != mTransienceResources.end())
 	{
-		return mTransienceResourceDescs.find(resource.mId.mHandle)->second;
+		return mTransienceResources.find(resource.mId.mHandle)->second.mDesc;
+	}
+	else if (mPermanentResources.find(resource.mId.mHandle) != mPermanentResources.end())
+	{
+		return mPermanentResources.find(resource.mId.mHandle)->second.mDesc;
 	}
 	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
@@ -79,11 +100,19 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 	return {};
 }
 
-void ResourceRegistry::OnSubmitPass(GI::IGraphicsInfra* infra)
+void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 {
-	for (const auto& [id, desc] : mTransienceResourceDescs)
+	for (auto& [id, data] : mPermanentResources)
 	{
-		mTransienceResources.insert({ id, infra->CreateMemoryResource(desc) });
+		if (!data.mRealResource)
+		{
+			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+		}
+	}
+	for (auto& [id, data] : mTransienceResources)
+	{
+		Assert(data.mRealResource == nullptr);
+		data.mRealResource = infra->CreateMemoryResource(data.mDesc);
 	}
 }
 
@@ -334,12 +363,9 @@ void FrameGraphBuilder::CompileAndExecute()
 		outputNodes.begin(),
 		[this](FrameGraphResource::Id id) { return mResourceNodes.GetByKey(id).second; });
 	
-#if DEBUG_FRAME_GRAPH
-	DebugOutputGraph();
-#endif
-	
 	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
 
+#if DEBUG_FRAME_GRAPH
 	auto serialized = DirectedGraph::Serialize(culledGraph, [this](auto n)
 		{
 			if (mResourceNodes.ContainsValue(n))
@@ -361,6 +387,7 @@ void FrameGraphBuilder::CompileAndExecute()
 		[](auto e) { return ""; });
 
 	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
+#endif
 
 	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
 
@@ -433,7 +460,7 @@ void FrameGraph::StartFrame()
 
 void FrameGraph::EndFrame()
 {
-	mResourceRegistry->OnSubmitPass(mInfra);
+	mResourceRegistry->OnCompile(mInfra);
 
 	mFrameGraphBuilder->CompileAndExecute();
 	mFrameGraphBuilder = nullptr;
@@ -441,7 +468,13 @@ void FrameGraph::EndFrame()
 	mResourceRegistry->OnEndFrame();
 }
 
-FrameGraphMutableResource FrameGraph::Create(const GI::MemoryResourceDesc& desc)
+FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc)
+{
+	return mResourceRegistry->CreatePermanentResource(desc);
+}
+
+
+FrameGraphMutableResource FrameGraph::CreateTransient(const GI::MemoryResourceDesc& desc)
 {
 	return mResourceRegistry->CreateTransientResource(desc);
 }

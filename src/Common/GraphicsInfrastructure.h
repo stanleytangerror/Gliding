@@ -566,7 +566,7 @@ namespace GI
         {
         case Format::FORMAT_R32G8X24_TYPELESS:  return Format::FORMAT_R32_FLOAT_X8X24_TYPELESS;
         case Format::FORMAT_R24G8_TYPELESS:     return Format::FORMAT_R24_UNORM_X8_TYPELESS;
-        default:Assert(false); return Format::FORMAT_UNKNOWN;
+        default: return format;
         }
     }
 
@@ -903,7 +903,7 @@ namespace GI
         static SrvDesc AsTexture2DSrv(const MemoryResourceDesc& resDesc)
         {
             return SrvDesc()
-                .SetFormat(resDesc.GetFormat())
+                .SetFormat(GetSrvFormat(resDesc.GetFormat()))
                 .SetViewDimension(GI::SrvDimension::TEXTURE2D)
                 .SetTexture2D_MipLevels(resDesc.GetMipLevels());
         }
@@ -913,7 +913,8 @@ namespace GI
             return RtvDesc()
                 .SetFormat(resDesc.GetFormat())
                 .SetViewDimension(GI::RtvDimension::TEXTURE2D)
-                .SetTexture2D_MipSlice(resDesc.GetMipLevels());
+                .SetTexture2D_MipSlice(0)
+                .SetTexture2D_PlaneSlice(0);
         }
 
         static UavDesc AsTexture2DUav(const MemoryResourceDesc& resDesc)

@@ -69,8 +69,6 @@ private:
 	GI::SamplerDesc mBRDFIntegrationMapSampler;
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
-	std::array<FrameGraphMutableResource, 3> mGBuffers = {};
-
 public:
 
 	std::unique_ptr<
