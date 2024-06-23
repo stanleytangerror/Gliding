@@ -94,6 +94,13 @@ std::vector<b8> Utils::LoadFileContent(const char* path)
 	return {};
 }
 
+
+GD_COMMON_API void Utils::WriteFileText(const char* path, const std::string& text)
+{
+	std::ofstream out(path);
+	out << text;
+}
+
 u32 Utils::HashBytes(const b8* data, u32 size)
 {
 	/* Fowler¨CNoll¨CVo hash function */

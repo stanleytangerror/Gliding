@@ -360,8 +360,7 @@ void FrameGraphBuilder::CompileAndExecute()
 		},
 		[](auto e) { return ""; });
 
-	Utils::PrintDebugString(serialized.c_str());
-
+	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
 
 	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
 

@@ -17,6 +17,7 @@ namespace Utils
 	GD_COMMON_API void PrintDebugString(const char* path);
 
 	GD_COMMON_API std::vector<b8>	LoadFileContent(const char* path);
+	GD_COMMON_API void				WriteFileText(const char* path, const std::string& text);
 
 	GD_COMMON_API u32 HashBytes(const b8* data, u32 size);
 
