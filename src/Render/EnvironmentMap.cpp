@@ -123,7 +123,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 	const Vec2i& rtSize = { resolution, resolution };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto integrateBrdf = frameGraph->CreatePermanent(GI::MemoryResourceDesc()
+	auto integrateBrdf = frameGraph->CreateTransient(GI::MemoryResourceDesc()
 		.SetAlignment(0)
 		.SetDimension(GI::ResourceDimension::TEXTURE2D)
 		.SetWidth(rtSize.x())
