@@ -965,7 +965,7 @@ namespace GI
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Height);
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, ArraySize);
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, MipLevel);
-		CONTINOUS_SETTER_VALUE(ReadOnly2DResourceDesc, const char*, Name, nullptr);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, std::string, Name);
     };
 
     class GD_COMMON_API IImage

@@ -40,8 +40,8 @@ namespace D3D12Backend
 		Assert(image->GetImageCount() > 0);
 		ID3D12Resource* resource = nullptr;
 		AssertHResultOk(DirectX::CreateTexture(mDevice->GetDevice(), image->GetMetadata(), &resource));
-		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
-		auto result = mDevice->GetResourceManager()->PossessResourceWithOwnership(resource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
+		NAME_RAW_D3D12_OBJECT(resource, desc.GetName().c_str());
+		auto result = mDevice->GetResourceManager()->PossessResourceWithOwnership(resource, desc.GetName().c_str(), D3D12_RESOURCE_STATE_COPY_DEST);
 
 		mCurrentRecorder->AddInitialTextureResourceOperation(result.get(), image);
 
@@ -803,20 +803,24 @@ namespace D3D12Backend
 		auto uploadResourceId = uploadResource->GetResourceId();
 
 		// https://stackoverflow.com/a/20669290/2131563
+#if DEFERRED_EXECUTE
 		mCommands.push([this, image, resourceManager, resourceId, uploadResourceId, subresources]() mutable
 		{
-			auto deviceResource = resourceManager->GetResource(resourceId);
-			auto uploadDeviceResource = resourceManager->GetResource(uploadResourceId);
+#endif
+			auto deviceResource1 = resourceManager->GetResource(resourceId);
+			auto uploadDeviceResource1 = resourceManager->GetResource(uploadResourceId);
 
 			UpdateSubresources(
 				mContext->GetCommandList(),
-				deviceResource->GetD3D12Resource(),
-				uploadDeviceResource->GetD3D12Resource(),
+				deviceResource1->GetD3D12Resource(),
+				uploadDeviceResource1->GetD3D12Resource(),
 				0, 0, static_cast<unsigned int>(subresources.size()),
 				subresources.data());
 
+#if DEFERRED_EXECUTE
 			delete image;
 		});
+#endif
 	}
 
 	// TODO investigate this https://stackoverflow.com/a/20669290/2131563
