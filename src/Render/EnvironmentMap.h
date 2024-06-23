@@ -6,12 +6,12 @@
 class EnvironmentMap
 {
 public:
-	static SrvUsageFuture GenerateIrradianceMap(
+	static FrameGraphResource GenerateIrradianceMap(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
 		const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount);
-	static SrvUsageFuture GenerateIntegratedBRDF(
+	static FrameGraphResource GenerateIntegratedBRDF(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution);
-	static SrvUsageFuture GeneratePrefilteredEnvironmentMap(
+	static FrameGraphResource GeneratePrefilteredEnvironmentMap(
 		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
 		const FrameGraphResource& src, i32 resolution);
 

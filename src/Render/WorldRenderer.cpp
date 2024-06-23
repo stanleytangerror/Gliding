@@ -18,13 +18,10 @@ struct LightViewData
 
 struct EnvLighting
 {
-	FrameGraphMutableResource		mPanoramicSky;
-	FrameGraphResource		mFilteredEnvMap;
-	SrvUsageFuture			mFilteredEnvMapSrv;
-	FrameGraphResource		mIrradianceMap;
-	SrvUsageFuture			mIrradianceMapSrv;
-	FrameGraphResource		mBRDFIntegrationMap;
-	SrvUsageFuture			mBRDFIntegrationMapSrv;
+	FrameGraphMutableResource	mPanoramicSky;
+	FrameGraphResource			mFilteredEnvMap;
+	FrameGraphResource			mIrradianceMap;
+	FrameGraphResource			mBRDFIntegrationMap;
 };
 
 WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize)
@@ -196,13 +193,11 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				skyTexture, 
 				mNoMipMapLinearSampler, customSkyColor.c_str());
 
-			envLighting.mIrradianceMapSrv = EnvironmentMap::GenerateIrradianceMap(
+			envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(
 				frameGraph, infra,
 				envLighting.mPanoramicSky, 8, 10);
-			envLighting.mIrradianceMap = envLighting.mIrradianceMapSrv.resource;
 
-			envLighting.mFilteredEnvMapSrv = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
-			envLighting.mFilteredEnvMap = envLighting.mFilteredEnvMapSrv.resource;
+			envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
 
 			RenderUtils::GaussianBlur(frameGraph, infra, 
 				envLighting.mPanoramicSky,
@@ -210,8 +205,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 		}
 
 
-		envLighting.mBRDFIntegrationMapSrv = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
-		envLighting.mBRDFIntegrationMap = envLighting.mBRDFIntegrationMapSrv.resource;
+		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
 
 		mTestModel->ForEach([&](auto& node)
 			{
@@ -440,12 +434,12 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			data.gBufferSrvs[2] = builder.ReadSrv(mGBuffers[2]);
 			data.mainDepth = builder.ReadSrv(camState.mMainViewDepth);
 			data.shadowMask = builder.ReadSrv(camState.mShadowMask);
-			data.filteredEnvMapSrv = builder.Read(envLighting.mFilteredEnvMapSrv);
+			data.filteredEnvMapSrv = builder.ReadSrv(envLighting.mFilteredEnvMap);
 			data.filteredEnvMapSampler = builder.Read(mFilteredEnvMapSampler);
 			data.filteredEnvMapMipCount = frameGraph->GetResourceDesc(envLighting.mFilteredEnvMap).GetMipLevels();
-			data.irradianceMapSrv = builder.Read(envLighting.mIrradianceMapSrv);
+			data.irradianceMapSrv = builder.ReadSrv(envLighting.mIrradianceMap);
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
-			data.brdfIntegrationMapSrv = builder.Read(envLighting.mBRDFIntegrationMapSrv);
+			data.brdfIntegrationMapSrv = builder.ReadSrv(envLighting.mBRDFIntegrationMap);
 			data.brdfIntegrationMapSampler = builder.Read(mBRDFIntegrationMapSampler);
 			data.target = builder.WriteTex2DRtv(target);
 			data.dsv = builder.ReadWriteDsv(tempDepth);

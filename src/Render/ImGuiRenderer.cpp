@@ -44,11 +44,6 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 		mFontAtlas->CreateAndInitialResource(infra);
 
 		auto resource = mFontAtlas->GetResource();
-		//mFontAtlasSrvDesc = GI::SrvDesc();
-		//mFontAtlasSrvDesc
-		//	.SetFormat(resource->GetFormat())
-		//	.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		//	.SetTexture2D_MipLevels(resource->GetMipLevelCount());
 
 		ImGui::GetIO().Fonts->SetTexID(resource);
 	}

@@ -2,7 +2,7 @@
 #include "EnvironmentMap.h"
 #include "Geometry.h"
 
-SrvUsageFuture EnvironmentMap::GenerateIrradianceMap(
+FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
 	const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
@@ -102,16 +102,10 @@ SrvUsageFuture EnvironmentMap::GenerateIrradianceMap(
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 
-	return SrvUsageFuture{ 
-			irradianceMap, 
-			GI::SrvDesc()
-				.SetFormat(format)
-				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-				.SetTexture2D_MipLevels(1)
-		};
+	return irradianceMap;
 }
 
-SrvUsageFuture EnvironmentMap::GenerateIntegratedBRDF(
+FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
@@ -197,16 +191,10 @@ SrvUsageFuture EnvironmentMap::GenerateIntegratedBRDF(
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 
-	return SrvUsageFuture{
-			integrateBrdf,
-			GI::SrvUsage()
-				.SetFormat(format)
-				.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-				.SetTexture2D_MipLevels(1)
-		};
+	return integrateBrdf;
 }
 
-SrvUsageFuture EnvironmentMap::GeneratePrefilteredEnvironmentMap(
+FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
 	const FrameGraphResource& src, i32 resolution)
 {
@@ -260,15 +248,7 @@ SrvUsageFuture EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 		dstSize = dstSize * 0.5f;
 	}
 
-	return SrvUsageFuture{
-		filteredMap,
-		GI::SrvDesc()
-		.SetFormat(filteredMapDesc.GetFormat())
-		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MostDetailedMip(0)
-		.SetTexture2D_MipLevels(levelCount)
-		.SetTexture2D_PlaneSlice(0)
-		};
+	return filteredMap;
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap(
