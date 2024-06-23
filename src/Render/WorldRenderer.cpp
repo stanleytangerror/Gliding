@@ -204,13 +204,12 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				frameGraph, infra,
 				envLighting.mPanoramicSky, 8, 10);
 
+			envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
 
 			RenderUtils::GaussianBlur(frameGraph, infra, 
 				envLighting.mPanoramicSky,
 				envLighting.mPanoramicSky, 2);
 		}
-
-		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
 
 		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
 

@@ -217,7 +217,7 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 		.SetName("FilteredEnvMap")
 		.SetHeapType(GI::HeapType::DEFAULT);
 
-	auto filteredMap = frameGraph->CreateTransient(filteredMapDesc);
+	auto filteredMap = frameGraph->CreatePermanent(filteredMapDesc);
 
 	std::vector<GI::RtvDesc> rtvs;
 
