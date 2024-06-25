@@ -286,7 +286,7 @@ public:
 
 	void						DebugOutputGraph();
 	void						DebugOutputResourceNode(DirectedGraph::NodeHandle node, const char* prefix = nullptr);
-	void						DebugOutputPassNode(DirectedGraph::EdgeHandle edge, const char* prefix = nullptr);
+	void						DebugOutputPassNode(DirectedGraph::NodeHandle node, const char* prefix = nullptr);
 
 protected:
 	struct Pass {

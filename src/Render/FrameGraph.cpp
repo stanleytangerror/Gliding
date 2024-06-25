@@ -405,8 +405,7 @@ void FrameGraphBuilder::CompileAndExecute()
 					Utils::FormatString("%s\\nPassHandle: %d", mPasses[passHandle].mPassName.c_str(), passHandle),
 					"pass");
 			}
-		},
-		[](auto e) { return ""; });
+		});
 
 	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
 #endif
@@ -463,12 +462,12 @@ void FrameGraphBuilder::DebugOutputResourceNode(DirectedGraph::NodeHandle node, 
 	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, id, name.c_str());
 }
 
-void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::EdgeHandle edge, const char* prefix)
+void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::NodeHandle node, const char* prefix)
 {
-	Assert(mPassNodes.ContainsValue(edge));
+	Assert(mPassNodes.ContainsValue(node));
 	
-	auto passHandle = mPassNodes.GetByValue(edge).first;
-	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", edge, passHandle, mPasses[passHandle].mPassName.c_str());
+	auto passHandle = mPassNodes.GetByValue(node).first;
+	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, passHandle, mPasses[passHandle].mPassName.c_str());
 }
 
 FrameGraph::FrameGraph(GI::IGraphicsInfra* infra)
