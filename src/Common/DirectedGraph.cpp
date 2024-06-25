@@ -68,34 +68,46 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 
 	std::queue<NodeHandle> nodes;
 	std::set<NodeHandle> visitedNodes;
-	for (auto n : endNodes) { nodes.push(n); }
+	for (auto n : endNodes) 
+	{ 
+		nodes.push(n);
+		visitedNodes.insert(n);
+	}
 
-	while (!nodes.empty())
 	{
-		auto curNode = nodes.front();
-		nodes.pop();
-		visitedNodes.insert(curNode);
+		PROFILE_EVENT(DirectedGraph::Visit);
 
-		for (auto n : graph.GetIncomingNodes(curNode))
+		while (!nodes.empty())
 		{
-			if (visitedNodes.find(n) == visitedNodes.end())
+			auto curNode = nodes.front();
+			nodes.pop();
+
+			for (auto n : graph.GetIncomingNodes(curNode))
 			{
-				nodes.push(n);
+				if (visitedNodes.find(n) == visitedNodes.end())
+				{
+					nodes.push(n);
+					visitedNodes.insert(n);
+				}
 			}
 		}
 	}
 
-	std::vector<NodeHandle> cullingNodes;
-	for (const auto& [n, _] : result.GetAllNodes())
 	{
-		if (visitedNodes.find(n) == visitedNodes.end())
+		PROFILE_EVENT(DirectedGraph::Clean);
+
+		std::vector<NodeHandle> cullingNodes;
+		for (const auto& [n, _] : result.GetAllNodes())
 		{
-			cullingNodes.push_back(n);
+			if (visitedNodes.find(n) == visitedNodes.end())
+			{
+				cullingNodes.push_back(n);
+			}
 		}
-	}
-	for (const auto& n : cullingNodes)
-	{
-		result.RemoveNode(n);
+		for (const auto& n : cullingNodes)
+		{
+			result.RemoveNode(n);
+		}
 	}
 
 	return result;
