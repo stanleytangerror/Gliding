@@ -377,6 +377,8 @@ void FrameGraphBuilder::MarkOutputNode(const FrameGraphResource& resource)
 
 void FrameGraphBuilder::CompileAndExecute()
 {
+	PROFILE_EVENT(FrameGraphBuilder::CompileAndExecute);
+
 	Assert(!mPresentResources.empty());
 	std::vector<DirectedGraph::NodeHandle> outputNodes(mPresentResources.size());
 	std::transform(mPresentResources.begin(), mPresentResources.end(),
@@ -424,9 +426,12 @@ void FrameGraphBuilder::CompileAndExecute()
 		}
 	}
 
-	for (const auto& pass : sortedPasses)
 	{
-		pass.mExecute();
+		PROFILE_EVENT(Execute);
+		for (const auto& pass : sortedPasses)
+		{
+			pass.mExecute();
+		}
 	}
 }
 

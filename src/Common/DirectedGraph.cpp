@@ -1,6 +1,7 @@
 #include "CommonPch.h"
 #include "DirectedGraph.h"
 #include "StringUtils.h"
+#include "Profile.h"
 
 DirectedGraph::NodeHandle DirectedGraph::AddNode()
 {
@@ -53,6 +54,18 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 	mNodes.erase(node);
 }
 
+u32 DirectedGraph::GetInDegree(const NodeHandle& node) const
+{
+	Assert(IsValidNodeHandle(node));
+	return mNodes.find(node)->second.mIncomingEdges.size();
+}
+
+u32 DirectedGraph::GetOutDegree(const NodeHandle& node) const
+{
+	Assert(IsValidNodeHandle(node));
+	return mNodes.find(node)->second.mOutgoingEdges.size();
+}
+
 std::set<DirectedGraph::EdgeHandle>	DirectedGraph::GetIncomingEdges(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
@@ -98,6 +111,8 @@ DirectedGraph::Edge DirectedGraph::GetEdge(const DirectedGraph::EdgeHandle& h) c
 
 DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
 {
+	PROFILE_EVENT(DirectedGraph::Cull);
+
 	DirectedGraph result = graph;
 
 	std::queue<NodeHandle> nodes;
@@ -163,12 +178,14 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 
 std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
 {
+	PROFILE_EVENT(DirectedGraph::TopoSort);
+
 	std::vector<DirectedGraph::NodeHandle> result;
 
 	std::queue<NodeHandle> nodes;
 	for (auto n : endNodes) 
 	{
-		Assert(graph.GetOutgoingNodes(n).empty());
+		Assert(graph.GetOutDegree(n) == 0);
 		nodes.push(n); 
 	}
 
@@ -184,7 +201,7 @@ std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& gr
 
 		for (auto n : incomingNodes)
 		{
-			if (graph.GetOutgoingNodes(n).empty())
+			if (graph.GetOutDegree(n) == 0)
 			{
 				nodes.push(n);
 			}

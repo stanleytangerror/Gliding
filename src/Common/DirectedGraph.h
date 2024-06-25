@@ -31,6 +31,8 @@ public:
 	void RemoveEdge(const EdgeHandle& edge);
 	void RemoveNode(const NodeHandle& node);
 
+	u32						GetInDegree(const NodeHandle& node) const;
+	u32						GetOutDegree(const NodeHandle& node) const;
 	std::set<EdgeHandle>	GetIncomingEdges(const NodeHandle& node) const;
 	std::set<EdgeHandle>	GetOutgoingEdges(const NodeHandle& node) const;
 	std::set<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
