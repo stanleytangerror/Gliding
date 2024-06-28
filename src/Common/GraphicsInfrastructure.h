@@ -695,6 +695,10 @@ namespace GI
         CONTINOUS_SETTER_VALUE(SamplerDesc, Vec4f, BorderColor, Vec4f::Zero());
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MinLOD, 0);
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MaxLOD, std::numeric_limits<f32>::max());
+		
+        SamplerDesc& SetAddressXY(TextureAddressMode::Enum mode) { mAddress[0] = mAddress[1] = mode; return *this; }
+		SamplerDesc& SetAddressZ(TextureAddressMode::Enum mode) { mAddress[2] = mode; return *this; }
+		SamplerDesc& SetAddressXYZ(TextureAddressMode::Enum mode) { mAddress[0] = mAddress[1] = mAddress[2] = mode; return *this; }
     };
 
     struct GD_COMMON_API InputElementDesc

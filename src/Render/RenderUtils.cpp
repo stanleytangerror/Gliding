@@ -201,7 +201,7 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 		quad->CreateAndInitialResource(infra);
 	}
@@ -275,7 +275,7 @@ TransformNode<std::pair<
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 		geo->CreateAndInitialResource(infra);
 	}

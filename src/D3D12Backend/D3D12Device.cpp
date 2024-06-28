@@ -122,7 +122,7 @@ namespace D3D12Backend
 
 		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
 			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
-			.SetAddress({ GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP,  GI::TextureAddressMode::WRAP }));
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP));
 	}
 
 	void D3D12Device::StartFrame()

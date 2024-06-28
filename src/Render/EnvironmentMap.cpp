@@ -13,7 +13,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 		mQuad->CreateAndInitialResource(infra);
 	}
@@ -115,7 +115,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 		mQuad->CreateAndInitialResource(infra);
 	}
@@ -256,7 +256,7 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-			.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 		mQuad->CreateAndInitialResource(infra);
 	}

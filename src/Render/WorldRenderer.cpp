@@ -69,27 +69,27 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 	mLightingSceneSampler
 		.SetFilter(GI::Filter::MIN_MAG_POINT_MIP_LINEAR)
-		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 	mNoMipMapLinearSampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 	mFilteredEnvMapSampler
 		.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
 		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP });
 
 	mBRDFIntegrationMapSampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
-		.SetAddress({ GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP, GI::TextureAddressMode::CLAMP });
+		.SetAddressXYZ(GI::TextureAddressMode::CLAMP);
 
 	const f32 farPlaneDeviceDepth = sunLight.mLightViewProj.GetFarPlaneDeviceDepth();
 		
 	mNoMipMapLinearDepthCmpSampler
 		.SetFilter(GI::Filter::COMPARISON_MIN_MAG_LINEAR_MIP_POINT)
-		.SetAddress({ GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER, GI::TextureAddressMode::BORDER })
+		.SetAddressXYZ(GI::TextureAddressMode::BORDER)
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
 

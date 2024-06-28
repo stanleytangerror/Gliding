@@ -11,7 +11,7 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 {
 	mImGuiSampler
 		.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
 	unsigned char* pixels = nullptr;
 	i32 width = 0, height = 0, bytesPerPixel = 0;
