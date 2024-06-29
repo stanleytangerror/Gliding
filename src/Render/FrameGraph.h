@@ -160,6 +160,7 @@ public:
 	ResourceRegistry& operator=(const ResourceRegistry&) = delete;
 
 	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc);
+	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial);
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
 	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
@@ -175,6 +176,7 @@ protected:
 		std::unique_ptr<GI::IGraphicMemoryResource>	mRealResource;
 	};
 
+	std::map<FrameGraphResource::Id::Handle, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)>> mResourceInitializer;
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mPermanentResources;
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mTransienceResources;
 
@@ -213,6 +215,8 @@ MUTABLE_RESOURCE_USAGE_FUTURE(Dsv);
 MUTABLE_RESOURCE_USAGE_FUTURE(Rtv);
 MUTABLE_RESOURCE_USAGE_FUTURE(Uav);
 RESOURCE_USAGE_FUTURE(Srv);
+RESOURCE_USAGE_FUTURE(Vbv);
+RESOURCE_USAGE_FUTURE(Ibv);
 
 class GD_RENDER_API RenderPassBuilder
 {
@@ -220,8 +224,8 @@ class GD_RENDER_API RenderPassBuilder
 public:
 	RenderPassBuilder(FrameGraphBuilder* builder, const char* passName);
 
-	GI::VbvUsage	Read(const GI::VbvUsage& usage);
-	GI::IbvUsage	Read(const GI::IbvUsage& usage);
+	VbvUsageFuture	ReadVbv(const FrameGraphResource& resource, const GI::VbvDesc& desc);
+	IbvUsageFuture	ReadIbv(const FrameGraphResource& resource, const GI::IbvDesc& desc);
 	GI::SamplerDesc	Read(const GI::SamplerDesc& usage);
 
 	FrameGraphResource	Read(const FrameGraphResource& resource);
@@ -268,6 +272,8 @@ public:
 	GI::RtvUsage	Get(const RtvUsageFuture& usage) const;
 	GI::DsvUsage	Get(const DsvUsageFuture& usage) const;
 	GI::UavUsage	Get(const UavUsageFuture& usage) const;
+	GI::VbvUsage	Get(const VbvUsageFuture& usage) const;
+	GI::IbvUsage	Get(const IbvUsageFuture& usage) const;
 
 protected:
 	ResourceRegistry* mResourceRegistry = nullptr;
@@ -337,6 +343,7 @@ public:
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
 	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);
+	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial);
 	FrameGraphMutableResource	CreateTransient(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
 	void						Present(FrameGraphMutableResource resource);

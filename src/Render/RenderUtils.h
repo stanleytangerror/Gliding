@@ -42,7 +42,7 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-		GenerateMaterialProbes(GI::IGraphicsInfra* infra);
+		GenerateMaterialProbes(FrameGraph* frameGraph);
 
 	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
 }

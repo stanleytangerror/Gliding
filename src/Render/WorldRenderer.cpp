@@ -171,12 +171,12 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 		if (!mQuad->IsGraphicsResourceReady())
 		{
-			mQuad->CreateAndInitialResource(infra);
+			mQuad->CreateAndInitialResource(frameGraph);
 		}
 
 		if (!mSphere->IsGraphicsResourceReady())
 		{
-			mSphere->CreateAndInitialResource(infra);
+			mSphere->CreateAndInitialResource(frameGraph);
 		}
 
 		if (!mSkyTexture->IsGraphicsResourceReady())
@@ -219,7 +219,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				{
 					if (!geo->IsGraphicsResourceReady())
 					{
-						geo->CreateAndInitialResource(mRenderModule->GetGraphicsInfra());
+						geo->CreateAndInitialResource(frameGraph);
 					}
 				}
 				if (auto& mat = node.mContent.second)
@@ -412,8 +412,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		std::array<SrvUsageFuture, 3> gBufferSrvs;
 		SrvUsageFuture mainDepth;
 		SrvUsageFuture shadowMask;
@@ -434,8 +434,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	frameGraph->AddPass<PassData>("DeferredLighting",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
 			data.gBufferSrvs[0] = builder.ReadTex2DSrv(gbufferData.mGBuffers[0]);
 			data.gBufferSrvs[1] = builder.ReadTex2DSrv(gbufferData.mGBuffers[1]);
@@ -490,8 +490,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			lightingPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			lightingPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-			lightingPass.PushVbv(data.geoVertices);
-			lightingPass.SetIbv(data.geoIndices);
+			lightingPass.PushVbv(resources.Get(data.geoVertices));
+			lightingPass.SetIbv(resources.Get(data.geoIndices));
 			lightingPass.mIndexCount = indexCount;
 
 			lightingPass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -530,8 +530,8 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 {
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture panoramicSky;
 		GI::SamplerDesc panoramicSampler;
 		RtvUsageFuture target;
@@ -546,8 +546,8 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 	frameGraph->AddPass<PassData>("RenderSky",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.panoramicSky = builder.ReadTex2DSrv(envLighting.mPanoramicSky);
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.WriteTex2DRtv(target);
@@ -597,8 +597,8 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -626,8 +626,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		std::vector<GI::ShaderMacro> shaderMacros;
 		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
@@ -677,8 +677,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 				}
 			}
 
-			data.geoVertices = builder.Read(geometry->GetVbvDesc());
-			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			for (i32 i = 0; i < gbufferRtvs.size(); ++i)
 			{
 				data.gbufferRtvs[i] = builder.WriteTex2DRtv(gbufferRtvs[i]);
@@ -733,8 +733,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 			gbufferPass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			gbufferPass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-			gbufferPass.PushVbv(data.geoVertices);
-			gbufferPass.SetIbv(data.geoIndices);
+			gbufferPass.PushVbv(resources.Get(data.geoVertices));
+			gbufferPass.SetIbv(resources.Get(data.geoIndices));
 
 			gbufferPass.mIndexCount = indexCount;
 
@@ -767,8 +767,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
 		DsvUsageFuture depthView;
@@ -786,8 +786,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
 			}
 
-			data.geoVertices = builder.Read(geometry->GetVbvDesc());
-			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.depthView = builder.ReadWriteTex2DDsv(depth);
 		},
 		[
@@ -824,8 +824,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
@@ -861,13 +861,13 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	static Geometry* geometry = Geometry::GenerateQuad();
 	if (!geometry->IsGraphicsResourceReady())
 	{
-		geometry->CreateAndInitialResource(infra);
+		geometry->CreateAndInitialResource(frameGraph);
 	}
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture lightViewDepth;
 		GI::SamplerDesc lightViewDepthSampler;
 		SrvUsageFuture cameraViewDepth;
@@ -880,8 +880,8 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(geometry->GetVbvDesc());
-			data.geoIndices = builder.Read(geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.lightViewDepth = builder.ReadTex2DSrv(lightViewDepth);
 			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
 			data.cameraViewDepth = builder.ReadTex2DSrv(cameraViewDepth);
@@ -916,8 +916,8 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddSrv("LightViewDepth", resources.Get(data.lightViewDepth));

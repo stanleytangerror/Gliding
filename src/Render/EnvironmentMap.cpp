@@ -15,7 +15,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
-		mQuad->CreateAndInitialResource(infra);
+		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	const Vec2i& rtSize = { resolution * 2, resolution };
@@ -38,8 +38,8 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture sky;
 		GI::SamplerDesc panoramicSkySampler;
 		RtvUsageFuture rtv;
@@ -50,8 +50,8 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.sky = builder.ReadTex2DSrv(sky);
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
 
 			data.rtv = builder.WriteTex2DRtv(irradianceMap);
@@ -86,8 +86,8 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -117,7 +117,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
-		mQuad->CreateAndInitialResource(infra);
+		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	const Vec2i& rtSize = { resolution, resolution };
@@ -139,8 +139,8 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		RtvUsageFuture rtv;
 	};
 
@@ -148,8 +148,8 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.rtv = builder.WriteTex2DRtv(integrateBrdf);
 		},
 		[
@@ -182,8 +182,8 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
@@ -258,13 +258,13 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
-		mQuad->CreateAndInitialResource(infra);
+		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		GI::SamplerDesc sampler;
 		SrvUsageFuture src;
 		RtvUsageFuture target;
@@ -274,8 +274,8 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.sampler = mPanoramicSkySampler;
 			data.src = builder.ReadTex2DSrv(src);
 
@@ -310,8 +310,8 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 			pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });

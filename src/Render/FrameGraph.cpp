@@ -21,6 +21,22 @@ FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::Me
 	return FrameGraphMutableResource{ resourceId };
 }
 
+
+FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial)
+{
+	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
+	Assert(mPermanentResources.find(resourceId.mHandle) == mPermanentResources.end());
+	Assert(mResourceInitializer.find(resourceId.mHandle) == mResourceInitializer.end());
+	mPermanentResources[resourceId.mHandle] = { desc, nullptr };
+	mResourceInitializer[resourceId.mHandle] = initial;
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Create] Permanent %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
+#endif
+
+	return FrameGraphMutableResource{ resourceId };
+}
+
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
@@ -107,13 +123,24 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 		if (!data.mRealResource)
 		{
 			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+
+			if (mResourceInitializer.find(id) != mResourceInitializer.end())
+			{
+				mResourceInitializer[id](infra, data.mRealResource.get());
+			}
 		}
 	}
 	for (auto& [id, data] : mTransienceResources)
 	{
 		Assert(data.mRealResource == nullptr);
 		data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+
+		if (mResourceInitializer.find(id) != mResourceInitializer.end())
+		{
+			mResourceInitializer[id](infra, data.mRealResource.get());
+		}
 	}
+	mResourceInitializer.clear();
 }
 
 void ResourceRegistry::OnEndFrame()
@@ -127,14 +154,18 @@ RenderPassBuilder::RenderPassBuilder(FrameGraphBuilder* builder, const char* pas
 {
 }
 
-GI::VbvUsage	RenderPassBuilder::Read(const GI::VbvUsage& usage)
+VbvUsageFuture	RenderPassBuilder::ReadVbv(const FrameGraphResource& resource, const GI::VbvDesc& desc)
 {
-	return usage;
+	Assert(resource.IsValid());
+	mInputResources.push_back(resource.mId);
+	return { resource, desc };
 }
 
-GI::IbvUsage	RenderPassBuilder::Read(const GI::IbvUsage& usage)
+IbvUsageFuture	RenderPassBuilder::ReadIbv(const FrameGraphResource& resource, const GI::IbvDesc& desc)
 {
-	return usage;
+	Assert(resource.IsValid());
+	mInputResources.push_back(resource.mId);
+	return { resource, desc };
 }
 
 GI::SamplerDesc	RenderPassBuilder::Read(const GI::SamplerDesc& usage)
@@ -149,6 +180,7 @@ FrameGraphResource RenderPassBuilder::Read(const FrameGraphResource& resource)
 	mInputResources.push_back(resource.mId);
 	return resource;
 }
+
 
 SrvUsageFuture RenderPassBuilder::ReadTex2DSrv(const FrameGraphResource& resource)
 {
@@ -319,6 +351,22 @@ GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 	auto resource = mResourceRegistry->GetResource(usage.resource);
 	auto result = GI::UavUsage(resource);
 	std::memcpy(&result, &(usage.desc), sizeof(GI::UavDesc));
+	return result;
+}
+
+GI::VbvUsage RenderPassResources::Get(const VbvUsageFuture& usage) const
+{
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::VbvUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::VbvDesc));
+	return result;
+}
+
+GI::IbvUsage RenderPassResources::Get(const IbvUsageFuture& usage) const
+{
+	auto resource = mResourceRegistry->GetResource(usage.resource);
+	auto result = GI::IbvUsage(resource);
+	std::memcpy(&result, &(usage.desc), sizeof(GI::IbvDesc));
 	return result;
 }
 
@@ -497,6 +545,11 @@ FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDe
 	return mResourceRegistry->CreatePermanentResource(desc);
 }
 
+
+FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial)
+{
+	return mResourceRegistry->CreatePermanentResource(desc, initial);
+}
 
 FrameGraphMutableResource FrameGraph::CreateTransient(const GI::MemoryResourceDesc& desc)
 {

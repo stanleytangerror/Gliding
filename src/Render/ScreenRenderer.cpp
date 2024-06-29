@@ -27,7 +27,7 @@ void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const FrameGraphResource&
 
 	if (!mQuad->IsGraphicsResourceReady())
 	{
-		mQuad->CreateAndInitialResource(infra);
+		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	auto exposure = CalcSceneExposure(infra, sceneHdr);
@@ -143,8 +143,8 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra,
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture sceneHdr;
 		SrvUsageFuture exposure;
 		RtvUsageFuture target;
@@ -155,8 +155,8 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra,
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.Read(mQuad->GetVbvDesc());
-			data.geoIndices = builder.Read(mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
 			data.sceneHdr = builder.ReadTex2DSrv(sceneHdr);
 			data.exposure = builder.ReadTex2DSrv(exposure);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
@@ -194,8 +194,8 @@ void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra,
 			ldrScreenPass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
 			ldrScreenPass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
-			ldrScreenPass.PushVbv(data.geoVertices);
-			ldrScreenPass.SetIbv(data.geoIndices);
+			ldrScreenPass.PushVbv(resources.Get(data.geoVertices));
+			ldrScreenPass.SetIbv(resources.Get(data.geoIndices));
 			ldrScreenPass.mIndexCount = indexCount;
 
 			infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);

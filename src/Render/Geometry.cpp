@@ -1,61 +1,41 @@
 #include "RenderPch.h"
 #include "Geometry.h"
 
-void Geometry::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+void Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 {
-	mVb = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
-		.SetAlignment(0)
-		.SetDimension(GI::ResourceDimension::BUFFER)
-		.SetWidth(mVertices.size())
-		.SetHeight(1)
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(GI::Format::FORMAT_UNKNOWN)
-		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-		.SetFlags(GI::ResourceFlag::NONE)
-		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		.SetHeapType(GI::HeapType::UPLOAD)
-		.SetName("GeometryVertices"));
+	mVb = frameGraph->CreatePermanent(
+		GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD),
+		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		{
+			infra->CopyToUploadBufferResource(resource, mVertices);
+		});
 
-	infra->CopyToUploadBufferResource(mVb.get(), mVertices);
-
-	mIb = infra->CreateMemoryResource(
-		GI::MemoryResourceDesc()
-		.SetAlignment(0)
-		.SetDimension(GI::ResourceDimension::BUFFER)
-		.SetWidth(mIndices.size() * sizeof(u16))
-		.SetHeight(1)
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(GI::Format::FORMAT_UNKNOWN)
-		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-		.SetFlags(GI::ResourceFlag::NONE)
-		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		.SetHeapType(GI::HeapType::UPLOAD)
-		.SetName("GeometryIndices"));
-
-	std::vector<b8> buf(mIndices.size() * sizeof(u16));
-	std::memcpy(buf.data(), mIndices.data(), buf.size());
-	infra->CopyToUploadBufferResource(mIb.get(), buf);
+	mIb = frameGraph->CreatePermanent(
+		GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD),
+		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		{
+			std::vector<b8> buf(mIndices.size() * sizeof(u16));
+			std::memcpy(buf.data(), mIndices.data(), buf.size());
+			infra->CopyToUploadBufferResource(resource, buf);
+		});
 }
 
-GI::VbvUsage	Geometry::GetVbvDesc() const
+GI::VbvDesc	Geometry::GetVbvDesc() const
 {
-	auto result = GI::VbvUsage(mVb);
-	result
+	return GI::VbvDesc()
 		.SetSizeInBytes(mVertices.size())
 		.SetStrideInBytes(mVertexStride);
-	return result;
 }
 
-GI::IbvUsage	Geometry::GetIbvDesc() const
+GI::IbvDesc	Geometry::GetIbvDesc() const
 {
-	auto result = GI::IbvUsage(mIb);
-	result
+	return GI::IbvDesc()
 		.SetSizeInBytes(mIndices.size() * sizeof(u16))
 		.SetFormat(GI::Format::FORMAT_R16_UINT);
-	return result;
 }
 
 Geometry* Geometry::GenerateQuad()

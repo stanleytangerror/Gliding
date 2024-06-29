@@ -36,16 +36,16 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
-	static Geometry* quad = Geometry::GenerateQuad();
-	if (!quad->IsGraphicsResourceReady()) 
+	static Geometry* geometry = Geometry::GenerateQuad();
+	if (!geometry->IsGraphicsResourceReady()) 
 	{ 
-		quad->CreateAndInitialResource(infra); 
+		geometry->CreateAndInitialResource(frameGraph);
 	}
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture source;
 		GI::SamplerDesc sourceSampler;
 		RtvUsageFuture target;
@@ -58,16 +58,16 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.source = builder.ReadTex2DSrv(source);
-			data.geoVertices = builder.Read(quad->GetVbvDesc());
-			data.geoIndices = builder.Read(quad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 			data.target = builder.WriteTex2DRtv(target);
 			data.sourcePixelUnary = sourcePixelUnary;
 		},
 		[
-			inputLayout = quad->mVertexElementDescs,
-			indexCount = quad->mIndices.size(),
+			inputLayout = geometry->mVertexElementDescs,
+			indexCount = geometry->mIndices.size(),
 			targetOffset, targetRect
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -90,8 +90,8 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 			pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
@@ -111,7 +111,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* quad, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* geometry, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -120,8 +120,8 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 
 	struct PassData
 	{
-		GI::VbvUsage geoVertices;
-		GI::IbvUsage geoIndices;
+		VbvUsageFuture geoVertices;
+		IbvUsageFuture geoIndices;
 		SrvUsageFuture source;
 		GI::SamplerDesc sampler;
 		RtvUsageFuture target;
@@ -133,15 +133,15 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.source = builder.ReadTex2DSrv(source);
-			data.geoVertices = builder.Read(quad->GetVbvDesc());
-			data.geoIndices = builder.Read(quad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.sampler = builder.Read(sampler);
 			data.size = size;
 			data.target = builder.WriteTex2DRtv(target);
 		},
 		[
-			inputLayout = quad->mVertexElementDescs,
-			indexCount = quad->mIndices.size(),
+			inputLayout = geometry->mVertexElementDescs,
+			indexCount = geometry->mIndices.size(),
 			isHorizontal, weight4fSize, NormalDistPdf, kernelSizeInPixel
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -165,8 +165,8 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 			pass.mViewPort.SetWidth(data.size.x()).SetHeight(data.size.y());
 			pass.mScissorRect = { 0, 0, i32(data.size.x()), i32(data.size.y()) };
 
-			pass.PushVbv(data.geoVertices);
-			pass.SetIbv(data.geoIndices);
+			pass.PushVbv(resources.Get(data.geoVertices));
+			pass.SetIbv(resources.Get(data.geoIndices));
 			pass.mIndexCount = indexCount;
 
 			pass.AddCbVar("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
@@ -195,15 +195,15 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 	FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
-	static Geometry* quad = Geometry::GenerateQuad();
+	static Geometry* geometry = Geometry::GenerateQuad();
 	
-	if (!quad->IsGraphicsResourceReady())
+	if (!geometry->IsGraphicsResourceReady())
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
-		quad->CreateAndInitialResource(infra);
+		geometry->CreateAndInitialResource(frameGraph);
 	}
 
 	auto sourceDesc = frameGraph->GetResourceDesc(source);
@@ -212,8 +212,8 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 	auto interRtFg = frameGraph->CreateTransient(desc);
 
 	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(frameGraph, infra, interRtFg, source, kernelSizeInPixel, sampler, quad, true);
-	GaussianBlur1D(frameGraph, infra, target, interRtFg, kernelSizeInPixel, sampler, quad, false);
+	GaussianBlur1D(frameGraph, infra, interRtFg, source, kernelSizeInPixel, sampler, geometry, true);
+	GaussianBlur1D(frameGraph, infra, target, interRtFg, kernelSizeInPixel, sampler, geometry, false);
 }
 
 TransformNode<std::pair<
@@ -261,7 +261,7 @@ RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawD
 
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(GI::IGraphicsInfra* infra)
+	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(FrameGraph* frameGraph)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
@@ -277,7 +277,7 @@ TransformNode<std::pair<
 			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
-		geo->CreateAndInitialResource(infra);
+		geo->CreateAndInitialResource(frameGraph);
 	}
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)

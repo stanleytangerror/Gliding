@@ -118,7 +118,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
 		});
 
-	geo->CreateAndInitialResource(infra);
+	geo->CreateAndInitialResource(frameGraph);
 
 	// Render command lists
 	vertexOffset = 0;
@@ -143,8 +143,8 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 
 			struct PassData
 			{
-				GI::VbvUsage geoVertices;
-				GI::IbvUsage geoIndices;
+				VbvUsageFuture geoVertices;
+				IbvUsageFuture geoIndices;
 				GI::SamplerDesc sampler;
 				SrvUsageFuture srv;
 				RtvUsageFuture target;
@@ -161,8 +161,8 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 				[&]
 				(RenderPassBuilder& builder, PassData& data)
 				{
-					data.geoVertices = builder.Read(geo->GetVbvDesc());
-					data.geoIndices = builder.Read(geo->GetIbvDesc());
+					data.geoVertices = builder.ReadVbv(geo->GetVb(), geo->GetVbvDesc());
+					data.geoIndices = builder.ReadIbv(geo->GetIb(), geo->GetIbvDesc());
 					data.sampler = builder.Read(mImGuiSampler);
 					data.hasSrv = fontAtlas.IsValid();
 					if (data.hasSrv)
@@ -211,8 +211,8 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 					pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
 					pass.mScissorRect = data.scissorRect;
 
-					pass.PushVbv(data.geoVertices);
-					pass.SetIbv(data.geoIndices);
+					pass.PushVbv(resources.Get(data.geoVertices));
+					pass.SetIbv(resources.Get(data.geoIndices));
 					pass.mIndexCount = data.indexCount;
 					pass.mIndexStartLocation = data.indexStartLocation;
 					pass.mVertexStartLocation = data.vertexStartLocation;
