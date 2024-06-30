@@ -975,7 +975,7 @@ namespace GI
     class GD_COMMON_API IImage
     {
     public:
-        //virtual MemoryResourceDesc GetResourceDesc() const = 0;
+        virtual MemoryResourceDesc GetResourceDesc() const = 0;
     };
 
     using DevicePtr = void*;

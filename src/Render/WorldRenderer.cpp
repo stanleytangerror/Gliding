@@ -181,7 +181,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 		if (!mSkyTexture->IsGraphicsResourceReady())
 		{
-			mSkyTexture->CreateAndInitialResource(infra);
+			mSkyTexture->CreateAndInitialResource(frameGraph);
 
 			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
 			const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };

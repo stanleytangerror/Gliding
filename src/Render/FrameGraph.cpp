@@ -37,6 +37,22 @@ FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::Me
 	return FrameGraphMutableResource{ resourceId };
 }
 
+
+FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*)> create)
+{
+	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
+	Assert(mPermanentResources.find(resourceId.mHandle) == mPermanentResources.end());
+	Assert(mResourceCreators.find(resourceId.mHandle) == mResourceCreators.end());
+	mPermanentResources[resourceId.mHandle] = { desc, nullptr };
+	mResourceCreators[resourceId.mHandle] = create;
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Create] Permanent %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
+#endif
+
+	return FrameGraphMutableResource{ resourceId };
+}
+
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
@@ -122,22 +138,36 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 	{
 		if (!data.mRealResource)
 		{
-			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
-
-			if (mResourceInitializer.find(id) != mResourceInitializer.end())
+			if (mResourceCreators.find(id) != mResourceCreators.end())
 			{
-				mResourceInitializer[id](infra, data.mRealResource.get());
+				data.mRealResource.reset(mResourceCreators[id](infra));
+			}
+			else
+			{
+				data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+				if (mResourceInitializer.find(id) != mResourceInitializer.end())
+				{
+					mResourceInitializer[id](infra, data.mRealResource.get());
+				}
 			}
 		}
 	}
 	for (auto& [id, data] : mTransienceResources)
 	{
 		Assert(data.mRealResource == nullptr);
-		data.mRealResource = infra->CreateMemoryResource(data.mDesc);
 
-		if (mResourceInitializer.find(id) != mResourceInitializer.end())
+		if (mResourceCreators.find(id) != mResourceCreators.end())
 		{
-			mResourceInitializer[id](infra, data.mRealResource.get());
+			data.mRealResource.reset(mResourceCreators[id](infra));
+		}
+		else
+		{
+			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+
+			if (mResourceInitializer.find(id) != mResourceInitializer.end())
+			{
+				mResourceInitializer[id](infra, data.mRealResource.get());
+			}
 		}
 	}
 	mResourceInitializer.clear();
@@ -549,6 +579,11 @@ FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDe
 FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial)
 {
 	return mResourceRegistry->CreatePermanentResource(desc, initial);
+}
+
+FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*)> create)
+{
+	return mResourceRegistry->CreatePermanentResource(desc, create);
 }
 
 FrameGraphMutableResource FrameGraph::CreateTransient(const GI::MemoryResourceDesc& desc)

@@ -10,12 +10,7 @@ void RenderMaterial::UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInf
 		{
 			if (!slot.mTexture->IsGraphicsResourceReady())
 			{
-				slot.mTexture->CreateAndInitialResource(infra);
-			}
-
-			if (slot.mTexture->IsGraphicsResourceReady())
-			{
-				slot.mResource = frameGraph->Import(slot.mTexture->GetResource());
+				slot.mTexture->CreateAndInitialResource(frameGraph);
 			}
 		}
 	}

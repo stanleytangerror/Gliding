@@ -75,7 +75,9 @@ namespace D3D12Utils
 		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name);
 
 		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
-		const char*				GetName() const { return mName.c_str(); }
+		const char* GetName() const { return mName.c_str(); }
+
+		GI::MemoryResourceDesc GetResourceDesc() const override;
 
 	protected:
 		const std::unique_ptr<DirectX::ScratchImage> mImage;

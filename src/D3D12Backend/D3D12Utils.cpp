@@ -221,6 +221,34 @@ namespace D3D12Utils
 		, mName(name)
 	{}
 
+
+	GI::MemoryResourceDesc WindowsImage::GetResourceDesc() const
+	{
+		// from DirectXTexD3D12.cpp: DirectX::CreateTextureEx(
+
+		const auto& metadata = mImage->GetMetadata();
+
+		Assert(metadata.mipLevels);
+		Assert(metadata.arraySize);
+		Assert(metadata.width <= UINT32_MAX); 
+		Assert(metadata.height <= UINT32_MAX);
+		Assert(metadata.mipLevels <= UINT16_MAX);
+		Assert(metadata.arraySize > UINT16_MAX);
+
+		return GI::MemoryResourceDesc()
+			.SetWidth(static_cast<UINT>(metadata.width))
+			.SetHeight(static_cast<UINT>(metadata.height))
+			.SetMipLevels(static_cast<UINT16>(metadata.mipLevels))
+			.SetDepthOrArraySize((metadata.dimension == GI::ResourceDimension::TEXTURE3D)
+				? static_cast<UINT16>(metadata.depth)
+				: static_cast<UINT16>(metadata.arraySize))
+			.SetFormat(ToGiFormat(metadata.format))
+			.SetFlags(GI::ResourceFlag::NONE)
+			.SetSampleDesc_Count(1)
+			.SetDimension(static_cast<GI::ResourceDimension::Enum>(metadata.dimension))
+			.SetHeapType(GI::HeapType::DEFAULT);
+	}
+
 	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name)
 	{
 		switch (ext)

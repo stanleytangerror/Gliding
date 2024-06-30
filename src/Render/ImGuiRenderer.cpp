@@ -44,7 +44,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 	{
 		mFontAtlas->CreateAndInitialResource(infra);
 
-		auto fontText = frameGraph->Import(mFontAtlas->GetResource());
+		auto fontText = mFontAtlas->GetResource();
 
 		static_assert(sizeof(ImTextureID) >= sizeof(FrameGraphMutableResource), "FrameGraphMutableResource should be able to store as ImTextureID");
 		ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&fontText));

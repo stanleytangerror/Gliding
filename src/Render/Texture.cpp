@@ -11,20 +11,14 @@ FileTexture::FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const 
 	
 }
 
-void FileTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+void FileTexture::CreateAndInitialResource(FrameGraph* frameGraph)
 {
-	auto res = infra->CreateMemoryResource(*mImage.get());
-	std::swap(mResource, res);
-}
-
-GI::SrvUsage FileTexture::GetSrv() const
-{
-	auto result = GI::SrvUsage(mResource);
-	result
-		.SetFormat(mResource->GetFormat())
-		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MipLevels(mResource->GetMipLevelCount());
-	return result;
+	mResource = frameGraph->CreatePermanent(
+		mImage->GetResourceDesc(), 
+		[this](GI::IGraphicsInfra* infra)
+		{
+			return std::move(infra->CreateMemoryResource(*mImage.get()));
+		});
 }
 
 GI::SrvDesc FileTexture::GetSrvDesc() const
@@ -45,14 +39,25 @@ InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum for
 
 }
 
-void InMemoryTexture::CreateAndInitialResource(GI::IGraphicsInfra* infra)
+void InMemoryTexture::CreateAndInitialResource(FrameGraph* frameGraph)
 {
-	mResource = infra->CreateMemoryResourceFromTexture2DData(GI::ReadOnly2DResourceDesc()
-		.SetData(mContent)
-		.SetFormat(mFormat)
-		.SetWidth(mSize.x())
-		.SetHeight(mSize.y())
-		.SetArraySize(mSize.z())
-		.SetMipLevel(mMipLevelCount)
-		.SetName(mName.c_str()));
+	mResource = frameGraph->CreatePermanent(
+		GI::MemoryResourceDesc()
+			.SetFormat(mFormat)
+			.SetWidth(mSize.x())
+			.SetHeight(mSize.y())
+			.SetArraySize(mSize.z())
+			.SetMipLevel(mMipLevelCount)
+			.SetName(mName.c_str()),
+		[this](GI::IGraphicsInfra* infra)
+		{
+			return infra->CreateMemoryResourceFromTexture2DData(GI::ReadOnly2DResourceDesc()
+				.SetData(mContent)
+				.SetFormat(mFormat)
+				.SetWidth(mSize.x())
+				.SetHeight(mSize.y())
+				.SetArraySize(mSize.z())
+				.SetMipLevel(mMipLevelCount)
+				.SetName(mName.c_str()));
+		});
 }
