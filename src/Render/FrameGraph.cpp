@@ -38,7 +38,7 @@ FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::Me
 }
 
 
-FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*)> create)
+FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<std::unique_ptr<GI::IGraphicMemoryResource>(GI::IGraphicsInfra*)> create)
 {
 	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
 	Assert(mPermanentResources.find(resourceId.mHandle) == mPermanentResources.end());
@@ -140,7 +140,8 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 		{
 			if (mResourceCreators.find(id) != mResourceCreators.end())
 			{
-				data.mRealResource.reset(mResourceCreators[id](infra));
+				auto createdResource = mResourceCreators[id](infra);
+				std::swap(data.mRealResource, createdResource);
 			}
 			else
 			{
@@ -158,7 +159,8 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 
 		if (mResourceCreators.find(id) != mResourceCreators.end())
 		{
-			data.mRealResource.reset(mResourceCreators[id](infra));
+			auto createdResource = mResourceCreators[id](infra);
+			std::swap(data.mRealResource, createdResource);
 		}
 		else
 		{
@@ -581,7 +583,7 @@ FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDe
 	return mResourceRegistry->CreatePermanentResource(desc, initial);
 }
 
-FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*)> create)
+FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<std::unique_ptr<GI::IGraphicMemoryResource>(GI::IGraphicsInfra*)> create)
 {
 	return mResourceRegistry->CreatePermanentResource(desc, create);
 }

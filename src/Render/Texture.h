@@ -12,7 +12,6 @@ public:
 	void							CreateAndInitialResource(FrameGraph* frameGraph);
 	bool							IsGraphicsResourceReady() const { return mResource.IsValid(); }
 	FrameGraphResource				GetResource() const { return mResource; }
-	GI::SrvDesc						GetSrvDesc() const;
 
 protected:
 	std::vector<b8>	const			mContent;

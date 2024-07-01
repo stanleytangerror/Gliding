@@ -21,14 +21,6 @@ void FileTexture::CreateAndInitialResource(FrameGraph* frameGraph)
 		});
 }
 
-GI::SrvDesc FileTexture::GetSrvDesc() const
-{
-	return GI::SrvDesc()
-		.SetFormat(mResource->GetFormat())
-		.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-		.SetTexture2D_MipLevels(mResource->GetMipLevelCount());
-}
-
 InMemoryTexture::InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
 	: mSize(size)
 	, mContent(content)
@@ -46,8 +38,8 @@ void InMemoryTexture::CreateAndInitialResource(FrameGraph* frameGraph)
 			.SetFormat(mFormat)
 			.SetWidth(mSize.x())
 			.SetHeight(mSize.y())
-			.SetArraySize(mSize.z())
-			.SetMipLevel(mMipLevelCount)
+			.SetDepthOrArraySize(mSize.z())
+			.SetMipLevels(mMipLevelCount)
 			.SetName(mName.c_str()),
 		[this](GI::IGraphicsInfra* infra)
 		{

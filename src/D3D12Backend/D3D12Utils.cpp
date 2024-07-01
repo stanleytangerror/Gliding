@@ -233,7 +233,7 @@ namespace D3D12Utils
 		Assert(metadata.width <= UINT32_MAX); 
 		Assert(metadata.height <= UINT32_MAX);
 		Assert(metadata.mipLevels <= UINT16_MAX);
-		Assert(metadata.arraySize > UINT16_MAX);
+		Assert(metadata.arraySize <= UINT16_MAX);
 
 		return GI::MemoryResourceDesc()
 			.SetWidth(static_cast<UINT>(metadata.width))

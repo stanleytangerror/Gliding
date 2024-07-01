@@ -42,7 +42,7 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 
 	if (!mFontAtlas->IsGraphicsResourceReady())
 	{
-		mFontAtlas->CreateAndInitialResource(infra);
+		mFontAtlas->CreateAndInitialResource(frameGraph);
 
 		auto fontText = mFontAtlas->GetResource();
 

@@ -183,7 +183,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 		{
 			mSkyTexture->CreateAndInitialResource(frameGraph);
 
-			const auto& srcSize = mSkyTexture->GetResource()->GetSize();
+			const auto& srcSize = frameGraph->GetResourceDesc(mSkyTexture->GetResource()).GetSize();
 			const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };
 
 			const auto& panoramicSkyDesc = GI::MemoryResourceDesc::RenderTarget2D(skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT,
@@ -191,13 +191,11 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			
 			envLighting.mPanoramicSky = frameGraph->CreatePermanent(panoramicSkyDesc);
 
-			auto skyTexture = frameGraph->Import(mSkyTexture->GetResource());
-
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 			RenderUtils::CopyTexture(frameGraph, infra,
 				envLighting.mPanoramicSky,
 				Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
-				skyTexture, 
+				mSkyTexture->GetResource(), 
 				mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(
