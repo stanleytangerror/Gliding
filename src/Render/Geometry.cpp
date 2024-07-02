@@ -1,7 +1,7 @@
 #include "RenderPch.h"
 #include "Geometry.h"
 
-void Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
+Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 {
 	mVb = frameGraph->CreatePermanent(
 		GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
@@ -22,6 +22,8 @@ void Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 			std::memcpy(buf.data(), mIndices.data(), buf.size());
 			infra->CopyToUploadBufferResource(resource, buf);
 		});
+
+	return this;
 }
 
 GI::VbvDesc	Geometry::GetVbvDesc() const

@@ -6,7 +6,7 @@
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
 {
-	mQuad.reset(Geometry::GenerateQuad());
+	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(mRenderModule->GetFrameGraph()));
 }
 
 ScreenRenderer::~ScreenRenderer()
@@ -22,13 +22,6 @@ void ScreenRenderer::TickFrame(Timer* timer)
 
 void ScreenRenderer::Render(const FrameGraphResource& sceneHdr, FrameGraphMutableResource& screenRt)
 {
-	auto frameGraph = mRenderModule->GetFrameGraph();
-
-	if (!mQuad->IsGraphicsResourceReady())
-	{
-		mQuad->CreateAndInitialResource(frameGraph);
-	}
-
 	auto exposure = CalcSceneExposure(sceneHdr);
 	ToneMapping(sceneHdr, exposure, screenRt);
 }

@@ -7,15 +7,12 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 	const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad();
+	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 
-	if (!mQuad->IsGraphicsResourceReady())
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-
-		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	const Vec2i& rtSize = { resolution * 2, resolution };
@@ -109,15 +106,12 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 	FrameGraph* frameGraph, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad();
+	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 
-	if (!mQuad->IsGraphicsResourceReady())
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-
-		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	const Vec2i& rtSize = { resolution, resolution };
@@ -250,15 +244,12 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 	const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad();
+	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 
-	if (!mQuad->IsGraphicsResourceReady())
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-
-		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
 	struct PassData

@@ -35,11 +35,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
-	static Geometry* geometry = Geometry::GenerateQuad();
-	if (!geometry->IsGraphicsResourceReady()) 
-	{ 
-		geometry->CreateAndInitialResource(frameGraph);
-	}
+	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 
 	struct PassData
 	{
@@ -196,15 +192,12 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph,
 	FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
-	static Geometry* geometry = Geometry::GenerateQuad();
+	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 	
-	if (!geometry->IsGraphicsResourceReady())
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-
-		geometry->CreateAndInitialResource(frameGraph);
 	}
 
 	auto sourceDesc = frameGraph->GetResourceDesc(source);
@@ -270,16 +263,13 @@ TransformNode<std::pair<
 		std::shared_ptr<RenderMaterial>>>;
 
 
-	static Geometry* geo = Geometry::GenerateSphere(40);
+	static Geometry* geo = Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph);
 	static GI::SamplerDesc sampler;
 
-	if (!geo->IsGraphicsResourceReady())
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-
-		geo->CreateAndInitialResource(frameGraph);
 	}
 
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
