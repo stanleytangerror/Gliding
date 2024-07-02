@@ -45,8 +45,6 @@ protected:
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	std::unique_ptr<RenderTarget>			mSceneHdrRt;
-
 	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
 
 public:

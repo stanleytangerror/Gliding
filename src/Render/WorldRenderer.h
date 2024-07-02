@@ -2,7 +2,6 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/TransformHierarchy.h"
-#include "RenderTarget.h"
 #include "Texture.h"
 #include "Geometry.h"
 #include "RenderMaterial.h"

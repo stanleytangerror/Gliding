@@ -1,7 +1,6 @@
 #include "RenderPch.h"
 #include "WorldRenderer.h"
 #include "RenderModule.h"
-#include "RenderTarget.h"
 #include "Geometry.h"
 #include "Texture.h"
 #include "World/Scene.h"

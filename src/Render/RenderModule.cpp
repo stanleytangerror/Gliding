@@ -3,7 +3,6 @@
 #include "ScreenRenderer.h"
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
-#include "RenderTarget.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -108,7 +107,6 @@ void RenderModule::Destroy()
 {
 	mScreenRenderer = nullptr;
 	mWorldRenderer = nullptr;
-	mSceneHdrRt = nullptr;
 	mImGuiRenderer = nullptr;
 
 	Utils::SafeDelete(mGraphicInfra);

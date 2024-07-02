@@ -1,7 +1,6 @@
 #include "RenderPch.h"
 #include "ScreenRenderer.h"
 #include "RenderModule.h"
-#include "RenderTarget.h"
 #include "Geometry.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)

@@ -1,6 +1,5 @@
 #include "RenderPch.h"
 #include "Texture.h"
-#include "RenderTarget.h"
 
 FileTexture::FileTexture(FrameGraph* frameGraph, const char* filePath, const std::vector<b8>& content)
 	: mFilePath(filePath)
