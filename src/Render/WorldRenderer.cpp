@@ -44,7 +44,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	{
 		cam.mCameraTrans.MoveCamera(200.f * Math::Axis3DDir<f32>(Math::Axis3D_Yn));
 		cam.mCameraProj.mFovHorizontal = Math::DegreeToRadian(90.f);
-		cam.mCameraProj.mAspectRatio = f32(renderSize.x()) / renderSize.y();
+		cam.mCameraProj.mAspectRatio = f32(mRenderSize.x()) / mRenderSize.y();
 		cam.mCameraProj.mFar = 100000.f;
 	}
 
@@ -60,10 +60,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		sunLight.mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mSphere.reset(Geometry::GenerateSphere(40));
-	mSphere->CreateAndInitialResource(frameGraph);
-	mQuad.reset(Geometry::GenerateQuad());
-	mQuad->CreateAndInitialResource(frameGraph);
+	mSphere.reset(Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph));
+	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph));
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
 	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath, Utils::LoadFileContent(skyTexPath));
@@ -169,32 +167,29 @@ FrameGraphMutableResource WorldRenderer::Render()
 
 	if (!envLighting.mPanoramicSky.IsValid())
 	{
+		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, 1024);
+
 		const auto& srcSize = frameGraph->GetResourceDesc(mSkyTexture->GetResource()).GetSize();
 		const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };
-
-		const auto& panoramicSkyDesc = GI::MemoryResourceDesc::RenderTarget2D(skyRtSize, GI::Format::FORMAT_R32G32B32A32_FLOAT,
-			GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, "PanoramicSkyRt");
 		
-		envLighting.mPanoramicSky = frameGraph->CreatePermanent(panoramicSkyDesc);
+		envLighting.mPanoramicSky = frameGraph->CreatePermanent(
+			GI::MemoryResourceDesc::RenderTarget2D(
+				skyRtSize, 
+				GI::Format::FORMAT_R32G32B32A32_FLOAT,
+				GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, 
+				"PanoramicSkyRt"));
 
-		const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
 		RenderUtils::CopyTexture(frameGraph,
 			envLighting.mPanoramicSky,
 			Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
 			mSkyTexture->GetResource(), 
-			mNoMipMapLinearSampler, customSkyColor.c_str());
+			mNoMipMapLinearSampler, 
+			Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity).c_str());
 
-		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(
-			frameGraph,
-			envLighting.mPanoramicSky, 8, 10);
-
+		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(frameGraph, envLighting.mPanoramicSky, 8, 10);
 		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, envLighting.mPanoramicSky, 1024);
 
-		RenderUtils::GaussianBlur(frameGraph, 
-			envLighting.mPanoramicSky,
-			envLighting.mPanoramicSky, 2);
-	
-		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, 1024);
+		RenderUtils::GaussianBlur(frameGraph, envLighting.mPanoramicSky, envLighting.mPanoramicSky, 2);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
