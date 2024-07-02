@@ -20,7 +20,7 @@ void ScreenRenderer::TickFrame(Timer* timer)
 	mSecondsSinceLaunch = timer->GetCurrentFrameElapsedSeconds();
 }
 
-void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const FrameGraphResource& sceneHdr, FrameGraphMutableResource& screenRt)
+void ScreenRenderer::Render(const FrameGraphResource& sceneHdr, FrameGraphMutableResource& screenRt)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 
@@ -29,11 +29,11 @@ void ScreenRenderer::Render(GI::IGraphicsInfra* infra, const FrameGraphResource&
 		mQuad->CreateAndInitialResource(frameGraph);
 	}
 
-	auto exposure = CalcSceneExposure(infra, sceneHdr);
-	ToneMapping(infra, sceneHdr, exposure, screenRt);
+	auto exposure = CalcSceneExposure(sceneHdr);
+	ToneMapping(sceneHdr, exposure, screenRt);
 }
 
-FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* infra, const FrameGraphResource& sceneHdr)
+FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(const FrameGraphResource& sceneHdr)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	
@@ -135,8 +135,7 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(GI::IGraphicsInfra* 
 	return exposureFg;
 }
 
-void ScreenRenderer::ToneMapping(GI::IGraphicsInfra* infra, 
-	const FrameGraphResource& sceneHdr, const FrameGraphResource& exposure, FrameGraphMutableResource& target)
+void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const FrameGraphResource& exposure, FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 

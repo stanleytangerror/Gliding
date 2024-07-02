@@ -3,7 +3,7 @@
 #include "Geometry.h"
 
 FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
-	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	FrameGraph* frameGraph, 
 	const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
@@ -106,7 +106,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 }
 
 FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
-	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution)
+	FrameGraph* frameGraph, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
 	static Geometry* mQuad = Geometry::GenerateQuad();
@@ -195,7 +195,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 }
 
 FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
-	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	FrameGraph* frameGraph,
 	const FrameGraphResource& src, i32 resolution)
 {
 	const auto& srcResDesc = frameGraph->GetResourceDesc(src);
@@ -230,13 +230,13 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 				.SetTexture2D_PlaneSlice(0));
 	}
 
-	RENDER_EVENT(infra, FilterEnvironmentMap);
+	//RENDER_EVENT(infra, FilterEnvironmentMap);
 
 	Vec2f dstSize = Vec2f{ originSize.x(), originSize.y() };
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(frameGraph, infra, filteredMap, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(frameGraph, filteredMap, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
@@ -244,7 +244,7 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap(
-	FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	FrameGraph* frameGraph, 
 	FrameGraphMutableResource& targetResource, GI::RtvDesc& targetDesc, 
 	const FrameGraphResource& src,
 	const Vec2i& targetSize, f32 roughness)
@@ -288,6 +288,8 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
+			RENDER_EVENT(infra, FilterEnvironmentMap);
+			
 			GI::GraphicsPass pass;
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));

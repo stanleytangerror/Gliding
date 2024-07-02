@@ -25,27 +25,27 @@ public:
 	virtual ~WorldRenderer();
 
 	void TickFrame(Timer* timer);
-	FrameGraphMutableResource Render(GI::IGraphicsInfra* infra);
+	FrameGraphMutableResource Render();
 
-	void RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
-	void RenderShadowMaskChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
-	void RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
+	void RenderGBufferChannels(FrameGraphMutableResource& target);
+	void RenderShadowMaskChannel(FrameGraphMutableResource& target);
+	void RenderLightViewDepthChannel(FrameGraphMutableResource& target);
 
 private:
 	void RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource& target, FrameGraphMutableResource& depth) const;
-	void DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target);
+	void DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableResource& target);
 
-	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, 
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView);
 
-	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, 
 		Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		FrameGraphMutableResource& depthView);
 
-	static void RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	static void RenderShadowMask(FrameGraph* frameGraph,
 		FrameGraphMutableResource& shadowMask,
 		FrameGraphResource lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 		FrameGraphResource cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);

@@ -29,7 +29,7 @@ namespace
 	}
 }
 
-void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+void RenderUtils::CopyTexture(FrameGraph* frameGraph, 
 	FrameGraphMutableResource& target,
 	const Vec2f& targetOffset, const Vec2f& targetRect,
 	const FrameGraphResource& source,
@@ -101,16 +101,16 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
 		});
 }
 
-void RenderUtils::CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 	FrameGraphMutableResource& target,
 	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler)
 {
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
-	CopyTexture(frameGraph, infra, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
+	CopyTexture(frameGraph, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
 }
 
-void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* geometry, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* geometry, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -145,6 +145,8 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
+			RENDER_EVENT(infra, GaussianBlur1D);
+
 			GI::GraphicsPass pass;
 
 			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
@@ -190,7 +192,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, FrameGrap
 		});
 }
 
-void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+void RenderUtils::GaussianBlur(FrameGraph* frameGraph, 
 	FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
@@ -210,9 +212,8 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), GI::ResourceFlag::ALLOW_RENDER_TARGET, "GaussianBlurIntermediateRt");
 	auto interRtFg = frameGraph->CreateTransient(desc);
 
-	RENDER_EVENT(infra, GaussianBlur);
-	GaussianBlur1D(frameGraph, infra, interRtFg, source, kernelSizeInPixel, sampler, geometry, true);
-	GaussianBlur1D(frameGraph, infra, target, interRtFg, kernelSizeInPixel, sampler, geometry, false);
+	GaussianBlur1D(frameGraph, interRtFg, source, kernelSizeInPixel, sampler, geometry, true);
+	GaussianBlur1D(frameGraph, target, interRtFg, kernelSizeInPixel, sampler, geometry, false);
 }
 
 TransformNode<std::pair<

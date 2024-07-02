@@ -117,7 +117,7 @@ void WorldRenderer::TickFrame(Timer* timer)
 	mTestModel->CalcAbsTransform();
 }
 
-FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
+FrameGraphMutableResource WorldRenderer::Render()
 {
 	auto* frameGraph = mRenderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -166,8 +166,6 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 		"HdrRt"));
 
 	{
-		RENDER_EVENT(infra, InitialResources);
-
 		if (!mQuad->IsGraphicsResourceReady())
 		{
 			mQuad->CreateAndInitialResource(frameGraph);
@@ -189,30 +187,30 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			envLighting.mPanoramicSky = frameGraph->CreatePermanent(panoramicSkyDesc);
 
 			const std::string& customSkyColor = Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity);
-			RenderUtils::CopyTexture(frameGraph, infra,
+			RenderUtils::CopyTexture(frameGraph,
 				envLighting.mPanoramicSky,
 				Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
 				mSkyTexture->GetResource(), 
 				mNoMipMapLinearSampler, customSkyColor.c_str());
 
 			envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(
-				frameGraph, infra,
+				frameGraph,
 				envLighting.mPanoramicSky, 8, 10);
 
-			envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, infra, envLighting.mPanoramicSky, 1024);
+			envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, envLighting.mPanoramicSky, 1024);
 
-			RenderUtils::GaussianBlur(frameGraph, infra, 
+			RenderUtils::GaussianBlur(frameGraph, 
 				envLighting.mPanoramicSky,
 				envLighting.mPanoramicSky, 2);
 		
-			envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
+			envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, 1024);
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	
 	{
-		RENDER_EVENT(infra, LightViewDepth);
+		//RENDER_EVENT(infra, LightViewDepth);
 
 		frameGraph->AddPass<DsvUsageFuture>("InitialLightViewDepth",
 			[&](RenderPassBuilder& builder, DsvUsageFuture& dsv)
@@ -231,7 +229,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 				if (geo && mat)
 				{
-					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
+					RenderGeometryDepthWithMaterial(frameGraph, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
 				}
 			});
 	}
@@ -239,7 +237,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 	//////////////////////////////////////////////////////////////////////////
 
 	{
-		RENDER_EVENT(infra, GBuffer);
+		//RENDER_EVENT(infra, GBuffer);
 
 		struct PassData
 		{
@@ -275,21 +273,21 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 
 				if (geo && mat)
 				{
-					RenderGeometryWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
+					RenderGeometryWithMaterial(frameGraph, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
 				}
 			});
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	RenderShadowMask(frameGraph, infra, cameraView.mShadowMask, lightView.mLightViewDepth, mNoMipMapLinearDepthCmpSampler, cameraView.mMainViewDepth, mNoMipMapLinearSampler);
-	DeferredLighting(frameGraph, infra, target);
+	RenderShadowMask(frameGraph, cameraView.mShadowMask, lightView.mLightViewDepth, mNoMipMapLinearDepthCmpSampler, cameraView.mMainViewDepth, mNoMipMapLinearSampler);
+	DeferredLighting(frameGraph, target);
 	RenderSky(frameGraph, target, cameraView.mMainViewDepth);
 
 	return target;
 }
 
-void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
+void WorldRenderer::RenderGBufferChannels(FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
@@ -311,13 +309,13 @@ void WorldRenderer::RenderGBufferChannels(GI::IGraphicsInfra* infra, FrameGraphM
 	{
 		const auto& [idx, unary] = gbufferSemantics[i];
 
-		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
+		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 			target, { i * width, 0.f }, { width, height }, 
 			gbufferData.mGBuffers[idx], mNoMipMapLinearSampler, unary);
 	}
 }
 
-void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
+void WorldRenderer::RenderShadowMaskChannel(FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
@@ -325,29 +323,28 @@ void WorldRenderer::RenderShadowMaskChannel(GI::IGraphicsInfra* infra, FrameGrap
 	const f32 height = f32(targetSize.y()) * 0.25f;
 	auto& cameraView = frameGraph->GetBlackboard()->Get<MainCameraState>();
 
-	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
+	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, targetSize.y() - height }, { width, height },
 		cameraView.mShadowMask,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
 
-void WorldRenderer::RenderLightViewDepthChannel(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target)
+void WorldRenderer::RenderLightViewDepthChannel(FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 	auto& lightView = frameGraph->GetBlackboard()->Get<LightViewData>();
 
-	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), infra,
+	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, size }, { size, size },
 		lightView.mLightViewDepth,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
 
-void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
-	FrameGraphMutableResource& target)
+void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableResource& target)
 {
 	auto& camState = frameGraph->GetBlackboard()->Get<MainCameraState>();
 	const auto& cameraProj = camState.mCameraProj;
@@ -357,7 +354,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
 
-	RENDER_EVENT(infra, DeferredLighting);
+	//RENDER_EVENT(infra, DeferredLighting);
 
 	const auto& mainDepthDesc = frameGraph->GetResourceDesc(camState.mMainViewDepth);
 	const auto& dsSize = mainDepthDesc.GetSize();
@@ -590,8 +587,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 		});
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
-	Geometry* geometry, RenderMaterial* material,
+void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView)
 {
@@ -731,7 +727,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 }
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(
-	FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	FrameGraph* frameGraph, 
 	Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	FrameGraphMutableResource& depth)
@@ -818,7 +814,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		});
 }
 
-void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, 
 	FrameGraphMutableResource& shadowMask,
 	FrameGraphResource lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 	FrameGraphResource cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler)
@@ -833,7 +829,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph, GI::IGraphicsInfra*
 	const auto& lightViewTrans = lightView.mWorldTransform;
 	const auto& lightViewProj = lightView.mLightViewProj;
 
-	RENDER_EVENT(infra, ShadowMask);
+	//RENDER_EVENT(infra, ShadowMask);
 
 	static Geometry* geometry = Geometry::GenerateQuad();
 	if (!geometry->IsGraphicsResourceReady())

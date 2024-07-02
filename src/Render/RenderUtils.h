@@ -10,18 +10,18 @@ struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	void CopyTexture(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& target,
 		const Vec2f& targetOffset, const Vec2f& targetRect,
 		const FrameGraphResource& source,
 		const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
-	void CopyTexture(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	void CopyTexture(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& target,
 		const FrameGraphResource& source,
 		const GI::SamplerDesc& sourceSampler);
 
-	void GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra,
+	void GaussianBlur(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& target,
 		const FrameGraphResource& source, i32 kernelSizeInPixel);
 

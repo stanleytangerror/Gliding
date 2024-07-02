@@ -68,25 +68,25 @@ void RenderModule::Render()
 
 	{
 		{
-			auto sceneHdr = mWorldRenderer->Render(mGraphicInfra);
+			auto sceneHdr = mWorldRenderer->Render();
 
-			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
+			//RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
 			auto target = mFrameGraph->Import(backBuffer);
-			mScreenRenderer->Render(mGraphicInfra, sceneHdr, target);
-			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
+			mScreenRenderer->Render(sceneHdr, target);
+			mImGuiRenderer->Render(target, mUiData);
 			mFrameGraph->Present(target);
 		}
 
 		{
-			RENDER_EVENT(mGraphicInfra, DebugChannels);
+			//RENDER_EVENT(mGraphicInfra, DebugChannels);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
 			auto target = mFrameGraph->Import(backBuffer);
-			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
-			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
-			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
+			mWorldRenderer->RenderGBufferChannels(target);
+			mWorldRenderer->RenderShadowMaskChannel(target);
+			mWorldRenderer->RenderLightViewDepthChannel(target);
 			mFrameGraph->Present(target);
 		}
 	}

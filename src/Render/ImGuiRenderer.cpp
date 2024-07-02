@@ -40,11 +40,9 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
-
-	RENDER_EVENT(infra, ImGuiRenderer::Render);
 
 	// Avoid rendering when minimized
 	if (!uiData || uiData->CmdListsCount == 0 || uiData->DisplaySize.x <= 0.0f || uiData->DisplaySize.y <= 0.0f) { return; }
@@ -177,6 +175,8 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource&
 				]
 				(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 				{
+					RENDER_EVENT(infra, ImGuiRenderer::Render::ImGuiElementRender);
+
 					GI::GraphicsPass pass;
 
 					pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";

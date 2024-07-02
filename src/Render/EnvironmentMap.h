@@ -7,16 +7,16 @@ class EnvironmentMap
 {
 public:
 	static FrameGraphResource GenerateIrradianceMap(
-		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+		FrameGraph* frameGraph, 
 		const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount);
 	static FrameGraphResource GenerateIntegratedBRDF(
-		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, i32 resolution);
+		FrameGraph* frameGraph, i32 resolution);
 	static FrameGraphResource GeneratePrefilteredEnvironmentMap(
-		FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+		FrameGraph* frameGraph, 
 		const FrameGraphResource& src, i32 resolution);
 
 protected:
-	static void PrefilterEnvironmentMap(FrameGraph* frameGraph, GI::IGraphicsInfra* infra, 
+	static void PrefilterEnvironmentMap(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& targetResource, GI::RtvDesc& targetDesc, 
 		const FrameGraphResource& src, 
 		const Vec2i& targetSize, f32 roughness);
