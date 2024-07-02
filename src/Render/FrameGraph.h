@@ -319,6 +319,8 @@ class GD_RENDER_API FrameGraph
 public:
 	FrameGraph(GI::IGraphicsInfra* infra);
 
+	GI::IGraphicsInfra* GetInfra() const { return mInfra; }
+
 	void StartFrame();
 	void EndFrame();
 

@@ -2,36 +2,6 @@
 #include "RenderMaterial.h"
 #include "Texture.h"
 
-void RenderMaterial::UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInfra* infra)
-{
-	for (auto& slot : mMatAttriSlots)
-	{
-		if (slot.mTexture)
-		{
-			if (!slot.mTexture->IsGraphicsResourceReady())
-			{
-				slot.mTexture->CreateAndInitialResource(frameGraph);
-			}
-		}
-	}
-}
-
-bool RenderMaterial::IsGpuResourceReady() const
-{
-	for (const auto& slot : mMatAttriSlots)
-	{
-		if (slot.mTexture)
-		{
-			if (!slot.mTexture->IsGraphicsResourceReady() || !slot.mResource.IsValid())
-			{
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
 RenderMaterial* RenderMaterial::GenerateRenderMaterialFromRawData(
 		const MaterialRawData* matRawData,
 		const SceneRawData* sceneRawData,

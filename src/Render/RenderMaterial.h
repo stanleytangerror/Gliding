@@ -9,15 +9,11 @@ struct RenderMaterial
 	struct MaterialAttriSlot
 	{
 		class FileTexture* mTexture = nullptr;
-		FrameGraphResource mResource;
 		GI::SamplerDesc mSampler;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
-
-	void UpdateGpuResources(FrameGraph* frameGraph, GI::IGraphicsInfra* infra);
-	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(
 		const MaterialRawData* matRawData,

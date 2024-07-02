@@ -37,7 +37,7 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData);
+	FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,

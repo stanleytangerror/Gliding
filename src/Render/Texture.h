@@ -7,10 +7,8 @@
 class GD_RENDER_API FileTexture
 {
 public:
-	FileTexture(GI::IGraphicsInfra* infra, const char* filePath, const std::vector<b8>& content);
+	FileTexture(FrameGraph* frameGraph, const char* filePath, const std::vector<b8>& content);
 
-	void							CreateAndInitialResource(FrameGraph* frameGraph);
-	bool							IsGraphicsResourceReady() const { return mResource.IsValid(); }
 	FrameGraphResource				GetResource() const { return mResource; }
 
 protected:
@@ -26,10 +24,8 @@ protected:
 class GD_RENDER_API InMemoryTexture
 {
 public:
-	InMemoryTexture(GI::IGraphicsInfra* infra, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
+	InMemoryTexture(FrameGraph* frameGraph, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
 
-	void							CreateAndInitialResource(FrameGraph* frameGraph);
-	bool							IsGraphicsResourceReady() const { return mResource.IsValid(); }
 	FrameGraphResource				GetResource() const { return mResource; }
 
 protected:

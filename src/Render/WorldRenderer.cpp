@@ -65,7 +65,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	mQuad.reset(Geometry::GenerateQuad());
 	
 	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = std::make_unique<FileTexture>(infra, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath, Utils::LoadFileContent(skyTexPath));
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -99,7 +99,7 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	mTestModel.reset(RenderUtils::FromSceneRawData(mRenderModule->GetGraphicsInfra(), sceneRawData));
+	mTestModel.reset(RenderUtils::FromSceneRawData(frameGraph, sceneRawData));
 	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(device));
 
 	//mTestModel->mRelTransform = UniScalingf(10.f);
@@ -179,10 +179,8 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			mSphere->CreateAndInitialResource(frameGraph);
 		}
 
-		if (!mSkyTexture->IsGraphicsResourceReady())
+		if (!envLighting.mPanoramicSky.IsValid())
 		{
-			mSkyTexture->CreateAndInitialResource(frameGraph);
-
 			const auto& srcSize = frameGraph->GetResourceDesc(mSkyTexture->GetResource()).GetSize();
 			const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };
 
@@ -207,27 +205,9 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 			RenderUtils::GaussianBlur(frameGraph, infra, 
 				envLighting.mPanoramicSky,
 				envLighting.mPanoramicSky, 2);
+		
+			envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
 		}
-
-		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, infra, 1024);
-
-		mTestModel->ForEach([&](auto& node)
-			{
-				if (auto& geo = node.mContent.first)
-				{
-					if (!geo->IsGraphicsResourceReady())
-					{
-						geo->CreateAndInitialResource(frameGraph);
-					}
-				}
-				if (auto& mat = node.mContent.second)
-				{
-					if (!mat->IsGpuResourceReady())
-					{
-						mat->UpdateGpuResources(frameGraph, mRenderModule->GetGraphicsInfra());
-					}
-				}
-			});
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -250,7 +230,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();
 
-				if (geo && mat && mat->IsGpuResourceReady())
+				if (geo && mat)
 				{
 					RenderGeometryDepthWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
 				}
@@ -294,7 +274,7 @@ FrameGraphMutableResource WorldRenderer::Render(GI::IGraphicsInfra* infra)
 				Geometry* geo = node.mContent.first.get();
 				RenderMaterial* mat = node.mContent.second.get();
 
-				if (geo && mat && mat->IsGpuResourceReady())
+				if (geo && mat)
 				{
 					RenderGeometryWithMaterial(frameGraph, infra, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
 				}
@@ -650,11 +630,11 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, GI::IGrap
 			for (const auto& [usage, paramName] : semanticSlots)
 			{
 				const auto& attr = material->mMatAttriSlots[usage];
-				if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+				if (attr.mTexture)
 				{
 					data.shaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
 
-					auto res = attr.mResource;
+					auto res = attr.mTexture->GetResource();
 					const auto& resDesc = frameGraph->GetResourceDesc(res);
 
 					const auto& srvName = paramName + "Tex";
@@ -778,9 +758,9 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		{
 			const char* paramName = "BaseColorTex";
 			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
-			if (attr.mTexture && attr.mTexture->IsGraphicsResourceReady())
+			if (attr.mTexture)
 			{
-				data.srvs.emplace_back(paramName, builder.ReadTex2DSrv(attr.mResource));
+				data.srvs.emplace_back(paramName, builder.ReadTex2DSrv(attr.mTexture->GetResource()));
 				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
 			}
 

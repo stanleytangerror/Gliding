@@ -219,7 +219,7 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph, GI::IGraphicsInfra* infra
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData)
+RenderUtils::FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData)
 {
 	auto result = new TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
@@ -230,7 +230,7 @@ RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawD
 	{
 		if (texRawData)
 		{
-			textures[texPath] = new FileTexture(infra, texPath.c_str(), texRawData->mRawData);
+			textures[texPath] = new FileTexture(frameGraph, texPath.c_str(), texRawData->mRawData);
 		}
 	}
 	std::map<TextureSamplerType, GI::SamplerDesc> samplers;
@@ -247,6 +247,8 @@ RenderUtils::FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawD
 	for (MeshRawData* mesh : sceneRawData->mMeshes)
 	{
 		Geometry* geo = GenerateGeometryFromMeshRawData(mesh);
+		geo->CreateAndInitialResource(frameGraph);
+
 		const auto& mat = materials[mesh->mMaterialIndex];
 		const Transformf& trans = mesh->mTransform;
 

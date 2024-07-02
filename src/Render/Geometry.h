@@ -9,7 +9,6 @@ class GD_RENDER_API Geometry
 {
 public:
 	void CreateAndInitialResource(FrameGraph* frameGraph);
-
 	bool IsGraphicsResourceReady() const { return mVb.IsValid() && mIb.IsValid(); };
 
 	FrameGraphResource	GetVb() const { return mVb; }

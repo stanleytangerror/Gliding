@@ -28,7 +28,11 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 		memcpy((void*)((uintptr_t)fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
 	}
 
-	mFontAtlas.reset(new InMemoryTexture(mRenderModule->GetGraphicsInfra(), GI::Format::FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas"));
+	mFontAtlas.reset(new InMemoryTexture(mRenderModule->GetFrameGraph(), GI::Format::FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas"));
+
+	auto fontText = mFontAtlas->GetResource();
+	static_assert(sizeof(ImTextureID) >= sizeof(FrameGraphMutableResource), "FrameGraphMutableResource should be able to store as ImTextureID");
+	ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&fontText));
 }
 
 void ImGuiRenderer::TickFrame(Timer* timer)
@@ -39,16 +43,6 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, FrameGraphMutableResource& target, ImDrawData* uiData)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
-
-	if (!mFontAtlas->IsGraphicsResourceReady())
-	{
-		mFontAtlas->CreateAndInitialResource(frameGraph);
-
-		auto fontText = mFontAtlas->GetResource();
-
-		static_assert(sizeof(ImTextureID) >= sizeof(FrameGraphMutableResource), "FrameGraphMutableResource should be able to store as ImTextureID");
-		ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&fontText));
-	}
 
 	RENDER_EVENT(infra, ImGuiRenderer::Render);
 
