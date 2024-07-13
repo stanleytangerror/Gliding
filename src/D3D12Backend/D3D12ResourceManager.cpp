@@ -49,7 +49,7 @@ namespace D3D12Backend
 			nullptr,
 			IID_PPV_ARGS(&resource)));
 		NAME_RAW_D3D12_OBJECT(resource, desc.GetName().c_str());
-		
+
 		CommitedResource* result = new CommitedResource;
 		result->mDevice = mDevice;
 		result->mResource = resource;
@@ -60,6 +60,8 @@ namespace D3D12Backend
 
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
+
+		mMonitor.OnCreateResource(resource, d3d12Desc, desc.GetName().c_str());
 
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, desc.GetName().c_str()));
 	}
@@ -80,6 +82,8 @@ namespace D3D12Backend
 
 		Assert(mResourceIdMapping.find(resourceId) == mResourceIdMapping.end());
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
+
+		mMonitor.OnPossessResourceWithOwnership(resource, desc, name);
 
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, name));
 	}
@@ -344,8 +348,10 @@ namespace D3D12Backend
 			if (std::all_of(item.mGpuQueueTimePoints.begin(), item.mGpuQueueTimePoints.end(),
 				[](const auto& p) { return p.first->IsGpuValueFinished(p.second); }))
 			{
-				Assert(mResourceIdMapping.find(item.mResourceId) != mResourceIdMapping.end());
-				mResourceIdMapping.erase(mResourceIdMapping.find(item.mResourceId));
+				auto deleteItem = mResourceIdMapping.find(item.mResourceId);
+				Assert(deleteItem != mResourceIdMapping.end());
+				mMonitor.OnReleaseResource(deleteItem->second->GetD3D12Resource());
+				mResourceIdMapping.erase(deleteItem);
 
 				it = mReleaseQueue.erase(it);
 			}
@@ -353,6 +359,70 @@ namespace D3D12Backend
 			{
 				++it;
 			}
+		}
+
+		mMonitor.PrintResourceStatistics();
+	}
+
+	void ResourceManager::ResourceMonitor::OnCreateResource(ID3D12Resource* resource, const D3D12_RESOURCE_DESC& desc, const char* name)
+	{
+		Assert(mResources.find(resource) == mResources.end());
+		mResources[resource] = { name, desc, CalcMemorySize(desc) };
+	}
+
+	void ResourceManager::ResourceMonitor::OnPossessResourceWithOwnership(ID3D12Resource* resource, const D3D12_RESOURCE_DESC& desc, const char* name)
+	{
+		Assert(mResources.find(resource) == mResources.end());
+		mResources[resource] = { name, desc, CalcMemorySize(desc) };
+	}
+
+	void ResourceManager::ResourceMonitor::OnReleaseResource(ID3D12Resource* resource)
+	{
+		Assert(mResources.find(resource) != mResources.end());
+		mResources.erase(mResources.find(resource));
+	}
+
+	void ResourceManager::ResourceMonitor::PrintResourceStatistics()
+	{
+		auto printMemorySize = [](u32 size)
+		{
+			std::string str;
+			if (size / 1000000000) { str += std::to_string(size / 1000000000) + ","; }
+			if (size / 1000000) { str += std::to_string((size / 1000000) % 1000) + ","; }
+			if (size / 1000) { str += std::to_string((size / 1000) % 1000) + ","; }
+			str += std::to_string(size % 1000);
+			return str;
+		};
+
+		i32 totalSize = 0;
+		for (const auto& [_, status] : mResources)
+		{
+			totalSize += status.mMemorySize;
+		}
+		DEBUG_PRINT("Total resource size: %s", printMemorySize(totalSize).c_str());
+
+		std::vector<DeviceResourceStatus> resources;
+		for (const auto& [_, status] : mResources)
+		{
+			resources.push_back(status);
+		}
+		std::sort(resources.begin(), resources.end(), [](const auto& a, const auto& b) { return a.mMemorySize > b.mMemorySize; });
+		for (const auto& status : resources)
+		{
+			DEBUG_PRINT("\t[Resource] memory size: %s \t dimension: (%d, %d, %d) \t name: %s", 
+				printMemorySize(status.mMemorySize).c_str(), status.mDesc.Width, status.mDesc.Height, status.mDesc.DepthOrArraySize, status.mName.c_str());
+		}
+	}
+
+	u32 ResourceManager::ResourceMonitor::CalcMemorySize(const D3D12_RESOURCE_DESC& desc)
+	{
+		switch (desc.Dimension)
+		{
+		case D3D12_RESOURCE_DIMENSION_BUFFER:
+			return desc.Width;
+		default:
+			u32 bytes = DirectX::BitsPerPixel(desc.Format) >> 3;
+			return desc.Width * desc.Height * desc.DepthOrArraySize * bytes;
 		}
 	}
 }
