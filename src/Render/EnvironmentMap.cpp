@@ -74,16 +74,14 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
-			pass.mInputLayout = inputLayout;
-
 			pass.SetRtv(0, resources.Get(data.rtv));
 			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 			pass.mStencilRef = 0;
-
-			pass.PushVbv(resources.Get(data.geoVertices));
-			pass.SetIbv(resources.Get(data.geoIndices));
-			pass.mIndexCount = indexCount;
+			
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
@@ -165,16 +163,14 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
-			pass.mInputLayout = inputLayout;
-
 			pass.SetRtv(0, resources.Get(data.rtv));
 			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
 			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(resources.Get(data.geoVertices));
-			pass.SetIbv(resources.Get(data.geoIndices));
-			pass.mIndexCount = indexCount;
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
@@ -290,16 +286,14 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
-			pass.mInputLayout = inputLayout;
-
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
 			pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
 			pass.mStencilRef = 0;
 
-			pass.PushVbv(resources.Get(data.geoVertices));
-			pass.SetIbv(resources.Get(data.geoIndices));
-			pass.mIndexCount = indexCount;
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 			pass.AddCbVar("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });

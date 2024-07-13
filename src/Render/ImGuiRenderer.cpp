@@ -197,17 +197,13 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 						.SetDepthEnable(false)
 						.SetStencilEnable(false);
 
-					pass.mInputLayout = data.inputLayout;
-
 					pass.SetRtv(0, resources.Get(data.target));
 					pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
 					pass.mScissorRect = data.scissorRect;
 
-					pass.PushVbv(resources.Get(data.geoVertices));
-					pass.SetIbv(resources.Get(data.geoIndices));
-					pass.mIndexCount = data.indexCount;
-					pass.mIndexStartLocation = data.indexStartLocation;
-					pass.mVertexStartLocation = data.vertexStartLocation;
+					pass.SetGeometry(
+						resources.Get(data.geoVertices), data.vertexStartLocation, data.inputLayout,
+						resources.Get(data.geoIndices), data.indexStartLocation, data.indexCount);
 
 					if (data.hasSrv)
 					{

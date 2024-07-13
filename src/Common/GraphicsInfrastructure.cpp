@@ -3,6 +3,18 @@
 
 namespace GI
 {
+
+	void GraphicsPass::SetGeometry(const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout, const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount, i32 instanceCount /*= 1*/)
+	{
+		mVbvs.push_back(vbv);
+		mVertexStartLocation = vertexStartLocation;
+		mInputLayout = inputLayout;
+
+		mIbv = ibv;
+		mIndexStartLocation = indexStartLocation;
+		mIndexCount = indexCount;
+	}
+
 	bool GraphicsPass::IsReadyForExecute() const
 	{
 		for (const auto& [_, srv] : mSrvParams)

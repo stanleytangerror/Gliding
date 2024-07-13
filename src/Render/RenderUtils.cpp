@@ -77,15 +77,13 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
-			pass.mInputLayout = inputLayout;
-
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
 			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
-			pass.PushVbv(resources.Get(data.geoVertices));
-			pass.SetIbv(resources.Get(data.geoIndices));
-			pass.mIndexCount = indexCount;
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
 			pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
 			pass.AddSrv("SourceTex", resources.Get(data.source));
@@ -152,15 +150,13 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
-			pass.mInputLayout = inputLayout;
-
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.mViewPort.SetWidth(data.size.x()).SetHeight(data.size.y());
 			pass.mScissorRect = { 0, 0, i32(data.size.x()), i32(data.size.y()) };
 
-			pass.PushVbv(resources.Get(data.geoVertices));
-			pass.SetIbv(resources.Get(data.geoIndices));
-			pass.mIndexCount = indexCount;
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
 			pass.AddCbVar("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
 			pass.AddSrv("SourceTex", resources.Get(data.source));

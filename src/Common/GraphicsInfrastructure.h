@@ -1095,15 +1095,10 @@ namespace GI
             mRtvCount = std::max<u8>(mRtvCount, index + 1);
 		}
 
-        void PushVbv(const VbvUsage& vbv)
-        {
-            mVbvs.push_back(vbv);
-        }
-
-        void SetIbv(const IbvUsage& ibv)
-        {
-            mIbv = ibv;
-        }
+        void SetGeometry(
+            const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout,
+            const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount,
+            i32 instanceCount = 1);
 
         bool IsReadyForExecute() const;
 

@@ -157,32 +157,30 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 		{
 			RENDER_EVENT(infra, ToneMapping);
 
-			GI::GraphicsPass ldrScreenPass;
+			GI::GraphicsPass pass;
 
-			ldrScreenPass.mVsFile = "res/Shader/ToneMapping.hlsl";
-			ldrScreenPass.mPsFile = "res/Shader/ToneMapping.hlsl";
+			pass.mVsFile = "res/Shader/ToneMapping.hlsl";
+			pass.mPsFile = "res/Shader/ToneMapping.hlsl";
 
-			ldrScreenPass.mDepthStencilDesc.SetDepthEnable(false);
-			ldrScreenPass.mDepthStencilDesc.SetStencilEnable(false);
+			pass.mDepthStencilDesc.SetDepthEnable(false);
+			pass.mDepthStencilDesc.SetStencilEnable(false);
 
-			ldrScreenPass.mInputLayout = inputLayout;
-
-			ldrScreenPass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
+			pass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
 
 			// TODO missing sampler ???
-			ldrScreenPass.AddSrv("SceneHdr", resources.Get(data.sceneHdr));
-			ldrScreenPass.AddSrv("ExposureTexture", resources.Get(data.exposure));
+			pass.AddSrv("SceneHdr", resources.Get(data.sceneHdr));
+			pass.AddSrv("ExposureTexture", resources.Get(data.exposure));
 
-			ldrScreenPass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
+			pass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
-			ldrScreenPass.SetRtv(0, resources.Get(data.target));
-			ldrScreenPass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
-			ldrScreenPass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
+			pass.SetRtv(0, resources.Get(data.target));
+			pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
+			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
 
-			ldrScreenPass.PushVbv(resources.Get(data.geoVertices));
-			ldrScreenPass.SetIbv(resources.Get(data.geoIndices));
-			ldrScreenPass.mIndexCount = indexCount;
+			pass.SetGeometry(
+				resources.Get(data.geoVertices), 0, inputLayout,
+				resources.Get(data.geoIndices), 0, indexCount);
 
-			infra->GetRecorder()->AddGraphicsPass(ldrScreenPass);
+			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
 }
