@@ -68,7 +68,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 
 			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
@@ -153,7 +153,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 
 			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 
@@ -271,7 +271,7 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 
 			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 

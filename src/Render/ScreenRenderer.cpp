@@ -161,8 +161,8 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 
 			pass.SetShader("ToneMapping");
 
-			pass.mDepthStencilDesc.SetDepthEnable(false);
-			pass.mDepthStencilDesc.SetStencilEnable(false);
+			pass.SetupDepthStencil().SetDepthEnable(false);
+			pass.SetupDepthStencil().SetStencilEnable(false);
 
 			pass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
 

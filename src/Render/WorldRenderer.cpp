@@ -393,16 +393,16 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 
 			pass.SetShader("Lighting");
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(true)
 				.SetStencilReadMask(RenderUtils::WorldStencilMask_OpaqueObject)
 				.SetStencilWriteMask(0);
-			pass.mDepthStencilDesc.FrontFace
+			pass.SetupDepthStencil().FrontFace
 				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
 				.SetStencilPassOp(GI::StencilOp::KEEP)
 				.SetStencilFailOp(GI::StencilOp::KEEP);
-			pass.mDepthStencilDesc.BackFace
+			pass.SetupDepthStencil().BackFace
 				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
 				.SetStencilPassOp(GI::StencilOp::KEEP)
 				.SetStencilFailOp(GI::StencilOp::KEEP);
@@ -494,17 +494,17 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 
 			pass.SetShader("PanoramicSky");
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(true)
 				.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene & (~RenderUtils::WorldStencilMask_Sky))
 				.SetStencilWriteMask(RenderUtils::WorldStencilMask_Sky);
-			pass.mDepthStencilDesc.FrontFace
+			pass.SetupDepthStencil().FrontFace
 				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
 				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
 				.SetStencilPassOp(GI::StencilOp::REPLACE)
 				.SetStencilFailOp(GI::StencilOp::KEEP);
-			pass.mDepthStencilDesc.BackFace
+			pass.SetupDepthStencil().BackFace
 				.SetStencilFunc(GI::ComparisonFunction::EQUAL)
 				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
 				.SetStencilPassOp(GI::StencilOp::REPLACE)
@@ -611,23 +611,23 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		{
 			GI::GraphicsPass pass;
 
-			pass.SetShader("GBufferPBRMat01");
+			pass.SetShader("GBufferPBRMat01", data.shaderMacros);
 
-			pass.mRasterizerDesc
+			pass.SetupRasterizer()
 				.SetCullMode(GI::CullMode::NONE);
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(true)
 				.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
 				.SetStencilEnable(true)
 				.SetStencilReadMask(RenderUtils::WorldStencilMask_Scene)
 				.SetStencilWriteMask(RenderUtils::WorldStencilMask_OpaqueObject);
-			pass.mDepthStencilDesc.FrontFace
+			pass.SetupDepthStencil().FrontFace
 				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
 				.SetStencilFailOp(GI::StencilOp::KEEP)
 				.SetStencilPassOp(GI::StencilOp::REPLACE)
 				.SetStencilFunc(GI::ComparisonFunction::ALWAYS);
-			pass.mDepthStencilDesc.BackFace
+			pass.SetupDepthStencil().BackFace
 				.SetStencilDepthFailOp(GI::StencilOp::KEEP)
 				.SetStencilFailOp(GI::StencilOp::KEEP)
 				.SetStencilPassOp(GI::StencilOp::REPLACE)
@@ -653,7 +653,6 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
 			pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
 
-			pass.mShaderMacros = data.shaderMacros;
 			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, resources.Get(srv)); }
 			for (const auto& [n, sampler] : data.samplers) { pass.AddSampler(n, sampler); }
 			for (const auto& [n, v] : data.cbvs) { pass.AddCbVar(n, v); }
@@ -712,12 +711,12 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 
 			pass.SetShader("GeometryDepth");
 
-			pass.mRasterizerDesc
+			pass.SetupRasterizer()
 				.SetCullMode(GI::CullMode::NONE)
 				.SetDepthBias(10000)
 				.SetSlopeScaledDepthBias(10);
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(true)
 				.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
 				.SetStencilEnable(false);
@@ -800,7 +799,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 
 			pass.SetShader("ConstructShadowMask");
 
-			pass.mDepthStencilDesc
+			pass.SetupDepthStencil()
 				.SetDepthEnable(false)
 				.SetStencilEnable(false);
 

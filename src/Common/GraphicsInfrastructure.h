@@ -4,6 +4,7 @@
 #include "Math.h"
 #include "Texture.h"
 #include "PresentPort.h"
+#include "StringUtils.h"
 
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
@@ -1092,6 +1093,17 @@ namespace GI
             AddShaderMacros(args...);
         }
 
+		void SetShader(const char* name, const std::vector<ShaderMacro>& macros)
+		{
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mVsFile = shaderPath;
+			mPsFile = shaderPath;
+			for (const auto& macro : macros)
+            {
+                AddShaderMacros(macro);
+            }
+		}
+
 		template<typename ...Args>
 		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
 		{
@@ -1121,6 +1133,10 @@ namespace GI
             const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout,
             const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount,
             i32 instanceCount = 1);
+
+		RasterizerDesc& SetupRasterizer() { return mRasterizerDesc; }
+		DepthStencilDesc& SetupDepthStencil() { return mDepthStencilDesc; }
+        BlendDesc& SetupBlend() { return mBlendDesc; }
         
         bool IsReadyForExecute() const;
 

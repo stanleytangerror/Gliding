@@ -181,8 +181,8 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 
 					pass.SetShader("ImGui", GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });
 
-					pass.mBlendDesc.SetAlphaToCoverageEnable(false);
-					pass.mBlendDesc.RtBlendDesc[0]
+					pass.SetupBlend().SetAlphaToCoverageEnable(false);
+					pass.SetupBlend().RtBlendDesc[0]
 						.SetBlendEnable(true)
 						.SetSrcBlend(GI::Blend::SRC_ALPHA)
 						.SetDestBlend(GI::Blend::INV_SRC_ALPHA)
@@ -191,7 +191,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 						.SetDestBlendAlpha(GI::Blend::INV_SRC_ALPHA)
 						.SetBlendOpAlpha(GI::BlendOp::ADD);
 
-					pass.mDepthStencilDesc
+					pass.SetupDepthStencil()
 						.SetDepthEnable(false)
 						.SetStencilEnable(false);
 
