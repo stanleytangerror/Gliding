@@ -355,6 +355,11 @@ public:
 
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
+	// utils
+	void AddClearPass(const char* name, 
+		std::vector<FrameGraphMutableResource> renderTargets, const Vec4f& colorValue,
+		FrameGraphMutableResource depthStencil, bool clearDepth, f32 depthValue, bool clearStencil, u32 stencilValue);
+
 private:
 	std::unique_ptr<Blackboard>			mBlackboard;
 	std::unique_ptr<ResourceRegistry>	mResourceRegistry;

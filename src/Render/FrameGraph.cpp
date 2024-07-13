@@ -610,3 +610,38 @@ GI::MemoryResourceDesc FrameGraph::GetResourceDesc(const FrameGraphResource& res
 	return mResourceRegistry->GetResourceDesc(resource);
 }
 
+
+void FrameGraph::AddClearPass(const char* name, std::vector<FrameGraphMutableResource> renderTargets, const Vec4f& colorValue, FrameGraphMutableResource depthStencil, bool clearDepth, f32 depthValue, bool clearStencil, u32 stencilValue)
+{
+	struct PassData
+	{
+		std::vector<RtvUsageFuture> rtvs;
+		bool clearDsv = false;
+		DsvUsageFuture dsv;
+	};
+
+	AddPass<PassData>(name,
+		[&](RenderPassBuilder& builder, PassData& data)
+		{
+			for (auto rt : renderTargets)
+			{
+				data.rtvs.push_back(builder.WriteTex2DRtv(rt));
+			}
+			data.clearDsv = depthStencil.IsValid() && (clearDepth || clearStencil);
+			if (data.clearDsv)
+			{
+				data.dsv = builder.WriteTex2DDsv(depthStencil);
+			}
+		},
+		[=](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		{
+			for (const auto& rt : data.rtvs)
+			{
+				infra->GetRecorder()->AddClearOperation(resources.Get(rt), colorValue);
+			}
+			if (data.clearDsv)
+			{
+				infra->GetRecorder()->AddClearOperation(resources.Get(data.dsv), clearDepth, depthValue, clearStencil, stencilValue);
+			}
+		});
+}

@@ -197,15 +197,8 @@ FrameGraphMutableResource WorldRenderer::Render()
 	{
 		//RENDER_EVENT(infra, LightViewDepth);
 
-		frameGraph->AddPass<DsvUsageFuture>("InitialLightViewDepth",
-			[&](RenderPassBuilder& builder, DsvUsageFuture& dsv)
-			{
-				dsv = builder.WriteTex2DDsv(lightView.mLightViewDepth);
-			},
-			[sunLight](const DsvUsageFuture& dsv, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
-			{
-				infra->GetRecorder()->AddClearOperation(resources.Get(dsv), true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
-			});
+		frameGraph->AddClearPass("InitialLightViewDepth", {}, {}, 
+			lightView.mLightViewDepth, true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{
@@ -223,33 +216,10 @@ FrameGraphMutableResource WorldRenderer::Render()
 
 	{
 		//RENDER_EVENT(infra, GBuffer);
-
-		struct PassData
-		{
-			std::array<RtvUsageFuture, 3> gbufferRtvs;
-			DsvUsageFuture depthDsv;
-		};
-		
-		frameGraph->AddPass<PassData>("InitialGBufferAndDepth",
-			[&](RenderPassBuilder& builder, PassData& data)
-			{
-				for (auto i = 0; i < gbufferData.mGBuffers.size(); ++i)
-				{
-					data.gbufferRtvs[i] = builder.WriteTex2DRtv(gbufferData.mGBuffers[i]);
-				}
-				data.depthDsv = builder.WriteTex2DDsv(cameraView.mMainViewDepth);
-			},
-			[
-				sunLight, 
-				camProj = blackboard->Get<MainCameraState>().mCameraProj
-			](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
-			{
-				for (const auto& rt : data.gbufferRtvs)
-				{
-					infra->GetRecorder()->AddClearOperation(resources.Get(rt), { 0.f, 0.f, 0.f, 1.f });
-				}
-				infra->GetRecorder()->AddClearOperation(resources.Get(data.depthDsv), true, camProj.GetFarPlaneDeviceDepth(), true, 0);
-			});
+	
+		frameGraph->AddClearPass("InitialGBufferAndDepth", 
+			{ gbufferData.mGBuffers.begin(), gbufferData.mGBuffers.end() }, { 0.f, 0.f, 0.f, 1.f },
+			cameraView.mMainViewDepth, true, cameraView.mCameraProj.GetFarPlaneDeviceDepth(), true, 0);
 
 		mTestModel->ForEach([&](const auto& node)
 			{

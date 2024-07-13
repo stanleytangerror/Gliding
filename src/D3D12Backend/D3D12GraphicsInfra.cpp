@@ -279,8 +279,8 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
-		if (!pass.IsReadyForExecute()) { return; }
-
+		Assert(pass.IsReadyForExecute());
+		
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
 		D3D12Backend::GraphicsPass d3d12Pass;
@@ -597,7 +597,7 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
-		if (!pass.IsReadyForExecute()) { return; }
+		Assert(pass.IsReadyForExecute());
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
