@@ -179,8 +179,6 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 
 					GI::GraphicsPass pass;
 
-					pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-					pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 					pass.mVsFile = "res/Shader/ImGui.hlsl";
 					pass.mPsFile = "res/Shader/ImGui.hlsl";
 					pass.mShaderMacros.push_back(GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });

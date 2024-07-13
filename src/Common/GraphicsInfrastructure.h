@@ -1108,7 +1108,7 @@ namespace GI
         bool IsReadyForExecute() const;
 
 	public:
-		RootSignatureDesc			                mRootSignatureDesc;
+        RootSignatureDesc			                mRootSignatureDesc = { "res/RootSignature/RootSignature.hlsl", "GraphicsRS" };
         std::string                                 mVsFile;
         std::string                                 mPsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
@@ -1171,7 +1171,7 @@ namespace GI
 		bool IsReadyForExecute() const;
 
 	public:
-        RootSignatureDesc		                	mRootSignatureDesc;
+        RootSignatureDesc			                mRootSignatureDesc = { "res/RootSignature/RootSignature.hlsl", "ComputeRS" };
         std::string                                 mCsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
 

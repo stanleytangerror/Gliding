@@ -314,7 +314,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 	const auto& mainDepthDesc = frameGraph->GetResourceDesc(camState.mMainViewDepth);
 	const auto& dsSize = mainDepthDesc.GetSize();
 
-	auto tempDepth = frameGraph->CreatePermanent(
+	auto tempDepth = frameGraph->CreateTransient(
 		GI::MemoryResourceDesc::RenderTarget2D(
 			{ dsSize.x(), dsSize.y() }, 
 			mainDepthDesc.GetFormat(),
@@ -391,8 +391,6 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 		{
 			GI::GraphicsPass lightingPass;
 
-			lightingPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			lightingPass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			lightingPass.mVsFile = "res/Shader/Lighting.hlsl";
 			lightingPass.mPsFile = "res/Shader/Lighting.hlsl";
 
@@ -497,8 +495,6 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
 			pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
 
@@ -623,8 +619,6 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		{
 			GI::GraphicsPass gbufferPass;
 
-			gbufferPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			gbufferPass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			gbufferPass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
 			gbufferPass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
 
@@ -727,8 +721,6 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		{
 			GI::GraphicsPass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
 			pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
 
@@ -823,8 +815,6 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 		{
 			GI::GraphicsPass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
 			pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
 

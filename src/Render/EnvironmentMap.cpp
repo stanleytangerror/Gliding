@@ -66,8 +66,6 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
@@ -159,8 +157,6 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
@@ -285,8 +281,6 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });

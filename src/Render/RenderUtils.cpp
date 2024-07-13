@@ -69,8 +69,6 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 		{
 			GI::GraphicsPass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/CopyTexture.hlsl";
 			pass.mPsFile = "res/Shader/CopyTexture.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", !data.sourcePixelUnary.empty() ? data.sourcePixelUnary : "color" });
@@ -145,8 +143,6 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 
 			GI::GraphicsPass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
 			pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });

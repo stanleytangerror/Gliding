@@ -60,8 +60,6 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(const FrameGraphReso
 
 			GI::ComputePass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "ComputeRS";
 			pass.mCsFile = "res/Shader/Exposure.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "CONSTRUCT_HISTOGRAM", "1" });
 
@@ -104,8 +102,6 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(const FrameGraphReso
 
 			GI::ComputePass pass;
 
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "ComputeRS";
 			pass.mCsFile = "res/Shader/Exposure.hlsl";
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
@@ -163,8 +159,6 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 
 			GI::GraphicsPass ldrScreenPass;
 
-			ldrScreenPass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			ldrScreenPass.mRootSignatureDesc.mEntry = "GraphicsRS";
 			ldrScreenPass.mVsFile = "res/Shader/ToneMapping.hlsl";
 			ldrScreenPass.mPsFile = "res/Shader/ToneMapping.hlsl";
 
