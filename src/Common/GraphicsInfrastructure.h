@@ -1095,6 +1095,11 @@ namespace GI
             mRtvCount = std::max<u8>(mRtvCount, index + 1);
 		}
 
+        void SetStencilRef(u32 val) { mStencilRef = val; }
+
+		void SetViewPortAndScissorRectToFullRt();
+		void SetViewPortAndScissorRectToFullDepth();
+
         void SetGeometry(
             const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout,
             const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount,

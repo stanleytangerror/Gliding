@@ -151,8 +151,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 				.SetStencilEnable(false);
 
 			pass.SetRtv(0, resources.Get(data.target));
-			pass.mViewPort.SetWidth(data.size.x()).SetHeight(data.size.y());
-			pass.mScissorRect = { 0, 0, i32(data.size.x()), i32(data.size.y()) };
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,

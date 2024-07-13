@@ -75,9 +75,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 				.SetStencilEnable(false);
 
 			pass.SetRtv(0, resources.Get(data.rtv));
-			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
-			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
-			pass.mStencilRef = 0;
+			pass.SetViewPortAndScissorRectToFullRt();
 			
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
@@ -164,9 +162,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 				.SetStencilEnable(false);
 
 			pass.SetRtv(0, resources.Get(data.rtv));
-			pass.mViewPort.SetWidth(rtSize.x()).SetHeight(rtSize.y());
-			pass.mScissorRect = { 0, 0, rtSize.x(), rtSize.y() };
-			pass.mStencilRef = 0;
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
@@ -287,9 +283,7 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 				.SetStencilEnable(false);
 
 			pass.SetRtv(0, resources.Get(data.target));
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, targetSize.x(), targetSize.y() };
-			pass.mStencilRef = 0;
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,

@@ -174,8 +174,7 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 			pass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
 			pass.SetRtv(0, resources.Get(data.target));
-			pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,

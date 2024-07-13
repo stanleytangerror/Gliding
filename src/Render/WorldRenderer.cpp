@@ -411,9 +411,9 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 			const auto& targetSize = data.targetSize;
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.SetDsv(resources.Get(data.dsv));
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+			pass.SetViewPortAndScissorRectToFullRt();
+
+			pass.SetStencilRef(RenderUtils::WorldStencilMask_OpaqueObject);
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
@@ -514,9 +514,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.SetDsv(resources.Get(data.depth));
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-			pass.mStencilRef = 0;
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
@@ -643,16 +641,15 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 				pass.SetRtv(i, resources.Get(data.gbufferRtvs[i]));
 			}
 			pass.SetDsv(resources.Get(data.depthView));
+			pass.SetViewPortAndScissorRectToFullRt();
 
-			const auto& targetSize = data.targetSize;
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+			pass.SetStencilRef(RenderUtils::WorldStencilMask_OpaqueObject);
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
+			const auto& targetSize = data.targetSize;
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
 			pass.AddCbVar("worldMat", transform.matrix());
@@ -687,6 +684,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
 		DsvUsageFuture depthView;
+		Vec3u targetSize;
 	};
 
 	frameGraph->AddPass<PassData>("RenderGeometryDepthWithMaterial",
@@ -704,6 +702,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.depthView = builder.ReadWriteTex2DDsv(depth);
+			data.targetSize = frameGraph->GetResourceDesc(depth).GetSize();
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
@@ -727,19 +726,16 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 				.SetDepthFunc(GI::ToDepthCompareFunc(cameraProj.GetNearerDepthCompare()))
 				.SetStencilEnable(false);
 
-			const auto& dsv = resources.Get(data.depthView);
-			pass.SetDsv(dsv);
-
-			const auto& targetSize = dsv.GetResource()->GetSize();
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
-			pass.mStencilRef = RenderUtils::WorldStencilMask_OpaqueObject;
+			pass.SetDsv(resources.Get(data.depthView));
+			pass.SetViewPortAndScissorRectToFullDepth();
+			
+			pass.SetStencilRef(RenderUtils::WorldStencilMask_OpaqueObject);
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
 
 			pass.AddCbVar("worldMat", transform.matrix());
 			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
@@ -814,10 +810,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 				.SetStencilEnable(false);
 
 			pass.SetRtv(0, resources.Get(data.shadowMask));
-
-			const auto& targetSize = data.targetSize;
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = { 0, 0, i32(targetSize.x()), i32(targetSize.y()) };
+			pass.SetViewPortAndScissorRectToFullRt();
 
 			pass.SetGeometry(
 				resources.Get(data.geoVertices), 0, inputLayout,
@@ -828,6 +821,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 			pass.AddSrv("CameraViewDepth", resources.Get(data.cameraViewDepth));
 			pass.AddSampler("CameraViewDepthSampler", data.cameraViewDepthSampler);
 
+			const auto& targetSize = data.targetSize;
 			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 			pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
 

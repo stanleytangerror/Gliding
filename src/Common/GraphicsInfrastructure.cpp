@@ -4,6 +4,24 @@
 namespace GI
 {
 
+	void GraphicsPass::SetViewPortAndScissorRectToFullRt()
+	{
+		Assert(mRtvCount > 0 && mRtvs[0].GetResource());
+
+		const auto size = mRtvs[0].GetResource()->GetSize();
+		mViewPort.SetWidth(size.x()).SetHeight(size.y());
+		mScissorRect = { 0, 0, i32(size.x()), i32(size.y()) };
+	}
+
+	void GraphicsPass::SetViewPortAndScissorRectToFullDepth()
+	{
+		Assert(mHasDsv && mDsv.GetResource());
+
+		const auto size = mDsv.GetResource()->GetSize();
+		mViewPort.SetWidth(size.x()).SetHeight(size.y());
+		mScissorRect = { 0, 0, i32(size.x()), i32(size.y()) };
+	}
+
 	void GraphicsPass::SetGeometry(const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout, const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount, i32 instanceCount /*= 1*/)
 	{
 		mVbvs.push_back(vbv);
