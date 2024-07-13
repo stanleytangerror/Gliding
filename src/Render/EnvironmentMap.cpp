@@ -66,9 +66,7 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
+			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "GENERATE_IRRADIANCE_MAP", "1" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -153,9 +151,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
+			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "GENERATE_INTEGRATE_BRDF", "1" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -273,10 +269,7 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mVsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mPsFile = "res/Shader/EnvironmentMap.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
-
+			pass.SetShader("EnvironmentMap", GI::ShaderMacro{ "PREFILTER_ENVIRONMENT_MAP", "1" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)

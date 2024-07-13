@@ -140,7 +140,7 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 
 	frameGraph->AddPass<PassData>("ToneMapping",
 		[&]
-		(RenderPassBuilder& builder, PassData& data)
+	(RenderPassBuilder& builder, PassData& data)
 		{
 			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
@@ -159,8 +159,7 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/ToneMapping.hlsl";
-			pass.mPsFile = "res/Shader/ToneMapping.hlsl";
+			pass.SetShader("ToneMapping");
 
 			pass.mDepthStencilDesc.SetDepthEnable(false);
 			pass.mDepthStencilDesc.SetStencilEnable(false);

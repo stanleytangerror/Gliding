@@ -391,8 +391,7 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 		{
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/Lighting.hlsl";
-			pass.mPsFile = "res/Shader/Lighting.hlsl";
+			pass.SetShader("Lighting");
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -493,8 +492,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 
 			const Transformf& transform = Transformf(UniScalingf(1000.f));
 
-			pass.mVsFile = "res/Shader/PanoramicSky.hlsl";
-			pass.mPsFile = "res/Shader/PanoramicSky.hlsl";
+			pass.SetShader("PanoramicSky");
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -613,8 +611,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		{
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/GBufferPBRMat01.hlsl";
-			pass.mPsFile = "res/Shader/GBufferPBRMat01.hlsl";
+			pass.SetShader("GBufferPBRMat01");
 
 			pass.mRasterizerDesc
 				.SetCullMode(GI::CullMode::NONE);
@@ -713,8 +710,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		{
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/GeometryDepth.hlsl";
-			pass.mPsFile = "res/Shader/GeometryDepth.hlsl";
+			pass.SetShader("GeometryDepth");
 
 			pass.mRasterizerDesc
 				.SetCullMode(GI::CullMode::NONE)
@@ -802,8 +798,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 		{
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/ConstructShadowMask.hlsl";
-			pass.mPsFile = "res/Shader/ConstructShadowMask.hlsl";
+			pass.SetShader("ConstructShadowMask");
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)

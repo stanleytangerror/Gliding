@@ -179,9 +179,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 
 					GI::GraphicsPass pass;
 
-					pass.mVsFile = "res/Shader/ImGui.hlsl";
-					pass.mPsFile = "res/Shader/ImGui.hlsl";
-					pass.mShaderMacros.push_back(GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });
+					pass.SetShader("ImGui", GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });
 
 					pass.mBlendDesc.SetAlphaToCoverageEnable(false);
 					pass.mBlendDesc.RtBlendDesc[0]

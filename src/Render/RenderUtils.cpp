@@ -69,9 +69,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 		{
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/CopyTexture.hlsl";
-			pass.mPsFile = "res/Shader/CopyTexture.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", !data.sourcePixelUnary.empty() ? data.sourcePixelUnary : "color" });
+			pass.SetShader("CopyTexture", GI::ShaderMacro{ "SOURCE_PIXEL_UNARY", !data.sourcePixelUnary.empty() ? data.sourcePixelUnary : "color" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)
@@ -141,10 +139,9 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 
 			GI::GraphicsPass pass;
 
-			pass.mVsFile = "res/Shader/GaussianBlur.hlsl";
-			pass.mPsFile = "res/Shader/GaussianBlur.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) });
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1" });
+			pass.SetShader("GaussianBlur",
+				GI::ShaderMacro{ "WEIGHT_SIZE", Utils::FormatString("%d", weight4fSize) },
+				GI::ShaderMacro{ isHorizontal ? "HORIZONTAL" : "VERTICAL", "1" });
 
 			pass.mDepthStencilDesc
 				.SetDepthEnable(false)

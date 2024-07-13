@@ -1083,6 +1083,23 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
+		template<typename ...Args>
+		void SetShader(const char* name, const Args&... args)
+        {
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mVsFile = shaderPath;
+			mPsFile = shaderPath;
+            AddShaderMacros(args...);
+        }
+
+		template<typename ...Args>
+		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
+		{
+			mShaderMacros.push_back(macro);
+            AddShaderMacros(args...);
+		}
+        void AddShaderMacros() {}
+
         void SetDsv(const DsvUsage& dsv)
         {
 			mDsv = dsv;
@@ -1104,7 +1121,7 @@ namespace GI
             const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout,
             const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount,
             i32 instanceCount = 1);
-
+        
         bool IsReadyForExecute() const;
 
 	public:
@@ -1167,6 +1184,22 @@ namespace GI
             Assert(mSamplerParams.find(name) == mSamplerParams.end());
             mSamplerParams[name] = sampler;
         }
+
+		template<typename ...Args>
+		void SetShader(const char* name, const Args&... args)
+		{
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mCsFile = shaderPath;
+			AddShaderMacros(args...);
+		}
+
+		template<typename ...Args>
+		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
+		{
+			mShaderMacros.push_back(macro);
+			AddShaderMacros(args...);
+		}
+		void AddShaderMacros() {}
 
 		bool IsReadyForExecute() const;
 
