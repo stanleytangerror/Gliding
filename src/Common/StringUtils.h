@@ -26,6 +26,17 @@ namespace Utils
 	{
 		return Utils::HashBytes(reinterpret_cast<const b8*>(&pod), sizeof(T));
 	}
+
+	// https://stackoverflow.com/questions/35985960/c-why-is-boosthash-combine-the-best-way-to-combine-hash-values
+	template <typename T, typename ...Args>
+	inline void HashCombine(std::size_t& seed, const T& v, const Args& ... args)
+	{
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		HashCombine(seed, args...);
+	}
+
+	inline void HashCombine(std::size_t& seed) {}
 }
 
 #define DEBUG_PRINT(msg, ...)	(Utils::PrintDebugString(Utils::FormatString(msg "\n", ##__VA_ARGS__ ).c_str()));

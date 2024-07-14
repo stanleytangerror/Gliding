@@ -182,6 +182,15 @@ protected:
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mPermanentResources;
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mTransienceResources;
 
+	struct ResourcePoolItem
+	{
+		GI::MemoryResourceDesc						mDesc;
+		std::unique_ptr<GI::IGraphicMemoryResource>	mRealResource;
+		u32											mIdleFrames = 0;
+		constexpr bool	IdleTooLong() { return mIdleFrames >= 5; }
+	};
+	std::map<GI::MemoryResourceDesc::Key, std::vector<ResourcePoolItem>> mTransicenceResourcePool;
+
 	BijectionMap<FrameGraphResource::Id::Handle, GI::IGraphicMemoryResource*> mImportedResources;
 
 	u16							mResourceIdCounter = 0;

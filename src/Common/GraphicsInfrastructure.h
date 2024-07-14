@@ -847,6 +847,9 @@ namespace GI
         MemoryResourceDesc& SetSize(const Vec3u& size) { return SetWidth(size.x()).SetHeight(size.y()).SetDepthOrArraySize(size.z()); }
         Vec3u GetSize() const { return { (u32) GetWidth(), (u32) GetHeight(), (u32) GetDepthOrArraySize() }; }
 
+        using Key = u64;
+        Key GetKey() const;
+
     public:
         static MemoryResourceDesc Buffer(u64 size, HeapType::Enum heapType, ResourceState::Enum initialState, ResourceFlag::Flags flags, u8 alignment)
         {

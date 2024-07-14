@@ -72,4 +72,14 @@ namespace GI
 		return true;
 	}
 
+	GI::MemoryResourceDesc::Key MemoryResourceDesc::GetKey() const
+	{
+		u64 hash = 0;
+		Utils::HashCombine(hash, 
+			mHeapType, mDimension, mAlignment,
+			mWidth, mHeight, mDepthOrArraySize, mMipLevels, mFormat, 
+			mSampleDesc_Count, mSampleDesc_Quality, mLayout, mFlags);
+		return hash;
+	}
+
 }

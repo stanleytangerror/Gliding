@@ -157,19 +157,17 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 	{
 		Assert(data.mRealResource == nullptr);
 
-		if (mResourceCreators.find(id) != mResourceCreators.end())
+		auto descKey = data.mDesc.GetKey();
+		if (mTransicenceResourcePool.find(descKey) != mTransicenceResourcePool.end())
 		{
-			auto createdResource = mResourceCreators[id](infra);
-			std::swap(data.mRealResource, createdResource);
+			auto& items = mTransicenceResourcePool.find(descKey)->second;
+			std::swap(data.mRealResource, items.back().mRealResource);
+			items.pop_back();
+			// TODO reset debug name to data.mRealResource
 		}
 		else
 		{
 			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
-
-			if (mResourceInitializer.find(id) != mResourceInitializer.end())
-			{
-				mResourceInitializer[id](infra, data.mRealResource.get());
-			}
 		}
 	}
 	mResourceInitializer.clear();
@@ -177,7 +175,33 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 
 void ResourceRegistry::OnEndFrame()
 {
-	mTransienceResources.clear();
+	for (auto it = mTransienceResources.begin(); it != mTransienceResources.end();)
+	{
+		auto& resourceData = it->second;
+
+		const auto key = resourceData.mDesc.GetKey();
+		if (mTransicenceResourcePool.find(key) == mTransicenceResourcePool.end())
+		{
+			mTransicenceResourcePool.insert({ key, std::vector<ResourcePoolItem>{} });
+		}
+		auto& poolItems = mTransicenceResourcePool.find(key)->second;
+		poolItems.push_back({});
+		auto& poolItem = poolItems.back();
+
+		poolItem.mDesc = resourceData.mDesc;
+		std::swap(poolItem.mRealResource, resourceData.mRealResource);
+		poolItem.mIdleFrames += 1;
+
+		it = mTransienceResources.erase(it);
+	}
+
+	for (auto& [_, items] : mTransicenceResourcePool)
+	{
+		for (auto it = items.begin(); it != items.end();)
+		{
+			it = it->IdleTooLong() ? it = items.erase(it) : ++it;
+		}
+	}
 }
 
 RenderPassBuilder::RenderPassBuilder(FrameGraphBuilder* builder, const char* passName)
