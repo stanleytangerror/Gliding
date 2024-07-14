@@ -15,23 +15,15 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 	}
 
-	const Vec2i& rtSize = { resolution * 2, resolution };
+	const Vec2u& rtSize = { u32(resolution * 2), u32(resolution) };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
 	auto irradianceMap = frameGraph->CreatePermanent(
-		GI::MemoryResourceDesc()
-		.SetAlignment(0)
-		.SetDimension(GI::ResourceDimension::TEXTURE2D)
-		.SetWidth(rtSize.x())
-		.SetHeight(rtSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(format)
-		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
-		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
-		.SetName("IrradianceMap")
-		.SetHeapType(GI::HeapType::DEFAULT));
+		GI::MemoryResourceDesc::RenderTarget2D(
+			rtSize,
+			format,
+			GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS,
+			"IrradianceMap"));
 
 	struct PassData
 	{
@@ -106,22 +98,14 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 	}
 
-	const Vec2i& rtSize = { resolution, resolution };
+	const Vec2u& rtSize = { u32(resolution), u32(resolution) };
 	auto format = GI::Format::FORMAT_R32G32B32A32_FLOAT;
 
-	auto integrateBrdf = frameGraph->CreatePermanent(GI::MemoryResourceDesc()
-		.SetAlignment(0)
-		.SetDimension(GI::ResourceDimension::TEXTURE2D)
-		.SetWidth(rtSize.x())
-		.SetHeight(rtSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(1)
-		.SetFormat(format)
-		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
-		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
-		.SetName("IntegratedBRDF")
-		.SetHeapType(GI::HeapType::DEFAULT));
+	auto integrateBrdf = frameGraph->CreatePermanent(GI::MemoryResourceDesc::RenderTarget2D(
+		rtSize, 
+		format, 
+		GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS, 
+		"IntegratedBRDF"));
 
 	struct PassData
 	{
@@ -181,19 +165,12 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 	const auto& format = srcResDesc.GetFormat();
 	const i32 levelCount = std::log2(std::min<i32>(originSize.x(), originSize.y()));
 
-	auto filteredMapDesc = GI::MemoryResourceDesc()
-		.SetAlignment(0)
-		.SetDimension(GI::ResourceDimension::TEXTURE2D)
-		.SetWidth(originSize.x())
-		.SetHeight(originSize.y())
-		.SetDepthOrArraySize(1)
-		.SetMipLevels(levelCount)
-		.SetFormat(format)
-		.SetLayout(GI::TextureLayout::LAYOUT_UNKNOWN)
-		.SetFlags(GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS)
-		.SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
-		.SetName("FilteredEnvMap")
-		.SetHeapType(GI::HeapType::DEFAULT);
+	auto filteredMapDesc = GI::MemoryResourceDesc::RenderTarget2D(
+		{ originSize.x(), originSize.y() },
+		format,
+		GI::ResourceFlag::ALLOW_RENDER_TARGET | GI::ResourceFlag::ALLOW_UNORDERED_ACCESS,
+		"FilteredEnvMap")
+		.SetMipLevels(levelCount);
 
 	auto filteredMap = frameGraph->CreatePermanent(filteredMapDesc);
 
