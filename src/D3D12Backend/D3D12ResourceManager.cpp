@@ -387,10 +387,23 @@ namespace D3D12Backend
 		auto printMemorySize = [](u32 size)
 		{
 			std::string str;
-			if (size / 1000000000) { str += std::to_string(size / 1000000000) + ","; }
-			if (size / 1000000) { str += std::to_string((size / 1000000) % 1000) + ","; }
-			if (size / 1000) { str += std::to_string((size / 1000) % 1000) + ","; }
-			str += std::to_string(size % 1000);
+			bool full = false;
+			if (size / 1000000000) 
+			{ 
+				str += std::to_string(size / 1000000000) + ","; 
+				full = true;
+			}
+			if (size / 1000000) 
+			{ 
+				str += Utils::FormatString(full ? "%03d," : "%d,", (size / 1000000) % 1000);
+				full = true;
+			}
+			if (size / 1000)
+			{
+				str += Utils::FormatString(full ? "%03d," : "%d,", (size / 1000) % 1000);
+				full = true;
+			}
+			str += Utils::FormatString(full ? "%03d" : "%d", size % 1000);
 			return str;
 		};
 
@@ -409,8 +422,12 @@ namespace D3D12Backend
 		std::sort(resources.begin(), resources.end(), [](const auto& a, const auto& b) { return a.mMemorySize > b.mMemorySize; });
 		for (const auto& status : resources)
 		{
-			DEBUG_PRINT("\t[Resource] memory size: %s \t dimension: (%d, %d, %d) \t name: %s", 
-				printMemorySize(status.mMemorySize).c_str(), status.mDesc.Width, status.mDesc.Height, status.mDesc.DepthOrArraySize, status.mName.c_str());
+			DEBUG_PRINT("\t[Resource] memory size: %s \t dimension: (%s %s %s) \t name: %s", 
+				printMemorySize(status.mMemorySize).c_str(), 
+				printMemorySize(status.mDesc.Width).c_str(),
+				printMemorySize(status.mDesc.Height).c_str(),
+				printMemorySize(status.mDesc.DepthOrArraySize).c_str(),
+				status.mName.c_str());
 		}
 	}
 
