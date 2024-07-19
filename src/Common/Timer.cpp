@@ -14,6 +14,8 @@ void Timer::OnStartNewFrame()
 
 	mCurFrameStartTimePoint = curFrameStart;
 	mLastFrameDuration = curFrameStart - lastFrameStart;
+	
+	++mFrameNo;
 }
 
 f32 Timer::GetCurrentFrameElapsedSeconds() const

@@ -19,8 +19,9 @@ static std::mutex						sMessageMutex;
 
 std::queue<WinMessage> ReadMessages()
 {
-	std::lock_guard<std::mutex> guard(sMessageMutex);
 	std::queue<WinMessage> result;
+
+	std::lock_guard<std::mutex> guard(sMessageMutex);
 	std::swap(result, sMessages);
 	return result;
 }
@@ -115,6 +116,7 @@ void Application::LogicThread()
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
 		mTimer->OnStartNewFrame();
+		DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
 
 		auto messages = ReadMessages();
 		std::map<u8, Vec2u> newSizes;

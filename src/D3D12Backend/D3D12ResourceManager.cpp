@@ -4,6 +4,8 @@
 #include "D3D12Resource.h"
 #include "D3D12SwapChain.h"
 
+#define DEBUG_RESOURCE_MANAGER 0
+
 namespace D3D12Backend
 {
 	ResourceManager::ResourceManager(D3D12Device* device)
@@ -361,7 +363,9 @@ namespace D3D12Backend
 			}
 		}
 
+#if DEBUG_RESOURCE_MANAGER
 		mMonitor.PrintResourceStatistics();
+#endif
 	}
 
 	void ResourceManager::ResourceMonitor::OnCreateResource(ID3D12Resource* resource, const D3D12_RESOURCE_DESC& desc, const char* name)

@@ -13,6 +13,8 @@ public:
 	f32 GetCurrentFrameElapsedSeconds() const;
 	f32 GetLastFrameDeltaTime() const;
 
+	u64 GetFrameNo() const { return mFrameNo; }
+
 protected:
 	using DurationMS = std::chrono::duration<f32, std::milli>;
 	using DurationS = std::chrono::duration<f32>;
@@ -21,5 +23,6 @@ protected:
 	const TimePoint	mStartTimePoint;
 	TimePoint		mCurFrameStartTimePoint;
 	DurationS		mLastFrameDuration;
+	u64				mFrameNo = 0;
 };
 
