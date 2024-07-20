@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <queue>
-#include <set>
+#include <unordered_set>
 #include <algorithm>
 #include "CommonTypes.h"
 #include "AssertUtils.h"
@@ -14,8 +14,9 @@ public:
 
 	struct Node
 	{
-		std::set<NodeHandle> mIncomingNodes;
-		std::set<NodeHandle> mOutgoingNodes;
+		bool mValid = false;
+		std::unordered_set<NodeHandle> mIncomingNodes;
+		std::unordered_set<NodeHandle> mOutgoingNodes;
 	};
 
 	NodeHandle AddNode();
@@ -25,10 +26,10 @@ public:
 
 	u32						GetInDegree(const NodeHandle& node) const;
 	u32						GetOutDegree(const NodeHandle& node) const;
-	std::set<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
-	std::set<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
+	std::unordered_set<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
+	std::unordered_set<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
 
-	std::map<NodeHandle, Node>	GetAllNodes() const { return mNodes; }
+	void					ForEachNodes(std::function<void(NodeHandle, const Node&)> action) const;
 
 	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
@@ -38,9 +39,9 @@ public:
 		std::function<std::tuple<std::string, std::string>(NodeHandle)> serializeNode);
 
 protected:
-	bool IsValidNodeHandle(const NodeHandle& h) const { return mNodes.find(h) != mNodes.end(); }
+	bool IsValidNodeHandle(const NodeHandle& h) const;
 
 protected:
-	std::map<NodeHandle, Node>	mNodes;
+	std::vector<Node>			mNodes;
 	NodeHandle					mNodeCounter = 0;
 };

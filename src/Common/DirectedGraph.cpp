@@ -6,7 +6,12 @@
 DirectedGraph::NodeHandle DirectedGraph::AddNode()
 {
 	auto n = mNodeCounter++;
-	mNodes.insert({ n, Node{} });
+	if (n >= mNodes.size())
+	{
+		mNodes.resize(std::max(16llu, mNodes.size() * 2));
+	}
+
+	mNodes[n].mValid = true;
 	return n;
 }
 
@@ -23,7 +28,7 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 {
 	Assert(IsValidNodeHandle(node));
 
-	const auto& nodeEdges = mNodes.find(node)->second;
+	const auto& nodeEdges = mNodes[node];
 	for (auto n : nodeEdges.mIncomingNodes)
 	{
 		mNodes[n].mOutgoingNodes.erase(node);
@@ -33,31 +38,44 @@ void DirectedGraph::RemoveNode(const NodeHandle& node)
 		mNodes[n].mIncomingNodes.erase(node);
 	}
 	
-	mNodes.erase(node);
+	mNodes[node].mValid = false;
+	mNodes[node].mIncomingNodes.clear();
+	mNodes[node].mOutgoingNodes.clear();
 }
 
 u32 DirectedGraph::GetInDegree(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
-	return mNodes.find(node)->second.mIncomingNodes.size();
+	return mNodes[node].mIncomingNodes.size();
 }
 
 u32 DirectedGraph::GetOutDegree(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
-	return mNodes.find(node)->second.mOutgoingNodes.size();
+	return mNodes[node].mOutgoingNodes.size();
 }
 
-std::set<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
+std::unordered_set<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
-	return mNodes.find(node)->second.mIncomingNodes;
+	return mNodes[node].mIncomingNodes;
 }
 
-std::set<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
+std::unordered_set<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
-	return mNodes.find(node)->second.mOutgoingNodes;
+	return mNodes[node].mOutgoingNodes;
+}
+
+void DirectedGraph::ForEachNodes(std::function<void(NodeHandle, const Node&)> action) const
+{
+	for (auto n = 0; n < std::min<u32>(mNodes.size(), mNodeCounter); ++n)
+	{
+		if (IsValidNodeHandle(n))
+		{
+			action(n, mNodes[n]);
+		}
+	}
 }
 
 DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
@@ -97,13 +115,13 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 		PROFILE_EVENT(DirectedGraph::Clean);
 
 		std::vector<NodeHandle> cullingNodes;
-		for (const auto& [n, _] : result.GetAllNodes())
-		{
-			if (visitedNodes.find(n) == visitedNodes.end())
+		result.ForEachNodes([&](NodeHandle n, const Node& node)
 			{
-				cullingNodes.push_back(n);
-			}
-		}
+				if (visitedNodes.find(n) == visitedNodes.end())
+				{
+					cullingNodes.push_back(n);
+				}
+			});
 		for (const auto& n : cullingNodes)
 		{
 			result.RemoveNode(n);
@@ -165,26 +183,26 @@ std::string DirectedGraph::Serialize(const DirectedGraph& graph,
 
 
 	std::vector<std::string> nodeStrs;
-	for (const auto& [n, h] : graph.mNodes)
-	{
-		auto [value, group] = serializeNode(n);
-		const auto& str = Utils::FormatString(
-			R"({"id":"%d", "value":"%s", "group":"%s"})", 
-			n, value.c_str(), group.c_str());
-		nodeStrs.push_back(str);
-	}
+	graph.ForEachNodes([&](NodeHandle n, const Node& node)
+		{
+			auto [value, group] = serializeNode(n);
+			const auto& str = Utils::FormatString(
+				R"({"id":"%d", "value":"%s", "group":"%s"})",
+				n, value.c_str(), group.c_str());
+			nodeStrs.push_back(str);
+		});
 
 	std::vector<std::string> edgeStrs;
-	for (const auto& [n, h] : graph.mNodes)
-	{
-		for (const auto& o : h.mOutgoingNodes)
+	graph.ForEachNodes([&](NodeHandle n, const Node& node)
 		{
-			const auto& str = Utils::FormatString(
-				R"({"source":"%d", "target":"%d"})",
-				n, o);
-			edgeStrs.push_back(str);
-		}
-	}
+			for (const auto& o : node.mOutgoingNodes)
+			{
+				const auto& str = Utils::FormatString(
+					R"({"source":"%d", "target":"%d"})",
+					n, o);
+				edgeStrs.push_back(str);
+			}
+		});
 
 	std::string result = R"({ "nodes": [)";
 	result += joinStrs(",", nodeStrs);
@@ -193,4 +211,9 @@ std::string DirectedGraph::Serialize(const DirectedGraph& graph,
 	result += R"(] })";
 
 	return result;
+}
+
+bool DirectedGraph::IsValidNodeHandle(const NodeHandle& h) const
+{
+	return h < mNodeCounter && h < mNodes.size() && mNodes[h].mValid;
 }
