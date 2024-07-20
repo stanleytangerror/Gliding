@@ -1096,13 +1096,14 @@ namespace GI
             }
 		}
 
-		template<typename ...Args>
+		void AddShaderMacros() {}
+		
+        template<typename ...Args>
 		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
 		{
 			mShaderMacros.push_back(macro);
             AddShaderMacros(args...);
 		}
-        void AddShaderMacros() {}
 
         void SetDsv(const DsvUsage& dsv)
         {

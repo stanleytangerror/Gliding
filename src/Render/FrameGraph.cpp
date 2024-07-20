@@ -70,7 +70,7 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 {
 	if (mImportedResources.ContainsValue(resource))
 	{
-		FrameGraphResource::Id resourceId = { mImportedResources.GetByValue(resource).first.index };
+		FrameGraphResource::Id resourceId = { mImportedResources.GetKeyByValue(resource).index };
 		return { resourceId };
 	}
 
@@ -98,7 +98,7 @@ GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResour
 	}
 	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
-		return mImportedResources.GetByKey(resource.mId.mHandle).second;
+		return mImportedResources.GetValueByKey(resource.mId.mHandle);
 	}
 
 	Assert(false);
@@ -117,7 +117,7 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 	}
 	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
 	{
-		auto rawResource = mImportedResources.GetByKey(resource.mId.mHandle).second;
+		auto rawResource = mImportedResources.GetValueByKey(resource.mId.mHandle);
 		return GI::MemoryResourceDesc()
 			.SetDimension(rawResource->GetDimension())
 			.SetWidth(rawResource->GetSize().x())
@@ -446,7 +446,7 @@ void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 				mResourceNodes.Insert(resourceId, mResourceGraph.AddNode());
 			}
 
-			return mResourceNodes.GetByKey(resourceId).second;
+			return mResourceNodes.GetValueByKey(resourceId);
 		};
 
 	for (const auto& input : passBuilder.mInputResources)
@@ -467,7 +467,7 @@ void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 			prevVersion.mVersion.index = output.mVersion.index - 1;
 			if (mResourceNodes.ContainsKey(prevVersion))
 			{
-				mResourceGraph.AddEdge(mResourceNodes.GetByKey(prevVersion).second, outputNode);
+				mResourceGraph.AddEdge(mResourceNodes.GetValueByKey(prevVersion), outputNode);
 			}
 		}
 	}
@@ -487,7 +487,7 @@ void FrameGraphBuilder::CompileAndExecute()
 	std::vector<DirectedGraph::NodeHandle> outputNodes(mPresentResources.size());
 	std::transform(mPresentResources.begin(), mPresentResources.end(),
 		outputNodes.begin(),
-		[this](FrameGraphResource::Id id) { return mResourceNodes.GetByKey(id).second; });
+		[this](FrameGraphResource::Id id) { return mResourceNodes.GetValueByKey(id); });
 	
 	DirectedGraph::Cull(mResourceGraph, outputNodes);
 
@@ -496,7 +496,7 @@ void FrameGraphBuilder::CompileAndExecute()
 		{
 			if (mResourceNodes.ContainsValue(n))
 			{
-				const auto& id = mResourceNodes.GetByValue(n).first;
+				const auto& id = mResourceNodes.GetKeyByValue(n);
 				const auto& name = mResourceRegistry->GetResourceDesc({ id }).GetName();
 				return std::make_tuple(
 					Utils::FormatString("%s\\nId: %s", Utils::EscapeString(name.c_str()).c_str(), id.GetDebugName().c_str()),
@@ -504,7 +504,7 @@ void FrameGraphBuilder::CompileAndExecute()
 			}
 			else
 			{
-				auto passHandle = mPassNodes.GetByValue(n).first;
+				auto passHandle = mPassNodes.GetKeyByValue(n);
 				return std::make_tuple(
 					Utils::FormatString("%s\\nPassHandle: %d", mPasses[passHandle].mPassName.c_str(), passHandle),
 					"pass");
@@ -514,14 +514,14 @@ void FrameGraphBuilder::CompileAndExecute()
 	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
 #endif
 
-	auto nodes = DirectedGraph::TopoSort(mResourceGraph, outputNodes);
+	const auto& nodes = DirectedGraph::TopoSort(mResourceGraph, outputNodes);
 
 	std::vector<Pass> sortedPasses;
 	for (auto n : nodes)
 	{
 		if (mPassNodes.ContainsValue(n))
 		{
-			sortedPasses.push_back(mPasses[mPassNodes.GetByValue(n).first]);
+			sortedPasses.push_back(mPasses[mPassNodes.GetKeyByValue(n)]);
 
 #if DEBUG_FRAME_GRAPH
 			DebugOutputPassNode(n, "[Pass] ");
@@ -561,7 +561,7 @@ void FrameGraphBuilder::DebugOutputResourceNode(DirectedGraph::NodeHandle node, 
 {
 	Assert(mResourceNodes.ContainsValue(node));
 
-	const auto& id = mResourceNodes.GetByValue(node).first;
+	const auto& id = mResourceNodes.GetKeyByValue(node);
 	const auto& name = mResourceRegistry->GetResourceDesc({ id }).GetName();
 	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, id, name.c_str());
 }
@@ -570,7 +570,7 @@ void FrameGraphBuilder::DebugOutputPassNode(DirectedGraph::NodeHandle node, cons
 {
 	Assert(mPassNodes.ContainsValue(node));
 	
-	auto passHandle = mPassNodes.GetByValue(node).first;
+	auto passHandle = mPassNodes.GetKeyByValue(node);
 	DEBUG_PRINT("%s[node:%d]: %d\t%s", prefix ? prefix : "", node, passHandle, mPasses[passHandle].mPassName.c_str());
 }
 

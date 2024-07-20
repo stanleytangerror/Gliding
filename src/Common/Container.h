@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 
 template <u64 Capacity>
 struct StackMemory
@@ -73,15 +73,14 @@ public:
 		return map2.find(v) != map2.end();
 	}
 
-	std::pair<K, V> GetByKey(const K& k) const
+	V GetValueByKey(const K& k) const
 	{
-		return *map1.find(k);
+		return map1.find(k)->second;
 	}
 
-	std::pair<K, V> GetByValue(const V& v) const
+	K GetKeyByValue(const V& v) const
 	{
-		auto it = map2.find(v);
-		return { it->second, it->first };
+		return map2.find(v)->second;
 	}
 
 	bool ContainsKey(const K& k) const
@@ -95,17 +94,17 @@ public:
 		map2[v] = k;
 	}
 
-	typename std::map<K, V>::const_iterator begin() const
+	typename std::unordered_map<K, V>::const_iterator begin() const
 	{
 		return map1.begin();
 	}
 
-	typename std::map<K, V>::const_iterator end() const
+	typename std::unordered_map<K, V>::const_iterator end() const
 	{
 		return map1.end();
 	}
 
 protected:
-	std::map<K, V> map1;
-	std::map<V, K> map2;
+	std::unordered_map<K, V> map1;
+	std::unordered_map<V, K> map2;
 };

@@ -4,13 +4,16 @@
 #include "Common/CommonUtils.h"
 #include "Common/Container.h"
 #include "Common/DirectedGraph.h"
+#include "Common/StringUtils.h"
 
 class RenderPassResources;
 
 template <typename T>
 struct BaseId {
-	u16 index = InvalidIndex;
-	inline static u16 InvalidIndex = ~0;
+	using IdType = u16;
+
+	IdType index = InvalidIndex;
+	inline static IdType InvalidIndex = ~0;
 
 	constexpr bool isValid() const { return index != InvalidIndex; }
 	constexpr bool operator==(const T& other) const { return index == other.index; }
@@ -129,7 +132,7 @@ struct GD_RENDER_API FrameGraphResource
 		constexpr bool operator<(const Id& other) const { 
 			return mHandle < other.mHandle ? true :
 					mHandle == other.mHandle ? mVersion < other.mVersion : false; }
-
+		
 		std::string	GetDebugName() const { return Utils::FormatString("%d.%d", mHandle.index, mVersion.index); }
 	};
 
@@ -141,6 +144,26 @@ struct GD_RENDER_API FrameGraphResource
 	{
 		constexpr bool operator() (const FrameGraphResource& left, const FrameGraphResource& right) const { return left.mId < right.mId; }
 	};
+};
+
+template <>
+struct std::hash<FrameGraphResource::Id::Handle>
+{
+	std::size_t operator()(const FrameGraphResource::Id::Handle& v) const
+	{
+		return std::hash<FrameGraphResource::Id::Handle::IdType>()(v.index);
+	}
+};
+
+template <>
+struct std::hash<FrameGraphResource::Id>
+{
+	std::size_t operator()(const FrameGraphResource::Id& v) const
+	{
+		std::size_t hash = 0;
+		Utils::HashCombine(hash, v.mHandle.index, v.mVersion.index, 1);
+		return hash;
+	}
 };
 
 class GD_RENDER_API FrameGraphMutableResource : public FrameGraphResource
