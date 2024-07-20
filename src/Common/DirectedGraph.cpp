@@ -132,6 +132,7 @@ std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& gr
 	PROFILE_EVENT(DirectedGraph::TopoSort);
 
 	std::vector<DirectedGraph::NodeHandle> result;
+	result.reserve(graph.mNodeCounter);
 
 	std::queue<NodeHandle> nodes;
 	for (auto n : endNodes) 
