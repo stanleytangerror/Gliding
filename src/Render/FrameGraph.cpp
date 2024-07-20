@@ -489,7 +489,7 @@ void FrameGraphBuilder::CompileAndExecute()
 		outputNodes.begin(),
 		[this](FrameGraphResource::Id id) { return mResourceNodes.GetByKey(id).second; });
 	
-	auto culledGraph = DirectedGraph::Cull(mResourceGraph, outputNodes);
+	DirectedGraph::Cull(mResourceGraph, outputNodes);
 
 #if DEBUG_FRAME_GRAPH
 	auto serialized = DirectedGraph::Serialize(culledGraph, [this](auto n)
@@ -514,7 +514,7 @@ void FrameGraphBuilder::CompileAndExecute()
 	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
 #endif
 
-	auto nodes = DirectedGraph::TopoSort(culledGraph, outputNodes);
+	auto nodes = DirectedGraph::TopoSort(mResourceGraph, outputNodes);
 
 	std::vector<Pass> sortedPasses;
 	for (auto n : nodes)

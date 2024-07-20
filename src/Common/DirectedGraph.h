@@ -31,7 +31,7 @@ public:
 
 	void					ForEachNodes(std::function<void(NodeHandle, const Node&)> action) const;
 
-	static DirectedGraph Cull(const DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
+	static void Cull(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
 	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
 
