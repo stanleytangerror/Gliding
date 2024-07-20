@@ -549,10 +549,10 @@ void FrameGraphBuilder::DebugOutputGraph()
 	{
 		DebugOutputPassNode(node, "[Pass] ");
 
-		auto inputs = mResourceGraph.GetIncomingNodes(node);
+		auto inputs = mResourceGraph.GetIncomingNodesRef(node);
 		for (const auto& n : inputs) { DebugOutputResourceNode(n, "\t - "); }
 
-		auto outputs = mResourceGraph.GetOutgoingNodes(node);
+		auto outputs = mResourceGraph.GetOutgoingNodesRef(node);
 		for (const auto& n : outputs) { DebugOutputResourceNode(n, "\t + "); }
 	}
 }

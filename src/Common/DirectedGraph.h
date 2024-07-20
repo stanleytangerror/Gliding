@@ -26,8 +26,8 @@ public:
 
 	u32						GetInDegree(const NodeHandle& node) const;
 	u32						GetOutDegree(const NodeHandle& node) const;
-	std::unordered_set<NodeHandle>	GetIncomingNodes(const NodeHandle& node) const;
-	std::unordered_set<NodeHandle>	GetOutgoingNodes(const NodeHandle& node) const;
+	const std::unordered_set<NodeHandle>&	GetIncomingNodesRef(const NodeHandle& node) const;
+	const std::unordered_set<NodeHandle>&	GetOutgoingNodesRef(const NodeHandle& node) const;
 
 	void					ForEachNodes(std::function<void(NodeHandle, const Node&)> action) const;
 

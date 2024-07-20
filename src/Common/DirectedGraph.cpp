@@ -55,13 +55,13 @@ u32 DirectedGraph::GetOutDegree(const NodeHandle& node) const
 	return mNodes[node].mOutgoingNodes.size();
 }
 
-std::unordered_set<DirectedGraph::NodeHandle>	DirectedGraph::GetIncomingNodes(const NodeHandle& node) const
+const std::unordered_set<DirectedGraph::NodeHandle>&	DirectedGraph::GetIncomingNodesRef(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
 	return mNodes[node].mIncomingNodes;
 }
 
-std::unordered_set<DirectedGraph::NodeHandle>	DirectedGraph::GetOutgoingNodes(const NodeHandle& node) const
+const std::unordered_set<DirectedGraph::NodeHandle>&	DirectedGraph::GetOutgoingNodesRef(const NodeHandle& node) const
 {
 	Assert(IsValidNodeHandle(node));
 	return mNodes[node].mOutgoingNodes;
@@ -100,7 +100,7 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 			auto curNode = nodes.front();
 			nodes.pop();
 
-			for (auto n : graph.GetIncomingNodes(curNode))
+			for (auto n : graph.GetIncomingNodesRef(curNode))
 			{
 				if (visitedNodes[n] == false)
 				{
@@ -151,10 +151,10 @@ std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& gr
 
 		result.push_back(curNode);
 
-		const auto& incomingNodes = graph.GetIncomingNodes(curNode);
+		const auto incomingNodesCopy = graph.GetIncomingNodesRef(curNode);
 		graph.RemoveNode(curNode);
 
-		for (auto n : incomingNodes)
+		for (auto n : incomingNodesCopy)
 		{
 			if (graph.GetOutDegree(n) == 0)
 			{
