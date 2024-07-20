@@ -132,7 +132,7 @@ namespace D3D12Backend
 		i32 										mIndexCount = 0;
 		i32 										mInstanceCount = 1;
 
-		GI::Viewport        							mViewPort = {};
+		GI::Viewport        						mViewPort = {};
 		Math::Rect  								mScissorRect = {};
 		u32     									mStencilRef = 0;
 

@@ -1039,7 +1039,7 @@ namespace GI
     class GD_COMMON_API GraphicsPass
     {
     public:
-		void AddCbListNf(const std::string& name, const std::vector<f32>& var)
+		void AddCbNf(const std::string& name, const std::vector<f32>& var)
 		{
 			Assert(mCbParams.find(name) == mCbParams.end());
 			Assert(var.size() <= 64);
@@ -1168,7 +1168,7 @@ namespace GI
     class GD_COMMON_API ComputePass
     {
     public:
-		void AddCbListNf(const std::string& name, const std::vector<f32>& var)
+		void AddCbNf(const std::string& name, const std::vector<f32>& var)
 		{
 			Assert(mCbParams.find(name) == mCbParams.end());
 			Assert(var.size() <= 64);

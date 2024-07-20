@@ -170,7 +170,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 			{
 				w /= totalWeight;
 			}
-			pass.AddCbListNf("Weights", weights);
+			pass.AddCbNf("Weights", weights);
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});

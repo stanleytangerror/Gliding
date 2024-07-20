@@ -23,6 +23,8 @@ protected:
 	void			LogicThread();
 	void			WindowThread(HINSTANCE hInstance, int nCmdShow);
 
+	void			LogicFrame();
+
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static HWND CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow);
 

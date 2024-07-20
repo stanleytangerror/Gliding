@@ -115,117 +115,7 @@ void Application::LogicThread()
 
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
-		PROFILE_EVENT(LogicFrame);
-
-		mTimer->OnStartNewFrame();
-		DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
-
-		auto messages = ReadMessages();
-		std::map<u8, Vec2u> newSizes;
-		while (!messages.empty())
-		{
-			auto msg = messages.front();
-			messages.pop();
-
-			if (msg.message == WM_SIZE)
-			{
-				UINT width = LOWORD(msg.lParam);
-				UINT height = HIWORD(msg.lParam);
-				u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
-				newSizes[windowId] = { width, height };
-			}
-
-			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
-		}
-
-		for (const auto& p : newSizes)
-		{
-			auto windowId = p.first;
-			auto newSize = p.second;
-			mRenderModule->OnResizeWindow(windowId, newSize);
-			DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
-		}
-
-		ImGuiIntegration::BeginUI();
-		{
-			{
-				const auto& fullWindowSize = mMainWindowInfo.mSize;
-
-				bool open = true;
-				ImGui::SetNextWindowPos({});
-				ImGui::SetNextWindowSize(ImGui::FromVec2(fullWindowSize));
-				ImGui::Begin("OperatePanel", &open,
-					ImGuiWindowFlags_NoResize |
-					ImGuiWindowFlags_NoBackground |
-					ImGuiWindowFlags_NoTitleBar);
-				{
-					static std::array<MouseDrag, 2> drags = {
-						MouseDrag(ImGuiMouseButton_Left),
-						MouseDrag(ImGuiMouseButton_Right) };
-
-					for (auto& drag : drags)
-					{
-						drag.Update();
-					}
-
-					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
-					
-					Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
-					{
-						/* +x: camera right, +y: camera down */
-						const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
-						const Vec3f dragInViewSpace = Vec3f(leftButtonDeltaDragInPixelSpace.x(), -leftButtonDeltaDragInPixelSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
-
-						if (!Math::AlmostZero(dragInViewSpace))
-						{
-
-							const Vec3f dragInWorldSpace =
-								dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
-								dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
-
-							const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
-								dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
-								dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
-
-							worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
-						}
-					}
-
-					{
-						const Vec2f rightButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Right].GetDragDeltaInPixelSpace();
-						const f32 camRotDeltaRad = Math::DegreeToRadian(rightButtonDeltaDragInPixelSpace.x() / fullWindowSize.y() * 360.f);
-
-						const Vec3f lastCamDir = camTrans.CamDirInWorldSpace();
-						const f32 camRotRad = std::atan2f(lastCamDir.x(), lastCamDir.y()) + camRotDeltaRad;
-
-						const Vec3f& camDir = Vec3f{ std::sin(camRotRad), std::cos(camRotRad), 0.f };
-						const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
-						const Vec3f& camRight = camDir.cross(camUp);
-
-						camTrans.AlignCamera(camDir, camUp, camRight);
-						camTrans.MoveCamera(-100.f * camDir);
-					}
-				}
-				ImGui::End();
-			}
-
-			{
-				bool open = true;
-				ImGui::Begin("Debug UI", &open);
-				{
-					ImGui::Text("Debugging...");
-				}
-				ImGui::End();
-			}
-		}
-		ImDrawData* uiDate = ImGuiIntegration::EndUI();
-		mRenderModule->mUiData = uiDate;
-
-		mRenderModule->TickFrame(mTimer.get());
-
-		mRenderModule->Render();
-
-		Profile::Flush();
+		LogicFrame();
 	}
 }
 
@@ -252,6 +142,122 @@ void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
 
 	mMainWindowInfo.mNativeHandle = {};
 	mDebugWindowInfo.mNativeHandle = {};
+}
+
+
+void Application::LogicFrame()
+{
+	PROFILE_EVENT(Application::LogicFrame);
+
+	mTimer->OnStartNewFrame();
+	DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
+
+	auto messages = ReadMessages();
+	std::map<u8, Vec2u> newSizes;
+	while (!messages.empty())
+	{
+		auto msg = messages.front();
+		messages.pop();
+
+		if (msg.message == WM_SIZE)
+		{
+			UINT width = LOWORD(msg.lParam);
+			UINT height = HIWORD(msg.lParam);
+			u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
+			newSizes[windowId] = { width, height };
+		}
+
+		ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
+	}
+
+	for (const auto& p : newSizes)
+	{
+		auto windowId = p.first;
+		auto newSize = p.second;
+		mRenderModule->OnResizeWindow(windowId, newSize);
+		DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
+	}
+
+	ImGuiIntegration::BeginUI();
+	{
+		{
+			const auto& fullWindowSize = mMainWindowInfo.mSize;
+
+			bool open = true;
+			ImGui::SetNextWindowPos({});
+			ImGui::SetNextWindowSize(ImGui::FromVec2(fullWindowSize));
+			ImGui::Begin("OperatePanel", &open,
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoTitleBar);
+			{
+				static std::array<MouseDrag, 2> drags = {
+					MouseDrag(ImGuiMouseButton_Left),
+					MouseDrag(ImGuiMouseButton_Right) };
+
+				for (auto& drag : drags)
+				{
+					drag.Update();
+				}
+
+				WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
+
+				Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
+				{
+					/* +x: camera right, +y: camera down */
+					const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
+					const Vec3f dragInViewSpace = Vec3f(leftButtonDeltaDragInPixelSpace.x(), -leftButtonDeltaDragInPixelSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
+
+					if (!Math::AlmostZero(dragInViewSpace))
+					{
+
+						const Vec3f dragInWorldSpace =
+							dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
+							dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
+
+						const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
+							dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
+							dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
+
+						worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
+					}
+				}
+
+				{
+					const Vec2f rightButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Right].GetDragDeltaInPixelSpace();
+					const f32 camRotDeltaRad = Math::DegreeToRadian(rightButtonDeltaDragInPixelSpace.x() / fullWindowSize.y() * 360.f);
+
+					const Vec3f lastCamDir = camTrans.CamDirInWorldSpace();
+					const f32 camRotRad = std::atan2f(lastCamDir.x(), lastCamDir.y()) + camRotDeltaRad;
+
+					const Vec3f& camDir = Vec3f{ std::sin(camRotRad), std::cos(camRotRad), 0.f };
+					const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
+					const Vec3f& camRight = camDir.cross(camUp);
+
+					camTrans.AlignCamera(camDir, camUp, camRight);
+					camTrans.MoveCamera(-100.f * camDir);
+				}
+			}
+			ImGui::End();
+		}
+
+		{
+			bool open = true;
+			ImGui::Begin("Debug UI", &open);
+			{
+				ImGui::Text("Debugging...");
+			}
+			ImGui::End();
+		}
+	}
+	ImDrawData* uiDate = ImGuiIntegration::EndUI();
+	mRenderModule->mUiData = uiDate;
+
+	mRenderModule->TickFrame(mTimer.get());
+
+	mRenderModule->Render();
+
+	Profile::Flush();
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
