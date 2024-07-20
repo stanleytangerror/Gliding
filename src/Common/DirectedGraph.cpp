@@ -85,11 +85,11 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 	DirectedGraph result = graph;
 
 	std::queue<NodeHandle> nodes;
-	std::set<NodeHandle> visitedNodes;
+	std::vector<bool> visitedNodes(graph.mNodeCounter, false);
 	for (auto n : endNodes) 
 	{ 
 		nodes.push(n);
-		visitedNodes.insert(n);
+		visitedNodes[n] = true;
 	}
 
 	{
@@ -102,10 +102,10 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 
 			for (auto n : graph.GetIncomingNodes(curNode))
 			{
-				if (visitedNodes.find(n) == visitedNodes.end())
+				if (visitedNodes[n] == false)
 				{
 					nodes.push(n);
-					visitedNodes.insert(n);
+					visitedNodes[n] = true;
 				}
 			}
 		}
@@ -117,7 +117,7 @@ DirectedGraph DirectedGraph::Cull(const DirectedGraph& graph, const std::vector<
 		std::vector<NodeHandle> cullingNodes;
 		result.ForEachNodes([&](NodeHandle n, const Node& node)
 			{
-				if (visitedNodes.find(n) == visitedNodes.end())
+				if (visitedNodes[n] == false)
 				{
 					cullingNodes.push_back(n);
 				}
