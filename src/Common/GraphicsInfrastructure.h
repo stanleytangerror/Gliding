@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "PresentPort.h"
 #include "StringUtils.h"
+#include "Container.h"
 
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
@@ -1035,45 +1036,33 @@ namespace GI
         virtual DevicePtr                   GetNativeDevicePtr() const = 0;
     };
 
-    template <typename T>
-    inline std::vector<b8> ToConstBufferParamData(const T& var);
-
-    template <typename T>
-    inline std::vector<b8> ToConstBufferParamData(const T& var)
-    {
-        std::vector<b8> result(sizeof(T), {});
-        memcpy(result.data(), &var, sizeof(T));
-        return result;
-    }
-
-    template <>
-    inline std::vector<b8> ToConstBufferParamData(const Mat33f& var)
-    {
-        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), {});
-        Assert(false);
-        return result;
-    }
-
-
-    template <>
-    inline std::vector<b8> ToConstBufferParamData(const std::vector<f32>& var)
-    {
-        const auto size = var.size() * sizeof(f32);
-
-        std::vector<b8> result(size, {});
-        memcpy_s(result.data(), size, var.data(), size);
-        return result;
-    }
-
     class GD_COMMON_API GraphicsPass
     {
     public:
-        template <typename T>
-        void AddCbVar(const std::string& name, const T& var)
-        {
-            Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = ToConstBufferParamData(var);
-        }
+		void AddCbListNf(const std::string& name, const std::vector<f32>& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			Assert(var.size() <= 64);
+            mCbParams[name] = StackMemory<64>(reinterpret_cast<const b8*>(var.data()), var.size() * sizeof(f32));
+		}
+
+		void AddCb3f(const std::string& name, const Vec3f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec3f)>(&var);
+		}
+
+		void AddCb4f(const std::string& name, const Vec4f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec4f)>(&var);
+		}
+
+		void AddCb44f(const std::string& name, const Mat44f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Mat44f)>(&var);
+		}
 
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
@@ -1171,7 +1160,7 @@ namespace GI
         Math::Rect  								mScissorRect = {};
         u32     									mStencilRef = 0;
 
-        std::map<std::string, std::vector<b8>>      mCbParams;
+        std::map<std::string, StackMemory<64>>      mCbParams;
         std::map<std::string, SrvUsage>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
     };
@@ -1179,12 +1168,30 @@ namespace GI
     class GD_COMMON_API ComputePass
     {
     public:
-        template <typename T>
-        void AddCbVar(const std::string& name, const T& var)
-        {
-            Assert(mCbParams.find(name) == mCbParams.end());
-			mCbParams[name] = ToConstBufferParamData(var);
-        }
+		void AddCbListNf(const std::string& name, const std::vector<f32>& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			Assert(var.size() <= 64);
+            mCbParams[name] = StackMemory<64>(reinterpret_cast<const b8*>(var.data()), var.size() * sizeof(f32));
+		}
+
+		void AddCb3f(const std::string& name, const Vec3f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec3f)>(&var);
+		}
+
+		void AddCb4f(const std::string& name, const Vec4f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec4f)>(&var);
+		}
+
+		void AddCb44f(const std::string& name, const Mat44f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Mat44f)>(&var);
+		}
 
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
@@ -1230,7 +1237,7 @@ namespace GI
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
         std::map<std::string, GI::SrvUsage>  		mSrvParams;
         std::map<std::string, GI::UavUsage>	        mUavParams;
-        std::map<std::string, std::vector<b8>>	    mCbParams;
+        std::map<std::string, StackMemory<64>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
     };

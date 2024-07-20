@@ -65,10 +65,10 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(const FrameGraphReso
 
 			const Vec3u& size = data.sceneHdrSize;
 			pass.AddSrv("SceneHdr", resources.Get(data.sceneHdr));
-			pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
+			pass.AddCb4f("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
 			pass.AddUav("SceneBrightnessHistogram", resources.Get(data.histogram));
-			pass.AddCbVar("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
+			pass.AddCb4f("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
 
 			pass.mThreadGroupCounts = { u32(size.x() / 32 + 1), u32(size.y() / 32 + 1), 1 };
 
@@ -106,13 +106,13 @@ FrameGraphMutableResource ScreenRenderer::CalcSceneExposure(const FrameGraphReso
 			pass.mShaderMacros.push_back(GI::ShaderMacro{ "HISTOGRAM_REDUCE", "1" });
 
 			const Vec3u& size = data.sceneHdrSize;
-			pass.AddCbVar("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
+			pass.AddCb4f("SceneHdrSize", Vec4f{ f32(size.x()), f32(size.y()), 1.f / size.x(), 1.f / size.y() });
 
-			pass.AddCbVar("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
+			pass.AddCb4f("TimeInfo", Vec4f{ mLastFrameDeltaTimeInSeconds, 1.f / mLastFrameDeltaTimeInSeconds, mSecondsSinceLaunch, 0.f });
 
 			pass.AddSrv("SceneBrightnessHistogram", resources.Get(data.histogram));
-			pass.AddCbVar("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
-			pass.AddCbVar("EyeAdaptInfo", Vec4f{ mEyeAdaptSpeedUp, mEyeAdaptSpeedDown, 0.f, 0.f });
+			pass.AddCb4f("HistogramInfo", Vec4f{ std::log2(brightMin), std::log2(brightMax), f32(histogramSize), 1.f / histogramSize });
+			pass.AddCb4f("EyeAdaptInfo", Vec4f{ mEyeAdaptSpeedUp, mEyeAdaptSpeedDown, 0.f, 0.f });
 
 			pass.AddUav("ExposureTexture", resources.Get(data.exposureRt));
 
@@ -164,13 +164,13 @@ void ScreenRenderer::ToneMapping(const FrameGraphResource& sceneHdr, const Frame
 			pass.SetupDepthStencil().SetDepthEnable(false);
 			pass.SetupDepthStencil().SetStencilEnable(false);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
+			pass.AddCb4f("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
 
 			// TODO missing sampler ???
 			pass.AddSrv("SceneHdr", resources.Get(data.sceneHdr));
 			pass.AddSrv("ExposureTexture", resources.Get(data.exposure));
 
-			pass.AddCbVar("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
+			pass.AddCb4f("ExposureInfo", Vec4f{ -4.f, 0.f, 0.f, 0.f });
 
 			pass.SetRtv(0, resources.Get(data.target));
 			pass.SetViewPortAndScissorRectToFullRt();

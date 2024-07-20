@@ -418,8 +418,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-			pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
+			pass.AddCb4f("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCb4f("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
 			pass.AddSrv("GBuffer0", resources.Get(data.gBufferSrvs[0]));
 			pass.AddSrv("GBuffer1", resources.Get(data.gBufferSrvs[1]));
 			pass.AddSrv("GBuffer2", resources.Get(data.gBufferSrvs[2]));
@@ -428,12 +428,12 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 			pass.AddSrv("SceneDepth", resources.Get(data.mainDepth));
 			pass.AddSampler("GBufferSampler", data.lightingSceneSampler);
 
-			pass.AddCbVar("InvViewMat", cameraTrans.ComputeInvViewMatrix());
-			pass.AddCbVar("InvProjMat", cameraProj.ComputeInvProjectionMatrix());
+			pass.AddCb44f("InvViewMat", cameraTrans.ComputeInvViewMatrix());
+			pass.AddCb44f("InvProjMat", cameraProj.ComputeInvProjectionMatrix());
 
 			pass.AddSrv("PrefilteredEnvMap", resources.Get(data.filteredEnvMapSrv));
 			pass.AddSampler("PrefilteredEnvMapSampler", data.filteredEnvMapSampler);
-			pass.AddCbVar("PrefilteredInfo", Vec4f{ f32(data.filteredEnvMapMipCount), 0.f, 0.f, 0.f });
+			pass.AddCb4f("PrefilteredInfo", Vec4f{ f32(data.filteredEnvMapMipCount), 0.f, 0.f, 0.f });
 
 			pass.AddSrv("IrradianceMap", resources.Get(data.irradianceMapSrv));
 			pass.AddSampler("IrradianceMapSampler", data.panoramicSkySampler);
@@ -441,10 +441,10 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 			pass.AddSrv("BRDFIntegrationMap", resources.Get(data.brdfIntegrationMapSrv));
 			pass.AddSampler("BRDFIntegrationMapSampler", data.brdfIntegrationMapSampler);
 
-			pass.AddCbVar("CameraDir", cameraTrans.CamDirInWorldSpace());
-			pass.AddCbVar("CameraPos", cameraTrans.CamPosInWorldSpace());
-			pass.AddCbVar("LightDir", sunLight.mWorldTransform.CamDirInWorldSpace());
-			pass.AddCbVar("LightColor", (sunLight.mLightColor * sunLight.mLightIntensity).eval());
+			pass.AddCb3f("CameraDir", cameraTrans.CamDirInWorldSpace());
+			pass.AddCb3f("CameraPos", cameraTrans.CamPosInWorldSpace());
+			pass.AddCb3f("LightDir", sunLight.mWorldTransform.CamDirInWorldSpace());
+			pass.AddCb3f("LightColor", (sunLight.mLightColor * sunLight.mLightIntensity).eval());
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
@@ -518,10 +518,10 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-			pass.AddCbVar("FrustumInfo", Vec4f{ camProj.GetHalfFovHorizontal(), camProj.GetHalfFovVertical(), camProj.mNear, camProj.mFar });
-			pass.AddCbVar("CameraDir", camTrans.CamDirInWorldSpace());
-			pass.AddCbVar("InvViewMat", camTrans.ComputeInvViewMatrix());
+			pass.AddCb4f("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCb4f("FrustumInfo", Vec4f{ camProj.GetHalfFovHorizontal(), camProj.GetHalfFovVertical(), camProj.mNear, camProj.mFar });
+			pass.AddCb3f("CameraDir", camTrans.CamDirInWorldSpace());
+			pass.AddCb44f("InvViewMat", camTrans.ComputeInvViewMatrix());
 
 			pass.AddSrv("PanoramicSky", resources.Get(data.panoramicSky));
 			pass.AddSampler("PanoramicSkySampler", data.panoramicSampler);
@@ -647,15 +647,15 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 				resources.Get(data.geoIndices), 0, indexCount);
 
 			const auto& targetSize = data.targetSize;
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCb4f("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
 
-			pass.AddCbVar("worldMat", transform.matrix());
-			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
-			pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+			pass.AddCb44f("worldMat", transform.matrix());
+			pass.AddCb44f("viewMat", cameraTrans.ComputeViewMatrix());
+			pass.AddCb44f("projMat", cameraProj.ComputeProjectionMatrix());
 
 			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, resources.Get(srv)); }
 			for (const auto& [n, sampler] : data.samplers) { pass.AddSampler(n, sampler); }
-			for (const auto& [n, v] : data.cbvs) { pass.AddCbVar(n, v); }
+			for (const auto& [n, v] : data.cbvs) { pass.AddCb4f(n, v); }
 			
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
@@ -730,11 +730,11 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
+			pass.AddCb4f("RtSize", Vec4f{ f32(data.targetSize.x()), f32(data.targetSize.y()), 1.f / data.targetSize.x(), 1.f / data.targetSize.y() });
 
-			pass.AddCbVar("worldMat", transform.matrix());
-			pass.AddCbVar("viewMat", cameraTrans.ComputeViewMatrix());
-			pass.AddCbVar("projMat", cameraProj.ComputeProjectionMatrix());
+			pass.AddCb44f("worldMat", transform.matrix());
+			pass.AddCb44f("viewMat", cameraTrans.ComputeViewMatrix());
+			pass.AddCb44f("projMat", cameraProj.ComputeProjectionMatrix());
 
 			for (const auto& [n, srv] : data.srvs) { pass.AddSrv(n, resources.Get(srv)); }
 			for (const auto& [n, sampler] : data.samplers) { pass.AddSampler(n, sampler); }
@@ -816,16 +816,16 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 			pass.AddSampler("CameraViewDepthSampler", data.cameraViewDepthSampler);
 
 			const auto& targetSize = data.targetSize;
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-			pass.AddCbVar("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
+			pass.AddCb4f("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCb4f("FrustumInfo", Vec4f{ cameraProj.GetHalfFovHorizontal(), cameraProj.GetHalfFovVertical(), cameraProj.mNear, cameraProj.mFar });
 
-			pass.AddCbVar("CameraViewMat", cameraTrans.ComputeViewMatrix());
-			pass.AddCbVar("CameraInvViewMat", cameraTrans.ComputeInvViewMatrix());
-			pass.AddCbVar("CameraProjMat", cameraProj.ComputeProjectionMatrix());
-			pass.AddCbVar("CameraInvProjMat", cameraProj.ComputeInvProjectionMatrix());
+			pass.AddCb44f("CameraViewMat", cameraTrans.ComputeViewMatrix());
+			pass.AddCb44f("CameraInvViewMat", cameraTrans.ComputeInvViewMatrix());
+			pass.AddCb44f("CameraProjMat", cameraProj.ComputeProjectionMatrix());
+			pass.AddCb44f("CameraInvProjMat", cameraProj.ComputeInvProjectionMatrix());
 
-			pass.AddCbVar("LightViewMat", lightViewTrans.ComputeViewMatrix());
-			pass.AddCbVar("LightProjMat", lightViewProj.ComputeProjectionMatrix());
+			pass.AddCb44f("LightViewMat", lightViewTrans.ComputeViewMatrix());
+			pass.AddCb44f("LightProjMat", lightViewProj.ComputeProjectionMatrix());
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});

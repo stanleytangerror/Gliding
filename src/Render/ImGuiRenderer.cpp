@@ -209,7 +209,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 						pass.AddSampler("SourceTexSampler", data.sampler);
 					}
 
-					pass.AddCbVar("WvpMat", wvpMat);
+					pass.AddCb44f("WvpMat", wvpMat);
 
 					infra->GetRecorder()->AddGraphicsPass(pass);
 				});

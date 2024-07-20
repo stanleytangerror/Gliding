@@ -137,9 +137,9 @@ namespace D3D12Backend
 		u32     									mStencilRef = 0;
 
 		//protected:
-		std::map<std::string, std::vector<b8>>      mCbParams;
-		std::map<std::string, SrvUsageImpl>	            mSrvParams;
-		std::map<std::string, GI::SamplerDesc>	        mSamplerParams;
+		std::map<std::string, StackMemory<64>>	    mCbParams;
+		std::map<std::string, SrvUsageImpl>	        mSrvParams;
+		std::map<std::string, GI::SamplerDesc>	    mSamplerParams;
 	};
 
 	class ComputePass
@@ -155,7 +155,7 @@ namespace D3D12Backend
 		std::map<std::string, GI::SamplerDesc>		mSamplerParams;
 		std::map<std::string, SrvUsageImpl>  		mSrvParams;
 		std::map<std::string, UavUsageImpl>	        mUavParams;
-		std::map<std::string, std::vector<b8>>	    mCbParams;
+		std::map<std::string, StackMemory<64>>	    mCbParams;
 
 		std::array<u32, 3>							mThreadGroupCounts = {};
 

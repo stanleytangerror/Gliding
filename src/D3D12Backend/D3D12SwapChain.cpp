@@ -47,14 +47,8 @@ namespace D3D12Backend
 
 	void SwapChain::Present()
 	{
-		//DEBUG_PRINT(" ================ Begin Present ===================== ");
-		//DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mCurrentBackBufferIndex);
-
 		AssertHResultOk(mSwapChain->Present(0, 0));
 		mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
-
-		//DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mCurrentBackBufferIndex);
-		//DEBUG_PRINT(" ================ End Present ======================= ");
 	}
 
 	void SwapChain::Resize(const Vec2u& newSize)

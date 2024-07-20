@@ -115,6 +115,8 @@ void Application::LogicThread()
 
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
+		PROFILE_EVENT(LogicFrame);
+
 		mTimer->OnStartNewFrame();
 		DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
 

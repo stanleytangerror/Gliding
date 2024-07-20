@@ -57,6 +57,8 @@ void RenderModule::TickFrame(Timer* timer)
 
 void RenderModule::Render()
 {
+	PROFILE_EVENT(RenderModule::Render);
+
 	if (mRenderDoc)
 	{
 		mRenderDoc->OnStartFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
@@ -68,6 +70,8 @@ void RenderModule::Render()
 
 	{
 		{
+			PROFILE_EVENT(RenderToMainPort);
+
 			auto sceneHdr = mWorldRenderer->Render();
 
 			//RENDER_EVENT(mGraphicInfra, RenderToMainPort);
@@ -80,7 +84,7 @@ void RenderModule::Render()
 		}
 
 		{
-			//RENDER_EVENT(mGraphicInfra, DebugChannels);
+			PROFILE_EVENT(RenderToDebugPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
 			auto target = mFrameGraph->Import(backBuffer);

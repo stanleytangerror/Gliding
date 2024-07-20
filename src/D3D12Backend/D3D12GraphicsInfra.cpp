@@ -150,7 +150,7 @@ namespace D3D12Backend
 
 	namespace
 	{
-		i32 BindConstBufferParams(std::vector<b8>& cbuf, const std::map<std::string, std::vector<b8>>& cbArgs, ShaderPiece* shader)
+		i32 BindConstBufferParams(std::vector<b8>& cbuf, const std::map<std::string, StackMemory<64>>& cbArgs, ShaderPiece* shader)
 		{
 			const std::vector<InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
 			const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
@@ -165,8 +165,8 @@ namespace D3D12Backend
 					if (cbArgs.find(varName) != cbArgs.end())
 					{
 						const auto& varArg = cbArgs.find(varName)->second;
-						Assert(varDesc.mSize == varArg.size());
-						memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.data(), varArg.size());
+						Assert(varDesc.mSize == varArg.GetSize());
+						memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.GetMemory(), varArg.GetSize());
 					}
 				}
 

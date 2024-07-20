@@ -71,11 +71,11 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
+			pass.AddCb4f("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
 			const f32 deltaRad = Math::Pi<f32>() / 2.f / semiSphereBusbarSampleCount;
 			const f32 sampleCount = semiSphereBusbarSampleCount * semiSphereBusbarSampleCount * 4.f;
-			pass.AddCbVar("SemiSphereSampleInfo", Vec4f{ deltaRad, sampleCount, 1.f / sampleCount, 0.f });
+			pass.AddCb4f("SemiSphereSampleInfo", Vec4f{ deltaRad, sampleCount, 1.f / sampleCount, 0.f });
 
 			pass.AddSrv("PanoramicSky", resources.Get(data.sky));
 			pass.AddSampler("PanoramicSkySampler", data.panoramicSkySampler);
@@ -148,7 +148,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
+			pass.AddCb4f("RtSize", Vec4f{ f32(rtSize.x()), f32(rtSize.y()), 1.f / rtSize.x(), 1.f / rtSize.y() });
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});
@@ -259,8 +259,8 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
-			pass.AddCbVar("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });
+			pass.AddCb4f("RtSize", Vec4f{ f32(targetSize.x()), f32(targetSize.y()), 1.f / targetSize.x(), 1.f / targetSize.y() });
+			pass.AddCb4f("PrefilterInfo", Vec4f{ roughness, 0.f, 0.f, 0.f });
 
 			pass.AddSrv("PanoramicSky", resources.Get(data.src));
 			pass.AddSampler("PanoramicSkySampler", data.sampler);

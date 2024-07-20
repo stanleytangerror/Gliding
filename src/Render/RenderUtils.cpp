@@ -83,7 +83,7 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
+			pass.AddCb4f("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
 			pass.AddSrv("SourceTex", resources.Get(data.source));
 			pass.AddSampler("SourceTexSampler", data.sourceSampler);
 
@@ -154,7 +154,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 				resources.Get(data.geoVertices), 0, inputLayout,
 				resources.Get(data.geoIndices), 0, indexCount);
 
-			pass.AddCbVar("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
+			pass.AddCb4f("BlurTargetSize", Vec4f{ f32(data.size.x()), f32(data.size.y()), 1.f / data.size.x(), 1.f / data.size.y() });
 			pass.AddSrv("SourceTex", resources.Get(data.source));
 			pass.AddSampler("SourceTexSampler", data.sampler);
 
@@ -170,7 +170,7 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 			{
 				w /= totalWeight;
 			}
-			pass.AddCbVar("Weights", weights);
+			pass.AddCbListNf("Weights", weights);
 
 			infra->GetRecorder()->AddGraphicsPass(pass);
 		});

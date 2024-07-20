@@ -2,6 +2,68 @@
 
 #include <map>
 
+template <u64 Capacity>
+struct StackMemory
+{
+	StackMemory() {}
+
+	template <typename T>
+	StackMemory(const T* v)
+	{
+		static_assert(sizeof(T) <= Capacity, "StackMemory fill overflow");
+		std::memcpy(mMemory.data(), v, sizeof(T));
+		mSize = sizeof(T);
+	}
+
+	StackMemory(const b8* addr, u64 size)
+	{
+		Assert(size <= Capacity);
+		std::memcpy(mMemory.data(), addr, size);
+		mSize = size;
+	}
+	
+	template <u64 OtherCapacity>
+	StackMemory(StackMemory<OtherCapacity>&& other)
+	{
+		static_assert(OtherCapacity <= Capacity, "StackMemory fill overflow");
+		std::memcpy(mMemory.data(), other.mMemory.data(), other.mSize);
+		mSize = other.mSize;
+	}
+
+	template <u64 OtherCapacity>
+	StackMemory(const StackMemory<OtherCapacity>& other)
+	{
+		static_assert(OtherCapacity <= Capacity, "StackMemory fill overflow");
+		std::memcpy(mMemory.data(), other.mMemory.data(), other.mSize);
+		mSize = other.mSize;
+	}
+
+	template <u64 OtherCapacity>
+	StackMemory<Capacity>& operator=(StackMemory<OtherCapacity>&& other)
+	{
+		static_assert(OtherCapacity <= Capacity, "StackMemory fill overflow");
+		std::memcpy(mMemory.data(), other.mMemory.data(), other.mSize);
+		mSize = other.mSize;
+		return *this;
+	}
+
+	template <u64 OtherCapacity>
+	StackMemory<Capacity>& operator=(const StackMemory<OtherCapacity>& other)
+	{
+		static_assert(OtherCapacity <= Capacity, "StackMemory fill overflow");
+		std::memcpy(mMemory.data(), other.mMemory.data(), other.mSize);
+		mSize = other.mSize;
+		return *this;
+	}
+
+	const b8* GetMemory() const { return mMemory.data(); }
+	u64 GetSize() const { return mSize; }
+
+	std::array<b8, Capacity> mMemory;
+	u64 mSize = 0;
+};
+
+
 template <typename K, typename V>
 struct BijectionMap
 {
