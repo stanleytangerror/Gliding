@@ -283,38 +283,6 @@ namespace D3D12Backend
 		
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
-		//D3D12Backend::GraphicsPass d3d12Pass;
-		//d3d12Pass.mRootSignatureDesc = { "res/RootSignature/RootSignature.hlsl", "GraphicsRS" };
-		//d3d12Pass.mVsFile = pass.mVsFile;
-		//d3d12Pass.mPsFile = pass.mPsFile;
-		//d3d12Pass.mShaderMacros = pass.mShaderMacros;
-		//std::transform(pass.mRtvs.begin(), pass.mRtvs.begin() + pass.mRtvCount, d3d12Pass.mRtvs.begin(),
-		//	[](const auto& rtv) { return RtvUsageImpl(rtv.GetResource()->GetResourceId(), rtv); });
-		//if (pass.mHasDsv)
-		//{
-		//	d3d12Pass.mDsv = DsvUsageImpl(pass.mDsv.GetResource()->GetResourceId(), pass.mDsv);
-		//}
-		//d3d12Pass.mInputLayout = pass.mInputLayout;
-		//d3d12Pass.mRasterizerDesc = pass.mRasterizerDesc;
-		//d3d12Pass.mDepthStencilDesc = pass.mDepthStencilDesc;
-		//d3d12Pass.mBlendDesc = pass.mBlendDesc;
-		//d3d12Pass.mVbvs.resize(pass.mVbvs.size());
-		//std::transform(pass.mVbvs.begin(), pass.mVbvs.end(), d3d12Pass.mVbvs.begin(),
-		//	[](const auto& vbv) { return VbvUsageImpl(vbv.GetResource()->GetResourceId(), vbv); });
-		//d3d12Pass.mIbv = IbvUsageImpl(pass.mIbv.GetResource()->GetResourceId(), pass.mIbv);
-		//d3d12Pass.mVertexStartLocation = pass.mVertexStartLocation;
-		//d3d12Pass.mIndexStartLocation = pass.mIndexStartLocation;
-		//d3d12Pass.mIndexCount = pass.mIndexCount;
-		//d3d12Pass.mInstanceCount = pass.mInstanceCount;
-		//d3d12Pass.mViewPort = pass.mViewPort;
-		//d3d12Pass.mScissorRect = pass.mScissorRect;
-		//d3d12Pass.mStencilRef = pass.mStencilRef;
-		//d3d12Pass.mCbParams = pass.mCbParams;
-		//d3d12Pass.mSamplerParams = pass.mSamplerParams;
-		//for (const auto& [name, srv] : pass.mSrvParams)
-		//{
-		//	d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
-		//}
 
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, d3d12Pass]()
@@ -573,23 +541,6 @@ namespace D3D12Backend
 		Assert(pass.IsReadyForExecute());
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
-		//D3D12Backend::ComputePass d3d12Pass;
-
-		//d3d12Pass.mRootSignatureDesc = { "res/RootSignature/RootSignature.hlsl", "ComputeRS" };
-		//d3d12Pass.mCsFile = pass.mCsFile;
-		//d3d12Pass.mShaderMacros = pass.mShaderMacros;
-		//d3d12Pass.mCbParams = pass.mCbParams;
-		//for (const auto& [name, srv] : pass.mSrvParams)
-		//{
-		//	d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
-		//}
-		//for (const auto& [name, uav] : pass.mUavParams)
-		//{
-		//	d3d12Pass.mUavParams[name] = UavUsageImpl(uav.GetResource()->GetResourceId(), uav);
-		//}
-		//d3d12Pass.mSamplerParams = pass.mSamplerParams;
-		//d3d12Pass.mThreadGroupCounts = pass.mThreadGroupCounts;
 
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, d3d12Pass]()
