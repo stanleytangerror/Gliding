@@ -4,11 +4,132 @@
 #include "D3D12SwapChain.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
+#include <functional>
+
+template <typename Source, typename Pred>
+struct Selected
+{
+	using ElemInput = typename Source::Elem;
+
+	static typename ElemInput GetElemInput();
+	static Pred GetPred();
+	using Elem = decltype(GetPred()(GetElemInput()));
+
+	Selected(Source input, Pred fun) : input(input), fun(fun) {}
+
+	bool MoveNext() { return input.MoveNext(); }
+	Elem Current() const { return fun(input.Current()); }
+
+	bool started = false;
+	Source input;
+	Pred fun;
+};
+
+template <typename Source, typename Pred>
+struct Filtered
+{
+	using Elem = typename Source::Elem;
+
+	Filtered(Source input, Pred fun) : input(input), fun(fun) {}
+
+	bool MoveNext() 
+	{ 
+		while (input.MoveNext())
+		{
+			if (fun(input.Current()))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	Elem Current() const { return input.Current(); }
+
+	Source input;
+	Pred fun;
+};
+
+template <typename Container>
+struct Enumerable
+{
+	using Elem = typename Container::value_type;
+	using Iter = typename Container::const_iterator;
+
+	Enumerable(const Container& container) : mBegin(container.begin()), mEnd(container.end()) {}
+
+	//static Iter GetIter();
+	//using Elem = decltype(*GetIter());
+
+	//Enumerable(Iter begin, Iter end) : mBegin(begin), mEnd(end) {}
+	bool MoveNext() 
+	{
+		started ? (++mBegin, true) : (started = true);
+		return mBegin != mEnd;
+	}
+	Elem Current() const { return *mBegin; }
+	
+	bool started = false;
+	Iter mBegin, mEnd;
+};
+
+template <typename Source, typename Pred>
+Selected<Source, Pred> Select(Source input, Pred fun)
+{
+	return Selected<Source, Pred>(input, fun);
+}
+
+template <typename Source, typename Pred>
+Filtered<Source, Pred> Where(Source input, Pred fun)
+{
+	return Filtered<Source, Pred>(input, fun);
+}
+
+
+template <typename Source>
+std::vector<typename Source::Elem> ToVector(Source input)
+{
+	std::vector<typename Source::Elem> result;
+	while (input.MoveNext())
+	{
+		result.push_back(input.Current());
+	}
+	return result;
+}
+
+void Test()
+{
+	std::vector<int> input = { 1, 2, 3, 4, 5, 6 };
+	auto result = ToVector(
+		Select(
+			Where(
+				Select(
+					Enumerable(input),
+					[](auto e) { 
+						return e + 10; 
+					}
+				),
+				[](auto e) { 
+						return e % 3 == 0; 
+					}
+			),
+			[](auto e) { 
+						return std::to_string(e); 
+					}
+		)
+	);
+
+	for (auto e : result)
+	{
+		Utils::PrintDebugString(e.c_str());
+	}
+}
 
 namespace D3D12Backend
 {
 	D3D12GraphicsInfra::D3D12GraphicsInfra()
 	{
+		Test();
+
 		mDevice = new D3D12Device;
 	}
 
