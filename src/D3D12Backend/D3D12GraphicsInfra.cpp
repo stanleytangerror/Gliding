@@ -6,8 +6,63 @@
 #include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
 #include <functional>
 
+enum class ConnectType
+{
+	Select, Filter
+};
+
+template<typename TConnect>
+struct GetConnectType
+{
+	static TConnect GetConnect();
+	static typename TConnect::TSource GetConnectSource();
+	static typename TConnect::TPred GetConnectPred();
+	using Type = decltype(GetConnect()(GetConnectSource(), GetConnectPred()));
+};
+
+
+template <typename Source, typename Pred, ConnectType Type>
+struct Connect {};
+
+struct Enumerable
+{
+
+};
+
+template <typename Container>
+struct ContainerRange : Enumerable
+{
+	using Elem = typename Container::value_type;
+	using Iter = typename Container::const_iterator;
+
+	ContainerRange(const Container& container) : mBegin(container.begin()), mEnd(container.end()) {}
+
+	bool MoveNext()
+	{
+		mStarted ? (++mBegin, true) : (mStarted = true);
+		return mBegin != mEnd;
+	}
+	Elem Current() const { return *mBegin; }
+
+	bool mStarted = false;
+	Iter mBegin, mEnd;
+
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<ContainerRange, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<ContainerRange, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<ContainerRange, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<ContainerRange, Pred1, ConnectType::Filter>()(*this, fun);
+	}
+};
+
 template <typename Source, typename Pred>
-struct Selected
+struct Selected : Enumerable
 {
 	using ElemInput = typename Source::Elem;
 
@@ -15,113 +70,144 @@ struct Selected
 	static Pred GetPred();
 	using Elem = decltype(GetPred()(GetElemInput()));
 
-	Selected(Source input, Pred fun) : input(input), fun(fun) {}
+	Selected(Source input, Pred pred) : mInput(input), mPred(pred) {}
 
-	bool MoveNext() { return input.MoveNext(); }
-	Elem Current() const { return fun(input.Current()); }
+	bool MoveNext() { return mInput.MoveNext(); }
+	Elem Current() const { return mPred(mInput.Current()); }
 
-	bool started = false;
-	Source input;
-	Pred fun;
+	bool mStarted = false;
+	Source mInput;
+	Pred mPred;
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Selected, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<Selected, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Selected, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<Selected, Pred1, ConnectType::Filter>()(*this, fun);
+	}
 };
 
 template <typename Source, typename Pred>
-struct Filtered
+struct Filtered : Enumerable
 {
 	using Elem = typename Source::Elem;
 
-	Filtered(Source input, Pred fun) : input(input), fun(fun) {}
+	Filtered(Source input, Pred pred) : mInput(input), mPred(pred) {}
 
 	bool MoveNext() 
 	{ 
-		while (input.MoveNext())
+		while (mInput.MoveNext())
 		{
-			if (fun(input.Current()))
+			if (mPred(mInput.Current()))
 			{
 				return true;
 			}
 		}
 		return false;
 	}
-	Elem Current() const { return input.Current(); }
+	Elem Current() const { return mInput.Current(); }
 
-	Source input;
-	Pred fun;
+	Source mInput;
+	Pred mPred;
+
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Filtered, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<Filtered, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Filtered, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<Filtered, Pred1, ConnectType::Filter>()(*this, fun);
+	}
 };
 
-template <typename Container>
-struct Enumerable
+
+template <typename Source, typename Pred>
+struct Connect<Source, Pred, ConnectType::Select>
 {
-	using Elem = typename Container::value_type;
-	using Iter = typename Container::const_iterator;
+	using TSource = Source;
+	using TPred = Pred;
 
-	Enumerable(const Container& container) : mBegin(container.begin()), mEnd(container.end()) {}
-
-	//static Iter GetIter();
-	//using Elem = decltype(*GetIter());
-
-	//Enumerable(Iter begin, Iter end) : mBegin(begin), mEnd(end) {}
-	bool MoveNext() 
+	Selected<Source, Pred> operator()(Source input, Pred fun) const
 	{
-		started ? (++mBegin, true) : (started = true);
-		return mBegin != mEnd;
+		return Selected<Source, Pred>(input, fun);
 	}
-	Elem Current() const { return *mBegin; }
-	
-	bool started = false;
-	Iter mBegin, mEnd;
 };
 
 template <typename Source, typename Pred>
-Selected<Source, Pred> Select(Source input, Pred fun)
+struct Connect<Source, Pred, ConnectType::Filter>
 {
-	return Selected<Source, Pred>(input, fun);
-}
+	using TSource = Source;
+	using TPred = Pred;
 
-template <typename Source, typename Pred>
-Filtered<Source, Pred> Where(Source input, Pred fun)
-{
-	return Filtered<Source, Pred>(input, fun);
-}
-
-
-template <typename Source>
-std::vector<typename Source::Elem> ToVector(Source input)
-{
-	std::vector<typename Source::Elem> result;
-	while (input.MoveNext())
+	Filtered<Source, Pred> operator()(Source input, Pred fun) const
 	{
-		result.push_back(input.Current());
+		return Filtered<Source, Pred>(input, fun);
 	}
-	return result;
-}
+};
+
+
+//
+//template <typename Source, typename Pred>
+//Selected<Source, Pred> Select(Source&& input, Pred fun)
+//{
+//	return Selected<Source, Pred>(std::forward<Source>(input), fun);
+//}
+//
+//template <typename Source, typename Pred>
+//Filtered<Source, Pred> Where(Source&& input, Pred fun)
+//{
+//	return Filtered<Source, Pred>(std::forward<Source>(input), fun);
+//}
+//
+//template <typename Source>
+//std::vector<typename Source::Elem> ToVector(Source&& input)
+//{
+//	std::vector<typename Source::Elem> result;
+//	while (input.MoveNext())
+//	{
+//		result.push_back(input.Current());
+//	}
+//	return result;
+//}
 
 void Test()
 {
 	std::vector<int> input = { 1, 2, 3, 4, 5, 6 };
-	auto result = ToVector(
-		Select(
-			Where(
-				Select(
-					Enumerable(input),
-					[](auto e) { 
-						return e + 10; 
-					}
-				),
-				[](auto e) { 
-						return e % 3 == 0; 
-					}
-			),
-			[](auto e) { 
-						return std::to_string(e); 
-					}
-		)
-	);
+	//auto result = ToVector(
+	//	Select(
+	//		Where(
+	//			Select(
+	//				Enumerable(input),
+	//				[](auto e) { return e + 10; }
+	//			),
+	//			[](auto e) { return e % 3 == 0; }
+	//		),
+	//		[](auto e) { return std::to_string(e); }
+	//	)
+	//);
 
-	for (auto e : result)
+	auto a = ContainerRange(input);
+	auto b = a.Select([](auto e) { return e + 10; });
+	auto c = b.Where([](auto e) { return e % 3 == 0; });
+	auto d = c.Select([](auto e) { return std::to_string(e); });
+
+	while (d.MoveNext())
 	{
-		Utils::PrintDebugString(e.c_str());
+		Utils::PrintDebugString(d.Current().c_str());
 	}
+	//for (auto e : result)
+	//{
+	//	Utils::PrintDebugString(e.c_str());
+	//}
 }
 
 namespace D3D12Backend
