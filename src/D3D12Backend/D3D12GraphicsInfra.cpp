@@ -5,6 +5,35 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
 #include <functional>
+#include <ranges>
+
+using namespace std::ranges;
+using namespace std::ranges::views;
+
+// https://brevzin.github.io/c++/2022/12/05/enumerate/
+// https://www.reedbeta.com/blog/python-like-enumerate-in-cpp17/
+
+template <typename T,
+	typename TIter = decltype(std::begin(std::declval<T>())),
+	typename = decltype(std::end(std::declval<T>()))>
+constexpr auto enumerate(T&& iterable)
+{
+	struct iterator
+	{
+		size_t i;
+		TIter iter;
+		bool operator != (const iterator& other) const { return iter != other.iter; }
+		void operator ++ () { ++i; ++iter; }
+		auto operator * () const { return std::tie(i, *iter); }
+	};
+	struct iterable_wrapper
+	{
+		T iterable;
+		auto begin() { return iterator{ 0, std::begin(iterable) }; }
+		auto end() { return iterator{ 0, std::end(iterable) }; }
+	};
+	return iterable_wrapper{ std::forward<T>(iterable) };
+}
 
 enum class ConnectType
 {
@@ -587,9 +616,9 @@ namespace D3D12Backend
 
 				// rts
 				pso->SetRtCount(pass.mRtvCount);
-				for (auto i = 0; i < pass.mRtvCount; ++i)
+				for (const auto& [i, rtv] : enumerate(pass.mRtvs | take(pass.mRtvCount)))
 				{
-					pso->SetRtvFormat(i, D3D12Utils::ToDxgiFormat(pass.mRtvs[i].GetFormat()));
+					pso->SetRtvFormat(i, D3D12Utils::ToDxgiFormat(rtv.GetFormat()));
 				}
 				pso->SetDsvFormat(pass.mHasDsv ? D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat()) : DXGI_FORMAT_UNKNOWN);
 
@@ -608,36 +637,12 @@ namespace D3D12Backend
 				{
 					RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-					std::map<std::string, DescriptorPtr> srvs;
-					for (const auto& [name, srv] : pass.mSrvParams)
-					{
-						srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
-					}
+					std::map<std::string, InputSrvParam> srvBindings = vs->GetSrvBindings();
+					auto psSrvBindings = ps->GetSrvBindings();
+					srvBindings.merge(psSrvBindings);
 
-					std::map<std::string, InputSrvParam> srvBindings;
-					{
-						for (const auto& p : vs->GetSrvBindings())
-						{
-							if (srvBindings.find(p.first) == srvBindings.end())
-							{
-								srvBindings[p.first] = p.second;
-							}
-						}
-						for (const auto& p : ps->GetSrvBindings())
-						{
-							if (srvBindings.find(p.first) == srvBindings.end())
-							{
-								srvBindings[p.first] = p.second;
-							}
-						}
-					}
-
-					int maxSrvIndex = 0;
-					for (const auto& p : srvBindings)
-					{
-						const InputSrvParam& srvParam = p.second;
-						maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
-					}
+					const auto& bindPoints = srvBindings | views::transform([](const auto& p) { return p.second.mBindPoint; });
+					i32 maxSrvIndex = bindPoints.size() ? *max_element(bindPoints) : 0;
 
 					std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
 					for (const auto& p : srvBindings)
@@ -645,10 +650,11 @@ namespace D3D12Backend
 						const std::string& srvName = p.first;
 						const InputSrvParam& srvParam = p.second;
 
-						auto it = srvs.find(srvName);
-						if (it != srvs.end())
+						auto it = pass.mSrvParams.find(srvName);
+						if (it != pass.mSrvParams.end())
 						{
-							srvHandles[srvParam.mBindPoint] = it->second.Get();
+							const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetResourceId(), it->second);
+							srvHandles[srvParam.mBindPoint] = descriptor.Get();
 						}
 					}
 					const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
