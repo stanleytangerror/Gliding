@@ -41,7 +41,6 @@ void RenderModule::Initial(const Vec2u& initialSize)
 
 	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
 	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
-	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
 
 	mGraphicInfra->EndRecording(false);
 }
@@ -52,7 +51,7 @@ void RenderModule::TickFrame(Timer* timer)
 
 	mScreenRenderer->TickFrame(timer);
 	mWorldRenderer->TickFrame(timer);
-	mImGuiRenderer->TickFrame(timer);
+	if (mImGuiRenderer) { mImGuiRenderer->TickFrame(timer); }
 }
 
 void RenderModule::Render()
@@ -67,6 +66,11 @@ void RenderModule::Render()
 	mGraphicInfra->StartFrame();
 
 	mFrameGraph->StartFrame();
+
+	if (!mImGuiRenderer)
+	{
+		mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
+	}
 
 	{
 		{

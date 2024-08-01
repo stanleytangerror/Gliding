@@ -32,6 +32,7 @@ public:
 	FrameGraph*					GetFrameGraph() const { return mFrameGraph.get(); }
 	GI::IGraphicsInfra*			GetGraphicsInfra() const { return mGraphicInfra; }
 	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
+	ImGuiRenderer*				GetImGuiRenderer() const { return mImGuiRenderer.get(); }
 
 	void				Destroy();
 

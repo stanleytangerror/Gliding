@@ -286,6 +286,8 @@ public:
 	UavUsageFuture	ReadWriteTex2DUav(FrameGraphMutableResource& resource);
 	UavUsageFuture	ReadWrite(FrameGraphMutableResource& resource, const GI::UavDesc& desc);
 
+	FrameGraphMutableResource	ReadWrite(FrameGraphMutableResource& resource);
+
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
 
 protected:

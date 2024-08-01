@@ -82,4 +82,21 @@ namespace GI
 		return hash;
 	}
 
+	u32 TextureSubresourceDesc::GetSubresourceIndex(const MemoryResourceDesc& desc) const
+	{
+		return GetSubresourceIndex(desc.GetDimension(), desc.GetDepthOrArraySize(), desc.GetMipLevels(), 1);
+	}
+
+	u32 TextureSubresourceDesc::GetSubresourceIndex(ResourceDimension::Enum dim, u32 depthOrArrayIndex, u32 mipLevelCount, u32 planeCount) const
+	{
+		// https://stackoverflow.com/questions/73420449/what-is-subresource-in-direct-3d-12
+
+		auto ArraySize = (dim != GI::ResourceDimension::TEXTURE3D)
+			? depthOrArrayIndex : 1u;
+
+		return mipLevelCount * ArraySize * PlaneIndex
+			+ mipLevelCount * DepthOrArrayIndex
+			+ MipLevelIndex;
+	}
+
 }

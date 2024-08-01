@@ -349,6 +349,18 @@ DsvUsageFuture RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource,
 	return { resource, desc };
 }
 
+
+FrameGraphMutableResource RenderPassBuilder::ReadWrite(FrameGraphMutableResource& resource)
+{
+	Assert(resource.IsValid());
+
+	mInputResources.push_back(resource.mId);
+
+	resource.IncrementVersion();
+	mOutputResources.push_back(resource.mId);
+	return resource;
+}
+
 UavUsageFuture RenderPassBuilder::ReadWriteTex2DUav(FrameGraphMutableResource& resource)
 {
 	Assert(resource.IsValid());

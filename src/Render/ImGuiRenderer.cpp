@@ -13,26 +13,56 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 		.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
 		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
 
+	ImGui::GetIO().Fonts->SetTexID(ImTextureID(-1)); // initial as invalid
+
+	auto frameGraph = mRenderModule->GetFrameGraph();
+
 	unsigned char* pixels = nullptr;
 	i32 width = 0, height = 0, bytesPerPixel = 0;
-	ImGui::GetIO().Fonts->SetTexID(ImTextureID(-1)); // initial as invalid
 	ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytesPerPixel);
 	Assert(bytesPerPixel == 4);
 
 	u32 uploadPitch = Math::Align(width * 4, GI::GetDataPitchAlignment());
 	u32 uploadSize = height * uploadPitch;
 
-	std::vector<b8> fontAtlas(uploadSize);
-	for (i32 y = 0; y < height; y++)
+	auto tempBuffer = frameGraph->CreateTransient(
+		GI::MemoryResourceDesc::Buffer2(uploadSize, false, false, "ImGuiFontAtlas")
+		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+		.SetHeapType(GI::HeapType::UPLOAD));
+
+	mFontAtlas = frameGraph->CreatePermanent(
+		GI::MemoryResourceDesc::RenderTarget2D(
+			{ width, height },
+			GI::Format::FORMAT_R8G8B8A8_UNORM,
+			0, "ImGuiFontAtlas")
+		.SetInitState(GI::ResourceState::STATE_COPY_DEST));
+
+	struct PassData
 	{
-		memcpy((void*)((uintptr_t)fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
-	}
+		std::vector<b8> fontAtlas;
+		FrameGraphMutableResource uploadBuffer;
+		FrameGraphMutableResource finalTexture;
+	};
 
-	mFontAtlas.reset(new InMemoryTexture(mRenderModule->GetFrameGraph(), GI::Format::FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas"));
+	frameGraph->AddPass<PassData>("Initial ImGuiFontAtlas",
+		[&](RenderPassBuilder& builder, PassData& data)
+		{
+			data.fontAtlas.resize(uploadSize);
+			for (i32 y = 0; y < height; y++)
+			{
+				std::memcpy((void*)((uintptr_t)data.fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
+			}
+			data.uploadBuffer = builder.ReadWrite(tempBuffer);
+			data.finalTexture = builder.Write(mFontAtlas);
+		},
+		[](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		{
+			infra->CopyToUploadBufferResource(resources.Get(data.uploadBuffer.mId), data.fontAtlas);
+			infra->GetRecorder()->AddCopyBufferToTexture(resources.Get(data.finalTexture.mId), GI::TextureSubresourceDesc{}, resources.Get(data.uploadBuffer.mId));
+		});
 
-	auto fontText = mFontAtlas->GetResource();
 	static_assert(sizeof(ImTextureID) >= sizeof(FrameGraphMutableResource), "FrameGraphMutableResource should be able to store as ImTextureID");
-	ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&fontText));
+	ImGui::GetIO().Fonts->SetTexID(*reinterpret_cast<ImTextureID*>(&mFontAtlas));
 }
 
 void ImGuiRenderer::TickFrame(Timer* timer)

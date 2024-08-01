@@ -513,6 +513,31 @@ namespace D3D12Backend
 
 	}
 
+
+	void D3D12GraphicsRecorder::AddCopyBufferToTexture(GI::IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, GI::IGraphicMemoryResource* srcBuffer)
+	{
+		Assert(destTexture->GetDimension() != GI::ResourceDimension::BUFFER);
+		Assert(srcBuffer->GetDimension() == GI::ResourceDimension::BUFFER);
+
+		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
+		auto destRes = resourceManager->GetResource(destTexture->GetResourceId());
+		auto srcRes = resourceManager->GetResource(srcBuffer->GetResourceId());
+
+		auto subresIndex = subresourceDesc.GetSubresourceIndex(destTexture->GetDimension(), destTexture->GetSize().z(), destTexture->GetMipLevelCount(), 1);
+
+		CD3DX12_TEXTURE_COPY_LOCATION CopyDest(destRes->GetD3D12Resource(), subresIndex);
+
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> bufferLayouts(subresIndex + 1);
+		const auto& descDesc = destRes->GetD3D12Resource()->GetDesc();
+		mContext->GetDevice()->GetDevice()->GetCopyableFootprints(&descDesc, 0, subresIndex + 1, 0, bufferLayouts.data(), nullptr, nullptr, nullptr);
+
+		CD3DX12_TEXTURE_COPY_LOCATION CopySrc(
+			srcRes->GetD3D12Resource(),
+			bufferLayouts[subresIndex]);
+
+		mContext->GetCommandList()->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySrc, nullptr);
+	}
+
 	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
 	{
 		Assert(pass.IsReadyForExecute());

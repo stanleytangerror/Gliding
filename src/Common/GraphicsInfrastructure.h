@@ -977,6 +977,24 @@ namespace GI
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, std::string, Name);
     };
 
+    struct GD_COMMON_API TextureSubresourceDesc
+    {
+        // https://stackoverflow.com/questions/73420449/what-is-subresource-in-direct-3d-12
+        u32 DepthOrArrayIndex = 0;
+        u32 MipLevelIndex = 0;
+        u32 PlaneIndex = 0;
+
+		u32 GetSubresourceIndex(const MemoryResourceDesc& desc) const;
+		u32 GetSubresourceIndex(ResourceDimension::Enum dim, u32 depthOrArrayIndex, u32 mipLevelCount, u32 planeCount) const;
+    };
+
+	//struct GD_COMMON_API TextureSubresourceFootprint
+	//{
+	//	DXGI_FORMAT Format;
+ //       Vec3u   Size;
+ //       u64     RowPitch;
+	//};
+
     class GD_COMMON_API IImage
     {
     public:
@@ -991,6 +1009,7 @@ namespace GI
 		virtual void    AddClearOperation(const RtvUsage& rtv, const Vec4f& value) = 0;
 		virtual void    AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) = 0;
         virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
+		virtual void    AddCopyBufferToTexture(IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, IGraphicMemoryResource* srcBuffer) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
 		virtual void    AddPreparePresent(IGraphicMemoryResource* res) = 0;

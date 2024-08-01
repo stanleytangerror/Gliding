@@ -52,6 +52,7 @@ namespace D3D12Backend
 		void AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value) override;
 		void AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) override;
 		void AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src) override;
+		void AddCopyBufferToTexture(GI::IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, GI::IGraphicMemoryResource* srcBuffer) override;
 		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
 		void AddComputePass(const GI::ComputePass& pass) override;
 		void AddPreparePresent(GI::IGraphicMemoryResource* res) override;

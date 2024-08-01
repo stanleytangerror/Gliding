@@ -20,5 +20,5 @@ protected:
 	RenderModule*		mRenderModule = nullptr;
 	GI::SamplerDesc		mImGuiSampler;
 
-	std::unique_ptr<InMemoryTexture>	mFontAtlas;
+	FrameGraphMutableResource	mFontAtlas;
 };
