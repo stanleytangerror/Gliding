@@ -2,6 +2,7 @@
 #include "DirectedGraph.h"
 #include "StringUtils.h"
 #include "Profile.h"
+#include <ranges>
 
 DirectedGraph::NodeHandle DirectedGraph::AddNode()
 {
@@ -78,68 +79,23 @@ void DirectedGraph::ForEachNodes(std::function<void(NodeHandle, const Node&)> ac
 	}
 }
 
-void DirectedGraph::Cull(DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
-{
-	PROFILE_EVENT(DirectedGraph::Cull);
-
-	std::vector<bool> visitedNodes(graph.mNodeCounter, false);
-	{
-		PROFILE_EVENT(DirectedGraph::Traverse);
-
-		std::queue<NodeHandle> nodes;
-		for (auto n : endNodes)
-		{
-			nodes.push(n);
-			visitedNodes[n] = true;
-		}
-
-		while (!nodes.empty())
-		{
-			auto curNode = nodes.front();
-			nodes.pop();
-
-			for (auto n : graph.GetIncomingNodesRef(curNode))
-			{
-				if (visitedNodes[n] == false)
-				{
-					nodes.push(n);
-					visitedNodes[n] = true;
-				}
-			}
-		}
-	}
-
-	{
-		PROFILE_EVENT(DirectedGraph::Cut);
-
-		std::vector<NodeHandle> cullingNodes;
-		graph.ForEachNodes([&](NodeHandle n, const Node& node)
-			{
-				if (visitedNodes[n] == false)
-				{
-					cullingNodes.push_back(n);
-				}
-			});
-		for (const auto& n : cullingNodes)
-		{
-			graph.RemoveNode(n);
-		}
-	}
-}
-
-std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& graph, const std::vector<DirectedGraph::NodeHandle>& endNodes)
+std::vector<DirectedGraph::NodeHandle> DirectedGraph::TopoSort(DirectedGraph& graph)
 {
 	PROFILE_EVENT(DirectedGraph::TopoSort);
 
 	std::vector<DirectedGraph::NodeHandle> result;
 	result.reserve(graph.mNodeCounter);
 
+	auto a = result | std::views::transform([](auto n) { return n + 1; });
+
 	std::queue<NodeHandle> nodes;
-	for (auto n : endNodes) 
+	graph.ForEachNodes([&](auto h, const auto& n) 
 	{
-		Assert(graph.GetOutDegree(n) == 0);
-		nodes.push(n); 
-	}
+		if (graph.GetOutDegree(h) == 0)
+		{
+			nodes.push(h);
+		}
+	});
 
 	while (!nodes.empty())
 	{

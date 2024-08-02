@@ -1,5 +1,6 @@
 #include "RenderPch.h"
 #include "FrameGraph.h"
+#include <ranges>
 
 #define DEBUG_FRAME_GRAPH 0
 
@@ -361,6 +362,14 @@ FrameGraphMutableResource RenderPassBuilder::ReadWrite(FrameGraphMutableResource
 	return resource;
 }
 
+
+void RenderPassBuilder::MarkSideEffect(const FrameGraphResource& resource)
+{
+	Assert(resource.IsValid());
+
+	mSideEffectResources.push_back(resource.mId);
+}
+
 UavUsageFuture RenderPassBuilder::ReadWriteTex2DUav(FrameGraphMutableResource& resource)
 {
 	Assert(resource.IsValid());
@@ -483,28 +492,30 @@ void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
 			}
 		}
 	}
+
+	for (auto resourceId : passBuilder.mSideEffectResources)
+	{
+		MarkOutputNode(resourceId);
+	}
 }
 
-void FrameGraphBuilder::MarkOutputNode(const FrameGraphResource& resource)
+void FrameGraphBuilder::MarkOutputNode(const FrameGraphResource::Id& resourceId)
 {
-	Assert(mResourceNodes.ContainsKey(resource.mId));
-	mPresentResources.insert(resource.mId);
+	Assert(mResourceNodes.ContainsKey(resourceId));
+	mOutputResources.insert(resourceId);
 }
 
 void FrameGraphBuilder::CompileAndExecute()
 {
 	PROFILE_EVENT(FrameGraphBuilder::CompileAndExecute);
 
-	Assert(!mPresentResources.empty());
-	std::vector<DirectedGraph::NodeHandle> outputNodes(mPresentResources.size());
-	std::transform(mPresentResources.begin(), mPresentResources.end(),
-		outputNodes.begin(),
-		[this](FrameGraphResource::Id id) { return mResourceNodes.GetValueByKey(id); });
-	
-	DirectedGraph::Cull(mResourceGraph, outputNodes);
+	Assert(!mOutputResources.empty());
+
+	DirectedGraph::Cull(mResourceGraph, mOutputResources
+		| std::views::transform([this](const FrameGraphResource::Id& id) { return mResourceNodes.GetValueByKey(id); }));
 
 #if DEBUG_FRAME_GRAPH
-	auto serialized = DirectedGraph::Serialize(culledGraph, [this](auto n)
+	auto serialized = DirectedGraph::Serialize(mResourceGraph, [this](auto n)
 		{
 			if (mResourceNodes.ContainsValue(n))
 			{
@@ -526,7 +537,7 @@ void FrameGraphBuilder::CompileAndExecute()
 	Utils::WriteFileText(R"(res/Tool/graph.json)", serialized);
 #endif
 
-	const auto& nodes = DirectedGraph::TopoSort(mResourceGraph, outputNodes);
+	const auto& nodes = DirectedGraph::TopoSort(mResourceGraph);
 
 	std::vector<Pass> sortedPasses;
 	for (auto n : nodes)
@@ -638,7 +649,7 @@ void FrameGraph::Present(FrameGraphMutableResource resource)
 {
 	Assert(mFrameGraphBuilder != nullptr);
 
-	mFrameGraphBuilder->MarkOutputNode(resource);
+	mFrameGraphBuilder->MarkOutputNode(resource.mId);
 }
 
 GI::MemoryResourceDesc FrameGraph::GetResourceDesc(const FrameGraphResource& resource) const

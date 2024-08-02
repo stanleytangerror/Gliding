@@ -523,6 +523,9 @@ namespace D3D12Backend
 		auto destRes = resourceManager->GetResource(destTexture->GetResourceId());
 		auto srcRes = resourceManager->GetResource(srcBuffer->GetResourceId());
 
+		destRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_DEST);
+		if (srcRes->GetHeapType() == GI::HeapType::DEFAULT) { srcRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_SOURCE); }
+
 		auto subresIndex = subresourceDesc.GetSubresourceIndex(destTexture->GetDimension(), destTexture->GetSize().z(), destTexture->GetMipLevelCount(), 1);
 
 		CD3DX12_TEXTURE_COPY_LOCATION CopyDest(destRes->GetD3D12Resource(), subresIndex);

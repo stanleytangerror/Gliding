@@ -29,11 +29,54 @@ public:
 	const std::unordered_set<NodeHandle>&	GetIncomingNodesRef(const NodeHandle& node) const;
 	const std::unordered_set<NodeHandle>&	GetOutgoingNodesRef(const NodeHandle& node) const;
 
+	const std::vector<Node>& GetAllNodesRef() const { return mNodes; }
+
 	void					ForEachNodes(std::function<void(NodeHandle, const Node&)> action) const;
 
-	static void Cull(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
+	static void Cull(DirectedGraph& graph, std::ranges::input_range auto&& reachingNodes)
+	{
+		std::vector<bool> visitedNodes(graph.mNodeCounter, false);
+		{
+			std::queue<NodeHandle> nodes;
+			for (auto n : reachingNodes)
+			{
+				nodes.push(n);
+				visitedNodes[n] = true;
+			}
 
-	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph, const std::vector<NodeHandle>& endNodes);
+			while (!nodes.empty())
+			{
+				auto curNode = nodes.front();
+				nodes.pop();
+
+				for (auto n : graph.GetIncomingNodesRef(curNode))
+				{
+					if (visitedNodes[n] == false)
+					{
+						nodes.push(n);
+						visitedNodes[n] = true;
+					}
+				}
+			}
+		}
+
+		{
+			std::vector<NodeHandle> cullingNodes;
+			graph.ForEachNodes([&](NodeHandle n, const Node& node)
+				{
+					if (visitedNodes[n] == false)
+					{
+						cullingNodes.push_back(n);
+					}
+				});
+			for (const auto& n : cullingNodes)
+			{
+				graph.RemoveNode(n);
+			}
+		}
+	}
+
+	static std::vector<NodeHandle> TopoSort(DirectedGraph& graph);
 
 	static std::string Serialize(const DirectedGraph& graph,
 		std::function<std::tuple<std::string, std::string>(NodeHandle)> serializeNode);

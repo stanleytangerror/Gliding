@@ -288,6 +288,8 @@ public:
 
 	FrameGraphMutableResource	ReadWrite(FrameGraphMutableResource& resource);
 
+	void MarkSideEffect(const FrameGraphResource& resource);
+
 	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
 
 protected:
@@ -296,6 +298,7 @@ protected:
 	std::vector<FrameGraphResource::Id>	mInputResources;
 	std::vector<FrameGraphResource::Id>	mOutputResources;
 	std::function<void()>				mPassFunction;
+	std::vector<FrameGraphResource::Id>	mSideEffectResources;
 };
 
 class GD_RENDER_API RenderPassResources
@@ -323,7 +326,7 @@ public:
 	ResourceRegistry*			GetResourceRegistry() const { return mResourceRegistry; }
 
 	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
-	void						MarkOutputNode(const FrameGraphResource& resource);
+	void						MarkOutputNode(const FrameGraphResource::Id& resourceId);
 	void						CompileAndExecute();
 
 	void						DebugOutputGraph();
@@ -344,7 +347,7 @@ protected:
 	BijectionMap<PassHandle, DirectedGraph::NodeHandle>				mPassNodes;
 	DirectedGraph													mResourceGraph;
 	
-	std::set<FrameGraphResource::Id>								mPresentResources;
+	std::set<FrameGraphResource::Id>								mOutputResources;
 	std::vector<Pass>												mPasses;
 };
 
