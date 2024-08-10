@@ -377,11 +377,6 @@ public:
 		mFrameGraphBuilder->HandlePassBuilder(builder);
 	}
 
-	void AddWriteResourcePass(
-		const char* name, 
-		FrameGraphMutableResource& resource,
-		std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write);
-
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
 	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);
@@ -395,6 +390,11 @@ public:
 	void AddClearPass(const char* name, 
 		std::vector<FrameGraphMutableResource> renderTargets, const Vec4f& colorValue,
 		FrameGraphMutableResource depthStencil, bool clearDepth, f32 depthValue, bool clearStencil, u32 stencilValue);
+
+	void AddInitialResourcePass(
+		const char* name,
+		FrameGraphMutableResource& resource,
+		std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write);
 
 private:
 	std::unique_ptr<Blackboard>			mBlackboard;

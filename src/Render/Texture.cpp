@@ -9,7 +9,7 @@ FileTexture::FileTexture(FrameGraph* frameGraph, const char* filePath, const std
 {
 	auto resource = frameGraph->CreatePermanent(mImage->GetResourceDesc());
 
-	frameGraph->AddWriteResourcePass("InitialFileTexture", resource,
+	frameGraph->AddInitialResourcePass("InitialFileTexture", resource,
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
 			infra->InitialMemoryResourceFromImage(resource, *mImage.get());
