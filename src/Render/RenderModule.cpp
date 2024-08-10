@@ -28,7 +28,7 @@ void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 	mGraphicInfra->ResizeWindow(windowId, size);
 }
 
-void RenderModule::Initial(const Vec2u& initialSize)
+void RenderModule::Initial()
 {
 #if ENABLE_RENDER_DOC_PLUGIN
 	mRenderDoc = new RenderDocIntegration;
@@ -36,21 +36,14 @@ void RenderModule::Initial(const Vec2u& initialSize)
 
 	mGraphicInfra = mCreateGraphicsInfra();
 	mFrameGraph = std::make_unique<FrameGraph>(mGraphicInfra);
-
-	mGraphicInfra->StartRecording();
-
-	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
-
-	mGraphicInfra->EndRecording(false);
 }
 
 void RenderModule::TickFrame(Timer* timer)
 {
 	PROFILE_EVENT(RenderModule::TickFrame);
 
-	mScreenRenderer->TickFrame(timer);
-	mWorldRenderer->TickFrame(timer);
+	if (mScreenRenderer) { mScreenRenderer->TickFrame(timer); }
+	if (mWorldRenderer) { mWorldRenderer->TickFrame(timer); }
 	if (mImGuiRenderer) { mImGuiRenderer->TickFrame(timer); }
 }
 
@@ -67,10 +60,9 @@ void RenderModule::Render()
 
 	mFrameGraph->StartFrame();
 
-	if (!mImGuiRenderer)
-	{
-		mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
-	}
+	if (!mImGuiRenderer) { mImGuiRenderer = std::make_unique<ImGuiRenderer>(this); }
+	if (!mScreenRenderer) { mScreenRenderer = std::make_unique<ScreenRenderer>(this); }
+	if (!mWorldRenderer) { mWorldRenderer = std::make_unique<WorldRenderer>(this, mWindowInfo[PresentPortType::MainPort].mSize); }
 
 	{
 		{

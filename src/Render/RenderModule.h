@@ -24,7 +24,7 @@ public:
 	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
 	void OnResizeWindow(u8 windowId, const Vec2u& size);
 
-	void Initial(const Vec2u& initialSize);
+	void Initial();
 
 	void TickFrame(Timer* timer);
 	void Render();

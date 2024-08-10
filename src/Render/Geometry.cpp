@@ -6,7 +6,9 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 	mVb = frameGraph->CreatePermanent(
 		GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-			.SetHeapType(GI::HeapType::UPLOAD),
+			.SetHeapType(GI::HeapType::UPLOAD));
+
+	frameGraph->AddWriteResourcePass("InitialGeometryVertices", mVb, 
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
 			infra->CopyToUploadBufferResource(resource, mVertices);
@@ -16,6 +18,14 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 		GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 			.SetHeapType(GI::HeapType::UPLOAD),
+		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		{
+			std::vector<b8> buf(mIndices.size() * sizeof(u16));
+			std::memcpy(buf.data(), mIndices.data(), buf.size());
+			infra->CopyToUploadBufferResource(resource, buf);
+		});
+
+	frameGraph->AddWriteResourcePass("InitialGeometryIndices", mIb,
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
 			std::vector<b8> buf(mIndices.size() * sizeof(u16));

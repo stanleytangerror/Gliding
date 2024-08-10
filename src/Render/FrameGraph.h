@@ -379,6 +379,11 @@ public:
 		mFrameGraphBuilder->HandlePassBuilder(builder);
 	}
 
+	void AddWriteResourcePass(
+		const char* name, 
+		FrameGraphMutableResource& resource,
+		std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write);
+
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
 	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);

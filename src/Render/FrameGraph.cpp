@@ -595,6 +595,24 @@ void FrameGraph::EndFrame()
 	mResourceRegistry->OnEndFrame();
 }
 
+void FrameGraph::AddWriteResourcePass(const char* name, FrameGraphMutableResource& resource, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write)
+{
+	struct PassData
+	{
+		FrameGraphMutableResource targetResource;
+	};
+
+	AddPass<PassData>(name,
+		[&](RenderPassBuilder& builder, PassData& data) 
+		{ 
+			data.targetResource = builder.Write(resource); 
+		},
+		[write](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		{
+			write(infra, resources.Get(data.targetResource.mId));
+		});
+}
+
 FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc)
 {
 	return mResourceRegistry->CreatePermanentResource(desc);
