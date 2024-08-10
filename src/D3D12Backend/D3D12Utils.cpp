@@ -267,15 +267,6 @@ namespace D3D12Utils
 			return nullptr;
 		}
 	}
-
-	std::unique_ptr<WindowsImage> WindowsImage::CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name)
-	{
-		std::unique_ptr<DirectX::ScratchImage> image = std::make_unique<DirectX::ScratchImage>();
-		image->Initialize2D(ToDxgiFormat(format), size.x(), size.y(), size.z(), mipLevel);
-		memcpy(image->GetImage(0, 0, 0)->pixels, content.data(), content.size());
-
-		return std::make_unique<WindowsImage>(std::move(image), name);
-	}
 }
 
 std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content)

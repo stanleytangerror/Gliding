@@ -283,11 +283,6 @@ namespace D3D12Backend
 		return std::move(D3D12Utils::WindowsImage::CreateFromImageMemory(ext, content, name));
 	}
 
-	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const
-	{
-		return std::move(D3D12Utils::WindowsImage::CreateFromScratch(format, content, size, mipLevel, name));
-	}
-
 
 	void D3D12GraphicsInfra::AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo)
 	{
