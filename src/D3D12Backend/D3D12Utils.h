@@ -34,8 +34,8 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
 	void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
 
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const GI::IImage& image);
-	
+	void InitialD3DResourceFromImage(D3D12Backend::D3D12CommandContext* context, GI::IGraphicMemoryResource* resource, const GI::IImage& image);
+
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
 	/* dxgi format util functions from Microsoft/DirectX-Graphics-Samples */

@@ -260,9 +260,9 @@ namespace D3D12Backend
 		return std::move(mDevice->GetResourceManager()->CreateResource(desc));
 	}
 
-	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResource(const GI::IImage& image)
+	void D3D12GraphicsInfra::InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image)
 	{
-		return D3D12Utils::CreateResourceFromImage(mCurrentRecorder->GetContext(), image);
+		return D3D12Utils::InitialD3DResourceFromImage(mCurrentRecorder->GetContext(), resource, image);
 	}
 
 	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)

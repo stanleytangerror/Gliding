@@ -12,7 +12,8 @@ namespace D3D12Backend
 		~D3D12GraphicsInfra() override;
 
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::MemoryResourceDesc& desc) override;
-		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::IImage& image) override;
+
+		void InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image) override;
 
 		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
 

@@ -988,13 +988,6 @@ namespace GI
 		u32 GetSubresourceIndex(ResourceDimension::Enum dim, u32 depthOrArrayIndex, u32 mipLevelCount, u32 planeCount) const;
     };
 
-	//struct GD_COMMON_API TextureSubresourceFootprint
-	//{
-	//	DXGI_FORMAT Format;
- //       Vec3u   Size;
- //       u64     RowPitch;
-	//};
-
     class GD_COMMON_API IImage
     {
     public:
@@ -1047,7 +1040,8 @@ namespace GI
         virtual ~IGraphicsInfra() = 0 {}
 
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
-		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
+
+		virtual void                                        InitialMemoryResourceFromImage(IGraphicMemoryResource* resource, const IImage& image) = 0;
 
         virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
 

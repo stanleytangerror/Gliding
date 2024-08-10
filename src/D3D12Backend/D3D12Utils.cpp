@@ -170,47 +170,6 @@ namespace
 		AssertHResultOk(DirectX::LoadFromWICMemory(data, size, DirectX::WIC_FLAGS_NONE, &metadata, *image));
 		return image;
 	}
-
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateD3DResFromScratchImage(D3D12Backend::D3D12CommandContext* context, const GI::IImage& image)
-	{
-		D3D12Backend::D3D12Device* device = context->GetDevice();
-
-		// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
-		auto result = device->GetResourceManager()->CreateResource(image.GetResourceDesc().SetInitState(GI::ResourceState::STATE_COPY_DEST));
-		auto resultDeviceResource = device->GetResourceManager()->GetResource(result->GetResourceId());
-
-		const auto& subresources = image.GetImageContent().subImages
-			| std::views::transform([](const GI::IImage::SubImageContent& subImage) { return D3D12_SUBRESOURCE_DATA{ subImage.pixels, LONG_PTR(subImage.rowPitch), LONG_PTR(subImage.slicePitch) }; })
-			| to<std::vector<D3D12_SUBRESOURCE_DATA>>();
-
-		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resultDeviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
-
-		auto textureUploadHeap = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
-			.SetDimension(GI::ResourceDimension::BUFFER)
-			.SetAlignment(0)
-			.SetWidth(uploadBufferSize)
-			.SetHeight(1)
-			.SetDepthOrArraySize(1)
-			.SetMipLevels(1)
-			.SetFormat(GI::Format::FORMAT_UNKNOWN)
-			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-			.SetFlags(GI::ResourceFlag::NONE)
-			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-			.SetHeapType(GI::HeapType::UPLOAD));
-		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
-
-		auto innerUploadResource = device->GetResourceManager()->GetResource(textureUploadHeap->GetResourceId());
-
-		UpdateSubresources(
-			context->GetCommandList(),
-			resultDeviceResource->GetD3D12Resource(),
-			innerUploadResource->GetD3D12Resource(),
-			0, 0, static_cast<unsigned int>(subresources.size()),
-			subresources.data());
-
-		return result;
-	}
 }
 
 namespace D3D12Utils
@@ -301,9 +260,44 @@ namespace D3D12Utils
 	}
 }
 
-std::unique_ptr<GI::IGraphicMemoryResource> D3D12Utils::CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const GI::IImage& image)
+void D3D12Utils::InitialD3DResourceFromImage(D3D12Backend::D3D12CommandContext* context, GI::IGraphicMemoryResource* resource, const GI::IImage& image)
 {
-	return CreateD3DResFromScratchImage(context, image);
+	D3D12Backend::D3D12Device* device = context->GetDevice();
+
+	// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
+	auto resultDeviceResource = device->GetResourceManager()->GetResource(resource->GetResourceId());
+	resultDeviceResource->Transition(context, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	const auto& subImages = image.GetImageContent().subImages;
+	const auto& subresources = subImages
+		| std::views::transform([](const GI::IImage::SubImageContent& subImage) { return D3D12_SUBRESOURCE_DATA{ subImage.pixels, LONG_PTR(subImage.rowPitch), LONG_PTR(subImage.slicePitch) }; })
+		| to<std::vector<D3D12_SUBRESOURCE_DATA>>();
+
+	// upload is implemented by application developer. Here's one solution using <d3dx12.h>
+	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resultDeviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
+
+	auto textureUploadHeap = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
+		.SetDimension(GI::ResourceDimension::BUFFER)
+		.SetAlignment(0)
+		.SetWidth(uploadBufferSize)
+		.SetHeight(1)
+		.SetDepthOrArraySize(1)
+		.SetMipLevels(1)
+		.SetFormat(GI::Format::FORMAT_UNKNOWN)
+		.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
+		.SetFlags(GI::ResourceFlag::NONE)
+		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+		.SetHeapType(GI::HeapType::UPLOAD));
+	// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
+
+	auto innerUploadResource = device->GetResourceManager()->GetResource(textureUploadHeap->GetResourceId());
+
+	UpdateSubresources(
+		context->GetCommandList(),
+		resultDeviceResource->GetD3D12Resource(),
+		innerUploadResource->GetD3D12Resource(),
+		0, 0, static_cast<unsigned int>(subresources.size()),
+		subresources.data());
 }
 
 D3D12_COMPARISON_FUNC D3D12Utils::ToDepthCompareFunc(const Math::ValueCompareState& state)
