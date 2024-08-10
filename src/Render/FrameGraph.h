@@ -183,7 +183,6 @@ public:
 	ResourceRegistry& operator=(const ResourceRegistry&) = delete;
 
 	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc);
-	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial);
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
 	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
@@ -199,7 +198,6 @@ protected:
 		std::unique_ptr<GI::IGraphicMemoryResource>	mRealResource;
 	};
 
-	std::map<FrameGraphResource::Id::Handle, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)>> mResourceInitializer;
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mPermanentResources;
 	std::map<FrameGraphResource::Id::Handle, ResourceData> mTransienceResources;
 
@@ -387,7 +385,6 @@ public:
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
 
 	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);
-	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial);
 	FrameGraphMutableResource	CreateTransient(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
 	void						Present(FrameGraphMutableResource resource);

@@ -17,13 +17,7 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 	mIb = frameGraph->CreatePermanent(
 		GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-			.SetHeapType(GI::HeapType::UPLOAD),
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
-		{
-			std::vector<b8> buf(mIndices.size() * sizeof(u16));
-			std::memcpy(buf.data(), mIndices.data(), buf.size());
-			infra->CopyToUploadBufferResource(resource, buf);
-		});
+			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddWriteResourcePass("InitialGeometryIndices", mIb,
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
