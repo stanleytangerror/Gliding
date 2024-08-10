@@ -1033,7 +1033,6 @@ namespace GI
 
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
 		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
-		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResourceFromTexture2DData(const ReadOnly2DResourceDesc& desc) = 0;
 
         virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
 

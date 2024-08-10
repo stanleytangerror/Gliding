@@ -20,20 +20,3 @@ protected:
 
 	FrameGraphResource				mResource;
 };
-
-class GD_RENDER_API InMemoryTexture
-{
-public:
-	InMemoryTexture(FrameGraph* frameGraph, GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-
-	FrameGraphResource				GetResource() const { return mResource; }
-
-protected:
-	std::vector<b8>	const	mContent;
-	std::string	const		mName;
-	Vec3i const				mSize = {};
-	i32 const				mMipLevelCount = 1;
-	GI::Format::Enum const	mFormat = GI::Format::FORMAT_UNKNOWN;
-	
-	FrameGraphResource		mResource;
-};

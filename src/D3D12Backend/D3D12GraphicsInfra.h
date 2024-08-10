@@ -13,7 +13,6 @@ namespace D3D12Backend
 
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::MemoryResourceDesc& desc) override;
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::IImage& image) override;
-		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResourceFromTexture2DData(const GI::ReadOnly2DResourceDesc& desc) override;
 
 		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
 
@@ -58,9 +57,6 @@ namespace D3D12Backend
 		void AddPreparePresent(GI::IGraphicMemoryResource* res) override;
 		void AddBeginEvent(const char* mark) override;
 		void AddEndEvent() override;
-
-
-		void AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, DirectX::ScratchImage* image); // TODO make image unique_ptr
 
 		void Finalize(bool dropAllCommands);
 
