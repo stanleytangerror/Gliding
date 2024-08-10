@@ -38,22 +38,6 @@ FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::Me
 	return FrameGraphMutableResource{ resourceId };
 }
 
-
-FrameGraphMutableResource ResourceRegistry::CreatePermanentResource(const GI::MemoryResourceDesc& desc, std::function<std::unique_ptr<GI::IGraphicMemoryResource>(GI::IGraphicsInfra*)> create)
-{
-	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
-	Assert(mPermanentResources.find(resourceId.mHandle) == mPermanentResources.end());
-	Assert(mResourceCreators.find(resourceId.mHandle) == mResourceCreators.end());
-	mPermanentResources[resourceId.mHandle] = { desc, nullptr };
-	mResourceCreators[resourceId.mHandle] = create;
-
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Create] Permanent %d:\t%s", resourceId.GetDebugName().c_str(), desc.GetName());
-#endif
-
-	return FrameGraphMutableResource{ resourceId };
-}
-
 FrameGraphMutableResource ResourceRegistry::CreateTransientResource(const GI::MemoryResourceDesc& desc)
 {
 	auto resourceId = FrameGraphResource::Id{ mResourceIdCounter++ };
@@ -139,18 +123,10 @@ void ResourceRegistry::OnCompile(GI::IGraphicsInfra* infra)
 	{
 		if (!data.mRealResource)
 		{
-			if (mResourceCreators.find(id) != mResourceCreators.end())
+			data.mRealResource = infra->CreateMemoryResource(data.mDesc);
+			if (mResourceInitializer.find(id) != mResourceInitializer.end())
 			{
-				auto createdResource = mResourceCreators[id](infra);
-				std::swap(data.mRealResource, createdResource);
-			}
-			else
-			{
-				data.mRealResource = infra->CreateMemoryResource(data.mDesc);
-				if (mResourceInitializer.find(id) != mResourceInitializer.end())
-				{
-					mResourceInitializer[id](infra, data.mRealResource.get());
-				}
+				mResourceInitializer[id](infra, data.mRealResource.get());
 			}
 		}
 	}
@@ -624,15 +600,9 @@ FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDe
 	return mResourceRegistry->CreatePermanentResource(desc);
 }
 
-
 FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> initial)
 {
 	return mResourceRegistry->CreatePermanentResource(desc, initial);
-}
-
-FrameGraphMutableResource FrameGraph::CreatePermanent(const GI::MemoryResourceDesc& desc, std::function<std::unique_ptr<GI::IGraphicMemoryResource>(GI::IGraphicsInfra*)> create)
-{
-	return mResourceRegistry->CreatePermanentResource(desc, create);
 }
 
 FrameGraphMutableResource FrameGraph::CreateTransient(const GI::MemoryResourceDesc& desc)
