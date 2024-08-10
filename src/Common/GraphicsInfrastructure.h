@@ -998,7 +998,22 @@ namespace GI
     class GD_COMMON_API IImage
     {
     public:
-        virtual MemoryResourceDesc GetResourceDesc() const = 0;
+		struct GD_COMMON_API SubImageContent
+		{
+			b8* pixels = nullptr;
+			u64 rowPitch = 0;
+			u64 slicePitch = 0;
+		};
+
+		struct GD_COMMON_API ImageContent
+		{
+			ResourceDimension::Enum dimension;
+			std::vector<SubImageContent> subImages;
+		};
+
+    public:
+		virtual MemoryResourceDesc GetResourceDesc() const = 0;
+        virtual ImageContent GetImageContent() const = 0;
     };
 
     using DevicePtr = void*;

@@ -34,10 +34,7 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
 	void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
 
-	//std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
+	std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const GI::IImage& image);
 	
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
@@ -77,6 +74,7 @@ namespace D3D12Utils
 		const char* GetName() const { return mName.c_str(); }
 
 		GI::MemoryResourceDesc GetResourceDesc() const override;
+		GI::IImage::ImageContent GetImageContent() const override;
 
 	protected:
 		const std::unique_ptr<DirectX::ScratchImage> mImage;
