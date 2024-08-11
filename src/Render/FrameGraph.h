@@ -211,6 +211,7 @@ protected:
 	std::map<GI::MemoryResourceDesc::Key, std::vector<ResourcePoolItem>> mTransicenceResourcePool;
 
 	BijectionMap<FrameGraphResource::Id::Handle, GI::IGraphicMemoryResource*> mImportedResources;
+	std::unordered_map<FrameGraphResource::Id::Handle, GI::MemoryResourceDesc> mImportedResourceDescs;
 
 	u16							mResourceIdCounter = 0;
 };

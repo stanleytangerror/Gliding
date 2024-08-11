@@ -47,6 +47,16 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 	Assert(!mImportedResources.ContainsKey(resourceId.mHandle));
 	mImportedResources.Insert(resourceId.mHandle, resource);
 
+	Assert(mImportedResourceDescs.find(resourceId.mHandle) == mImportedResourceDescs.end());
+	mImportedResourceDescs[resourceId.mHandle] = GI::MemoryResourceDesc()
+		.SetDimension(resource->GetDimension())
+		.SetWidth(resource->GetSize().x())
+		.SetHeight(resource->GetSize().y())
+		.SetDepthOrArraySize(resource->GetSize().z())
+		.SetFormat(resource->GetFormat())
+		.SetMipLevels(resource->GetMipLevelCount())
+		.SetName(resource->GetDebugName());
+
 #if DEBUG_FRAME_GRAPH
 	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
 		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
@@ -84,17 +94,9 @@ GI::MemoryResourceDesc ResourceRegistry::GetResourceDesc(const FrameGraphResourc
 	{
 		return mPermanentResources.find(resource.mId.mHandle)->second.mDesc;
 	}
-	else if (mImportedResources.ContainsKey(resource.mId.mHandle))
+	else if (mImportedResourceDescs.find(resource.mId.mHandle) != mImportedResourceDescs.end())
 	{
-		auto rawResource = mImportedResources.GetValueByKey(resource.mId.mHandle);
-		return GI::MemoryResourceDesc()
-			.SetDimension(rawResource->GetDimension())
-			.SetWidth(rawResource->GetSize().x())
-			.SetHeight(rawResource->GetSize().y())
-			.SetDepthOrArraySize(rawResource->GetSize().z())
-			.SetFormat(rawResource->GetFormat())
-			.SetMipLevels(rawResource->GetMipLevelCount())
-			.SetName(rawResource->GetDebugName());
+		return mImportedResourceDescs.find(resource.mId.mHandle)->second;
 	}
 
 	Assert(false);
