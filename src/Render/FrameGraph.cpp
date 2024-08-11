@@ -65,6 +65,23 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 	return FrameGraphMutableResource{ resourceId };
 }
 
+
+void ResourceRegistry::UnimportResource(GI::IGraphicMemoryResource* resource)
+{
+	if (!mImportedResources.ContainsValue(resource)) { return; }
+	
+	auto idHandle = mImportedResources.GetKeyByValue(resource);
+	mImportedResources.EraseByValue(resource);
+
+	Assert(mImportedResourceDescs.find(idHandle) != mImportedResourceDescs.end());
+	mImportedResourceDescs.erase(idHandle);
+
+#if DEBUG_FRAME_GRAPH
+	DEBUG_PRINT("[Unimport] %d:\t%s (reource id %d)",
+		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
+#endif
+}
+
 GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResource& resource) const
 {
 	if (mTransienceResources.find(resource.mId.mHandle) != mTransienceResources.end())
@@ -589,6 +606,12 @@ FrameGraphMutableResource FrameGraph::CreateTransient(const GI::MemoryResourceDe
 FrameGraphMutableResource FrameGraph::Import(GI::IGraphicMemoryResource* resource)
 {
 	return mResourceRegistry->ImportResource(resource);
+}
+
+
+void FrameGraph::Unimport(GI::IGraphicMemoryResource* resource)
+{
+	mResourceRegistry->UnimportResource(resource);
 }
 
 void FrameGraph::Present(FrameGraphMutableResource resource)

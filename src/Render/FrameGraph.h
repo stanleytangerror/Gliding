@@ -185,6 +185,7 @@ public:
 	FrameGraphMutableResource	CreatePermanentResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	CreateTransientResource(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	ImportResource(GI::IGraphicMemoryResource* resource);
+	void						UnimportResource(GI::IGraphicMemoryResource* resource);
 	GI::IGraphicMemoryResource* GetResource(const FrameGraphResource& resource) const;
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;
 
@@ -383,6 +384,7 @@ public:
 	FrameGraphMutableResource	CreatePermanent(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	CreateTransient(const GI::MemoryResourceDesc& desc);
 	FrameGraphMutableResource	Import(GI::IGraphicMemoryResource* resource);
+	void						Unimport(GI::IGraphicMemoryResource* resource);
 	void						Present(FrameGraphMutableResource resource);
 
 	GI::MemoryResourceDesc		GetResourceDesc(const FrameGraphResource& resource) const;

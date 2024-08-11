@@ -94,6 +94,18 @@ public:
 		map2[v] = k;
 	}
 
+	void EraseByKey(const K& k)
+	{
+		map2.erase(map1.find(k)->second);
+		map1.erase(k);
+	}
+
+	void EraseByValue(const V& v)
+	{
+		map1.erase(map2.find(v)->second);
+		map2.erase(v);
+	}
+
 	typename std::unordered_map<K, V>::const_iterator begin() const
 	{
 		return map1.begin();

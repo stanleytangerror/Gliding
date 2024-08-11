@@ -25,6 +25,8 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 
 void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 {
+	mFrameGraph->Unimport(mGraphicInfra->GetWindowBackBuffer(windowId));
+	
 	mGraphicInfra->ResizeWindow(windowId, size);
 }
 
