@@ -111,5 +111,7 @@ void RenderModule::Destroy()
 	mWorldRenderer = nullptr;
 	mImGuiRenderer = nullptr;
 
+	mFrameGraph = nullptr;
+
 	Utils::SafeDelete(mGraphicInfra);
 }

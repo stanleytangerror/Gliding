@@ -3,6 +3,7 @@
 #include "D3D12Resource.h"
 #include "D3D12SwapChain.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "WinImage.h"
 #include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
 #include <functional>
 #include <ranges>
@@ -279,7 +280,7 @@ namespace D3D12Backend
 
 	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const
 	{
-		return std::move(D3D12Utils::WindowsImage::CreateFromImageMemory(ext, content, name));
+		return std::move(WindowsImage::CreateFromImageMemory(ext, content, name));
 	}
 
 

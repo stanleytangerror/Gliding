@@ -18,8 +18,6 @@ namespace DirectX
 
 namespace D3D12Utils
 {
-	class WindowsImage;
-
 	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
 	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
 
@@ -61,24 +59,6 @@ namespace D3D12Utils
 	protected:
 		std::string const	mRoot;
 		std::string	mContent;
-	};
-
-	class WindowsImage : public GI::IImage
-	{
-	public:
-		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name);
-
-		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name);
-
-		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
-		const char* GetName() const { return mName.c_str(); }
-
-		GI::MemoryResourceDesc GetResourceDesc() const override;
-		GI::IImage::ImageContent GetImageContent() const override;
-
-	protected:
-		const std::unique_ptr<DirectX::ScratchImage> mImage;
-		const std::string mName;
 	};
 }
 

@@ -112,6 +112,7 @@
     <ClCompile Include="D3D12Shader.cpp" />
     <ClCompile Include="D3D12SwapChain.cpp" />
     <ClCompile Include="D3D12Utils.cpp" />
+    <ClCompile Include="WinImage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12BackendMacros.h" />
@@ -131,6 +132,7 @@
     <ClInclude Include="D3D12SwapChain.h" />
     <ClInclude Include="D3D12Utils.h" />
     <ClInclude Include="D3D12Utils_inl.h" />
+    <ClInclude Include="WinImage.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
