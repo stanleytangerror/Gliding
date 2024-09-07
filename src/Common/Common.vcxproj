@@ -16,6 +16,8 @@
     <ClInclude Include="CommonPch.h" />
     <ClInclude Include="CommonTypes.h" />
     <ClInclude Include="CommonUtils.h" />
+    <ClInclude Include="Container.h" />
+    <ClInclude Include="DirectedGraph.h" />
     <ClInclude Include="FreeList.h" />
     <ClInclude Include="GraphicsInfrastructure.h" />
     <ClInclude Include="IndexAllocator.h" />
@@ -36,6 +38,7 @@
   <ItemGroup>
     <ClCompile Include="AssertUtils.cpp" />
     <ClCompile Include="CommonPch.cpp" />
+    <ClCompile Include="DirectedGraph.cpp" />
     <ClCompile Include="GraphicsInfrastructure.cpp" />
     <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="Profile.cpp" />
@@ -102,7 +105,7 @@
       <ConformanceMode>Default</ConformanceMode>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\zeux-microprofile;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -123,7 +126,7 @@
       <ConformanceMode>Default</ConformanceMode>
       <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\zeux-microprofile;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -62,6 +62,23 @@ namespace D3D12Backend
 		mDesc.BlendState = desc;
 	}
 
+
+	void GraphicsPipelineState::SetRtvFormat(u32 index, DXGI_FORMAT format)
+	{
+		mDesc.RTVFormats[index] = format;
+	}
+
+
+	void GraphicsPipelineState::SetRtCount(u32 count)
+	{
+		mDesc.NumRenderTargets = count;
+	}
+
+	void GraphicsPipelineState::SetDsvFormat(DXGI_FORMAT format)
+	{
+		mDesc.DSVFormat = format;
+	}
+
 	void GraphicsPipelineState::Finalize(D3D12PipelineStateLibrary* psLib)
 	{
 		mPso = psLib->CreateGraphicsPso(mDesc);

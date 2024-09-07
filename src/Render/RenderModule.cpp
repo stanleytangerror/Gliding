@@ -3,7 +3,6 @@
 #include "ScreenRenderer.h"
 #include "WorldRenderer.h"
 #include "RenderDoc/RenderDocIntegration.h"
-#include "RenderTarget.h"
 
 #if defined(_DEBUG)
 #define ENABLE_RENDER_DOC_PLUGIN 0
@@ -26,80 +25,76 @@ void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& wi
 
 void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
 {
+	mFrameGraph->Unimport(mGraphicInfra->GetWindowBackBuffer(windowId));
+	
 	mGraphicInfra->ResizeWindow(windowId, size);
 }
 
-void RenderModule::Initial(const Vec2u& initialSize)
+void RenderModule::Initial()
 {
 #if ENABLE_RENDER_DOC_PLUGIN
 	mRenderDoc = new RenderDocIntegration;
 #endif
 
 	mGraphicInfra = mCreateGraphicsInfra();
-
-	mGraphicInfra->StartRecording();
-
-	mScreenRenderer = std::make_unique<ScreenRenderer>(this);
-	mWorldRenderer = std::make_unique<WorldRenderer>(this, initialSize);
-	mImGuiRenderer = std::make_unique<ImGuiRenderer>(this);
-
-	mSceneHdrRt = std::make_unique<RenderTarget>(mGraphicInfra, Vec3u{ initialSize.x(), initialSize.y(), 1 }, GI::Format::FORMAT_R11G11B10_FLOAT, "HdrRt");
-
-	mGraphicInfra->EndRecording(false);
+	mFrameGraph = std::make_unique<FrameGraph>(mGraphicInfra);
 }
 
 void RenderModule::TickFrame(Timer* timer)
 {
 	PROFILE_EVENT(RenderModule::TickFrame);
 
-	mScreenRenderer->TickFrame(timer);
-	mWorldRenderer->TickFrame(timer);
-	mImGuiRenderer->TickFrame(timer);
+	if (mScreenRenderer) { mScreenRenderer->TickFrame(timer); }
+	if (mWorldRenderer) { mWorldRenderer->TickFrame(timer); }
+	if (mImGuiRenderer) { mImGuiRenderer->TickFrame(timer); }
 }
 
 void RenderModule::Render()
 {
+	PROFILE_EVENT(RenderModule::Render);
+
 	if (mRenderDoc)
 	{
 		mRenderDoc->OnStartFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
 	}
 
 	mGraphicInfra->StartFrame();
+
+	mFrameGraph->StartFrame();
+
+	if (!mImGuiRenderer) { mImGuiRenderer = std::make_unique<ImGuiRenderer>(this); }
+	if (!mScreenRenderer) { mScreenRenderer = std::make_unique<ScreenRenderer>(this); }
+	if (!mWorldRenderer) { mWorldRenderer = std::make_unique<WorldRenderer>(this, mWindowInfo[PresentPortType::MainPort].mSize); }
+
 	{
 		{
-			RENDER_EVENT(mGraphicInfra, RenderWorldToHdr);
-			mWorldRenderer->Render(mGraphicInfra, mSceneHdrRt->GetRtv());
-		}
+			PROFILE_EVENT(RenderToMainPort);
 
-		{
-			RENDER_EVENT(mGraphicInfra, RenderToMainPort);
+			auto sceneHdr = mWorldRenderer->Render();
+
+			//RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
-			auto target = GI::RtvUsage(backBuffer);
-			target
-				.SetFormat(backBuffer->GetFormat())
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-				.SetTexture2D_MipSlice(0)
-				.SetTexture2D_PlaneSlice(0);
-			mScreenRenderer->Render(mGraphicInfra, mSceneHdrRt->GetSrv(), target);
-			mImGuiRenderer->Render(mGraphicInfra, target, mUiData);
+			auto target = mFrameGraph->Import(backBuffer);
+			mScreenRenderer->Render(sceneHdr, target);
+			mImGuiRenderer->Render(target, mUiData);
+			mFrameGraph->Present(target);
 		}
 
 		{
-			RENDER_EVENT(mGraphicInfra, DebugChannels);
+			PROFILE_EVENT(RenderToDebugPort);
 
 			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
-			auto target = GI::RtvUsage(backBuffer);
-			target
-				.SetFormat(backBuffer->GetFormat())
-				.SetViewDimension(GI::RtvDimension::TEXTURE2D)
-				.SetTexture2D_MipSlice(0)
-				.SetTexture2D_PlaneSlice(0);
-			mWorldRenderer->RenderGBufferChannels(mGraphicInfra, target);
-			mWorldRenderer->RenderShadowMaskChannel(mGraphicInfra, target);
-			mWorldRenderer->RenderLightViewDepthChannel(mGraphicInfra, target);
+			auto target = mFrameGraph->Import(backBuffer);
+			mWorldRenderer->RenderGBufferChannels(target);
+			mWorldRenderer->RenderShadowMaskChannel(target);
+			mWorldRenderer->RenderLightViewDepthChannel(target);
+			mFrameGraph->Present(target);
 		}
 	}
+
+	mFrameGraph->EndFrame();
+
 	mGraphicInfra->EndFrame();
 	
 	mGraphicInfra->Present();
@@ -114,8 +109,9 @@ void RenderModule::Destroy()
 {
 	mScreenRenderer = nullptr;
 	mWorldRenderer = nullptr;
-	mSceneHdrRt = nullptr;
 	mImGuiRenderer = nullptr;
+
+	mFrameGraph = nullptr;
 
 	Utils::SafeDelete(mGraphicInfra);
 }

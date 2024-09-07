@@ -18,8 +18,6 @@ namespace DirectX
 
 namespace D3D12Utils
 {
-	class WindowsImage;
-
 	constexpr DXGI_FORMAT ToDxgiFormat(GI::Format::Enum format) { return DXGI_FORMAT(format); }
 	constexpr GI::Format::Enum ToGiFormat(DXGI_FORMAT format) { return GI::Format::Enum(format); }
 
@@ -34,11 +32,8 @@ namespace D3D12Utils
 	void SetRawD3D12ResourceName(ID3D12Object* res, const wchar_t* name);
 	void SetRawD3D12ResourceName(ID3D12Object* res, const std::wstring& name);
 
-	//std::unique_ptr<D3D12Backend::CommitedResource> CreateTextureFromImageFile(D3D12Backend::D3D12CommandContext* context, const char* filePath);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromImageMemory(D3D12Backend::D3D12CommandContext* context, const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateTextureFromRawMemory(D3D12Backend::D3D12CommandContext* context, DXGI_FORMAT format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-	std::unique_ptr<GI::IGraphicMemoryResource> CreateResourceFromImage(D3D12Backend::D3D12CommandContext* context, const D3D12Utils::WindowsImage& image);
-	
+	void InitialD3DResourceFromImage(D3D12Backend::D3D12CommandContext* context, GI::IGraphicMemoryResource* resource, const GI::IImage& image);
+
 	D3D12_COMPARISON_FUNC ToDepthCompareFunc(const Math::ValueCompareState& state);
 
 	/* dxgi format util functions from Microsoft/DirectX-Graphics-Samples */
@@ -64,20 +59,6 @@ namespace D3D12Utils
 	protected:
 		std::string const	mRoot;
 		std::string	mContent;
-	};
-
-	class WindowsImage : public GI::IImage
-	{
-	public:
-		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content);
-		static std::unique_ptr<WindowsImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name);
-
-		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image);
-
-		DirectX::ScratchImage* GetImage() const { return mImage.get(); }
-
-	protected:
-		const std::unique_ptr<DirectX::ScratchImage> mImage;
 	};
 }
 

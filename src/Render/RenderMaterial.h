@@ -2,6 +2,7 @@
 
 #include "World/Scene.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "FrameGraph.h"
 
 struct RenderMaterial
 {
@@ -13,9 +14,6 @@ struct RenderMaterial
 	};
 
 	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
-
-	void UpdateGpuResources(GI::IGraphicsInfra* infra);
-	bool IsGpuResourceReady() const;
 
 	static RenderMaterial* GenerateRenderMaterialFromRawData(
 		const MaterialRawData* matRawData,

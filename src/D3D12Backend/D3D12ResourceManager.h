@@ -49,5 +49,29 @@ namespace D3D12Backend
 		std::map<GI::CommittedResourceId, std::unique_ptr<CommitedResource>, GI::CommittedResourceId::Less> mResourceIdMapping;
 		std::map<GI::CommittedResourceId, std::map<HashValue, std::pair<D3D12DescriptorAllocator*, DescriptorPtr>>, GI::CommittedResourceId::Less> mResourceViewMapping;
 		std::map<HashValue, std::pair<D3D12DescriptorAllocator*, DescriptorPtr>> mSamplerMapping;
+
+		struct ResourceMonitor
+		{
+		public:
+			void OnCreateResource(ID3D12Resource* resource, const D3D12_RESOURCE_DESC& desc, const char* name);
+			void OnPossessResourceWithOwnership(ID3D12Resource* resource, const D3D12_RESOURCE_DESC& desc, const char* name);
+			void OnReleaseResource(ID3D12Resource* resource);
+
+			void PrintResourceStatistics();
+
+		private:
+			static u32	CalcMemorySize(const D3D12_RESOURCE_DESC& desc);
+
+			struct DeviceResourceStatus
+			{
+				std::string mName;
+				D3D12_RESOURCE_DESC mDesc;
+				u32	mMemorySize = 0;
+			};
+
+			std::map<ID3D12Resource*, DeviceResourceStatus>	mResources;
+		};
+
+		ResourceMonitor			mMonitor;
 	};
 }

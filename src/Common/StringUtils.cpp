@@ -39,6 +39,24 @@ std::string Utils::FormatString(const char* format, ...)
 	return std::string(buffer);
 }
 
+GD_COMMON_API std::string Utils::EscapeString(const char* str)
+{
+	auto count = std::strlen(str);
+	auto escapeCount = std::count_if<const char*>(str, str + count, [](char c) { return c == '\\'; });
+	std::vector<char> buffer(count + escapeCount + 1, 0);
+	auto t = buffer.data();
+	for (auto s = str; s < str + count; ++t, ++s)
+	{
+		if (*s == '\\') 
+		{
+			*t = '\\';
+			++t;
+		}
+		*t = *s;
+	}
+	return buffer.data();
+}
+
 std::string Utils::GetDirFromPath(const char* path)
 {
 	const std::string& pathStr = path;
@@ -74,6 +92,13 @@ std::vector<b8> Utils::LoadFileContent(const char* path)
 	}
 
 	return {};
+}
+
+
+GD_COMMON_API void Utils::WriteFileText(const char* path, const std::string& text)
+{
+	std::ofstream out(path);
+	out << text;
 }
 
 u32 Utils::HashBytes(const b8* data, u32 size)

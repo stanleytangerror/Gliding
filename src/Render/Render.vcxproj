@@ -67,7 +67,7 @@
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -90,7 +90,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -104,6 +104,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="EnvironmentMap.h" />
+    <ClInclude Include="FrameGraph.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Geometry_inl.h" />
     <ClInclude Include="ImGuiRenderer.h" />
@@ -113,7 +114,6 @@
     <ClInclude Include="RenderMaterial.h" />
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
-    <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="RenderUtils.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Texture.h" />
@@ -121,13 +121,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EnvironmentMap.cpp" />
+    <ClCompile Include="FrameGraph.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="ImGuiRenderer.cpp" />
     <ClCompile Include="RenderDoc\RenderDocIntegration.cpp" />
     <ClCompile Include="RenderMaterial.cpp" />
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
-    <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="RenderUtils.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />

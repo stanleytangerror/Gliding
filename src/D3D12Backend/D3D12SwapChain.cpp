@@ -3,12 +3,13 @@
 
 namespace D3D12Backend
 {
-	SwapChain::SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount)
+	SwapChain::SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount, const char* name)
 		: mDevice(device)
 		, mGpuQueue(gpuQueue)
 		, mWindowHandle(windowHandle)
 		, mSize(size)
 		, mFrameCount(frameCount)
+		, mName(name)
 	{
 		// Describe and create the swap chain.
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -46,14 +47,8 @@ namespace D3D12Backend
 
 	void SwapChain::Present()
 	{
-		DEBUG_PRINT(" ================ Begin Present ===================== ");
-		DEBUG_PRINT("\t Before present, current Back Buffer Index % d", mCurrentBackBufferIndex);
-
 		AssertHResultOk(mSwapChain->Present(0, 0));
 		mCurrentBackBufferIndex = (mCurrentBackBufferIndex + 1) % mFrameCount;
-
-		DEBUG_PRINT("\t Done present, current Back Buffer Index % d", mCurrentBackBufferIndex);
-		DEBUG_PRINT(" ================ End Present ======================= ");
 	}
 
 	void SwapChain::Resize(const Vec2u& newSize)
@@ -88,7 +83,7 @@ namespace D3D12Backend
 			mBuffers.push_back(
 				mDevice->GetResourceManager()->PossessResourceWithOwnership(
 					resource,
-					Utils::FormatString("BackBuffer_%d", n).c_str(),
+					Utils::FormatString("BackBuffer_%s_%d", mName.c_str(), n).c_str(),
 					D3D12_RESOURCE_STATE_COMMON));
 		}
 	}

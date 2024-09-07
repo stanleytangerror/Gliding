@@ -4,6 +4,8 @@
 #include "Math.h"
 #include "Texture.h"
 #include "PresentPort.h"
+#include "StringUtils.h"
+#include "Container.h"
 
 #define CAT2(X,Y) X##Y
 #define CAT(X,Y) CAT2(X,Y)
@@ -550,6 +552,26 @@ namespace GI
         }
     }
 
+    constexpr Format::Enum GetDsvFormat(Format::Enum format)
+    {
+        switch (format)
+        {
+        case Format::FORMAT_R32G8X24_TYPELESS:  return Format::FORMAT_D32_FLOAT_S8X24_UINT;
+        case Format::FORMAT_R24G8_TYPELESS:     return Format::FORMAT_D24_UNORM_S8_UINT;
+        default:Assert(false); return Format::FORMAT_UNKNOWN;
+        }
+    }
+
+    constexpr Format::Enum GetSrvFormat(Format::Enum format)
+    {
+        switch (format)
+        {
+        case Format::FORMAT_R32G8X24_TYPELESS:  return Format::FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        case Format::FORMAT_R24G8_TYPELESS:     return Format::FORMAT_R24_UNORM_X8_TYPELESS;
+        default: return format;
+        }
+    }
+
     struct GD_COMMON_API Viewport
     {
         CONTINOUS_SETTER_VALUE(Viewport, f32, TopLeftX, 0.0f);
@@ -589,6 +611,7 @@ namespace GI
         virtual Vec3u                   GetSize() const = 0;
         virtual Format::Enum            GetFormat() const = 0;
         virtual u16                     GetMipLevelCount() const = 0;
+        virtual const char*             GetDebugName() const = 0;
 
     protected:
         const CommittedResourceId       mId;
@@ -674,6 +697,10 @@ namespace GI
         CONTINOUS_SETTER_VALUE(SamplerDesc, Vec4f, BorderColor, Vec4f::Zero());
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MinLOD, 0);
         CONTINOUS_SETTER_VALUE(SamplerDesc, f32, MaxLOD, std::numeric_limits<f32>::max());
+		
+        SamplerDesc& SetAddressXY(TextureAddressMode::Enum mode) { mAddress[0] = mAddress[1] = mode; return *this; }
+		SamplerDesc& SetAddressZ(TextureAddressMode::Enum mode) { mAddress[2] = mode; return *this; }
+		SamplerDesc& SetAddressXYZ(TextureAddressMode::Enum mode) { mAddress[0] = mAddress[1] = mAddress[2] = mode; return *this; }
     };
 
     struct GD_COMMON_API InputElementDesc
@@ -815,8 +842,14 @@ namespace GI
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, u64, SampleDesc_Quality, 0);
         CONTINOUS_SETTER(MemoryResourceDesc, TextureLayout::Enum, Layout);
         CONTINOUS_SETTER(MemoryResourceDesc, ResourceFlag::Flags, Flags);
-        CONTINOUS_SETTER_VALUE(MemoryResourceDesc, const char*, Name, nullptr);
+        CONTINOUS_SETTER(MemoryResourceDesc, std::string, Name);
         CONTINOUS_SETTER_VALUE(MemoryResourceDesc, ResourceState::Enum, InitState, ResourceState::STATE_COMMON);
+
+        MemoryResourceDesc& SetSize(const Vec3u& size) { return SetWidth(size.x()).SetHeight(size.y()).SetDepthOrArraySize(size.z()); }
+        Vec3u GetSize() const { return { (u32) GetWidth(), (u32) GetHeight(), (u32) GetDepthOrArraySize() }; }
+
+        using Key = u64;
+        Key GetKey() const;
 
     public:
         static MemoryResourceDesc Buffer(u64 size, HeapType::Enum heapType, ResourceState::Enum initialState, ResourceFlag::Flags flags, u8 alignment)
@@ -836,6 +869,101 @@ namespace GI
                 .SetHeapType(heapType)
                 .SetInitState(initialState);
         }
+
+        static MemoryResourceDesc Buffer2(u64 size, bool allowRtv, bool allowUav, const char* name)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::BUFFER)
+                .SetAlignment(0)
+                .SetWidth(size)
+                .SetHeight(1)
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(Format::FORMAT_UNKNOWN)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_ROW_MAJOR)
+                .SetFlags((allowRtv ? GI::ResourceFlag::ALLOW_RENDER_TARGET : 0)
+                    | (allowUav ? GI::ResourceFlag::ALLOW_UNORDERED_ACCESS : 0))
+                .SetHeapType(GI::HeapType::DEFAULT)
+                .SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
+                .SetName(name);
+        }
+
+        static MemoryResourceDesc RenderTarget2D(Vec2u size, Format::Enum format, GI::ResourceFlag::Flags flags, const char* name)
+        {
+            return MemoryResourceDesc()
+                .SetDimension(ResourceDimension::TEXTURE2D)
+                .SetAlignment(0)
+                .SetWidth(size.x())
+                .SetHeight(size.y())
+                .SetDepthOrArraySize(1)
+                .SetMipLevels(1)
+                .SetFormat(format)
+                .SetSampleDesc_Count(1)
+                .SetSampleDesc_Quality(0)
+                .SetLayout(TextureLayout::LAYOUT_UNKNOWN)
+                .SetFlags(flags)
+                .SetHeapType(GI::HeapType::DEFAULT)
+                .SetInitState(GI::ResourceState::STATE_RENDER_TARGET)
+                .SetName(name);
+        }
+
+        static SrvDesc AsTexture2DSrv(const MemoryResourceDesc& resDesc)
+        {
+            return SrvDesc()
+                .SetFormat(GetSrvFormat(resDesc.GetFormat()))
+                .SetViewDimension(GI::SrvDimension::TEXTURE2D)
+                .SetTexture2D_MipLevels(resDesc.GetMipLevels())
+                .SetTexture2D_MostDetailedMip(0)
+                .SetTexture2D_PlaneSlice(0)
+                .SetTexture2D_ResourceMinLODClamp(0.f);
+        }
+
+        static RtvDesc AsTexture2DRtv(const MemoryResourceDesc& resDesc)
+        {
+            return RtvDesc()
+                .SetFormat(resDesc.GetFormat())
+                .SetViewDimension(GI::RtvDimension::TEXTURE2D)
+                .SetTexture2D_MipSlice(0)
+                .SetTexture2D_PlaneSlice(0);
+        }
+
+        static UavDesc AsTexture2DUav(const MemoryResourceDesc& resDesc)
+        {
+            return UavDesc()
+                .SetFormat(resDesc.GetFormat())
+                .SetViewDimension(GI::UavDimension::TEXTURE2D);
+        }
+
+        static DsvDesc AsTexture2DDsv(const MemoryResourceDesc& resDesc)
+        {
+            return DsvDesc()
+                .SetFormat(GetDsvFormat(resDesc.GetFormat()))
+                .SetViewDimension(GI::DsvDimension::TEXTURE2D)
+                .SetFlags(GI::DsvFlag::NONE);
+        }
+
+        static UavDesc AsBufferUav(const MemoryResourceDesc& resDesc, u32 numElements, u32 stride)
+        {
+            return UavDesc()
+                .SetFormat(GI::Format::FORMAT_UNKNOWN)
+                .SetViewDimension(GI::UavDimension::BUFFER)
+                .SetBuffer_FirstElement(0)
+                .SetBuffer_NumElements(numElements)
+                .SetBuffer_StructureByteStride(u32(stride))
+                .SetBuffer_FlagRawRatherThanNone(false);
+        }
+
+        static SrvDesc AsBufferSrv(const MemoryResourceDesc& resDesc, u32 numElements, u32 stride)
+        {
+            return SrvDesc()
+                .SetFormat(GI::Format::FORMAT_R32_UINT)
+                .SetViewDimension(GI::SrvDimension::BUFFER)
+                .SetBuffer_FirstElement(0)
+                .SetBuffer_NumElements(numElements)
+                .SetBuffer_FlagRawRatherThanNone(false);
+        }
     };
 
     class GD_COMMON_API ReadOnly2DResourceDesc
@@ -846,13 +974,39 @@ namespace GI
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, Height);
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, ArraySize);
 		CONTINOUS_SETTER(ReadOnly2DResourceDesc, u32, MipLevel);
-		CONTINOUS_SETTER_VALUE(ReadOnly2DResourceDesc, const char*, Name, nullptr);
+		CONTINOUS_SETTER(ReadOnly2DResourceDesc, std::string, Name);
+    };
+
+    struct GD_COMMON_API TextureSubresourceDesc
+    {
+        // https://stackoverflow.com/questions/73420449/what-is-subresource-in-direct-3d-12
+        u32 DepthOrArrayIndex = 0;
+        u32 MipLevelIndex = 0;
+        u32 PlaneIndex = 0;
+
+		u32 GetSubresourceIndex(const MemoryResourceDesc& desc) const;
+		u32 GetSubresourceIndex(ResourceDimension::Enum dim, u32 depthOrArrayIndex, u32 mipLevelCount, u32 planeCount) const;
     };
 
     class GD_COMMON_API IImage
     {
     public:
-        //virtual MemoryResourceDesc GetResourceDesc() const = 0;
+		struct GD_COMMON_API SubImageContent
+		{
+			b8* pixels = nullptr;
+			u64 rowPitch = 0;
+			u64 slicePitch = 0;
+		};
+
+		struct GD_COMMON_API ImageContent
+		{
+			ResourceDimension::Enum dimension;
+			std::vector<SubImageContent> subImages;
+		};
+
+    public:
+		virtual MemoryResourceDesc GetResourceDesc() const = 0;
+        virtual ImageContent GetImageContent() const = 0;
     };
 
     using DevicePtr = void*;
@@ -863,6 +1017,7 @@ namespace GI
 		virtual void    AddClearOperation(const RtvUsage& rtv, const Vec4f& value) = 0;
 		virtual void    AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) = 0;
         virtual void    AddCopyOperation(IGraphicMemoryResource* dest, IGraphicMemoryResource* src) = 0;
+		virtual void    AddCopyBufferToTexture(IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, IGraphicMemoryResource* srcBuffer) = 0;
 		virtual void    AddGraphicsPass(const class GraphicsPass& pass) = 0;
 		virtual void    AddComputePass(const class ComputePass& pass) = 0;
 		virtual void    AddPreparePresent(IGraphicMemoryResource* res) = 0;
@@ -885,13 +1040,12 @@ namespace GI
         virtual ~IGraphicsInfra() = 0 {}
 
         virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const MemoryResourceDesc& desc) = 0;
-		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResource(const IImage& image) = 0;
-		virtual std::unique_ptr<IGraphicMemoryResource>     CreateMemoryResourceFromTexture2DData(const ReadOnly2DResourceDesc& desc) = 0;
+
+		virtual void                                        InitialMemoryResourceFromImage(IGraphicMemoryResource* resource, const IImage& image) = 0;
 
         virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
 
-        virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const = 0;
-        virtual std::unique_ptr<IImage>     CreateFromScratch(Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const = 0;
+        virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const = 0;
 
 		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
 		virtual void                        ResizeWindow(u8 windowId, const Vec2u& windowSize) = 0;
@@ -908,45 +1062,33 @@ namespace GI
         virtual DevicePtr                   GetNativeDevicePtr() const = 0;
     };
 
-    template <typename T>
-    inline std::vector<b8> ToConstBufferParamData(const T& var);
-
-    template <typename T>
-    inline std::vector<b8> ToConstBufferParamData(const T& var)
-    {
-        std::vector<b8> result(sizeof(T), {});
-        memcpy(result.data(), &var, sizeof(T));
-        return result;
-    }
-
-    template <>
-    inline std::vector<b8> ToConstBufferParamData(const Mat33f& var)
-    {
-        std::vector<b8> result(sizeof(f32) * (4 + 4 + 3), {});
-        Assert(false);
-        return result;
-    }
-
-
-    template <>
-    inline std::vector<b8> ToConstBufferParamData(const std::vector<f32>& var)
-    {
-        const auto size = var.size() * sizeof(f32);
-
-        std::vector<b8> result(size, {});
-        memcpy_s(result.data(), size, var.data(), size);
-        return result;
-    }
-
     class GD_COMMON_API GraphicsPass
     {
     public:
-        template <typename T>
-        void AddCbVar(const std::string& name, const T& var)
-        {
-            Assert(mCbParams.find(name) == mCbParams.end());
-            mCbParams[name] = ToConstBufferParamData(var);
-        }
+		void AddCbNf(const std::string& name, const std::vector<f32>& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			Assert(var.size() <= 64);
+            mCbParams[name] = StackMemory<64>(reinterpret_cast<const b8*>(var.data()), var.size() * sizeof(f32));
+		}
+
+		void AddCb3f(const std::string& name, const Vec3f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec3f)>(&var);
+		}
+
+		void AddCb4f(const std::string& name, const Vec4f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec4f)>(&var);
+		}
+
+		void AddCb44f(const std::string& name, const Mat44f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Mat44f)>(&var);
+		}
 
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
@@ -960,6 +1102,35 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
+		template<typename ...Args>
+		void SetShader(const char* name, const Args&... args)
+        {
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mVsFile = shaderPath;
+			mPsFile = shaderPath;
+            AddShaderMacros(args...);
+        }
+
+		void SetShader(const char* name, const std::vector<ShaderMacro>& macros)
+		{
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mVsFile = shaderPath;
+			mPsFile = shaderPath;
+			for (const auto& macro : macros)
+            {
+                AddShaderMacros(macro);
+            }
+		}
+
+		void AddShaderMacros() {}
+		
+        template<typename ...Args>
+		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
+		{
+			mShaderMacros.push_back(macro);
+            AddShaderMacros(args...);
+		}
+
         void SetDsv(const DsvUsage& dsv)
         {
 			mDsv = dsv;
@@ -972,20 +1143,23 @@ namespace GI
             mRtvCount = std::max<u8>(mRtvCount, index + 1);
 		}
 
-        void PushVbv(const VbvUsage& vbv)
-        {
-            mVbvs.push_back(vbv);
-        }
+        void SetStencilRef(u32 val) { mStencilRef = val; }
 
-        void SetIbv(const IbvUsage& ibv)
-        {
-            mIbv = ibv;
-        }
+		void SetViewPortAndScissorRectToFullRt();
+		void SetViewPortAndScissorRectToFullDepth();
 
+        void SetGeometry(
+            const VbvUsage& vbv, i32 vertexStartLocation, const std::vector<InputElementDesc>& inputLayout,
+            const IbvUsage& ibv, i32 indexStartLocation, i32 indexCount,
+            i32 instanceCount = 1);
+
+		RasterizerDesc& SetupRasterizer() { return mRasterizerDesc; }
+		DepthStencilDesc& SetupDepthStencil() { return mDepthStencilDesc; }
+        BlendDesc& SetupBlend() { return mBlendDesc; }
+        
         bool IsReadyForExecute() const;
 
 	public:
-		RootSignatureDesc			                mRootSignatureDesc;
         std::string                                 mVsFile;
         std::string                                 mPsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
@@ -1012,7 +1186,7 @@ namespace GI
         Math::Rect  								mScissorRect = {};
         u32     									mStencilRef = 0;
 
-        std::map<std::string, std::vector<b8>>      mCbParams;
+        std::map<std::string, StackMemory<64>>      mCbParams;
         std::map<std::string, SrvUsage>	            mSrvParams;
         std::map<std::string, SamplerDesc>	        mSamplerParams;
     };
@@ -1020,12 +1194,30 @@ namespace GI
     class GD_COMMON_API ComputePass
     {
     public:
-        template <typename T>
-        void AddCbVar(const std::string& name, const T& var)
-        {
-            Assert(mCbParams.find(name) == mCbParams.end());
-			mCbParams[name] = ToConstBufferParamData(var);
-        }
+		void AddCbNf(const std::string& name, const std::vector<f32>& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			Assert(var.size() <= 64);
+            mCbParams[name] = StackMemory<64>(reinterpret_cast<const b8*>(var.data()), var.size() * sizeof(f32));
+		}
+
+		void AddCb3f(const std::string& name, const Vec3f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec3f)>(&var);
+		}
+
+		void AddCb4f(const std::string& name, const Vec4f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Vec4f)>(&var);
+		}
+
+		void AddCb44f(const std::string& name, const Mat44f& var)
+		{
+			Assert(mCbParams.find(name) == mCbParams.end());
+			mCbParams[name] = StackMemory<sizeof(Mat44f)>(&var);
+		}
 
         void AddSrv(const std::string& name, const SrvUsage& srv)
         {
@@ -1045,17 +1237,32 @@ namespace GI
             mSamplerParams[name] = sampler;
         }
 
+		template<typename ...Args>
+		void SetShader(const char* name, const Args&... args)
+		{
+			const auto& shaderPath = Utils::FormatString("res/Shader/%s.hlsl", name);
+			mCsFile = shaderPath;
+			AddShaderMacros(args...);
+		}
+
+		template<typename ...Args>
+		void AddShaderMacros(const ShaderMacro& macro, const Args& ...args)
+		{
+			mShaderMacros.push_back(macro);
+			AddShaderMacros(args...);
+		}
+		void AddShaderMacros() {}
+
 		bool IsReadyForExecute() const;
 
 	public:
-        RootSignatureDesc		                	mRootSignatureDesc;
         std::string                                 mCsFile;
         std::vector<ShaderMacro>	                mShaderMacros;
 
         std::map<std::string, GI::SamplerDesc>		mSamplerParams;
         std::map<std::string, GI::SrvUsage>  		mSrvParams;
         std::map<std::string, GI::UavUsage>	        mUavParams;
-        std::map<std::string, std::vector<b8>>	    mCbParams;
+        std::map<std::string, StackMemory<64>>	    mCbParams;
 
         std::array<u32, 3>							mThreadGroupCounts = {};
     };

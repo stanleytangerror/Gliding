@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Geometry.h"
+#include "FrameGraph.h"
 
 class RenderModule;
 
@@ -12,11 +13,11 @@ public:
 	virtual ~ScreenRenderer();
 
 	void TickFrame(Timer* timer);
-	void Render(GI::IGraphicsInfra* infra, const GI::SrvUsage& sceneHdr, const GI::RtvUsage& screenRt);
+	void Render(const FrameGraphResource& sceneHdr, FrameGraphMutableResource& screenRt);
 
 private:
-	void CalcSceneExposure(GI::IGraphicsInfra* infra, const GI::SrvUsage& input, const GI::UavUsage& exposureTex);
-	void ToneMapping(GI::IGraphicsInfra* infra, const GI::SrvUsage& sceneHdr, const GI::SrvUsage& exposure, const GI::RtvUsage& target);
+	FrameGraphMutableResource CalcSceneExposure(const FrameGraphResource& input);
+	void ToneMapping(const FrameGraphResource& sceneHdr, const FrameGraphResource& exposure, FrameGraphMutableResource& target);
 
 private:
 	RenderModule* mRenderModule = nullptr;

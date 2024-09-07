@@ -19,8 +19,9 @@ static std::mutex						sMessageMutex;
 
 std::queue<WinMessage> ReadMessages()
 {
-	std::lock_guard<std::mutex> guard(sMessageMutex);
 	std::queue<WinMessage> result;
+
+	std::lock_guard<std::mutex> guard(sMessageMutex);
 	std::swap(result, sMessages);
 	return result;
 }
@@ -107,41 +108,78 @@ void Application::LogicThread()
 
 	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mNativeHandle);
 
-	mRenderModule->Initial(mMainWindowInfo.mSize);
+	mRenderModule->Initial();
 
 	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
 	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
 
 	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
 	{
-		mTimer->OnStartNewFrame();
+		LogicFrame();
+	}
+}
 
-		auto messages = ReadMessages();
-		std::map<u8, Vec2u> newSizes;
-		while (!messages.empty())
+void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
+{
+	mMainWindowInfo.mSize = { 1600, 900 };
+	mMainWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
+
+	mDebugWindowInfo.mSize = { 640, 360 };
+	mDebugWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
+
+	mWindowCreated = true;
+
+	MSG msg = {};
+	while (msg.message != WM_QUIT)
+	{
+		// Process any messages in the queue.
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			auto msg = messages.front();
-			messages.pop();
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
 
-			if (msg.message == WM_SIZE)
-			{
-				UINT width = LOWORD(msg.lParam);
-				UINT height = HIWORD(msg.lParam);
-				u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
-				newSizes[windowId] = { width, height };
-			}
+	mMainWindowInfo.mNativeHandle = {};
+	mDebugWindowInfo.mNativeHandle = {};
+}
 
-			ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
+
+void Application::LogicFrame()
+{
+	PROFILE_EVENT(Application::LogicFrame);
+
+	mTimer->OnStartNewFrame();
+	DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
+
+	auto messages = ReadMessages();
+	std::map<u8, Vec2u> newSizes;
+	while (!messages.empty())
+	{
+		auto msg = messages.front();
+		messages.pop();
+
+		if (msg.message == WM_SIZE)
+		{
+			UINT width = LOWORD(msg.lParam);
+			UINT height = HIWORD(msg.lParam);
+			u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
+			newSizes[windowId] = { width, height };
 		}
 
-		for (const auto& p : newSizes)
-		{
-			auto windowId = p.first;
-			auto newSize = p.second;
-			mRenderModule->OnResizeWindow(windowId, newSize);
-			DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
-		}
+		ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
+	}
 
+	for (const auto& p : newSizes)
+	{
+		auto windowId = p.first;
+		auto newSize = p.second;
+		mRenderModule->OnResizeWindow(windowId, newSize);
+		DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
+	}
+
+	if (mRenderModule->GetImGuiRenderer())
+	{
 		ImGuiIntegration::BeginUI();
 		{
 			{
@@ -165,7 +203,8 @@ void Application::LogicThread()
 					}
 
 					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
-					Math::CameraTransformf& camTrans = worldRenderer->mCameraTrans;
+
+					Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
 					{
 						/* +x: camera right, +y: camera down */
 						const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
@@ -215,38 +254,13 @@ void Application::LogicThread()
 		}
 		ImDrawData* uiDate = ImGuiIntegration::EndUI();
 		mRenderModule->mUiData = uiDate;
-
-		mRenderModule->TickFrame(mTimer.get());
-
-		mRenderModule->Render();
-
-		Profile::Flush();
-	}
-}
-
-void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
-{
-	mMainWindowInfo.mSize = { 1600, 900 };
-	mMainWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
-
-	mDebugWindowInfo.mSize = { 640, 360 };
-	mDebugWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
-
-	mWindowCreated = true;
-
-	MSG msg = {};
-	while (msg.message != WM_QUIT)
-	{
-		// Process any messages in the queue.
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
 	}
 
-	mMainWindowInfo.mNativeHandle = {};
-	mDebugWindowInfo.mNativeHandle = {};
+	mRenderModule->TickFrame(mTimer.get());
+
+	mRenderModule->Render();
+
+	Profile::Flush();
 }
 
 LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

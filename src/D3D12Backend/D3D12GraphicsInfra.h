@@ -3,15 +3,6 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "D3D12Headers.h"
 
-#define CONSTRUCTOR_WITH_RESOURCE_ID(Type, Base) \
-	public:     Type() {} \
-	            Type(GI::IGraphicMemoryResource* resource) : mResourceId(resource->GetResourceId()) {} \
-	            Type(GI::CommittedResourceId id, const Base& base) : Base(base), mResourceId(id) {} \
-	            Type(const Type& other) : Base(other), mResourceId(other.mResourceId) {} \
-	            Type(const std::unique_ptr<GI::IGraphicMemoryResource>& resource) : mResourceId(resource->GetResourceId()) {} \
-                GI::CommittedResourceId GetResourceId() const { return mResourceId; } \
-	private:    GI::CommittedResourceId mResourceId = {};
-
 namespace D3D12Backend
 {
 	class D3D12GraphicsInfra : public GI::IGraphicsInfra
@@ -21,13 +12,12 @@ namespace D3D12Backend
 		~D3D12GraphicsInfra() override;
 
 		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::MemoryResourceDesc& desc) override;
-		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResource(const GI::IImage& image) override;
-		std::unique_ptr<GI::IGraphicMemoryResource> CreateMemoryResourceFromTexture2DData(const GI::ReadOnly2DResourceDesc& desc) override;
+
+		void InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image) override;
 
 		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
 
-		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const override;
-		std::unique_ptr<GI::IImage> CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const override;
+		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const override;
 
 		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;
 		void                        ResizeWindow(u8 windowId, const Vec2u& windowSize) override;
@@ -61,14 +51,12 @@ namespace D3D12Backend
 		void AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value) override;
 		void AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil) override;
 		void AddCopyOperation(GI::IGraphicMemoryResource* dest, GI::IGraphicMemoryResource* src) override;
+		void AddCopyBufferToTexture(GI::IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, GI::IGraphicMemoryResource* srcBuffer) override;
 		void AddGraphicsPass(const GI::GraphicsPass& pass) override;
 		void AddComputePass(const GI::ComputePass& pass) override;
 		void AddPreparePresent(GI::IGraphicMemoryResource* res) override;
 		void AddBeginEvent(const char* mark) override;
 		void AddEndEvent() override;
-
-
-		void AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, DirectX::ScratchImage* image); // TODO make image unique_ptr
 
 		void Finalize(bool dropAllCommands);
 
@@ -80,88 +68,6 @@ namespace D3D12Backend
 		std::queue<Command>		mCommands;
 	};
 
-	struct SrvUsageImpl : public GI::SrvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(SrvUsageImpl, GI::SrvDesc);
-	};
-	struct RtvUsageImpl : public GI::RtvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(RtvUsageImpl, GI::RtvDesc);
-	};
-	struct UavUsageImpl : public GI::UavDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(UavUsageImpl, GI::UavDesc);
-	};
-	struct DsvUsageImpl : public GI::DsvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(DsvUsageImpl, GI::DsvDesc);
-	};
-	struct VbvUsageImpl : public GI::VbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(VbvUsageImpl, GI::VbvDesc);
-	};
-	struct IbvUsageImpl : public GI::IbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE_ID(IbvUsageImpl, GI::IbvDesc);
-	};
-
-	class GraphicsPass
-	{
-		friend D3D12GraphicsRecorder;
-	public:
-		GI::RootSignatureDesc			            mRootSignatureDesc;
-
-		std::string                                 mVsFile;
-		std::string                                 mPsFile;
-		std::vector<GI::ShaderMacro>	                mShaderMacros;
-
-	public:
-		std::array<RtvUsageImpl, 8>               	mRtvs;
-		DsvUsageImpl                                mDsv;
-
-		std::vector<GI::InputElementDesc>               mInputLayout;
-
-		GI::RasterizerDesc                              mRasterizerDesc;
-		GI::DepthStencilDesc                            mDepthStencilDesc;
-		GI::BlendDesc                                   mBlendDesc;
-
-		std::vector<VbvUsageImpl>	                    mVbvs;
-		IbvUsageImpl                 					mIbv;
-		i32 										mVertexStartLocation = 0;
-		i32 										mIndexStartLocation = 0;
-		i32 										mIndexCount = 0;
-		i32 										mInstanceCount = 1;
-
-		GI::Viewport        							mViewPort = {};
-		Math::Rect  								mScissorRect = {};
-		u32     									mStencilRef = 0;
-
-		//protected:
-		std::map<std::string, std::vector<b8>>      mCbParams;
-		std::map<std::string, SrvUsageImpl>	            mSrvParams;
-		std::map<std::string, GI::SamplerDesc>	        mSamplerParams;
-	};
-
-	class ComputePass
-	{
-		friend D3D12GraphicsRecorder;
-	public:
-		GI::RootSignatureDesc			            mRootSignatureDesc;
-
-		std::string mCsFile;
-		std::vector<GI::ShaderMacro>	mShaderMacros;
-
-	public:
-		std::map<std::string, GI::SamplerDesc>		mSamplerParams;
-		std::map<std::string, SrvUsageImpl>  		mSrvParams;
-		std::map<std::string, UavUsageImpl>	        mUavParams;
-		std::map<std::string, std::vector<b8>>	    mCbParams;
-
-		std::array<u32, 3>							mThreadGroupCounts = {};
-
-	protected:
-		//bool                                        mReady = true;
-	};
 }
 
 extern "C"

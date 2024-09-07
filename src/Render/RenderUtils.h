@@ -4,22 +4,26 @@
 #include "Common/GraphicsInfrastructure.h"
 #include "Geometry.h"
 #include "RenderMaterial.h"
+#include "FrameGraph.h"
 
 struct SceneRawData;
 
 namespace RenderUtils
 {
-	void CopyTexture(GI::IGraphicsInfra* infra,
-		const GI::RtvUsage& target, const Vec2f& targetOffset, const Vec2f& targetRect,
-		const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
+	void CopyTexture(FrameGraph* frameGraph, 
+		FrameGraphMutableResource& target,
+		const Vec2f& targetOffset, const Vec2f& targetRect,
+		const FrameGraphResource& source,
+		const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
-	void CopyTexture(GI::IGraphicsInfra* infra,
-		const GI::RtvUsage& target, 
-		const GI::SrvUsage& source, const GI::SamplerDesc& sourceSampler);
+	void CopyTexture(FrameGraph* frameGraph, 
+		FrameGraphMutableResource& target,
+		const FrameGraphResource& source,
+		const GI::SamplerDesc& sourceSampler);
 
-	void GaussianBlur(GI::IGraphicsInfra* infra,
-		const GI::RtvUsage& target, 
-		const GI::SrvUsage& source, i32 kernelSizeInPixel);
+	void GaussianBlur(FrameGraph* frameGraph, 
+		FrameGraphMutableResource& target,
+		const FrameGraphResource& source, i32 kernelSizeInPixel);
 
 	enum WorldStencilMask : u8
 	{
@@ -33,12 +37,12 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(GI::IGraphicsInfra* infra, SceneRawData* sceneRawData);
+	FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData);
 
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-		GenerateMaterialProbes(GI::IGraphicsInfra* infra);
+		GenerateMaterialProbes(FrameGraph* frameGraph);
 
 	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
 }

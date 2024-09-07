@@ -49,6 +49,9 @@
     <ClCompile Include="D3D12GraphicsInfra.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="WinImage.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D12CommandContext.h">
@@ -100,6 +103,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="D3D12GraphicsInfra.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="WinImage.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

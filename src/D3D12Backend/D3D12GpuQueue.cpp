@@ -168,7 +168,7 @@ namespace D3D12Backend
 	{
 		Assert(mSwapChains.find(windowId) == mSwapChains.end());
 
-		const auto& swapChain = new SwapChain(mDevice, this, windowHandle, size, frameCount);
+		const auto& swapChain = new SwapChain(mDevice, this, windowHandle, size, frameCount, windowId == u32(PresentPortType::DebugPort) ? "DebugWindow" : "MainWindow");
 		mSwapChains.emplace(windowId, swapChain);
 		return swapChain;
 	}

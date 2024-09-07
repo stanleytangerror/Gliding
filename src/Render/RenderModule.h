@@ -7,6 +7,7 @@
 #include "Common/PresentPort.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "imgui.h"
+#include "FrameGraph.h"
 
 class ScreenRenderer;
 class RenderDocIntegration;
@@ -23,13 +24,15 @@ public:
 	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
 	void OnResizeWindow(u8 windowId, const Vec2u& size);
 
-	void Initial(const Vec2u& initialSize);
+	void Initial();
 
 	void TickFrame(Timer* timer);
 	void Render();
 
+	FrameGraph*					GetFrameGraph() const { return mFrameGraph.get(); }
 	GI::IGraphicsInfra*			GetGraphicsInfra() const { return mGraphicInfra; }
 	WorldRenderer*				GetWorldRenderer() const { return mWorldRenderer.get(); }
+	ImGuiRenderer*				GetImGuiRenderer() const { return mImGuiRenderer.get(); }
 
 	void				Destroy();
 
@@ -38,11 +41,10 @@ protected:
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
+	std::unique_ptr<FrameGraph>				mFrameGraph;
 	std::unique_ptr<ScreenRenderer>			mScreenRenderer;
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
-
-	std::unique_ptr<RenderTarget>			mSceneHdrRt;
 
 	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
 

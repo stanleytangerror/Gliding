@@ -22,6 +22,9 @@ namespace D3D12Backend
 		void SetRasterizerState(const D3D12_RASTERIZER_DESC& desc);
 		void SetDepthStencilState(const D3D12_DEPTH_STENCIL_DESC& desc);
 		void SetBlendState(const D3D12_BLEND_DESC& desc);
+		void SetRtvFormat(u32 index, DXGI_FORMAT format);
+		void SetRtCount(u32 count);
+		void SetDsvFormat(DXGI_FORMAT format);
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC& Descriptor() { return mDesc; }
 		void					Finalize(D3D12PipelineStateLibrary* psLib);

@@ -11,7 +11,11 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 {
 	mImGuiSampler
 		.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-		.SetAddress({ GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP, GI::TextureAddressMode::WRAP });
+		.SetAddressXYZ(GI::TextureAddressMode::WRAP);
+
+	ImGui::GetIO().Fonts->SetTexID(ImTextureID(-1)); // initial as invalid
+
+	auto frameGraph = mRenderModule->GetFrameGraph();
 
 	unsigned char* pixels = nullptr;
 	i32 width = 0, height = 0, bytesPerPixel = 0;
@@ -21,13 +25,44 @@ ImGuiRenderer::ImGuiRenderer(RenderModule* renderModule)
 	u32 uploadPitch = Math::Align(width * 4, GI::GetDataPitchAlignment());
 	u32 uploadSize = height * uploadPitch;
 
-	std::vector<b8> fontAtlas(uploadSize);
-	for (i32 y = 0; y < height; y++)
-	{
-		memcpy((void*)((uintptr_t)fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
-	}
+	auto uploadBuffer = frameGraph->CreateTransient(
+		GI::MemoryResourceDesc::Buffer2(uploadSize, false, false, "ImGuiFontAtlas")
+		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+		.SetHeapType(GI::HeapType::UPLOAD));
 
-	mFontAtlas.reset(new InMemoryTexture(mRenderModule->GetGraphicsInfra(), GI::Format::FORMAT_R8G8B8A8_UNORM, fontAtlas, { width, height, 1 }, 1, "ImGuiFontAtlas"));
+	mFontAtlas = frameGraph->CreatePermanent(
+		GI::MemoryResourceDesc::RenderTarget2D(
+			{ width, height },
+			GI::Format::FORMAT_R8G8B8A8_UNORM,
+			0, "ImGuiFontAtlas")
+		.SetInitState(GI::ResourceState::STATE_COPY_DEST));
+
+	struct PassData
+	{
+		std::vector<b8> fontAtlas;
+		FrameGraphMutableResource uploadBuffer;
+		FrameGraphMutableResource finalTexture;
+	};
+
+	frameGraph->AddPass<PassData>("Initial ImGuiFontAtlas",
+		[&](RenderPassBuilder& builder, PassData& data)
+		{
+			data.fontAtlas.resize(uploadSize);
+			for (i32 y = 0; y < height; y++)
+			{
+				std::memcpy((void*)((uintptr_t)data.fontAtlas.data() + y * uploadPitch), pixels + y * width * 4, width * 4);
+			}
+			data.uploadBuffer = builder.ReadWrite(uploadBuffer);
+			data.finalTexture = builder.Write(mFontAtlas);
+			builder.MarkSideEffect(data.finalTexture);
+		},
+		[](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		{
+			infra->CopyToUploadBufferResource(resources.Get(data.uploadBuffer.mId), data.fontAtlas);
+			infra->GetRecorder()->AddCopyBufferToTexture(resources.Get(data.finalTexture.mId), GI::TextureSubresourceDesc{}, resources.Get(data.uploadBuffer.mId));
+		});
+
+	ImGui::GetIO().Fonts->SetTexID(reinterpret_cast<ImTextureID>(&mFontAtlas));
 }
 
 void ImGuiRenderer::TickFrame(Timer* timer)
@@ -35,23 +70,9 @@ void ImGuiRenderer::TickFrame(Timer* timer)
 
 }
 
-void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target, ImDrawData* uiData)
+void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData)
 {
-	if (!mFontAtlas->IsGraphicsResourceReady())
-	{
-		mFontAtlas->CreateAndInitialResource(infra);
-
-		auto resource = mFontAtlas->GetResource();
-		mFontAtlasSrvDesc = GI::SrvUsage(resource);
-		mFontAtlasSrvDesc
-			.SetFormat(resource->GetFormat())
-			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
-			.SetTexture2D_MipLevels(resource->GetMipLevelCount());
-
-		ImGui::GetIO().Fonts->SetTexID(&mFontAtlasSrvDesc);
-	}
-
-	RENDER_EVENT(infra, ImGuiRenderer::Render);
+	auto frameGraph = mRenderModule->GetFrameGraph();
 
 	// Avoid rendering when minimized
 	if (!uiData || uiData->CmdListsCount == 0 || uiData->DisplaySize.x <= 0.0f || uiData->DisplaySize.y <= 0.0f) { return; }
@@ -100,9 +121,10 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
-	std::unique_ptr<Geometry> geo;
+	// TODO fix this
+	//std::unique_ptr<Geometry> geo;
 
-	geo.reset(Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
+	Geometry* geo = Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
 		{
 			GI::InputElementDesc()
 				.SetSemanticName("POSITION")
@@ -116,9 +138,9 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 				.SetSemanticName("COLOR")
 				.SetFormat(GI::Format::FORMAT_R32_UINT)
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
-		}));
+		});
 
-	geo->CreateAndInitialResource(infra);
+	geo->CreateAndInitialResource(frameGraph);
 
 	// Render command lists
 	vertexOffset = 0;
@@ -137,53 +159,89 @@ void ImGuiRenderer::Render(GI::IGraphicsInfra* infra, const GI::RtvUsage& target
 			if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) { continue; }
 
 			const Math::Rect scissorRect = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
+			
+			auto fontAtlas = *reinterpret_cast<FrameGraphResource*>(cmd->GetTexID());
 
-			const auto* srv = reinterpret_cast<const GI::SrvUsage*>(cmd->GetTexID());
-
-			GI::GraphicsPass pass;
-
-			pass.mRootSignatureDesc.mFile = "res/RootSignature/RootSignature.hlsl";
-			pass.mRootSignatureDesc.mEntry = "GraphicsRS";
-			pass.mVsFile = "res/Shader/ImGui.hlsl";
-			pass.mPsFile = "res/Shader/ImGui.hlsl";
-			pass.mShaderMacros.push_back(GI::ShaderMacro{ "USE_TEXTURE", srv ? "1" : "0" });
-
-			pass.mBlendDesc.SetAlphaToCoverageEnable(false);
-			pass.mBlendDesc.RtBlendDesc[0]
-				.SetBlendEnable(true)
-				.SetSrcBlend(GI::Blend::SRC_ALPHA)
-				.SetDestBlend(GI::Blend::INV_SRC_ALPHA)
-				.SetBlendOp(GI::BlendOp::ADD)
-				.SetSrcBlendAlpha(GI::Blend::ONE)
-				.SetDestBlendAlpha(GI::Blend::INV_SRC_ALPHA)
-				.SetBlendOpAlpha(GI::BlendOp::ADD);
-
-			pass.mDepthStencilDesc
-				.SetDepthEnable(false)
-				.SetStencilEnable(false);
-
-			pass.mInputLayout = geo->mVertexElementDescs;
-
-			const Vec3u& targetSize = target.GetResource()->GetSize();
-			pass.SetRtv(0, target);
-			pass.mViewPort.SetWidth(targetSize.x()).SetHeight(targetSize.y());
-			pass.mScissorRect = scissorRect;
-
-			pass.PushVbv(geo->GetVbvDesc());
-			pass.SetIbv(geo->GetIbvDesc());
-			pass.mIndexCount = cmd->ElemCount;
-			pass.mIndexStartLocation = indexOffset + cmd->IdxOffset;
-			pass.mVertexStartLocation = vertexOffset + cmd->VtxOffset;
-
-			if (srv)
+			struct PassData
 			{
-				pass.AddSrv("SourceTex", *srv);
-				pass.AddSampler("SourceTexSampler", mImGuiSampler);
-			}
+				VbvUsageFuture geoVertices;
+				IbvUsageFuture geoIndices;
+				GI::SamplerDesc sampler;
+				SrvUsageFuture srv;
+				RtvUsageFuture target;
+				bool hasSrv = false;
+				i32 indexCount;
+				i32 indexStartLocation;
+				i32 vertexStartLocation;
+				Vec3u targetSize;
+				Math::Rect scissorRect;
+				std::vector<GI::InputElementDesc> inputLayout;
+			};
 
-			pass.AddCbVar("WvpMat", wvpMat);
+			frameGraph->AddPass<PassData>("ImGuiElementRender",
+				[&]
+				(RenderPassBuilder& builder, PassData& data)
+				{
+					data.geoVertices = builder.ReadVbv(geo->GetVb(), geo->GetVbvDesc());
+					data.geoIndices = builder.ReadIbv(geo->GetIb(), geo->GetIbvDesc());
+					data.sampler = builder.Read(mImGuiSampler);
+					data.hasSrv = fontAtlas.IsValid();
+					if (data.hasSrv)
+					{
+						const auto& resDesc = frameGraph->GetResourceDesc(fontAtlas);
+						data.srv = builder.ReadTex2DSrv(fontAtlas);
+					}
+					data.target = builder.WriteTex2DRtv(target);
+					data.indexCount = cmd->ElemCount;
+					data.indexStartLocation = indexOffset + cmd->IdxOffset;
+					data.vertexStartLocation = vertexOffset + cmd->VtxOffset;
+					data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
+					data.scissorRect = scissorRect;
+					data.inputLayout = geo->mVertexElementDescs;
+				},
+				[
+					wvpMat
+				]
+				(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+				{
+					RENDER_EVENT(infra, ImGuiRenderer::Render::ImGuiElementRender);
 
-			infra->GetRecorder()->AddGraphicsPass(pass);
+					GI::GraphicsPass pass;
+
+					pass.SetShader("ImGui", GI::ShaderMacro{ "USE_TEXTURE", data.hasSrv ? "1" : "0" });
+
+					pass.SetupBlend().SetAlphaToCoverageEnable(false);
+					pass.SetupBlend().RtBlendDesc[0]
+						.SetBlendEnable(true)
+						.SetSrcBlend(GI::Blend::SRC_ALPHA)
+						.SetDestBlend(GI::Blend::INV_SRC_ALPHA)
+						.SetBlendOp(GI::BlendOp::ADD)
+						.SetSrcBlendAlpha(GI::Blend::ONE)
+						.SetDestBlendAlpha(GI::Blend::INV_SRC_ALPHA)
+						.SetBlendOpAlpha(GI::BlendOp::ADD);
+
+					pass.SetupDepthStencil()
+						.SetDepthEnable(false)
+						.SetStencilEnable(false);
+
+					pass.SetRtv(0, resources.Get(data.target));
+					pass.mViewPort.SetWidth(data.targetSize.x()).SetHeight(data.targetSize.y());
+					pass.mScissorRect = data.scissorRect;
+
+					pass.SetGeometry(
+						resources.Get(data.geoVertices), data.vertexStartLocation, data.inputLayout,
+						resources.Get(data.geoIndices), data.indexStartLocation, data.indexCount);
+
+					if (data.hasSrv)
+					{
+						pass.AddSrv("SourceTex", resources.Get(data.srv));
+						pass.AddSampler("SourceTexSampler", data.sampler);
+					}
+
+					pass.AddCb44f("WvpMat", wvpMat);
+
+					infra->GetRecorder()->AddGraphicsPass(pass);
+				});
 		}
 		indexOffset += cmdList->IdxBuffer.Size;
 		vertexOffset += cmdList->VtxBuffer.Size;

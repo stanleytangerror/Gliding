@@ -3,12 +3,249 @@
 #include "D3D12Resource.h"
 #include "D3D12SwapChain.h"
 #include "Common/GraphicsInfrastructure.h"
+#include "WinImage.h"
 #include "../packages/WinPixEventRuntime.1.0.231030001/Include/WinPixEventRuntime/pix3.h"
+#include <functional>
+#include <ranges>
+
+using namespace std::ranges;
+using namespace std::ranges::views;
+
+// https://brevzin.github.io/c++/2022/12/05/enumerate/
+// https://www.reedbeta.com/blog/python-like-enumerate-in-cpp17/
+
+template <typename T,
+	typename TIter = decltype(std::begin(std::declval<T>())),
+	typename = decltype(std::end(std::declval<T>()))>
+constexpr auto enumerate(T&& iterable)
+{
+	struct iterator
+	{
+		size_t i;
+		TIter iter;
+		bool operator != (const iterator& other) const { return iter != other.iter; }
+		void operator ++ () { ++i; ++iter; }
+		auto operator * () const { return std::tie(i, *iter); }
+	};
+	struct iterable_wrapper
+	{
+		T iterable;
+		auto begin() { return iterator{ 0, std::begin(iterable) }; }
+		auto end() { return iterator{ 0, std::end(iterable) }; }
+	};
+	return iterable_wrapper{ std::forward<T>(iterable) };
+}
+
+enum class ConnectType
+{
+	Select, Filter
+};
+
+template<typename TConnect>
+struct GetConnectType
+{
+	static TConnect GetConnect();
+	static typename TConnect::TSource GetConnectSource();
+	static typename TConnect::TPred GetConnectPred();
+	using Type = decltype(GetConnect()(GetConnectSource(), GetConnectPred()));
+};
+
+
+template <typename Source, typename Pred, ConnectType Type>
+struct Connect {};
+
+struct Enumerable
+{
+
+};
+
+template <typename Container>
+struct ContainerRange : Enumerable
+{
+	using Elem = typename Container::value_type;
+	using Iter = typename Container::const_iterator;
+
+	ContainerRange(const Container& container) : mBegin(container.begin()), mEnd(container.end()) {}
+
+	bool MoveNext()
+	{
+		mStarted ? (++mBegin, true) : (mStarted = true);
+		return mBegin != mEnd;
+	}
+	Elem Current() const { return *mBegin; }
+
+	bool mStarted = false;
+	Iter mBegin, mEnd;
+
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<ContainerRange, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<ContainerRange, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<ContainerRange, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<ContainerRange, Pred1, ConnectType::Filter>()(*this, fun);
+	}
+};
+
+template <typename Source, typename Pred>
+struct Selected : Enumerable
+{
+	using ElemInput = typename Source::Elem;
+
+	static typename ElemInput GetElemInput();
+	static Pred GetPred();
+	using Elem = decltype(GetPred()(GetElemInput()));
+
+	Selected(Source input, Pred pred) : mInput(input), mPred(pred) {}
+
+	bool MoveNext() { return mInput.MoveNext(); }
+	Elem Current() const { return mPred(mInput.Current()); }
+
+	bool mStarted = false;
+	Source mInput;
+	Pred mPred;
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Selected, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<Selected, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Selected, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<Selected, Pred1, ConnectType::Filter>()(*this, fun);
+	}
+};
+
+template <typename Source, typename Pred>
+struct Filtered : Enumerable
+{
+	using Elem = typename Source::Elem;
+
+	Filtered(Source input, Pred pred) : mInput(input), mPred(pred) {}
+
+	bool MoveNext() 
+	{ 
+		while (mInput.MoveNext())
+		{
+			if (mPred(mInput.Current()))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	Elem Current() const { return mInput.Current(); }
+
+	Source mInput;
+	Pred mPred;
+
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Filtered, Pred1, ConnectType::Select>>::Type Select(Pred1 fun)
+	{
+		return Connect<Filtered, Pred1, ConnectType::Select>()(*this, fun);
+	}
+
+	template <typename Pred1>
+	typename GetConnectType<Connect<Filtered, Pred1, ConnectType::Filter>>::Type Where(Pred1 fun)
+	{
+		return Connect<Filtered, Pred1, ConnectType::Filter>()(*this, fun);
+	}
+};
+
+
+template <typename Source, typename Pred>
+struct Connect<Source, Pred, ConnectType::Select>
+{
+	using TSource = Source;
+	using TPred = Pred;
+
+	Selected<Source, Pred> operator()(Source input, Pred fun) const
+	{
+		return Selected<Source, Pred>(input, fun);
+	}
+};
+
+template <typename Source, typename Pred>
+struct Connect<Source, Pred, ConnectType::Filter>
+{
+	using TSource = Source;
+	using TPred = Pred;
+
+	Filtered<Source, Pred> operator()(Source input, Pred fun) const
+	{
+		return Filtered<Source, Pred>(input, fun);
+	}
+};
+
+
+//
+//template <typename Source, typename Pred>
+//Selected<Source, Pred> Select(Source&& input, Pred fun)
+//{
+//	return Selected<Source, Pred>(std::forward<Source>(input), fun);
+//}
+//
+//template <typename Source, typename Pred>
+//Filtered<Source, Pred> Where(Source&& input, Pred fun)
+//{
+//	return Filtered<Source, Pred>(std::forward<Source>(input), fun);
+//}
+//
+//template <typename Source>
+//std::vector<typename Source::Elem> ToVector(Source&& input)
+//{
+//	std::vector<typename Source::Elem> result;
+//	while (input.MoveNext())
+//	{
+//		result.push_back(input.Current());
+//	}
+//	return result;
+//}
+
+void Test()
+{
+	std::vector<int> input = { 1, 2, 3, 4, 5, 6 };
+	//auto result = ToVector(
+	//	Select(
+	//		Where(
+	//			Select(
+	//				Enumerable(input),
+	//				[](auto e) { return e + 10; }
+	//			),
+	//			[](auto e) { return e % 3 == 0; }
+	//		),
+	//		[](auto e) { return std::to_string(e); }
+	//	)
+	//);
+
+	auto a = ContainerRange(input);
+	auto b = a.Select([](auto e) { return e + 10; });
+	auto c = b.Where([](auto e) { return e % 3 == 0; });
+	auto d = c.Select([](auto e) { return std::to_string(e); });
+
+	while (d.MoveNext())
+	{
+		Utils::PrintDebugString(d.Current().c_str());
+	}
+	//for (auto e : result)
+	//{
+	//	Utils::PrintDebugString(e.c_str());
+	//}
+}
 
 namespace D3D12Backend
 {
 	D3D12GraphicsInfra::D3D12GraphicsInfra()
 	{
+		Test();
+
 		mDevice = new D3D12Device;
 	}
 
@@ -24,28 +261,9 @@ namespace D3D12Backend
 		return std::move(mDevice->GetResourceManager()->CreateResource(desc));
 	}
 
-	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResource(const GI::IImage& image)
+	void D3D12GraphicsInfra::InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image)
 	{
-		const auto& dxScratchImage = *(reinterpret_cast<const D3D12Utils::WindowsImage*>(&image));
-		return D3D12Utils::CreateResourceFromImage(mCurrentRecorder->GetContext(), dxScratchImage);
-	}
-
-
-	std::unique_ptr<GI::IGraphicMemoryResource> D3D12GraphicsInfra::CreateMemoryResourceFromTexture2DData(const GI::ReadOnly2DResourceDesc& desc)
-	{
-		auto image = new DirectX::ScratchImage();
-		image->Initialize2D(D3D12Utils::ToDxgiFormat(desc.GetFormat()), desc.GetWidth(), desc.GetHeight(), desc.GetArraySize(), desc.GetMipLevel());
-		memcpy(image->GetImage(0, 0, 0)->pixels, desc.GetData().data(), desc.GetData().size());
-
-		Assert(image->GetImageCount() > 0);
-		ID3D12Resource* resource = nullptr;
-		AssertHResultOk(DirectX::CreateTexture(mDevice->GetDevice(), image->GetMetadata(), &resource));
-		NAME_RAW_D3D12_OBJECT(resource, desc.GetName());
-		auto result = mDevice->GetResourceManager()->PossessResourceWithOwnership(resource, nullptr, D3D12_RESOURCE_STATE_COPY_DEST);
-
-		mCurrentRecorder->AddInitialTextureResourceOperation(result.get(), image);
-
-		return std::move(result);
+		return D3D12Utils::InitialD3DResourceFromImage(mCurrentRecorder->GetContext(), resource, image);
 	}
 
 	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)
@@ -60,14 +278,9 @@ namespace D3D12Backend
 		memcpy(pVertexDataBegin, data.data(), data.size());
 	}
 
-	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content) const
+	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const
 	{
-		return std::move(D3D12Utils::WindowsImage::CreateFromImageMemory(ext, content));
-	}
-
-	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromScratch(GI::Format::Enum format, const std::vector<b8>& content, const Vec3i& size, i32 mipLevel, const char* name) const
-	{
-		return std::move(D3D12Utils::WindowsImage::CreateFromScratch(format, content, size, mipLevel, name));
+		return std::move(WindowsImage::CreateFromImageMemory(ext, content, name));
 	}
 
 
@@ -150,7 +363,7 @@ namespace D3D12Backend
 
 	namespace
 	{
-		i32 BindConstBufferParams(std::vector<b8>& cbuf, const std::map<std::string, std::vector<b8>>& cbArgs, ShaderPiece* shader)
+		i32 BindConstBufferParams(std::vector<b8>& cbuf, const std::map<std::string, StackMemory<64>>& cbArgs, ShaderPiece* shader)
 		{
 			const std::vector<InputCBufferParam>& cbufBindings = shader->GetCBufferBindings();
 			const i32 cbSize = std::accumulate(cbufBindings.begin(), cbufBindings.end(), 0,
@@ -165,8 +378,8 @@ namespace D3D12Backend
 					if (cbArgs.find(varName) != cbArgs.end())
 					{
 						const auto& varArg = cbArgs.find(varName)->second;
-						Assert(varDesc.mSize == varArg.size());
-						memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.data(), varArg.size());
+						Assert(varDesc.mSize == varArg.GetSize());
+						memcpy_s(cbuf.data() + varDesc.mStartOffset, varDesc.mSize, varArg.GetMemory(), varArg.GetSize());
 					}
 				}
 
@@ -208,7 +421,7 @@ namespace D3D12Backend
 
 	}
 
-#define DEFERRED_EXECUTE 1
+#define DEFERRED_EXECUTE 0
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
@@ -277,110 +490,75 @@ namespace D3D12Backend
 
 	}
 
-	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
+
+	void D3D12GraphicsRecorder::AddCopyBufferToTexture(GI::IGraphicMemoryResource* destTexture, const GI::TextureSubresourceDesc& subresourceDesc, GI::IGraphicMemoryResource* srcBuffer)
 	{
-		if (!pass.IsReadyForExecute()) { return; }
+		Assert(destTexture->GetDimension() != GI::ResourceDimension::BUFFER);
+		Assert(srcBuffer->GetDimension() == GI::ResourceDimension::BUFFER);
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
+		auto destRes = resourceManager->GetResource(destTexture->GetResourceId());
+		auto srcRes = resourceManager->GetResource(srcBuffer->GetResourceId());
 
-		D3D12Backend::GraphicsPass d3d12Pass;
-		d3d12Pass.mRootSignatureDesc = pass.mRootSignatureDesc;
-		d3d12Pass.mVsFile = pass.mVsFile;
-		d3d12Pass.mPsFile = pass.mPsFile;
-		d3d12Pass.mShaderMacros = pass.mShaderMacros;
-		std::transform(pass.mRtvs.begin(), pass.mRtvs.begin() + pass.mRtvCount, d3d12Pass.mRtvs.begin(),
-			[](const auto& rtv) { return RtvUsageImpl(rtv.GetResource()->GetResourceId(), rtv); });
-		if (pass.mHasDsv)
-		{
-			d3d12Pass.mDsv = DsvUsageImpl(pass.mDsv.GetResource()->GetResourceId(), pass.mDsv);
-		}
-		d3d12Pass.mInputLayout = pass.mInputLayout;
-		d3d12Pass.mRasterizerDesc = pass.mRasterizerDesc;
-		d3d12Pass.mDepthStencilDesc = pass.mDepthStencilDesc;
-		d3d12Pass.mBlendDesc = pass.mBlendDesc;
-		d3d12Pass.mVbvs.resize(pass.mVbvs.size());
-		std::transform(pass.mVbvs.begin(), pass.mVbvs.end(), d3d12Pass.mVbvs.begin(),
-			[](const auto& vbv) { return VbvUsageImpl(vbv.GetResource()->GetResourceId(), vbv); });
-		d3d12Pass.mIbv = IbvUsageImpl(pass.mIbv.GetResource()->GetResourceId(), pass.mIbv);
-		d3d12Pass.mVertexStartLocation = pass.mVertexStartLocation;
-		d3d12Pass.mIndexStartLocation = pass.mIndexStartLocation;
-		d3d12Pass.mIndexCount = pass.mIndexCount;
-		d3d12Pass.mInstanceCount = pass.mInstanceCount;
-		d3d12Pass.mViewPort = pass.mViewPort;
-		d3d12Pass.mScissorRect = pass.mScissorRect;
-		d3d12Pass.mStencilRef = pass.mStencilRef;
-		d3d12Pass.mCbParams = pass.mCbParams;
-		d3d12Pass.mSamplerParams = pass.mSamplerParams;
-		for (const auto& [name, srv] : pass.mSrvParams)
-		{
-			d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
-		}
+		destRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_DEST);
+		if (srcRes->GetHeapType() == GI::HeapType::DEFAULT) { srcRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_SOURCE); }
+
+		auto subresIndex = subresourceDesc.GetSubresourceIndex(destTexture->GetDimension(), destTexture->GetSize().z(), destTexture->GetMipLevelCount(), 1);
+
+		CD3DX12_TEXTURE_COPY_LOCATION CopyDest(destRes->GetD3D12Resource(), subresIndex);
+
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> bufferLayouts(subresIndex + 1);
+		const auto& descDesc = destRes->GetD3D12Resource()->GetDesc();
+		mContext->GetDevice()->GetDevice()->GetCopyableFootprints(&descDesc, 0, subresIndex + 1, 0, bufferLayouts.data(), nullptr, nullptr, nullptr);
+
+		CD3DX12_TEXTURE_COPY_LOCATION CopySrc(
+			srcRes->GetD3D12Resource(),
+			bufferLayouts[subresIndex]);
+
+		mContext->GetCommandList()->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySrc, nullptr);
+	}
+
+	void D3D12GraphicsRecorder::AddGraphicsPass(const GI::GraphicsPass& pass)
+	{
+		Assert(pass.IsReadyForExecute());
+		
+		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
+
 
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, d3d12Pass]()
 			{
 #endif
-				for (const auto& vbv : d3d12Pass.mVbvs)
-				{
-					if (!vbv.GetResourceId()) { return; }
-				}
-
-				std::map<std::string, DescriptorPtr> srvs;
-				for (const auto& [name, srv] : d3d12Pass.mSrvParams)
-				{
-					if (!srv.GetResourceId()) { return; }
-					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
-				}
-
-				std::vector<DescriptorPtr> rtvs;
-				std::vector<DXGI_FORMAT> rtvFormats;
-				auto numRtvs = std::count_if(d3d12Pass.mRtvs.begin(), d3d12Pass.mRtvs.end(), [](const auto& rtv) { return rtv.GetResourceId(); });
-				if (numRtvs == 0 && !d3d12Pass.mDsv.GetResourceId()) { return; }
-				for (auto i = 0; i < numRtvs; ++i)
-				{
-					rtvs.emplace_back(resourceManager->CreateRtvDescriptor(d3d12Pass.mRtvs[i].GetResourceId(), d3d12Pass.mRtvs[i]));
-					rtvFormats.emplace_back(D3D12Utils::ToDxgiFormat(d3d12Pass.mRtvs[i].GetFormat()));
-				}
-
-				std::map<std::string, DescriptorPtr> samplers;
-				for (const auto& [name, sampler] : d3d12Pass.mSamplerParams)
-				{
-					samplers[name] = resourceManager->CreateSampler(sampler);
-				}
-
 
 				// transitions
-				for (const auto& [_, srv] : d3d12Pass.mSrvParams)
+				for (const auto& [_, srv] : pass.mSrvParams)
 				{
 					auto res = resourceManager->GetResource(srv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
 
-				for (const auto& rtv : d3d12Pass.mRtvs)
+				for (auto i = 0; i < pass.mRtvCount; ++i)
 				{
-					if (rtv.GetResourceId())
-					{
-						auto res = resourceManager->GetResource(rtv.GetResourceId());
-						res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
-					}
+					auto res = resourceManager->GetResource(pass.mRtvs[i].GetResourceId());
+					res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				}
 
-				if (d3d12Pass.mDsv.GetResourceId())
+				if (pass.mHasDsv)
 				{
-					auto res = resourceManager->GetResource(d3d12Pass.mDsv.GetResourceId());
+					auto res = resourceManager->GetResource(pass.mDsv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 				}
 
 				// root signatures
 				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-				auto rootSignature = psoLib->CreateRootSignature(d3d12Pass.mRootSignatureDesc.mFile.c_str(), d3d12Pass.mRootSignatureDesc.mEntry);
+				auto rootSignature = psoLib->CreateRootSignature("res/RootSignature/RootSignature.hlsl", "GraphicsRS");
 
 				auto pso = std::make_unique< GraphicsPipelineState>();
 				pso->SetRootSignature(rootSignature);
 
 				// shader
-				ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(d3d12Pass.mVsFile.c_str(), d3d12Pass.mShaderMacros);
-				ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(d3d12Pass.mPsFile.c_str(), d3d12Pass.mShaderMacros);
+				ShaderPiece* vs = mContext->GetDevice()->GetShaderLib()->CreateVs(pass.mVsFile.c_str(), pass.mShaderMacros);
+				ShaderPiece* ps = mContext->GetDevice()->GetShaderLib()->CreatePs(pass.mPsFile.c_str(), pass.mShaderMacros);
 
 				pso->SetVertexShader(CD3DX12_SHADER_BYTECODE(vs->GetShader()));
 				pso->SetPixelShader(CD3DX12_SHADER_BYTECODE(ps->GetShader()));
@@ -388,71 +566,66 @@ namespace D3D12Backend
 				const auto& inputLayout = vs->GetInputLayout();
 				D3D12_BLEND_DESC blendDesc;
 				{
-					blendDesc.AlphaToCoverageEnable = d3d12Pass.mBlendDesc.GetAlphaToCoverageEnable();
-					blendDesc.IndependentBlendEnable = d3d12Pass.mBlendDesc.GetIndependentBlendEnable();
+					blendDesc.AlphaToCoverageEnable = pass.mBlendDesc.GetAlphaToCoverageEnable();
+					blendDesc.IndependentBlendEnable = pass.mBlendDesc.GetIndependentBlendEnable();
 					for (auto i = 0; i < sizeof(blendDesc.RenderTarget) / sizeof(blendDesc.RenderTarget[0]); ++i)
 					{
-						blendDesc.RenderTarget[i].BlendEnable = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable();
-						blendDesc.RenderTarget[i].LogicOpEnable = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable();
-						blendDesc.RenderTarget[i].SrcBlend = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend());
-						blendDesc.RenderTarget[i].DestBlend = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetDestBlend());
-						blendDesc.RenderTarget[i].BlendOp = D3D12_BLEND_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendOp());
-						blendDesc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha());
-						blendDesc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha());
-						blendDesc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha());
-						blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP(d3d12Pass.mBlendDesc.RtBlendDesc[i].GetLogicOp());
-						blendDesc.RenderTarget[i].RenderTargetWriteMask = d3d12Pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
+						blendDesc.RenderTarget[i].BlendEnable = pass.mBlendDesc.RtBlendDesc[i].GetBlendEnable();
+						blendDesc.RenderTarget[i].LogicOpEnable = pass.mBlendDesc.RtBlendDesc[i].GetLogicOpEnable();
+						blendDesc.RenderTarget[i].SrcBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlend());
+						blendDesc.RenderTarget[i].DestBlend = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlend());
+						blendDesc.RenderTarget[i].BlendOp = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOp());
+						blendDesc.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetSrcBlendAlpha());
+						blendDesc.RenderTarget[i].DestBlendAlpha = D3D12_BLEND(pass.mBlendDesc.RtBlendDesc[i].GetDestBlendAlpha());
+						blendDesc.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP(pass.mBlendDesc.RtBlendDesc[i].GetBlendOpAlpha());
+						blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP(pass.mBlendDesc.RtBlendDesc[i].GetLogicOp());
+						blendDesc.RenderTarget[i].RenderTargetWriteMask = pass.mBlendDesc.RtBlendDesc[i].GetRenderTargetWriteMask();
 					}
 				}
 				pso->SetBlendState(blendDesc);
 				D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
 				{
-					depthStencilDesc.DepthEnable = d3d12Pass.mDepthStencilDesc.GetDepthEnable();
-					depthStencilDesc.DepthWriteMask = d3d12Pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-					depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.GetDepthFunc());
-					depthStencilDesc.StencilEnable = d3d12Pass.mDepthStencilDesc.GetStencilEnable();
-					depthStencilDesc.StencilReadMask = d3d12Pass.mDepthStencilDesc.GetStencilReadMask();
-					depthStencilDesc.StencilWriteMask = d3d12Pass.mDepthStencilDesc.GetStencilWriteMask();
-					depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
-					depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
-					depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
-					depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
-					depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
-					depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
-					depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
-					depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC(d3d12Pass.mDepthStencilDesc.BackFace.GetStencilFunc());
+					depthStencilDesc.DepthEnable = pass.mDepthStencilDesc.GetDepthEnable();
+					depthStencilDesc.DepthWriteMask = pass.mDepthStencilDesc.GetDepthWriteAllRatherThanZero() ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+					depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.GetDepthFunc());
+					depthStencilDesc.StencilEnable = pass.mDepthStencilDesc.GetStencilEnable();
+					depthStencilDesc.StencilReadMask = pass.mDepthStencilDesc.GetStencilReadMask();
+					depthStencilDesc.StencilWriteMask = pass.mDepthStencilDesc.GetStencilWriteMask();
+					depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilFailOp());
+					depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilDepthFailOp());
+					depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.FrontFace.GetStencilPassOp());
+					depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.FrontFace.GetStencilFunc());
+					depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilFailOp());
+					depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilDepthFailOp());
+					depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP(pass.mDepthStencilDesc.BackFace.GetStencilPassOp());
+					depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC(pass.mDepthStencilDesc.BackFace.GetStencilFunc());
 				}
 				pso->SetDepthStencilState(depthStencilDesc);
 				D3D12_RASTERIZER_DESC rastDesc;
 				{
-					rastDesc.FillMode = d3d12Pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
-					rastDesc.CullMode = D3D12_CULL_MODE(d3d12Pass.mRasterizerDesc.GetCullMode());
-					rastDesc.FrontCounterClockwise = d3d12Pass.mRasterizerDesc.GetFrontCounterClockwise();
-					rastDesc.DepthBias = d3d12Pass.mRasterizerDesc.GetDepthBias();
-					rastDesc.DepthBiasClamp = d3d12Pass.mRasterizerDesc.GetDepthBiasClamp();
-					rastDesc.SlopeScaledDepthBias = d3d12Pass.mRasterizerDesc.GetSlopeScaledDepthBias();
-					rastDesc.DepthClipEnable = d3d12Pass.mRasterizerDesc.GetDepthClipEnable();
-					rastDesc.MultisampleEnable = d3d12Pass.mRasterizerDesc.GetMultisampleEnable();
-					rastDesc.AntialiasedLineEnable = d3d12Pass.mRasterizerDesc.GetAntialiasedLineEnable();
-					rastDesc.ForcedSampleCount = d3d12Pass.mRasterizerDesc.GetForcedSampleCount();
-					rastDesc.ConservativeRaster = d3d12Pass.mRasterizerDesc.GetConservativeRaster() ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+					rastDesc.FillMode = pass.mRasterizerDesc.GetFillSolidRatherThanWireframe() ? D3D12_FILL_MODE_SOLID : D3D12_FILL_MODE_WIREFRAME;
+					rastDesc.CullMode = D3D12_CULL_MODE(pass.mRasterizerDesc.GetCullMode());
+					rastDesc.FrontCounterClockwise = pass.mRasterizerDesc.GetFrontCounterClockwise();
+					rastDesc.DepthBias = pass.mRasterizerDesc.GetDepthBias();
+					rastDesc.DepthBiasClamp = pass.mRasterizerDesc.GetDepthBiasClamp();
+					rastDesc.SlopeScaledDepthBias = pass.mRasterizerDesc.GetSlopeScaledDepthBias();
+					rastDesc.DepthClipEnable = pass.mRasterizerDesc.GetDepthClipEnable();
+					rastDesc.MultisampleEnable = pass.mRasterizerDesc.GetMultisampleEnable();
+					rastDesc.AntialiasedLineEnable = pass.mRasterizerDesc.GetAntialiasedLineEnable();
+					rastDesc.ForcedSampleCount = pass.mRasterizerDesc.GetForcedSampleCount();
+					rastDesc.ConservativeRaster = pass.mRasterizerDesc.GetConservativeRaster() ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 				}
 				pso->SetRasterizerState(rastDesc);
 
 				pso->SetInputLayout((UINT)inputLayout.size(), inputLayout.data());
 
 				// rts
-				auto& desc = pso->Descriptor();
-				desc.NumRenderTargets = numRtvs;
-				for (auto i = 0; i < sizeof(desc.RTVFormats) / sizeof(desc.RTVFormats[0]); ++i)
+				pso->SetRtCount(pass.mRtvCount);
+				for (const auto& [i, rtv] : enumerate(pass.mRtvs | take(pass.mRtvCount)))
 				{
-					desc.RTVFormats[i] = i < numRtvs ? rtvFormats[i] : DXGI_FORMAT_UNKNOWN;
+					pso->SetRtvFormat(i, D3D12Utils::ToDxgiFormat(rtv.GetFormat()));
 				}
-
-				if (d3d12Pass.mDsv.GetResourceId())
-				{
-					desc.DSVFormat = D3D12Utils::ToDxgiFormat(d3d12Pass.mDsv.GetFormat());
-				}
+				pso->SetDsvFormat(pass.mHasDsv ? D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat()) : DXGI_FORMAT_UNKNOWN);
 
 				pso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
@@ -469,30 +642,12 @@ namespace D3D12Backend
 				{
 					RuntimeDescriptorHeap* srvHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-					std::map<std::string, InputSrvParam> srvBindings;
-					{
-						for (const auto& p : vs->GetSrvBindings())
-						{
-							if (srvBindings.find(p.first) == srvBindings.end())
-							{
-								srvBindings[p.first] = p.second;
-							}
-						}
-						for (const auto& p : ps->GetSrvBindings())
-						{
-							if (srvBindings.find(p.first) == srvBindings.end())
-							{
-								srvBindings[p.first] = p.second;
-							}
-						}
-					}
+					std::map<std::string, InputSrvParam> srvBindings = vs->GetSrvBindings();
+					auto psSrvBindings = ps->GetSrvBindings();
+					srvBindings.merge(psSrvBindings);
 
-					int maxSrvIndex = 0;
-					for (const auto& p : srvBindings)
-					{
-						const InputSrvParam& srvParam = p.second;
-						maxSrvIndex = std::max<int>(maxSrvIndex, srvParam.mBindPoint);
-					}
+					const auto& bindPoints = srvBindings | views::transform([](const auto& p) { return p.second.mBindPoint; });
+					i32 maxSrvIndex = bindPoints.size() ? *max_element(bindPoints) : 0;
 
 					std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> srvHandles(maxSrvIndex + 1, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc().Get());
 					for (const auto& p : srvBindings)
@@ -500,10 +655,11 @@ namespace D3D12Backend
 						const std::string& srvName = p.first;
 						const InputSrvParam& srvParam = p.second;
 
-						auto it = srvs.find(srvName);
-						if (it != srvs.end())
+						auto it = pass.mSrvParams.find(srvName);
+						if (it != pass.mSrvParams.end())
 						{
-							srvHandles[srvParam.mBindPoint] = it->second.Get();
+							const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetResourceId(), it->second);
+							srvHandles[srvParam.mBindPoint] = descriptor.Get();
 						}
 					}
 					const auto& gpuDescBaseAddr = srvHeap->Push(static_cast<i32>(srvHandles.size()), srvHandles.data());
@@ -515,6 +671,11 @@ namespace D3D12Backend
 				{
 					RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
+					std::map<std::string, DescriptorPtr> samplers;
+					for (const auto& [name, sampler] : pass.mSamplerParams)
+					{
+						samplers[name] = resourceManager->CreateSampler(sampler);
+					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, ps->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
 
 					const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
@@ -532,64 +693,62 @@ namespace D3D12Backend
 
 				// cbs
 				std::vector<b8> cbufData;
-				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, vs);
-				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, ps);
+				BindConstBufferParams(cbufData, pass.mCbParams, vs);
+				BindConstBufferParams(cbufData, pass.mCbParams, ps);
 				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
 				mContext->GetCommandList()->SetGraphicsRootConstantBufferView(1, gpuAddr);
 
-				Assert(d3d12Pass.mViewPort.GetMinDepth() < d3d12Pass.mViewPort.GetMaxDepth());
+				Assert(pass.mViewPort.GetMinDepth() < pass.mViewPort.GetMaxDepth());
 				auto viewport = D3D12_VIEWPORT{
-					d3d12Pass.mViewPort.GetTopLeftX(), d3d12Pass.mViewPort.GetTopLeftY(),
-					d3d12Pass.mViewPort.GetWidth(), d3d12Pass.mViewPort.GetHeight(),
-					d3d12Pass.mViewPort.GetMinDepth(), d3d12Pass.mViewPort.GetMaxDepth()
+					pass.mViewPort.GetTopLeftX(), pass.mViewPort.GetTopLeftY(),
+					pass.mViewPort.GetWidth(), pass.mViewPort.GetHeight(),
+					pass.mViewPort.GetMinDepth(), pass.mViewPort.GetMaxDepth()
 				};
 				commandList->RSSetViewports(1, &viewport);
 				auto rect = D3D12_RECT{
-					d3d12Pass.mScissorRect.left,
-					d3d12Pass.mScissorRect.top,
-					d3d12Pass.mScissorRect.right,
-					d3d12Pass.mScissorRect.bottom };
+					pass.mScissorRect.left,
+					pass.mScissorRect.top,
+					pass.mScissorRect.right,
+					pass.mScissorRect.bottom };
 				commandList->RSSetScissorRects(1, &rect);
 
 				CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
-				u32 rtvCount = 0;
-				for (; rtvCount < rtvs.size(); ++rtvCount)
+				for (auto i = 0; i < pass.mRtvCount; ++i)
 				{
-					if (!rtvs[rtvCount]) { break; }
-					rtvHandles[rtvCount] = rtvs[rtvCount].Get();
+					rtvHandles[i] = resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResourceId(), pass.mRtvs[i]).Get();
 				}
 
-				if (d3d12Pass.mDsv.GetResourceId())
+				if (pass.mHasDsv)
 				{
-					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(d3d12Pass.mDsv.GetResourceId(), d3d12Pass.mDsv).Get();
-					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, &dsHandle);
+					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResourceId(), pass.mDsv).Get();
+					commandList->OMSetRenderTargets(pass.mRtvCount, rtvHandles, false, &dsHandle);
 				}
 				else
 				{
-					commandList->OMSetRenderTargets(rtvCount, rtvHandles, false, nullptr);
+					commandList->OMSetRenderTargets(pass.mRtvCount, rtvHandles, false, nullptr);
 				}
-				commandList->OMSetStencilRef(d3d12Pass.mStencilRef);
+				commandList->OMSetStencilRef(pass.mStencilRef);
 
 				commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-				std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(d3d12Pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
+				std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
 				for (auto i = 0; i < vbvs.size(); ++i)
 				{
-					vbvs[i].BufferLocation = resourceManager->GetResource(d3d12Pass.mVbvs[i].GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					vbvs[i].SizeInBytes = d3d12Pass.mVbvs[i].GetSizeInBytes();
-					vbvs[i].StrideInBytes = d3d12Pass.mVbvs[i].GetStrideInBytes();
+					vbvs[i].BufferLocation = resourceManager->GetResource(pass.mVbvs[i].GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+					vbvs[i].SizeInBytes = pass.mVbvs[i].GetSizeInBytes();
+					vbvs[i].StrideInBytes = pass.mVbvs[i].GetStrideInBytes();
 				}
 				commandList->IASetVertexBuffers(0, static_cast<u32>(vbvs.size()), vbvs.data());
 
 				D3D12_INDEX_BUFFER_VIEW ibv;
 				{
-					ibv.BufferLocation = resourceManager->GetResource(d3d12Pass.mIbv.GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					ibv.SizeInBytes = d3d12Pass.mIbv.GetSizeInBytes();
-					ibv.Format = D3D12Utils::ToDxgiFormat(d3d12Pass.mIbv.GetFormat());
+					ibv.BufferLocation = resourceManager->GetResource(pass.mIbv.GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+					ibv.SizeInBytes = pass.mIbv.GetSizeInBytes();
+					ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetFormat());
 				}
 				commandList->IASetIndexBuffer(&ibv);
 
-				commandList->DrawIndexedInstanced(d3d12Pass.mIndexCount, d3d12Pass.mInstanceCount, d3d12Pass.mIndexStartLocation, d3d12Pass.mVertexStartLocation, 0);
+				commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
 #if DEFERRED_EXECUTE
 			});
 #endif
@@ -597,58 +756,23 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
 	{
-		if (!pass.IsReadyForExecute()) { return; }
+		Assert(pass.IsReadyForExecute());
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
-		D3D12Backend::ComputePass d3d12Pass;
-
-		d3d12Pass.mRootSignatureDesc = pass.mRootSignatureDesc;
-		d3d12Pass.mCsFile = pass.mCsFile;
-		d3d12Pass.mShaderMacros = pass.mShaderMacros;
-		d3d12Pass.mCbParams = pass.mCbParams;
-		for (const auto& [name, srv] : pass.mSrvParams)
-		{
-			d3d12Pass.mSrvParams[name] = SrvUsageImpl(srv.GetResource()->GetResourceId(), srv);
-		}
-		for (const auto& [name, uav] : pass.mUavParams)
-		{
-			d3d12Pass.mUavParams[name] = UavUsageImpl(uav.GetResource()->GetResourceId(), uav);
-		}
-		d3d12Pass.mSamplerParams = pass.mSamplerParams;
-		d3d12Pass.mThreadGroupCounts = pass.mThreadGroupCounts;
 
 #if DEFERRED_EXECUTE
 		mCommands.push([this, resourceManager, d3d12Pass]()
 			{
 #endif
-				std::map<std::string, DescriptorPtr> srvs;
-				for (const auto& [name, srv] : d3d12Pass.mSrvParams)
-				{
-					if (!srv.GetResourceId()) { return; }
-					srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
-				}
 
-				std::map<std::string, DescriptorPtr> uavs;
-				for (const auto& [name, uav] : d3d12Pass.mUavParams)
-				{
-					if (!uav.GetResourceId()) { return; }
-					uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav);
-				}
-
-				std::map<std::string, DescriptorPtr> samplers;
-				for (const auto& [name, sampler] : d3d12Pass.mSamplerParams)
-				{
-					samplers[name] = resourceManager->CreateSampler(sampler);
-				}
-
-				for (const auto& [_, srv] : d3d12Pass.mSrvParams)
+				// transitions
+				for (const auto& [_, srv] : pass.mSrvParams)
 				{
 					auto res = resourceManager->GetResource(srv.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				}
 
-				for (const auto& [_, uav] : d3d12Pass.mUavParams)
+				for (const auto& [_, uav] : pass.mUavParams)
 				{
 					auto res = resourceManager->GetResource(uav.GetResourceId());
 					res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -656,13 +780,13 @@ namespace D3D12Backend
 
 				// root signatures
 				D3D12PipelineStateLibrary* psoLib = mContext->GetDevice()->GetPipelineStateLib();
-				auto rootSignature = psoLib->CreateRootSignature(d3d12Pass.mRootSignatureDesc.mFile.c_str(), d3d12Pass.mRootSignatureDesc.mEntry);
+				auto rootSignature = psoLib->CreateRootSignature("res/RootSignature/RootSignature.hlsl", "ComputeRS");
 
 				auto mPso = std::make_unique< ComputePipelineState>();
 				mPso->SetRootSignature(rootSignature);
 
 				// shader
-				ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(d3d12Pass.mCsFile.c_str(), d3d12Pass.mShaderMacros);
+				ShaderPiece* cs = mContext->GetDevice()->GetShaderLib()->CreateCs(pass.mCsFile.c_str(), pass.mShaderMacros);
 				mPso->SetComputeShader(CD3DX12_SHADER_BYTECODE(cs->GetShader()));
 
 				mPso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
@@ -679,8 +803,19 @@ namespace D3D12Backend
 				RuntimeDescriptorHeap* srvUavHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 				{
 					// srv
+					std::map<std::string, DescriptorPtr> srvs;
+					for (const auto& [name, srv] : pass.mSrvParams)
+					{
+						srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
+					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), srvs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
+					
 					// uav
+					std::map<std::string, DescriptorPtr> uavs;
+					for (const auto& [name, uav] : pass.mUavParams)
+					{
+						uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav);
+					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), uavs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 
 					std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
@@ -698,6 +833,11 @@ namespace D3D12Backend
 
 				RuntimeDescriptorHeap* samplerHeap = mContext->GetRuntimeHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 				{
+					std::map<std::string, DescriptorPtr> samplers;
+					for (const auto& [name, sampler] : pass.mSamplerParams)
+					{
+						samplers[name] = resourceManager->CreateSampler(sampler);
+					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& samplerHandles = BindSrvUavParams(mContext, cs->GetSamplerBindings(), samplers, mContext->GetDevice()->GetNullSamplerCpuDesc());
 
 					const auto& gpuDescBase = samplerHeap->Push(static_cast<i32>(samplerHandles.size()), samplerHandles.data());
@@ -714,11 +854,11 @@ namespace D3D12Backend
 				}
 
 				std::vector<b8> cbufData;
-				BindConstBufferParams(cbufData, d3d12Pass.mCbParams, cs);
+				BindConstBufferParams(cbufData, pass.mCbParams, cs);
 				const D3D12_GPU_VIRTUAL_ADDRESS gpuAddr = mContext->GetConstantBuffer()->Push(cbufData.data(), cbufData.size());
 				mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
-				commandList->Dispatch(d3d12Pass.mThreadGroupCounts[0], d3d12Pass.mThreadGroupCounts[1], d3d12Pass.mThreadGroupCounts[2]);
+				commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
 #if DEFERRED_EXECUTE
 			});
 #endif
@@ -772,51 +912,6 @@ namespace D3D12Backend
 #if DEFERRED_EXECUTE
 		);
 #endif
-	}
-
-	void D3D12GraphicsRecorder::AddInitialTextureResourceOperation(GI::IGraphicMemoryResource* res, DirectX::ScratchImage* image)
-	{
-		auto device = mContext->GetDevice();
-		auto resourceManager = device->GetResourceManager();
-
-		auto resourceId = res->GetResourceId();
-
-		// upload is implemented by application developer. Here's one solution using <d3dx12.h>
-		auto deviceResource = device->GetResourceManager()->GetResource(res->GetResourceId());
-		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-		AssertHResultOk(DirectX::PrepareUpload(device->GetDevice(), image->GetImages(), image->GetImageCount(), image->GetMetadata(), subresources));
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(deviceResource->GetD3D12Resource(), 0, static_cast<unsigned int>(subresources.size()));
-
-		auto uploadResource = device->GetResourceManager()->CreateResource(GI::MemoryResourceDesc()
-			.SetDimension(GI::ResourceDimension::BUFFER)
-			.SetAlignment(0)
-			.SetWidth(uploadBufferSize)
-			.SetHeight(1)
-			.SetDepthOrArraySize(1)
-			.SetMipLevels(1)
-			.SetFormat(GI::Format::FORMAT_UNKNOWN)
-			.SetLayout(GI::TextureLayout::LAYOUT_ROW_MAJOR)
-			.SetFlags(GI::ResourceFlag::NONE)
-			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-			.SetHeapType(GI::HeapType::UPLOAD));
-		// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
-		auto uploadResourceId = uploadResource->GetResourceId();
-
-		// https://stackoverflow.com/a/20669290/2131563
-		mCommands.push([this, image, resourceManager, resourceId, uploadResourceId, subresources]() mutable
-		{
-			auto deviceResource = resourceManager->GetResource(resourceId);
-			auto uploadDeviceResource = resourceManager->GetResource(uploadResourceId);
-
-			UpdateSubresources(
-				mContext->GetCommandList(),
-				deviceResource->GetD3D12Resource(),
-				uploadDeviceResource->GetD3D12Resource(),
-				0, 0, static_cast<unsigned int>(subresources.size()),
-				subresources.data());
-
-			delete image;
-		});
 	}
 
 	// TODO investigate this https://stackoverflow.com/a/20669290/2131563

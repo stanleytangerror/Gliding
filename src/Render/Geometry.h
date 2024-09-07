@@ -1,18 +1,21 @@
 #pragma once
 
 #include "Common/GraphicsInfrastructure.h"
+#include "FrameGraph.h"
 
 struct MeshRawData;
 
 class GD_RENDER_API Geometry
 {
 public:
-	void CreateAndInitialResource(GI::IGraphicsInfra* infra);
+	Geometry* CreateAndInitialResource(FrameGraph* frameGraph);
+	bool IsGraphicsResourceReady() const { return mVb.IsValid() && mIb.IsValid(); };
 
-	bool IsGraphicsResourceReady() const { return mVb && mIb; };
+	FrameGraphResource	GetVb() const { return mVb; }
+	FrameGraphResource	GetIb() const { return mIb; }
 
-	GI::VbvUsage	GetVbvDesc() const;
-	GI::IbvUsage	GetIbvDesc() const;
+	GI::VbvDesc	GetVbvDesc() const;
+	GI::IbvDesc	GetIbvDesc() const;
 
 public:
 	std::vector<b8>		mVertices;
@@ -20,8 +23,8 @@ public:
 	std::vector<u16>	mIndices;
 	std::vector < GI::InputElementDesc > mVertexElementDescs;
 
-	std::unique_ptr<GI::IGraphicMemoryResource> mVb = nullptr;
-	std::unique_ptr<GI::IGraphicMemoryResource> mIb = nullptr;
+	FrameGraphMutableResource	mVb;
+	FrameGraphMutableResource	mIb;
 
 public:
 	template <typename TVertex>
