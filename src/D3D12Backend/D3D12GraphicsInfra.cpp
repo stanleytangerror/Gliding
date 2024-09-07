@@ -439,7 +439,7 @@ namespace D3D12Backend
 #else
 				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetResourceId(), rtv);
+				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetResourceId(), rtv.GetUsage());
 				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
 #endif
@@ -464,7 +464,7 @@ namespace D3D12Backend
 #else
 		resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetResourceId(), dsv);
+		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetResourceId(), dsv.GetUsage());
 		auto flag =
 			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 			(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
@@ -623,9 +623,9 @@ namespace D3D12Backend
 				pso->SetRtCount(pass.mRtvCount);
 				for (const auto& [i, rtv] : enumerate(pass.mRtvs | take(pass.mRtvCount)))
 				{
-					pso->SetRtvFormat(i, D3D12Utils::ToDxgiFormat(rtv.GetFormat()));
+					pso->SetRtvFormat(i, D3D12Utils::ToDxgiFormat(rtv.GetUsage().GetFormat()));
 				}
-				pso->SetDsvFormat(pass.mHasDsv ? D3D12Utils::ToDxgiFormat(pass.mDsv.GetFormat()) : DXGI_FORMAT_UNKNOWN);
+				pso->SetDsvFormat(pass.mHasDsv ? D3D12Utils::ToDxgiFormat(pass.mDsv.GetUsage().GetFormat()) : DXGI_FORMAT_UNKNOWN);
 
 				pso->Finalize(mContext->GetDevice()->GetPipelineStateLib());
 
@@ -658,7 +658,7 @@ namespace D3D12Backend
 						auto it = pass.mSrvParams.find(srvName);
 						if (it != pass.mSrvParams.end())
 						{
-							const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetResourceId(), it->second);
+							const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetResourceId(), it->second.GetUsage());
 							srvHandles[srvParam.mBindPoint] = descriptor.Get();
 						}
 					}
@@ -715,12 +715,12 @@ namespace D3D12Backend
 				CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
 				for (auto i = 0; i < pass.mRtvCount; ++i)
 				{
-					rtvHandles[i] = resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResourceId(), pass.mRtvs[i]).Get();
+					rtvHandles[i] = resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResourceId(), pass.mRtvs[i].GetUsage()).Get();
 				}
 
 				if (pass.mHasDsv)
 				{
-					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResourceId(), pass.mDsv).Get();
+					CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResourceId(), pass.mDsv.GetUsage()).Get();
 					commandList->OMSetRenderTargets(pass.mRtvCount, rtvHandles, false, &dsHandle);
 				}
 				else
@@ -735,16 +735,16 @@ namespace D3D12Backend
 				for (auto i = 0; i < vbvs.size(); ++i)
 				{
 					vbvs[i].BufferLocation = resourceManager->GetResource(pass.mVbvs[i].GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					vbvs[i].SizeInBytes = pass.mVbvs[i].GetSizeInBytes();
-					vbvs[i].StrideInBytes = pass.mVbvs[i].GetStrideInBytes();
+					vbvs[i].SizeInBytes = pass.mVbvs[i].GetUsage().GetSizeInBytes();
+					vbvs[i].StrideInBytes = pass.mVbvs[i].GetUsage().GetStrideInBytes();
 				}
 				commandList->IASetVertexBuffers(0, static_cast<u32>(vbvs.size()), vbvs.data());
 
 				D3D12_INDEX_BUFFER_VIEW ibv;
 				{
 					ibv.BufferLocation = resourceManager->GetResource(pass.mIbv.GetResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
-					ibv.SizeInBytes = pass.mIbv.GetSizeInBytes();
-					ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetFormat());
+					ibv.SizeInBytes = pass.mIbv.GetUsage().GetSizeInBytes();
+					ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetUsage().GetFormat());
 				}
 				commandList->IASetIndexBuffer(&ibv);
 
@@ -806,7 +806,7 @@ namespace D3D12Backend
 					std::map<std::string, DescriptorPtr> srvs;
 					for (const auto& [name, srv] : pass.mSrvParams)
 					{
-						srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv);
+						srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResourceId(), srv.GetUsage());
 					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), srvs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 					
@@ -814,7 +814,7 @@ namespace D3D12Backend
 					std::map<std::string, DescriptorPtr> uavs;
 					for (const auto& [name, uav] : pass.mUavParams)
 					{
-						uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav);
+						uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResourceId(), uav.GetUsage());
 					}
 					const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), uavs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 

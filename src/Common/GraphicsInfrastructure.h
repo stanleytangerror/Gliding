@@ -24,14 +24,16 @@
 	public:		using CAT(Temp, __LINE__) = Type; \
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  } \
                 CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
-#define CONSTRUCTOR_WITH_RESOURCE(Type, Base) \
-	public:     Type() {} \
-	            Type(IGraphicMemoryResource* resource) : mResource(resource) {} \
-	            Type(const Type& other) : Base(other), mResource(other.mResource) {} \
-	            Type(const std::unique_ptr<IGraphicMemoryResource>& resource) : mResource(resource.get()) {} \
-                CommittedResourceId GetResourceId() const { return mResource->GetResourceId(); } \
-                IGraphicMemoryResource* GetResource() const { return mResource; } \
-	private:    IGraphicMemoryResource* mResource = nullptr;
+
+#define RESOURCE_DESC_USAGE(Base) \
+    struct GD_COMMON_API Base##Usage \
+    { \
+	    IGraphicMemoryResource* mResource = nullptr; \
+        Base##Desc mDesc; \
+        IGraphicMemoryResource* GetResource() const { return mResource; } \
+        CommittedResourceId GetResourceId() const { return mResource->GetResourceId(); } \
+        Base##Desc GetUsage() const { return mDesc; } \
+    };
 
 #define RENDER_EVENT(infra, format)\
 	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format); \
@@ -635,11 +637,6 @@ namespace GI
         CONTINOUS_SETTER(SrvDesc, f32, Texture2D_ResourceMinLODClamp);
     };
 
-    struct GD_COMMON_API SrvUsage : public SrvDesc
-    {
-		CONSTRUCTOR_WITH_RESOURCE(SrvUsage, SrvDesc);
-    };
-
     struct GD_COMMON_API RtvDesc
     {
 		CONTINOUS_SETTER(RtvDesc, Format::Enum, Format);
@@ -648,11 +645,6 @@ namespace GI
         CONTINOUS_SETTER(RtvDesc, u32, Texture2D_PlaneSlice);
     };
 
-	struct GD_COMMON_API RtvUsage : public RtvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE(RtvUsage, RtvDesc);
-	};
-
     struct GD_COMMON_API DsvDesc
     {
         CONTINOUS_SETTER(DsvDesc, bool, Enabled);
@@ -660,11 +652,6 @@ namespace GI
         CONTINOUS_SETTER(DsvDesc, DsvDimension::Enum, ViewDimension);
         CONTINOUS_SETTER(DsvDesc, DsvFlag::Enum, Flags);
         CONTINOUS_SETTER(DsvDesc, u32, Texture2D_MipSlice);
-	};
-
-	struct GD_COMMON_API DsvUsage : public DsvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE(DsvUsage, DsvDesc);
 	};
 
     struct GD_COMMON_API UavDesc
@@ -679,11 +666,6 @@ namespace GI
         CONTINOUS_SETTER(UavDesc, u32, Texture2D_MipSlice);
         CONTINOUS_SETTER(UavDesc, u32, Texture2D_PlaneSlice);
     };
-
-	struct GD_COMMON_API UavUsage : public UavDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE(UavUsage, UavDesc);
-	};
 
     struct GD_COMMON_API SamplerDesc
     {
@@ -720,21 +702,18 @@ namespace GI
         CONTINOUS_SETTER(VbvDesc, i32, StrideInBytes);
     };
 
-	struct GD_COMMON_API VbvUsage : public VbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE(VbvUsage, VbvDesc);
-	};
-
     struct GD_COMMON_API IbvDesc
     {
         CONTINOUS_SETTER(IbvDesc, i32, SizeInBytes);
         CONTINOUS_SETTER_VALUE(IbvDesc, Format::Enum, Format, Format::FORMAT_R16_UINT);
     };
 
-	struct GD_COMMON_API IbvUsage : public IbvDesc
-	{
-		CONSTRUCTOR_WITH_RESOURCE(IbvUsage, IbvDesc);
-	};
+	RESOURCE_DESC_USAGE(Srv);
+	RESOURCE_DESC_USAGE(Uav);
+	RESOURCE_DESC_USAGE(Dsv);
+	RESOURCE_DESC_USAGE(Rtv);
+	RESOURCE_DESC_USAGE(Vbv);
+	RESOURCE_DESC_USAGE(Ibv);
 
     struct GD_COMMON_API ShaderMacro
     {
