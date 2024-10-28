@@ -421,28 +421,16 @@ namespace D3D12Backend
 
 	}
 
-#define DEFERRED_EXECUTE 0
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 		auto resId = rtv.GetResourceId();
 
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, resId, rtv, value]()
-			{
-				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(resId, rtv);
-				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
-				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
-			});
-#else
 				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetResourceId(), rtv.GetUsage());
 				float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 				mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
-#endif
 	}
 
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil)
@@ -450,18 +438,6 @@ namespace D3D12Backend
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 		auto resId = dsv.GetResourceId();
 
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, resId, dsv, clearDepth, depth, clearStencil, stencil]()
-			{
-				resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-				const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(resId, dsv);
-				auto flag =
-					(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
-					(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
-				mContext->GetCommandList()->ClearDepthStencilView(descriptor.Get(), D3D12_CLEAR_FLAGS(flag), depth, stencil, 0, nullptr);
-			});
-#else
 		resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetResourceId(), dsv.GetUsage());
@@ -469,7 +445,6 @@ namespace D3D12Backend
 			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 			(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
 		mContext->GetCommandList()->ClearDepthStencilView(descriptor.Get(), D3D12_CLEAR_FLAGS(flag), depth, stencil, 0, nullptr);
-#endif
 	}
 
 
@@ -479,15 +454,7 @@ namespace D3D12Backend
 
 		auto destId = (dest)->GetResourceId();
 		auto srcId = (src)->GetResourceId();
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, destId, srcId]()
-			{
-				mContext->CopyResource(resourceManager->GetResource(destId), resourceManager->GetResource(srcId));
-			});
-#else
 		mContext->CopyResource(resourceManager->GetResource(destId), resourceManager->GetResource(srcId));
-#endif
-
 	}
 
 
@@ -523,12 +490,6 @@ namespace D3D12Backend
 		Assert(pass.IsReadyForExecute());
 		
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
-
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, d3d12Pass]()
-			{
-#endif
 
 				// transitions
 				for (const auto& [_, srv] : pass.mSrvParams)
@@ -749,9 +710,6 @@ namespace D3D12Backend
 				commandList->IASetIndexBuffer(&ibv);
 
 				commandList->DrawIndexedInstanced(pass.mIndexCount, pass.mInstanceCount, pass.mIndexStartLocation, pass.mVertexStartLocation, 0);
-#if DEFERRED_EXECUTE
-			});
-#endif
 	}
 
 	void D3D12GraphicsRecorder::AddComputePass(const GI::ComputePass& pass)
@@ -759,11 +717,6 @@ namespace D3D12Backend
 		Assert(pass.IsReadyForExecute());
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resourceManager, d3d12Pass]()
-			{
-#endif
 
 				// transitions
 				for (const auto& [_, srv] : pass.mSrvParams)
@@ -859,58 +812,27 @@ namespace D3D12Backend
 				mContext->GetCommandList()->SetComputeRootConstantBufferView(2, gpuAddr);
 
 				commandList->Dispatch(pass.mThreadGroupCounts[0], pass.mThreadGroupCounts[1], pass.mThreadGroupCounts[2]);
-#if DEFERRED_EXECUTE
-			});
-#endif
-
 	}
 
 	void D3D12GraphicsRecorder::AddPreparePresent(GI::IGraphicMemoryResource* res)
 	{
 		auto resId = res->GetResourceId();
-#if DEFERRED_EXECUTE
-		mCommands.push([this, resId]()
-			{
-				auto res = mContext->GetDevice()->GetResourceManager()->GetResource(resId);
-				res->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);
-#endif
 				auto devieRes = mContext->GetDevice()->GetResourceManager()->GetResource(resId);
 				devieRes->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);
-#if DEFERRED_EXECUTE
-			}
-		);
-#endif
 	}
 
 	void D3D12GraphicsRecorder::AddBeginEvent(const char* mark)
 	{
-#if DEFERRED_EXECUTE
-		mCommands.push([this, mark]()
-#endif
-			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
 				PIXBeginEvent(mContext->GetCommandList(), 0, mark);
 #endif
-			}
-#if DEFERRED_EXECUTE
-		);
-#endif
-
 	}
 
 
 	void D3D12GraphicsRecorder::AddEndEvent()
 	{
-#if DEFERRED_EXECUTE
-		mCommands.push([this]()
-#endif
-			{
 #if defined(_PIX_H_) || defined(_PIX3_H_)
 				PIXEndEvent(mContext->GetCommandList());
-#endif
-			}
-#if DEFERRED_EXECUTE
-		);
 #endif
 	}
 
@@ -927,15 +849,6 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::Finalize(bool dropAllCommands)
 	{
-#if DEFERRED_EXECUTE
-		while (!mCommands.empty())
-		{
-			if (!dropAllCommands)
-				mCommands.front()();
-			mCommands.pop();
-		}
-#endif
-
 		mContext->Finalize();
 	}
 }
