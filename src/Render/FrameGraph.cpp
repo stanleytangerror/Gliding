@@ -376,49 +376,37 @@ GI::IGraphicMemoryResource* RenderPassResources::Get(const FrameGraphResource::I
 GI::SrvUsage RenderPassResources::Get(const SrvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::SrvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::SrvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::RtvUsage RenderPassResources::Get(const RtvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::RtvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::RtvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::DsvUsage RenderPassResources::Get(const DsvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::DsvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::DsvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::UavUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::UavDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::VbvUsage RenderPassResources::Get(const VbvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::VbvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::VbvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::IbvUsage RenderPassResources::Get(const IbvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::IbvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::IbvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
