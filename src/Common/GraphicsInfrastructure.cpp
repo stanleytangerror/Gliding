@@ -1,4 +1,4 @@
-#include "CommonPch.h"
+#include "Common/CommonPch.h"
 #include "GraphicsInfrastructure.h"
 
 namespace GI
