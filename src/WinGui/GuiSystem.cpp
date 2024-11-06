@@ -1,79 +1,72 @@
-#include "pch.h"
 #include "GuiSystem.h"
 #include <mutex>
 #include "Common/StringUtils.h"
 
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+// Windows Header Files
+#include <windows.h>
+
 namespace WinGui
 {
-	class WindowMessageQueue
+	WinGui::WindowItem::WindowItem(const wchar_t* title, const Vec2u& initSize)
+		: mTitle(title)
+		, mInitSize(initSize)
 	{
-	private:
-		std::vector<Message> mMessages;
-		std::mutex			 mMessageMutex;
+		mWindowThread = std::make_unique<std::thread>([this]() 
+			{ 
+				this->WindowThreadFunc(); 
+			});
+	}
 
-	public:
-		std::vector<Message> ReadMessages()
-		{
-			std::lock_guard<std::mutex> guard(mMessageMutex);
-			std::vector<Message> result;
-			std::swap(result, mMessages);
-			return result;
-		}
+	WindowItem::~WindowItem()
+	{
+		mState = State::eClosing;
+		mWindowThread->join();
+	}
 
-		void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	void WindowItem::WindowThreadFunc()
+	{
+		static auto wndProc = [](HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) -> LRESULT
 		{
-			std::lock_guard<std::mutex> guard(mMessageMutex);
-			mMessages.push_back(Message{ u64(hWnd), message, wParam, u64(lParam) });
-		}
-
-		LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-		{
-			switch (message)
+			switch (uMsg)
 			{
-			case WM_CREATE:
+			case WM_NCCREATE:
 			{
-				LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
-				SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
+				CREATESTRUCT* pCS = reinterpret_cast<CREATESTRUCT*>(lParam);
+				LPVOID pThis = pCS->lpCreateParams;
+				SetWindowLongPtrW(hwnd, 0, reinterpret_cast<LONG_PTR>(pThis));
 			}
-			return 0;
-
-			case WM_DESTROY:
-				PostQuitMessage(0);
-				return 0;
-
-			default:
-				WriteMessage(hWnd, message, wParam, lParam);
 			}
 
-			// Handle any messages the switch statement didn't.
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
-	};
+			if (WindowItem* windowItem = reinterpret_cast<WindowItem*>(GetWindowLongPtrW(hwnd, 0)))
+			{
+				windowItem->WindowProcess(uMsg, wParam, lParam);
+			}
 
-	static WindowMessageQueue sMessageHub;
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		};
 
-	HWND CreateWindowInner(UINT width, UINT height, const wchar_t* windowTitle)
-	{
+		// https://stackoverflow.com/a/18162974/2131563
 		HINSTANCE hInstance = GetModuleHandle(NULL);
 
 		// Initialize the window class.
 		WNDCLASSEX windowClass = { 0 };
 		windowClass.cbSize = sizeof(WNDCLASSEX);
 		windowClass.style = CS_HREDRAW | CS_VREDRAW;
-		const WNDPROC proc = [](HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) { return sMessageHub.WindowProc(hWnd, message, wParam, lParam); };
-		windowClass.lpfnWndProc = proc;
+		windowClass.lpfnWndProc = wndProc;
+		windowClass.cbWndExtra = sizeof(WindowItem*);
 		windowClass.hInstance = hInstance;
 		windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		windowClass.lpszClassName = L"WinLauncher";
+		windowClass.lpszClassName = L"Test";
 		RegisterClassEx(&windowClass);
 
-		RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
-		AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+		RECT windowRect = { 0, 0, static_cast<LONG>(mInitSize.x()), static_cast<LONG>(mInitSize.y()) };
+		//AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 		// Create the window and store a handle to it.
 		HWND windowHandle = CreateWindow(
 			windowClass.lpszClassName,
-			windowTitle,
+			mTitle.c_str(),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -82,122 +75,35 @@ namespace WinGui
 			nullptr,		// We have no parent window.
 			nullptr,		// We aren't using menus.
 			hInstance,
-			nullptr);
+			//nullptr);
+			static_cast<LPVOID>(this));
 
-		SetWindowText(windowHandle, windowTitle);
+		SetWindowText(windowHandle, mTitle.c_str());
 
 		int nCmdShow = SW_SHOWDEFAULT;
 		ShowWindow(windowHandle, nCmdShow);
 
-		return windowHandle;
-	}
+		mWindowHandle = u64(windowHandle);
+		mState = State::eActive;
 
-	GuiSystem::GuiSystem()
-	{
-		mWindowThread = std::make_unique<std::thread>([&]()
-			{
-				this->mWindowThreadId = std::this_thread::get_id();
-
-				MSG msg = {};
-				while (msg.message != WM_QUIT)
-				{
-					// process window creation queue
-					{
-						std::lock_guard<std::mutex> guard(mWindowManageMutex);
-
-						for (const auto& info : this->mCreateWindowQueue)
-						{
-							const u64 handle = PortHandle(CreateWindowInner(info.mSize.x(), info.mSize.y(), info.mTitle.c_str()));
-							mWindowMap[info.mWindowId] = WindowRuntimeInfo{ handle, info.mSize };
-						}
-						this->mCreateWindowQueue.clear();
-					}
-					
-					// Process any messages in the queue.
-					if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-					{
-						TranslateMessage(&msg);
-						DispatchMessage(&msg);
-					}
-				}
-			});
-	}
-
-	WindowId GuiSystem::CreateNewWindow(const wchar_t* title, const Vec2u& size)
-	{
-		std::lock_guard<std::mutex> guard(mWindowManageMutex);
-		
-		const WindowId windowId = mWindowIdAllocator.Alloc();
-		mCreateWindowQueue.push_back(WindowCreationInfo{ title, size, windowId });
-
-		return windowId;
-	}
-
-	bool GuiSystem::TryGetWindowInfo(const WindowId& windowId, WindowRuntimeInfo* info)
-	{
-		std::lock_guard<std::mutex> guard(mWindowManageMutex);
-		
-		auto it = mWindowMap.find(windowId);
-		if (it != mWindowMap.end())
+		MSG msg = {};
+		while (msg.message != WM_QUIT && msg.message != WM_DESTROY && mState == State::eActive)
 		{
-			*info = it->second;
-			return true;
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
-		
-		return false;
+
+		DestroyWindow(windowHandle);
 	}
 
-	void GuiSystem::PeakAllMessages()
+	u64 WindowItem::WindowProcess(u64 message, u64 wParam, u64 lParam)
 	{
-		const auto& newMessages = sMessageHub.ReadMessages();
-		mMessages.insert(mMessages.end(), newMessages.begin(), newMessages.end());
+		std::lock_guard<std::mutex> guard(mMessageMutex);
+		mMessages.emplace_back(message, wParam, lParam);
+		return 0;
 	}
 
-	bool GuiSystem::CanDequeueMessage() const
-	{
-		return !mMessages.empty();
-	}
-
-	WinGui::Message GuiSystem::DequeueMessage()
-	{
-		auto msg = mMessages.front();
-		mMessages.erase(mMessages.begin());
-		return msg;
-	}
-}
-
-WinGui::GuiSystem* CreateWinGuiSystem()
-{
-	return new WinGui::GuiSystem;
-}
-
-PortHandle CreateNewWindow(WinGui::GuiSystem* system, const char* name)
-{
-	return 0;
-}
-
-WINGUI_API bool DequeueMessage(WinGui::GuiSystem* system, WinGui::Message* message)
-{
-	if (system->CanDequeueMessage())
-	{
-		*message = system->DequeueMessage();
-		return true;
-	}
-
-	return false;
-}
-
-WINGUI_API void FlushMessages(WinGui::GuiSystem* system)
-{
-	system->PeakAllMessages();
-}
-
-WINGUI_API WinGui::WindowId CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2u& size)
-{
-	return system->CreateNewWindow(title, size);
-}
-
-WINGUI_API bool TryGetGuiWindowInfo(WinGui::GuiSystem* system, const WinGui::WindowId& id, WindowRuntimeInfo* info)
-{
-	return system->TryGetWindowInfo(id, info);
 }

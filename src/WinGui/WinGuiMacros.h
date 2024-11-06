@@ -5,3 +5,5 @@
 #else
 #define WINGUI_API
 #endif // WinGui_Export
+
+#include "Common/CommonMacros.h"

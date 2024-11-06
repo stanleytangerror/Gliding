@@ -2,74 +2,46 @@
 
 #include "WinGuiMacros.h"
 #include "Common/CommonTypes.h"
-#include "Common/PresentPort.h"
-#include "Common/IndexAllocator.h"
-#include <map>
+#include "Common/Math.h"
 #include <mutex>
 #include <wchar.h>
 #include <xstring>
 
 namespace WinGui
 {
-	struct Message
-	{
-		u64 hWnd;
-		u64 message;
-		u64 wParam;
-		u64 lParam;
-	};
-
-	struct WindowId
-	{
-		u64 mId;
-
-		static WindowId FromInt(u64 id) { return { id }; }
-		bool operator<(const WindowId& other) const { return mId < other.mId; }
-	};
-
-	struct WindowCreationInfo
-	{
-		std::wstring mTitle;
-		Vec2u mSize;
-		WindowId mWindowId;
-	};
-
-	class GuiSystem
+	class WINGUI_API WindowItem
 	{
 	public:
-		GuiSystem();
+		enum class State
+		{
+			eInitial, eActive, eClosing
+		};
 
-		WindowId CreateNewWindow(const wchar_t* title, const Vec2u& size);
-		bool TryGetWindowInfo(const WindowId& windowId, WindowRuntimeInfo* info);
+		struct Message
+		{
+			u64 message;
+			u64 wParam;
+			u64 lParam;
+		};
 
-		void PeakAllMessages();
-		bool CanDequeueMessage() const;
-		Message DequeueMessage();
+	public:
+		WindowItem(const wchar_t* title, const Vec2u& initSize);
+		virtual ~WindowItem();
 
 	private:
-		// main thread
-		std::mutex mMutex;
-		std::vector<Message> mMessages;
-		IndexAllocator<WindowId> mWindowIdAllocator;
+		void WindowThreadFunc();
+		u64 WindowProcess(u64 message, u64 wParam, u64 lParam);
+
+	private:
+		std::wstring					mTitle;
+		Vec2u							mInitSize;
+		std::unique_ptr<std::thread>	mWindowThread;
+		std::atomic<u64>				mWindowHandle = 0;
+		std::atomic<State>				mState = State::eInitial;
 
 		// window thread
-		std::mutex mWindowManageMutex;
-
-		std::unique_ptr<std::thread> mWindowThread;
-		std::atomic<std::thread::id> mWindowThreadId;
-		
-		// cross thread
-		std::vector<WindowCreationInfo> mCreateWindowQueue;
-		std::map<WindowId, WindowRuntimeInfo> mWindowMap;
+		std::mutex				mMessageMutex;
+		std::vector<Message>	mMessages;
 	};
-}
 
-extern "C"
-{
-	WINGUI_API WinGui::GuiSystem* CreateWinGuiSystem();
-	WINGUI_API WinGui::WindowId CreateNewGuiWindow(WinGui::GuiSystem* system, const wchar_t* title, const Vec2i& size);
-	WINGUI_API bool TryGetGuiWindowInfo(WinGui::GuiSystem* system, const WinGui::WindowId& id, WindowRuntimeInfo* info);
-
-	WINGUI_API void FlushMessages(WinGui::GuiSystem* system);
-	WINGUI_API bool DequeueMessage(WinGui::GuiSystem* system, WinGui::Message* message);
 }
