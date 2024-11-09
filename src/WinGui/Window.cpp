@@ -1,4 +1,4 @@
-#include "GuiSystem.h"
+#include "Window.h"
 #include <mutex>
 #include "Common/StringUtils.h"
 
@@ -22,6 +22,16 @@ namespace WinGui
 	{
 		mState = State::eClosing;
 		mWindowThread->join();
+	}
+
+
+	std::vector<WinGui::WindowItem::Message> WindowItem::ConsumeAllMessages()
+	{
+		std::vector<WinGui::WindowItem::Message> result;
+
+		std::lock_guard<std::mutex> guard(mMessageMutex);
+		std::swap(mMessages, result);
+		return result;
 	}
 
 	void WindowItem::WindowThreadFunc()

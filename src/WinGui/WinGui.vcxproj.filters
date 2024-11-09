@@ -11,7 +11,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GuiSystem.h">
+    <ClInclude Include="Window.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="WinGuiMacros.h">
@@ -22,7 +22,7 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="GuiSystem.cpp">
+    <ClCompile Include="Window.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

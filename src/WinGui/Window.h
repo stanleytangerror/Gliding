@@ -28,6 +28,8 @@ namespace WinGui
 		WindowItem(const wchar_t* title, const Vec2u& initSize);
 		virtual ~WindowItem();
 
+		std::vector<Message>	ConsumeAllMessages();
+
 	private:
 		void WindowThreadFunc();
 		u64 WindowProcess(u64 message, u64 wParam, u64 lParam);
