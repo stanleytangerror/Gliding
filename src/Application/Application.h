@@ -22,6 +22,8 @@ public:
 
 protected:
 	void			LogicFrame();
+	void			HandleMessages();
+	void			AddGui();
 
 	HMODULE							mGraphicsBackendModule = {};
 	HMODULE							mPlatformModule = {};

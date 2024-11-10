@@ -102,6 +102,19 @@ void Application::LogicFrame()
 	mTimer->OnStartNewFrame();
 	DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
 
+	HandleMessages();
+	
+	AddGui();
+
+	mRenderModule->TickFrame(mTimer.get());
+
+	mRenderModule->Render();
+
+	Profile::Flush();
+}
+
+void Application::HandleMessages()
+{
 	const auto& messageProcess = [this](Platform::IWindow* window)
 	{
 		const auto& windowInfo = window->GetInfo();
@@ -123,88 +136,84 @@ void Application::LogicFrame()
 
 	messageProcess(mMainWindow);
 	messageProcess(mDebugWindow);
+}
 
-	if (mRenderModule->GetImGuiRenderer())
+void Application::AddGui()
+{
+	if (!mRenderModule->GetImGuiRenderer()) { return; }
+	
+	ImGuiIntegration::BeginUI();
 	{
-		ImGuiIntegration::BeginUI();
 		{
+			const auto& fullWindowSize = mMainWindow->GetInfo().mSize;
+
+			bool open = true;
+			ImGui::SetNextWindowPos({});
+			ImGui::SetNextWindowSize(ImGui::FromVec2(fullWindowSize));
+			ImGui::Begin("OperatePanel", &open,
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoTitleBar);
 			{
-				const auto& fullWindowSize = mMainWindow->GetInfo().mSize;
+				static std::array<MouseDrag, 2> drags = {
+					MouseDrag(ImGuiMouseButton_Left),
+					MouseDrag(ImGuiMouseButton_Right) };
 
-				bool open = true;
-				ImGui::SetNextWindowPos({});
-				ImGui::SetNextWindowSize(ImGui::FromVec2(fullWindowSize));
-				ImGui::Begin("OperatePanel", &open,
-					ImGuiWindowFlags_NoResize |
-					ImGuiWindowFlags_NoBackground |
-					ImGuiWindowFlags_NoTitleBar);
+				for (auto& drag : drags)
 				{
-					static std::array<MouseDrag, 2> drags = {
-						MouseDrag(ImGuiMouseButton_Left),
-						MouseDrag(ImGuiMouseButton_Right) };
+					drag.Update();
+				}
 
-					for (auto& drag : drags)
+				WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
+
+				Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
+				{
+					/* +x: camera right, +y: camera down */
+					const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
+					const Vec3f dragInViewSpace = Vec3f(leftButtonDeltaDragInPixelSpace.x(), -leftButtonDeltaDragInPixelSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
+
+					if (!Math::AlmostZero(dragInViewSpace))
 					{
-						drag.Update();
-					}
 
-					WorldRenderer* worldRenderer = mRenderModule->GetWorldRenderer();
+						const Vec3f dragInWorldSpace =
+							dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
+							dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
 
-					Math::CameraTransformf& camTrans = mRenderModule->GetFrameGraph()->GetBlackboard()->Get<MainCameraState>().mCameraTrans;
-					{
-						/* +x: camera right, +y: camera down */
-						const Vec2f leftButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Left].GetDragDeltaInPixelSpace();
-						const Vec3f dragInViewSpace = Vec3f(leftButtonDeltaDragInPixelSpace.x(), -leftButtonDeltaDragInPixelSpace.y(), 0.f) / std::min<f32>(f32(fullWindowSize.x()), f32(fullWindowSize.y()));
+						const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
+							dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
+							dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
 
-						if (!Math::AlmostZero(dragInViewSpace))
-						{
-
-							const Vec3f dragInWorldSpace =
-								dragInViewSpace.x() * camTrans.CamRightInWorldSpace() +
-								dragInViewSpace.y() * camTrans.CamUpInWorldSpace();
-
-							const Rotationf rotInWorldSpace = Math::FromAngleAxis<f32>(
-								dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
-								dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
-
-							worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
-						}
-					}
-
-					{
-						const Vec2f rightButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Right].GetDragDeltaInPixelSpace();
-						const f32 camRotDeltaRad = Math::DegreeToRadian(rightButtonDeltaDragInPixelSpace.x() / fullWindowSize.y() * 360.f);
-
-						const Vec3f lastCamDir = camTrans.CamDirInWorldSpace();
-						const f32 camRotRad = std::atan2f(lastCamDir.x(), lastCamDir.y()) + camRotDeltaRad;
-
-						const Vec3f& camDir = Vec3f{ std::sin(camRotRad), std::cos(camRotRad), 0.f };
-						const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
-						const Vec3f& camRight = camDir.cross(camUp);
-
-						camTrans.AlignCamera(camDir, camUp, camRight);
-						camTrans.MoveCamera(-100.f * camDir);
+						worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
 					}
 				}
-				ImGui::End();
-			}
 
-			{
-				bool open = true;
-				ImGui::Begin("Debug UI", &open);
 				{
-					ImGui::Text("Debugging...");
+					const Vec2f rightButtonDeltaDragInPixelSpace = drags[ImGuiMouseButton_Right].GetDragDeltaInPixelSpace();
+					const f32 camRotDeltaRad = Math::DegreeToRadian(rightButtonDeltaDragInPixelSpace.x() / fullWindowSize.y() * 360.f);
+
+					const Vec3f lastCamDir = camTrans.CamDirInWorldSpace();
+					const f32 camRotRad = std::atan2f(lastCamDir.x(), lastCamDir.y()) + camRotDeltaRad;
+
+					const Vec3f& camDir = Vec3f{ std::sin(camRotRad), std::cos(camRotRad), 0.f };
+					const Vec3f& camUp = Math::Axis3DDir<f32>(Math::Axis3D_Zp);
+					const Vec3f& camRight = camDir.cross(camUp);
+
+					camTrans.AlignCamera(camDir, camUp, camRight);
+					camTrans.MoveCamera(-100.f * camDir);
 				}
-				ImGui::End();
 			}
+			ImGui::End();
 		}
-		ImDrawData* uiDate = ImGuiIntegration::EndUI();
-		mRenderModule->mUiData = uiDate;
+
+		{
+			bool open = true;
+			ImGui::Begin("Debug UI", &open);
+			{
+				ImGui::Text("Debugging...");
+			}
+			ImGui::End();
+		}
 	}
-
-	mRenderModule->TickFrame(mTimer.get());
-
-	mRenderModule->Render();
-
-	Profile::Flush();
+	ImDrawData* uiDate = ImGuiIntegration::EndUI();
+	mRenderModule->mUiData = uiDate;
 }
