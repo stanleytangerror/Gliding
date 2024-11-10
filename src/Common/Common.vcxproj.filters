@@ -49,9 +49,6 @@
     <ClInclude Include="SuspendedRelease_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="PresentPort.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>Source</Filter>
     </ClInclude>
@@ -68,6 +65,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="DirectedGraph.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

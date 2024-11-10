@@ -3,32 +3,22 @@
 #include "WindowsPlatformMacros.h"
 #include "Common/CommonTypes.h"
 #include "Common/Math.h"
+#include "Common/Platform.h"
 #include <mutex>
 #include <wchar.h>
 #include <xstring>
 
 namespace WindowsPlatform
 {
-	class WINDOWSPLATFORM_API WindowItem
+	class WINDOWSPLATFORM_API WindowItem : public Platform::IWindow
 	{
-	public:
-		enum class State
-		{
-			eInitial, eActive, eClosing
-		};
-
-		struct Message
-		{
-			u64 message;
-			u64 wParam;
-			u64 lParam;
-		};
-
 	public:
 		WindowItem(const wchar_t* title, const Vec2u& initSize);
 		virtual ~WindowItem();
 
-		std::vector<Message>	ConsumeAllMessages();
+		std::vector<Message>	ConsumeAllMessages() override;
+		Platform::WindowInfo	GetInfo() override;
+		bool					IsAlive() override;
 
 	private:
 		void WindowThreadFunc();
@@ -39,11 +29,16 @@ namespace WindowsPlatform
 		Vec2u							mInitSize;
 		std::unique_ptr<std::thread>	mWindowThread;
 		std::atomic<u64>				mWindowHandle = 0;
-		std::atomic<State>				mState = State::eInitial;
+		std::atomic<u8>					mState = State::eInitial;
 
 		// window thread
 		std::mutex				mMessageMutex;
 		std::vector<Message>	mMessages;
 	};
+}
 
+extern "C"
+{
+	WINDOWSPLATFORM_API Platform::IWindow* CreateNativeWindow(const wchar_t* title, const Vec2u& initSize);
+	WINDOWSPLATFORM_API void DestroyNativeWindow(Platform::IWindow* window);
 }

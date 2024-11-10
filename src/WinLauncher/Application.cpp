@@ -1,56 +1,50 @@
 #include "WinLauncher/WinLauncherPch.h"
 #include "Application.h"
-#include "Common/PresentPort.h"
+#include "Common/Platform.h"
 #include "Common/Math.h"
+#include "Common/Platform.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
 #include "Render/WorldRenderer.h"
 #include <mutex>
 #include <map>
-
-struct WinMessage
-{
-	HWND hWnd = 0;
-	UINT message = 0;
-	WPARAM wParam = 0;
-	LPARAM lParam = 0;
-};
-static std::queue<WinMessage>			sMessages;
-static std::mutex						sMessageMutex;
-
-std::queue<WinMessage> ReadMessages()
-{
-	std::queue<WinMessage> result;
-
-	std::lock_guard<std::mutex> guard(sMessageMutex);
-	std::swap(result, sMessages);
-	return result;
-}
-
-void WriteMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	std::lock_guard<std::mutex> guard(sMessageMutex);
-	sMessages.push(WinMessage{ hWnd, message, wParam, lParam });
-}
 
 Application::Application()
 	: mTimer(std::make_unique<Timer>())
 {
 #ifdef _DEBUG
 	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Debug_x64.dll");
+	mPlatformModule = LoadLibrary("WindowsPlatform_Debug_x64.dll");
 #else
 	mGraphicsBackendModule = LoadLibrary("D3D12Backend_Release_x64.dll");
+	mPlatformModule = LoadLibrary("WindowsPlatform_Release_x64.dll");
 #endif
 
+	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
+	AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
+
 	Profile::Initial();
-	auto createInfraFunc = reinterpret_cast<RenderModule::CreateGraphicsInfra*>(GetProcAddress(mGraphicsBackendModule, "CreateGraphicsInfra"));
+
+	auto createInfraFunc = reinterpret_cast<GI::CreateGraphicsInfra*>(GetProcAddress(mGraphicsBackendModule, "CreateGraphicsInfra"));
 	mRenderModule = std::make_unique<RenderModule>(createInfraFunc);
 	ImGuiIntegration::Initial();
 }
 
 void Application::Initial(HINSTANCE hInstance, int nCmdShow)
 {
-	mLogicThread = std::make_unique<std::thread>([this]() { this->LogicThread(); });
-	mWindowThread = std::make_unique<std::thread>([&]() { this->WindowThread(hInstance, nCmdShow); });
+	auto createNativeWindow = reinterpret_cast<Platform::CreateNativeWindow*>(GetProcAddress(mPlatformModule, "CreateNativeWindow"));
+	auto destroyNativeWindow = reinterpret_cast<Platform::DestroyNativeWindow*>(GetProcAddress(mPlatformModule, "DestroyNativeWindow"));
+
+	mMainWindow = createNativeWindow(L"MainWindow", Vec2u{ 1600, 900 });
+	mDebugWindow = createNativeWindow(L"DebugWindow", Vec2u{ 640, 360 });
+
+	while (!mMainWindow->IsAlive() || !mDebugWindow->IsAlive()) {};
+
+	ImGuiIntegration::AttachToWindow(mMainWindow->GetInfo().mNativeHandle);
+
+	mRenderModule->Initial();
+
+	mRenderModule->AdaptWindow(WindowType::MainPort, mMainWindow->GetInfo(), 3);
+	mRenderModule->AdaptWindow(WindowType::DebugPort, mDebugWindow->GetInfo(), 3);
 }
 
 void Application::Destroy()
@@ -66,8 +60,11 @@ void Application::Destroy()
 void Application::Run()
 {
 	mAppLifeCycle = AppLifeCycle::Running;
-	mWindowThread->join();
-	mLogicThread->join();
+
+	while (true)
+	{
+		LogicFrame();
+	}
 }
 
 class MouseDrag
@@ -99,52 +96,6 @@ protected:
 	Vec2f				mDeltaDragInPixelSpace = Vec2f::Zero();
 };
 
-void Application::LogicThread()
-{
-	// https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex
-	AssertHResultOk(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
-
-	while (!mWindowCreated) {}
-
-	ImGuiIntegration::AttachToWindow(mMainWindowInfo.mNativeHandle);
-
-	mRenderModule->Initial();
-
-	mRenderModule->AdaptWindow(PresentPortType::MainPort, mMainWindowInfo);
-	mRenderModule->AdaptWindow(PresentPortType::DebugPort, mDebugWindowInfo);
-
-	while (mMainWindowInfo.mNativeHandle != 0 && mDebugWindowInfo.mNativeHandle != 0)
-	{
-		LogicFrame();
-	}
-}
-
-void Application::WindowThread(HINSTANCE hInstance, int nCmdShow)
-{
-	mMainWindowInfo.mSize = { 1600, 900 };
-	mMainWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(1600, 900, "MainWindow", hInstance, nCmdShow));
-
-	mDebugWindowInfo.mSize = { 640, 360 };
-	mDebugWindowInfo.mNativeHandle = PortHandle(CreateWindowInner(640, 360, "DebugWindow", hInstance, nCmdShow));
-
-	mWindowCreated = true;
-
-	MSG msg = {};
-	while (msg.message != WM_QUIT)
-	{
-		// Process any messages in the queue.
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
-
-	mMainWindowInfo.mNativeHandle = {};
-	mDebugWindowInfo.mNativeHandle = {};
-}
-
-
 void Application::LogicFrame()
 {
 	PROFILE_EVENT(Application::LogicFrame);
@@ -152,38 +103,34 @@ void Application::LogicFrame()
 	mTimer->OnStartNewFrame();
 	DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
 
-	auto messages = ReadMessages();
-	std::map<u8, Vec2u> newSizes;
-	while (!messages.empty())
+	const auto& messageProcess = [this](Platform::IWindow* window)
 	{
-		auto msg = messages.front();
-		messages.pop();
-
-		if (msg.message == WM_SIZE)
+		const auto& windowInfo = window->GetInfo();
+		for (const auto& msg : window->ConsumeAllMessages())
 		{
-			UINT width = LOWORD(msg.lParam);
-			UINT height = HIWORD(msg.lParam);
-			u8 windowId = (mMainWindowInfo.mNativeHandle == PortHandle(msg.hWnd)) ? u8(PresentPortType::MainPort) : u8(PresentPortType::DebugPort);
-			newSizes[windowId] = { width, height };
+			if (msg.message == WM_SIZE)
+			{
+				UINT width = LOWORD(msg.lParam);
+				UINT height = HIWORD(msg.lParam);
+				const auto& newSize = Vec2u{ width, height };
+
+				this->mRenderModule->OnResizeWindow(windowInfo.mNativeHandle, newSize);
+				DEBUG_PRINT("Window %d size (%d, %d)", windowInfo.mNativeHandle, newSize.x(), newSize.y());
+			}
+
+			ImGuiIntegration::WindowProcHandler(windowInfo.mNativeHandle, msg.message, msg.wParam, msg.lParam);
 		}
+	};
 
-		ImGuiIntegration::WindowProcHandler(u64(msg.hWnd), msg.message, msg.wParam, msg.lParam);
-	}
-
-	for (const auto& p : newSizes)
-	{
-		auto windowId = p.first;
-		auto newSize = p.second;
-		mRenderModule->OnResizeWindow(windowId, newSize);
-		DEBUG_PRINT("Window %d size (%d, %d)", windowId, newSize.x(), newSize.y());
-	}
+	messageProcess(mMainWindow);
+	messageProcess(mDebugWindow);
 
 	if (mRenderModule->GetImGuiRenderer())
 	{
 		ImGuiIntegration::BeginUI();
 		{
 			{
-				const auto& fullWindowSize = mMainWindowInfo.mSize;
+				const auto& fullWindowSize = mMainWindow->GetInfo().mSize;
 
 				bool open = true;
 				ImGui::SetNextWindowPos({});
@@ -261,68 +208,4 @@ void Application::LogicFrame()
 	mRenderModule->Render();
 
 	Profile::Flush();
-}
-
-LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message)
-	{
-	case WM_CREATE:
-	{
-		LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
-	}
-	return 0;
-
-	case WM_PAINT:
-		return 0;
-
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-
-	default:
-		WriteMessage(hWnd, message, wParam, lParam);
-	}
-
-	// Handle any messages the switch statement didn't.
-	return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
-HWND Application::CreateWindowInner(u32 width, u32 height, std::string name, HINSTANCE hInstance, int nCmdShow)
-{
-	// Initialize the window class.
-	WNDCLASSEX windowClass = { 0 };
-	windowClass.cbSize = sizeof(WNDCLASSEX);
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = WindowProc;
-	windowClass.hInstance = hInstance;
-	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	windowClass.lpszClassName = "WinLauncher";
-	RegisterClassEx(&windowClass);
-
-	RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
-	Assert(AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE));
-
-	// Create the window and store a handle to it.
-	HWND windowHandle = CreateWindow(
-		windowClass.lpszClassName,
-		name.c_str(),
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		windowRect.right - windowRect.left,
-		windowRect.bottom - windowRect.top,
-		nullptr,		// We have no parent window.
-		nullptr,		// We aren't using menus.
-		hInstance,
-		nullptr);
-
-	Assert(windowHandle != 0);
-
-	Assert(SetWindowText(windowHandle, name.c_str()));
-
-	ShowWindow(windowHandle, nCmdShow);
-
-	return windowHandle;
 }

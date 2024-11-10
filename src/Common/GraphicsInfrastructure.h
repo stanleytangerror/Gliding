@@ -2,8 +2,8 @@
 
 #include "AssertUtils.h"
 #include "Math.h"
+#include "Platform.h"
 #include "Texture.h"
-#include "PresentPort.h"
 #include "StringUtils.h"
 #include "Container.h"
 
@@ -1026,9 +1026,9 @@ namespace GI
 
         virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const = 0;
 
-		virtual void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) = 0;
-		virtual void                        ResizeWindow(u8 windowId, const Vec2u& windowSize) = 0;
-		virtual IGraphicMemoryResource*     GetWindowBackBuffer(u8 windowId) = 0;
+		virtual void                        AdaptToWindow(const Platform::WindowInfo& windowInfo, u8 frameCount) = 0;
+		virtual void                        ResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& windowSize) = 0;
+		virtual IGraphicMemoryResource*     GetWindowBackBuffer(Platform::NativeWindowHandle windowHandle) = 0;
 
 		virtual void                        StartFrame() = 0;
 		virtual void                        EndFrame() = 0;
@@ -1246,4 +1246,5 @@ namespace GI
         std::array<u32, 3>							mThreadGroupCounts = {};
     };
 
+	typedef GI::IGraphicsInfra* CreateGraphicsInfra();
 };

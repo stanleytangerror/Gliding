@@ -6,7 +6,6 @@
 #include "D3D12PipelineState.h"
 #include "D3D12Shader.h"
 #include "D3D12ResourceManager.h"
-#include "Common/PresentPort.h"
 
 namespace D3D12Backend
 {

@@ -284,15 +284,15 @@ namespace D3D12Backend
 	}
 
 
-	void D3D12GraphicsInfra::AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo)
+	void D3D12GraphicsInfra::AdaptToWindow(const Platform::WindowInfo& windowInfo, u8 frameCount)
 	{
-		mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->CreateSwapChain(windowId, HWND(windowInfo.mNativeHandle), windowInfo.mSize, windowInfo.mFrameCount);
+		mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->CreateSwapChain(windowInfo.mNativeHandle, windowInfo.mSize, frameCount);
 	}
 
 
-	void D3D12GraphicsInfra::ResizeWindow(u8 windowId, const Vec2u& windowSize)
+	void D3D12GraphicsInfra::ResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& windowSize)
 	{
-		auto swapChain = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowId);
+		auto swapChain = mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowHandle);
 
 		if (swapChain->GetSize() != windowSize)
 		{
@@ -312,9 +312,9 @@ namespace D3D12Backend
 		}
 	}
 
-	GI::IGraphicMemoryResource* D3D12GraphicsInfra::GetWindowBackBuffer(u8 windowId)
+	GI::IGraphicMemoryResource* D3D12GraphicsInfra::GetWindowBackBuffer(Platform::NativeWindowHandle windowHandle)
 	{
-		return mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowId)->GetBuffer();
+		return mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChain(windowHandle)->GetBuffer();
 	}
 
 	void D3D12GraphicsInfra::StartFrame()
@@ -325,8 +325,10 @@ namespace D3D12Backend
 
 	void D3D12GraphicsInfra::EndFrame()
 	{
-		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::MainPort)));
-		mCurrentRecorder->AddPreparePresent(GetWindowBackBuffer(u8(PresentPortType::DebugPort)));
+		for (auto swapChain : mDevice->GetGpuQueue(D3D12GpuQueueType::Graphic)->GetSwapChains())
+		{
+			mCurrentRecorder->AddPreparePresent(swapChain->GetBuffer());
+		}
 
 		EndRecording(mSkipFrameCommands);
 		mSkipFrameCommands = false;

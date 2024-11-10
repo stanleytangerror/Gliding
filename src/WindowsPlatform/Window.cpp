@@ -34,6 +34,16 @@ namespace WindowsPlatform
 		return result;
 	}
 
+	Platform::WindowInfo WindowItem::GetInfo()
+	{
+		return Platform::WindowInfo{ mWindowHandle, mInitSize };
+	}
+
+	bool WindowItem::IsAlive()
+	{
+		return mState == State::eAlive;
+	}
+
 	void WindowItem::WindowThreadFunc()
 	{
 		static auto wndProc = [](HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) -> LRESULT
@@ -45,6 +55,9 @@ namespace WindowsPlatform
 				CREATESTRUCT* pCS = reinterpret_cast<CREATESTRUCT*>(lParam);
 				LPVOID pThis = pCS->lpCreateParams;
 				SetWindowLongPtrW(hwnd, 0, reinterpret_cast<LONG_PTR>(pThis));
+				
+				auto windowItem = reinterpret_cast<WindowItem*>(pThis);
+				windowItem->mState |= State::eWindowProcessReady;
 			}
 			}
 
@@ -94,10 +107,10 @@ namespace WindowsPlatform
 		ShowWindow(windowHandle, nCmdShow);
 
 		mWindowHandle = u64(windowHandle);
-		mState = State::eActive;
+		mState |= State::eNativeHandleReady;
 
 		MSG msg = {};
-		while (msg.message != WM_QUIT && msg.message != WM_DESTROY && mState == State::eActive)
+		while (msg.message != WM_QUIT && msg.message != WM_DESTROY && mState == State::eAlive)
 		{
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
@@ -116,4 +129,17 @@ namespace WindowsPlatform
 		return 0;
 	}
 
+}
+
+Platform::IWindow* CreateNativeWindow(const wchar_t* title, const Vec2u& initSize)
+{
+	return new WindowsPlatform::WindowItem(title, initSize);
+}
+
+WINDOWSPLATFORM_API void DestroyNativeWindow(Platform::IWindow* window)
+{
+	if (window)
+	{
+		delete window;
+	}
 }

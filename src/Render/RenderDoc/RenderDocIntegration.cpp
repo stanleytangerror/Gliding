@@ -36,7 +36,7 @@ bool RenderDocIntegration::CaptureNextFrame()
 	}
 }
 
-void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, PortHandle windowHandle)
+void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle)
 {
 	if (!mApi) { return; }
 
@@ -54,7 +54,7 @@ void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, PortHandle windowH
 	}
 }
 
-void RenderDocIntegration::OnEndFrame(GI::DevicePtr device, PortHandle windowHandle)
+void RenderDocIntegration::OnEndFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle)
 {
 	if (!mApi) { return; }
 

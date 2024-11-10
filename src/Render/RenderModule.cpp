@@ -10,24 +10,24 @@
 #define ENABLE_RENDER_DOC_PLUGIN 0
 #endif
 
-RenderModule::RenderModule(CreateGraphicsInfra* createGraphicsBackend)
+RenderModule::RenderModule(GI::CreateGraphicsInfra* createGraphicsBackend)
 	: mCreateGraphicsInfra(createGraphicsBackend)
 {
 
 }
 
-void RenderModule::AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo)
+void RenderModule::AdaptWindow(WindowType type, const Platform::WindowInfo& windowInfo, u8 frameCount)
 {
-	mWindowInfo[type] = windowInfo;
-	mGraphicInfra->AdaptToWindow(u8(type), windowInfo);
+	mWindows[type] = windowInfo;
+	mGraphicInfra->AdaptToWindow(windowInfo, frameCount);
 }
 
 
-void RenderModule::OnResizeWindow(u8 windowId, const Vec2u& size)
+void RenderModule::OnResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& size)
 {
-	mFrameGraph->Unimport(mGraphicInfra->GetWindowBackBuffer(windowId));
+	mFrameGraph->Unimport(mGraphicInfra->GetWindowBackBuffer(windowHandle));
 	
-	mGraphicInfra->ResizeWindow(windowId, size);
+	mGraphicInfra->ResizeWindow(windowHandle, size);
 }
 
 void RenderModule::Initial()
@@ -55,7 +55,7 @@ void RenderModule::Render()
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnStartFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
+		mRenderDoc->OnStartFrame(mGraphicInfra->GetNativeDevicePtr(), mWindows[WindowType::MainPort].mNativeHandle);
 	}
 
 	mGraphicInfra->StartFrame();
@@ -64,7 +64,7 @@ void RenderModule::Render()
 
 	if (!mImGuiRenderer) { mImGuiRenderer = std::make_unique<ImGuiRenderer>(this); }
 	if (!mScreenRenderer) { mScreenRenderer = std::make_unique<ScreenRenderer>(this); }
-	if (!mWorldRenderer) { mWorldRenderer = std::make_unique<WorldRenderer>(this, mWindowInfo[PresentPortType::MainPort].mSize); }
+	if (!mWorldRenderer) { mWorldRenderer = std::make_unique<WorldRenderer>(this, mWindows[WindowType::MainPort].mSize); }
 
 	{
 		{
@@ -74,7 +74,7 @@ void RenderModule::Render()
 
 			//RENDER_EVENT(mGraphicInfra, RenderToMainPort);
 
-			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::MainPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(mWindows[WindowType::MainPort].mNativeHandle);
 			auto target = mFrameGraph->Import(backBuffer);
 			mScreenRenderer->Render(sceneHdr, target);
 			mImGuiRenderer->Render(target, mUiData);
@@ -84,7 +84,7 @@ void RenderModule::Render()
 		{
 			PROFILE_EVENT(RenderToDebugPort);
 
-			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(u8(PresentPortType::DebugPort));
+			const auto& backBuffer = mGraphicInfra->GetWindowBackBuffer(mWindows[WindowType::DebugPort].mNativeHandle);
 			auto target = mFrameGraph->Import(backBuffer);
 			mWorldRenderer->RenderGBufferChannels(target);
 			mWorldRenderer->RenderShadowMaskChannel(target);
@@ -101,7 +101,7 @@ void RenderModule::Render()
 
 	if (mRenderDoc)
 	{
-		mRenderDoc->OnEndFrame(mGraphicInfra->GetNativeDevicePtr(), mWindowInfo[PresentPortType::MainPort].mNativeHandle);
+		mRenderDoc->OnEndFrame(mGraphicInfra->GetNativeDevicePtr(), mWindows[WindowType::MainPort].mNativeHandle);
 	}
 }
 

@@ -13,7 +13,7 @@ namespace D3D12Backend
 	class SwapChain
 	{
 	public:
-		SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, HWND windowHandle, const Vec2u& size, const u32 frameCount, const char* name);
+		SwapChain(D3D12Device* device, D3D12GpuQueue* gpuQueue, Platform::NativeWindowHandle windowHandle, const Vec2u& size, const u32 frameCount, const char* name);
 		SwapChain(const SwapChain& other) = delete;
 
 		GI::IGraphicMemoryResource*		GetBuffer() const;
