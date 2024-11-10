@@ -25,9 +25,9 @@ namespace WindowsPlatform
 	}
 
 
-	std::vector<WindowsPlatform::WindowItem::Message> WindowItem::ConsumeAllMessages()
+	std::vector<Platform::Message> WindowItem::ConsumeAllMessages()
 	{
-		std::vector<WindowsPlatform::WindowItem::Message> result;
+		std::vector<Platform::Message> result;
 
 		std::lock_guard<std::mutex> guard(mMessageMutex);
 		std::swap(mMessages, result);

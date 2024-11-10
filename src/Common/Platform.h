@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CommonTypes.h"
+#include "Math.h"
+
 namespace Platform
 {
 	using NativeWindowHandle = u64;
@@ -8,6 +11,13 @@ namespace Platform
 	{
 		NativeWindowHandle	mNativeHandle = {};
 		Vec2u				mSize = {};
+	};
+
+	struct Message
+	{
+		u64 message;
+		u64 wParam;
+		u64 lParam;
 	};
 
 	class GD_COMMON_API IWindow
@@ -20,13 +30,6 @@ namespace Platform
 			eWindowProcessReady = 0b10,
 			eAlive = 0b11, 
 			eClosing = 0b100
-		};
-
-		struct Message
-		{
-			u64 message;
-			u64 wParam;
-			u64 lParam;
 		};
 
 		virtual std::vector<Message>	ConsumeAllMessages() = 0;

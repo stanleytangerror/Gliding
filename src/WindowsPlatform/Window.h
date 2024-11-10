@@ -16,7 +16,7 @@ namespace WindowsPlatform
 		WindowItem(const wchar_t* title, const Vec2u& initSize);
 		virtual ~WindowItem();
 
-		std::vector<Message>	ConsumeAllMessages() override;
+		std::vector<Platform::Message>	ConsumeAllMessages() override;
 		Platform::WindowInfo	GetInfo() override;
 		bool					IsAlive() override;
 
@@ -33,7 +33,7 @@ namespace WindowsPlatform
 
 		// window thread
 		std::mutex				mMessageMutex;
-		std::vector<Message>	mMessages;
+		std::vector<Platform::Message>	mMessages;
 	};
 }
 

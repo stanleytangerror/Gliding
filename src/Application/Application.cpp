@@ -117,7 +117,7 @@ void Application::LogicFrame()
 				DEBUG_PRINT("Window %d size (%d, %d)", windowInfo.mNativeHandle, newSize.x(), newSize.y());
 			}
 
-			ImGuiIntegration::WindowProcHandler(windowInfo.mNativeHandle, msg.message, msg.wParam, msg.lParam);
+			ImGuiIntegration::WindowProcHandler(windowInfo.mNativeHandle, msg);
 		}
 	};
 

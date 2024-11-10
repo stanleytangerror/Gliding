@@ -7,7 +7,7 @@ IMGUI_INTEGRATION_API bool ImGuiIntegration::Initial()
 	return ImGui::CreateContext() != nullptr;
 }
 
-bool ImGuiIntegration::AttachToWindow(const u64 windowHandle)
+bool ImGuiIntegration::AttachToWindow(Platform::NativeWindowHandle windowHandle)
 {
 	return ImGui_ImplWin32_Init(HWND(windowHandle));
 }
@@ -36,7 +36,7 @@ void ImGuiIntegration::Shutdown()
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-u64 ImGuiIntegration::WindowProcHandler(const u64 windowHandle, u32 msg, u64 wParam, u64 lParam)
+u64 ImGuiIntegration::WindowProcHandler(Platform::NativeWindowHandle windowHandle, Platform::Message message)
 {
-	return ImGui_ImplWin32_WndProcHandler(HWND(windowHandle), msg, wParam, lParam);
+	return ImGui_ImplWin32_WndProcHandler(HWND(windowHandle), message.message, message.wParam, message.lParam);
 }
