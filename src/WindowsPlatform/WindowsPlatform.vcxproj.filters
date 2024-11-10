@@ -14,7 +14,7 @@
     <ClInclude Include="Window.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="WinGuiMacros.h">
+    <ClInclude Include="WindowsPlatformMacros.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

@@ -32,7 +32,7 @@
     <ProjectReference Include="..\Render\Render.vcxproj">
       <Project>{3a699918-b1dd-47ea-b050-2dd580b9bc9d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\WinGui\WinGui.vcxproj">
+    <ProjectReference Include="..\WindowsPlatform\WindowsPlatform.vcxproj">
       <Project>{d21f0e1a-0fd5-4fef-b36c-a8988e04c419}</Project>
     </ProjectReference>
   </ItemGroup>

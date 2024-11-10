@@ -6,9 +6,9 @@
 // Windows Header Files
 #include <windows.h>
 
-namespace WinGui
+namespace WindowsPlatform
 {
-	WinGui::WindowItem::WindowItem(const wchar_t* title, const Vec2u& initSize)
+	WindowsPlatform::WindowItem::WindowItem(const wchar_t* title, const Vec2u& initSize)
 		: mTitle(title)
 		, mInitSize(initSize)
 	{
@@ -25,9 +25,9 @@ namespace WinGui
 	}
 
 
-	std::vector<WinGui::WindowItem::Message> WindowItem::ConsumeAllMessages()
+	std::vector<WindowsPlatform::WindowItem::Message> WindowItem::ConsumeAllMessages()
 	{
-		std::vector<WinGui::WindowItem::Message> result;
+		std::vector<WindowsPlatform::WindowItem::Message> result;
 
 		std::lock_guard<std::mutex> guard(mMessageMutex);
 		std::swap(mMessages, result);

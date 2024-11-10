@@ -1,15 +1,15 @@
 #pragma once
 
-#include "WinGuiMacros.h"
+#include "WindowsPlatformMacros.h"
 #include "Common/CommonTypes.h"
 #include "Common/Math.h"
 #include <mutex>
 #include <wchar.h>
 #include <xstring>
 
-namespace WinGui
+namespace WindowsPlatform
 {
-	class WINGUI_API WindowItem
+	class WINDOWSPLATFORM_API WindowItem
 	{
 	public:
 		enum class State
