@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ApplicationHeader.h"
 #include "Common/CommonTypes.h"
 #include "Render/RenderModule.h"
 #include <xstring>

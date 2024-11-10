@@ -1,4 +1,3 @@
-#include "WinLauncher/WinLauncherPch.h"
 #include "Application.h"
 #include "Common/Platform.h"
 #include "Common/Math.h"
