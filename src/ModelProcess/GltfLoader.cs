@@ -108,12 +108,12 @@ namespace ModelProcess
             Mesh dstMesh = new()
             {
                 Material = getDstMaterial(srcMesh.Material),
-                Positions = GetVertices<Vector3>(srcMesh, VertexSemantic.Position),
-                Normals = GetVertices<Vector3>(srcMesh, VertexSemantic.Normal),
-                Tangents = GetVertices<Vector3>(srcMesh, VertexSemantic.Tangent),
-                BiTangents = GetVertices<Vector3>(srcMesh, VertexSemantic.BiTangent),
+                Positions = GetVertices<Vector3>(srcMesh, VertexSemantic.Position) ?? [],
+                Normals = GetVertices<Vector3>(srcMesh, VertexSemantic.Normal) ?? [],
+                Tangents = GetVertices<Vector3>(srcMesh, VertexSemantic.Tangent) ?? [],
+                BiTangents = GetVertices<Vector3>(srcMesh, VertexSemantic.BiTangent) ?? [],
                 TexCoords = Enumerable.Range(0, 4)
-                    .Select(i => GetVertices<Vector2>(srcMesh, VertexSemantic.TexCoord, number: i))
+                    .Select(i => GetVertices<Vector2>(srcMesh, VertexSemantic.TexCoord, number: i) ?? [])
                     .Where(arr => arr is not null)
                     .ToList()
             };

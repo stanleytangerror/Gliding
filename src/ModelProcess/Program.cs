@@ -4,4 +4,11 @@ using System.Text.Json;
 var model = GltfLoader.Load("D:\\Assets\\free_1975_porsche_911_930_turbo\\scene.gltf");
 
 string jsonString = JsonSerializer.Serialize(model, new JsonSerializerOptions { IncludeFields = true });
-Console.WriteLine(jsonString);
+//Console.WriteLine(jsonString);
+
+using MemoryStream stream = new();
+using CustomedBinaryWriter writer = new(stream);
+
+var storageDate = model.ToStorageData();
+writer.Serialize(storageDate);
+Console.WriteLine(stream.Length);

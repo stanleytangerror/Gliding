@@ -1,29 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace ModelProcess
 {
-    public struct ModelData
+    public struct ChannelData
     {
+        public required string Name = string.Empty;
+        public string TexturePath = string.Empty;
+        public int TexCoord;
+        public Dictionary<string, float> ScalarParams = [];
+        public Dictionary<string, Vector2> Vector2Params = [];
+        public Dictionary<string, Vector3> Vector3Params = [];
+        public Dictionary<string, Vector4> Vector4Params = [];
 
-        public struct ChannelData
+        public ChannelData()
         {
-            public string Name;
-            public string TexturePath;
-            public int TexCoord;
-            public IDictionary<string, float> ScalarParams;
-            public IDictionary<string, Vector2> Vector2Params;
-            public IDictionary<string, Vector3> Vector3Params;
-            public IDictionary<string, Vector4> Vector4Params;
         }
     }
 
     public struct MaterialData
     {
+        public required Guid Id;
+        public required string Name = string.Empty;
+        public required ChannelData[] Channels = [];
 
+        public MaterialData()
+        {
+        }
+    }
+
+    public struct MeshData
+    {
+        public required Guid MaterialId;
+        public required Vector3[] Positions = [];
+        public Vector3[] Normals = [];
+        public Vector3[] Tangents = [];
+        public Vector3[] BiTangents = [];
+        public IList<Vector2[]> TexCoords = [];
+
+        public MeshData()
+        {
+        }
+    }
+
+    public struct ModelData
+    {
+        public required string Name = string.Empty;
+        public required MaterialData[] Materials = [];
+        public required MeshData[] Meshes = [];
+
+        public ModelData()
+        {
+        }
     }
 }
