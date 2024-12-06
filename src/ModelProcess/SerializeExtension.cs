@@ -76,19 +76,26 @@ namespace ModelProcess
                     writer.Serialize(item);
                 }
             }
+            else if(value.GetType().GetCustomAttribute<ByteSerializableAttribute>() != null)
+            {
+                var members = value.GetType()
+                    .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
+                    .OrderBy(m => m.MetadataToken);
+
+                foreach (var member in members)
+                {
+                    object memberValue = member.MemberType switch
+                    {
+                        MemberTypes.Field => ((FieldInfo)member).GetValue(value),
+                        MemberTypes.Property => ((PropertyInfo)member).GetValue(value),
+                    };
+                    writer.Serialize(memberValue);
+                }
+            }
             else
             {
-                var fields = value.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (var field in fields)
-                {
-                    writer.Serialize(field.GetValue(value));
-                }
-
-                var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (var prop in properties)
-                {
-                    writer.Serialize(prop.GetValue(value));
-                }
+                throw new NotImplementedException($"Not implemented type {value.GetType().FullName}");
             }
         }
     }
@@ -110,5 +117,11 @@ namespace ModelProcess
             Write(actualBytecount);
             Write(value.ToCharArray());
         }
+    }
+
+    [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class)]
+    public class ByteSerializableAttribute : Attribute
+    {
+
     }
 }

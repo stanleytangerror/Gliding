@@ -2,6 +2,7 @@
 
 namespace ModelProcess
 {
+    [ByteSerializable]
     public struct ChannelData
     {
         public required string Name = string.Empty;
@@ -17,6 +18,7 @@ namespace ModelProcess
         }
     }
 
+    [ByteSerializable]
     public struct MaterialData
     {
         public required Guid Id;
@@ -28,6 +30,7 @@ namespace ModelProcess
         }
     }
 
+    [ByteSerializable]
     public struct MeshData
     {
         public required Guid MaterialId;
@@ -42,6 +45,7 @@ namespace ModelProcess
         }
     }
 
+    [ByteSerializable]
     public struct ModelData
     {
         public required string Name = string.Empty;
