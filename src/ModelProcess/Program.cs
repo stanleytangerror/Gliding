@@ -12,3 +12,10 @@ using CustomedBinaryWriter writer = new(stream);
 var storageDate = model.ToStorageData();
 writer.Serialize(storageDate);
 Console.WriteLine(stream.Length);
+
+var bytes = stream.ToArray();
+
+using MemoryStream stream2 = new(bytes);
+using CustomedBinaryReader reader = new(stream2);
+var d = reader.Deserialize<ModelData>();
+Console.WriteLine(d.Name);
