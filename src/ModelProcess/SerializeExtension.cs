@@ -105,8 +105,6 @@ namespace ModelProcess
 
             var type = typeof(T);
 
-            //Console.WriteLine($"T: {type.FullName}");
-
             if (type == typeof(UInt64))
             {
                 return (T)(object)reader.ReadUInt64();
