@@ -14,6 +14,7 @@ writer.Serialize(storageDate);
 Console.WriteLine(stream.Length);
 
 var bytes = stream.ToArray();
+File.WriteAllBytes("D:\\Assets\\free_1975_porsche_911_930_turbo\\build.bin", bytes);
 
 using MemoryStream stream2 = new(bytes);
 using CustomedBinaryReader reader = new(stream2);

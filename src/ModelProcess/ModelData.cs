@@ -33,6 +33,7 @@ namespace ModelProcess
     [ByteSerializable]
     public struct MeshData
     {
+        public required string Name = string.Empty;
         public required Guid MaterialId;
         public required Vector3[] Positions = [];
         public Vector3[] Normals = [];

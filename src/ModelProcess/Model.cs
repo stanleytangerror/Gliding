@@ -26,6 +26,7 @@ namespace ModelProcess
 
     public class Mesh
     {
+        public required string Name { get; set; } = string.Empty;
         public required Material? Material { get; set; }
         public Vector3[] Positions { get; set; } = [];
         public Vector3[] Normals { get; set; }    = [];
@@ -81,6 +82,7 @@ namespace ModelProcess
                 }).ToArray(),
                 Meshes = this.Meshes.Select(m => new MeshData
                 {
+                    Name = m.Name,
                     MaterialId = materialToId[m.Material],
                     Positions = m.Positions,
                     Normals = m.Normals,

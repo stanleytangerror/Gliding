@@ -107,6 +107,7 @@ namespace ModelProcess
 
             Mesh dstMesh = new()
             {
+                Name = $"{srcMesh.LogicalParent.Name}_Primitive",
                 Material = getDstMaterial(srcMesh.Material),
                 Positions = GetVertices<Vector3>(srcMesh, VertexSemantic.Position) ?? [],
                 Normals = GetVertices<Vector3>(srcMesh, VertexSemantic.Normal) ?? [],
