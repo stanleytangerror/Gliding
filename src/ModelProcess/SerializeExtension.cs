@@ -61,7 +61,7 @@ namespace ModelProcess
             }
             else if (value is IDictionary dict)
             {
-                writer.Write(dict.Cast<object>().Count());
+                writer.WriteCollectionSize(dict.Cast<object>().Count());
                 foreach (DictionaryEntry entry in dict)
                 {
                     writer.Serialize(entry.Key);
@@ -70,7 +70,7 @@ namespace ModelProcess
             }
             else if (value is IEnumerable enumerable)
             {
-                writer.Write(enumerable.Cast<object>().Count());
+                writer.WriteCollectionSize(enumerable.Cast<object>().Count());
                 foreach (var item in enumerable)
                 {
                     writer.Serialize(item);
@@ -155,7 +155,7 @@ namespace ModelProcess
                 var valueType = type.GetGenericArguments()[1];
                 var dictType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
                 var dict = (IDictionary)Activator.CreateInstance(dictType);
-                int count = reader.ReadInt32();
+                var count = reader.ReadCollectionSize();
                 var genericDeserializeKeyMethod = thisMethod.MakeGenericMethod(keyType);
                 var genericDeserializeValueMethod = thisMethod.MakeGenericMethod(valueType);
                 for (int i = 0; i < count; i++)
@@ -171,9 +171,9 @@ namespace ModelProcess
                 var elementType = type.GetGenericArguments()[0];
                 var listType = typeof(List<>).MakeGenericType(elementType);
                 var list = (IList)Activator.CreateInstance(listType);
-                int count = reader.ReadInt32();
+                var count = reader.ReadCollectionSize();
                 var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
                     var item = genericDeserializeMethod.Invoke(null, [reader]);
                     list.Add(item);
@@ -183,7 +183,7 @@ namespace ModelProcess
             else if (type.IsArray)
             {
                 var elementType = type.GetElementType();
-                int count = reader.ReadInt32();
+                var count = reader.ReadCollectionSize();
                 var array = Array.CreateInstance(elementType, count);
                 var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
                 for (int i = 0; i < count; i++)
@@ -238,12 +238,15 @@ namespace ModelProcess
         {
             ArgumentNullException.ThrowIfNull(value);
 
-            int actualBytecount = encoding.GetByteCount(value);
-            Write(actualBytecount);
+            WriteCollectionSize(encoding.GetByteCount(value));
             Write(value.ToCharArray());
         }
-    }
 
+        public void WriteCollectionSize(int size)
+        {
+            Write((UInt64)size);
+        }
+    }
     public class CustomedBinaryReader : BinaryReader
     {
         protected static Encoding encoding = Encoding.UTF8;
@@ -255,10 +258,12 @@ namespace ModelProcess
 
         public override string ReadString()
         {
-            int byteCount = ReadInt32();
+            var byteCount = (int) ReadUInt64();
             char[] chars = ReadChars(byteCount);
             return new string(chars);
         }
+
+        public int ReadCollectionSize() => (int) ReadUInt64();
     }
 
     [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class)]

@@ -187,18 +187,15 @@ struct _SerializeBytesImpl<std::string>
 {
 	void Serialize(const std::string& in, obytestream& oss)
 	{
-		oss << in.size();
+		_SerializeBytesImpl<std::string::size_type>().Serialize(in.size(), oss);
 		oss.write(reinterpret_cast<const std::byte*>(in.data()), in.size());
 	}
 
 	std::string Deserialize(ibytestream& iss)
 	{
-		std::string result;
-
-		std::string::size_type size;
-		iss.read(reinterpret_cast<std::byte*>(&size), sizeof(std::string::size_type));
-		result.resize(size);
-
+		auto size = _SerializeBytesImpl<std::string::size_type>().Deserialize(iss);
+		
+		std::string result(size + 1, '\0');
 		iss.read(reinterpret_cast<std::byte*>(const_cast<char*>(result.data())), size);
 
 		return result;

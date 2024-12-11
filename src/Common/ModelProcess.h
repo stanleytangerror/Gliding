@@ -47,10 +47,10 @@ namespace ModelProcess
 		std::vector<Vec3f> Tangents;
 		std::vector<Vec3f> BiTangents;
 		std::vector<std::vector<Vec2f>> TexCoords;
-		std::vector<u32> Indices;
+		//std::vector<u32> Indices;
 	};
 
-	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, Positions, Normals, Tangents, BiTangents, TexCoords, Indices);
+	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, Positions, Normals, Tangents, BiTangents, TexCoords);
 
 	struct GD_COMMON_API Model
 	{
