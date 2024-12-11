@@ -28,6 +28,8 @@
     <ClInclude Include="Pool.h" />
     <ClInclude Include="Pool_inl.h" />
     <ClInclude Include="Profile.h" />
+    <ClInclude Include="Serialization.h" />
+    <ClInclude Include="Stream.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="SuspendedRelease.h" />
     <ClInclude Include="SuspendedRelease_inl.h" />
