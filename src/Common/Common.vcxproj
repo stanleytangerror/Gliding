@@ -23,6 +23,7 @@
     <ClInclude Include="IndexAllocator.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Math_inl.h" />
+    <ClInclude Include="ModelProcess.h" />
     <ClInclude Include="NativeUtils.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="Pool.h" />

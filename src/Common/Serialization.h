@@ -166,7 +166,6 @@ struct _SerializeJsonImpl<T, std::enable_if_t<std::is_arithmetic_v<T>>>
 	}
 };
 
-
 template <>
 struct _SerializeTextImpl<std::string>
 {
@@ -297,7 +296,7 @@ struct _SerializeTextImpl<std::array<T, Size>>
 };
 
 template <typename T, size_t Size>
-struct _SerializeBytesImpl<std::array<T, Size>>
+struct _SerializeBytesImpl<std::array<T, Size>, std::enable_if_t<!std::is_trivially_copyable_v<T>>>
 {
 	void Serialize(const std::array<T, Size>& in, obytestream& oss)
 	{
@@ -436,63 +435,71 @@ struct _SerializeJsonImpl<std::vector<T>>
 
 ///////////////////////////////////////////
 
-template <typename T, int DIM>
-struct Vec
-{
-	static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-
-	std::array<T, DIM> Value;
-};
-
-static_assert(std::is_trivially_copyable<Vec<int, 2>>::value, "Vec<int, 2> must be trivially copyable");
-
-//static_assert(std::is_trivially_copyable<std::byte>::value, "b8 must be trivially copyable");
-
-//using Vec2f = Vec<float, 2>;
-//using Vec3f = Vec<float, 3>;
-//using Vec4f = Vec<float, 4>;
+//static_assert(std::is_trivially_copyable<Eigen::Matrix<f32, 3, 1>>::value, "Eigen::Matrix<f32, 3, 1> must be trivially copyable");
 
 template <typename T, int DIM>
-struct _SerializeTextImpl<Vec<T, DIM>>
+struct _SerializeTextImpl<Eigen::Matrix<T, DIM, 1>>
 {
-	void Serialize(const Vec<T, DIM>& in, std::ostringstream& oss)
+	void Serialize(const Eigen::Matrix<T, DIM, 1>& in, std::ostringstream& oss)
 	{
 		for (int i = 0; i < DIM; ++i)
 		{
-			_SerializeTextImpl<T>().Serialize(in.Value[i], oss);
+			_SerializeTextImpl<std::decay_t<T>>().Serialize(in(i, 0), oss);
 		}
 	}
 
-	Vec<T, DIM> Deserialize(std::istringstream& iss)
+	Eigen::Matrix<T, DIM, 1> Deserialize(std::istringstream& iss)
 	{
-		Vec<T, DIM> result;
+		Eigen::Matrix<T, DIM, 1> result;
 		for (int i = 0; i < DIM; ++i)
 		{
-			result.Value[i] = _SerializeTextImpl<T>().Deserialize(iss);
+			result(i, 0) = _SerializeTextImpl<std::decay_t<T>>().Deserialize(iss);
 		}
 		return result;
 	}
 };
 
 template <typename T, int DIM>
-struct _SerializeJsonImpl<Vec<T, DIM>>
+struct _SerializeBytesImpl<Eigen::Matrix<T, DIM, 1>>
 {
-	json Serialize(const Vec<T, DIM>& in)
+	void Serialize(const Eigen::Matrix<T, DIM, 1>& in, obytestream& oss)
+	{
+		for (auto i = 0; i < DIM; ++i)
+		{
+			_SerializeBytesImpl<std::decay_t<T>>().Serialize(in(i, 0), oss);
+		}
+	}
+
+	Eigen::Matrix<T, DIM, 1> Deserialize(ibytestream& iss)
+	{
+		Eigen::Matrix<T, DIM, 1> result;
+		for (auto i = 0; i < DIM; ++i)
+		{
+			result(i, 0) = _SerializeBytesImpl<std::decay_t<T>>().Deserialize(iss);
+		}
+		return result;
+	}
+};
+
+template <typename T, int DIM>
+struct _SerializeJsonImpl<Eigen::Matrix<T, DIM, 1>>
+{
+	json Serialize(const Eigen::Matrix<T, DIM, 1>& in)
 	{
 		json result;
 		for (auto i = 0; i < DIM; ++i)
 		{
-			result[i] = _SerializeJsonImpl<std::decay_t<T>>().Serialize(in.Value[i]);
+			result[i] = _SerializeJsonImpl<std::decay_t<T>>().Serialize(in(i, 0));
 		}
 		return result;
 	}
 
-	Vec<T, DIM> Deserialize(const json& json)
+	Eigen::Matrix<T, DIM, 1> Deserialize(const json& json)
 	{
-		Vec<T, DIM> result;
+		Eigen::Matrix<T, DIM, 1> result;
 		for (int i = 0; i < DIM; ++i)
 		{
-			result.Value[i] = _SerializeJsonImpl<std::decay_t<T>>().Deserialize(json[i]);
+			result(i, 0) = _SerializeJsonImpl<std::decay_t<T>>().Deserialize(json[i]);
 		}
 		return result;
 	}
