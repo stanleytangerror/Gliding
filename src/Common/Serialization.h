@@ -29,7 +29,7 @@ using json = nlohmann::json;
   EXPAND(GET_MACRO(__VA_ARGS__, FOR_EACH_10, FOR_EACH_9, FOR_EACH_8, FOR_EACH_7, FOR_EACH_6, FOR_EACH_5, FOR_EACH_4, FOR_EACH_3, FOR_EACH_2, FOR_EACH_1)(action, __VA_ARGS__))
 
 
-#pragma region Define
+#pragma region Declaration
 
 template <typename T, typename Enable = void>
 struct _SerializeTextImpl
@@ -88,7 +88,9 @@ T DeserializeFromJson(const json& json)
 	return _SerializeJsonImpl<std::decay_t<T>>().Deserialize(json);
 }
 
-#pragma endregion Define
+#pragma endregion
+
+#pragma region Implementation
 
 #define SERIALIZE_TEXT_IMPL_SCALAR(SCALAR, STR_TO_SCALAR) \
 	template <> \
@@ -112,30 +114,6 @@ SERIALIZE_TEXT_IMPL_SCALAR(int64_t, std::stoll);
 SERIALIZE_TEXT_IMPL_SCALAR(uint64_t, std::stoull);
 SERIALIZE_TEXT_IMPL_SCALAR(int32_t, std::stol);
 SERIALIZE_TEXT_IMPL_SCALAR(uint32_t, std::stoul);
-
-//template <typename T, T(*StrToScalar)(const std::string&)>
-//struct SerializeTextImpl
-//{
-//	void Serialize(const T& in, std::ostringstream& oss)
-//	{
-//		oss << in << ' ';
-//	}
-//
-//	T Deserialize(std::istringstream& iss)
-//	{
-//		std::string result;
-//		iss >> result;
-//		return StrToScalar(result);
-//	}
-//};
-//
-//using SerializeFloat = SerializeTextImpl<float, std::stof>;
-//using SerializeDouble = SerializeTextImpl<double, std::stod>;
-//using SerializeInt64 = SerializeTextImpl<int64_t, std::stoll>;
-//using SerializeUInt64 = SerializeTextImpl<uint64_t, std::stoull>;
-//using SerializeInt32 = SerializeTextImpl<int32_t, std::stol>;
-//using SerializeUInt32 = SerializeTextImpl<uint32_t, std::stoul>;
-
 
 template <typename T>
 struct _SerializeBytesImpl<T, std::enable_if_t<std::is_trivially_copyable_v<T>>>
@@ -430,10 +408,6 @@ struct _SerializeJsonImpl<std::vector<T>>
 	}
 };
 
-///////////////////////////////////////////
-
-//static_assert(std::is_trivially_copyable<Eigen::Matrix<f32, 3, 1>>::value, "Eigen::Matrix<f32, 3, 1> must be trivially copyable");
-
 template <typename T, int DIM>
 struct _SerializeTextImpl<Eigen::Matrix<T, DIM, 1>>
 {
@@ -502,7 +476,8 @@ struct _SerializeJsonImpl<Eigen::Matrix<T, DIM, 1>>
 	}
 };
 
-///////////////////////////////////////////
+#pragma endregion
+
 
 #define MEMBER_SERIALIZE_TEXT(ARG) \
 	_SerializeTextImpl<decltype(SerializeType::ARG)>().Serialize(in.ARG, oss);
