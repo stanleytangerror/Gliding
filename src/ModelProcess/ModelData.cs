@@ -7,7 +7,7 @@ namespace ModelProcess
     {
         public required string Name = string.Empty;
         public string TexturePath = string.Empty;
-        public int TexCoord;
+        public Int32 TexCoord;
         public Dictionary<string, float> ScalarParams = [];
         public Dictionary<string, Vector2> Vector2Params = [];
         public Dictionary<string, Vector3> Vector3Params = [];
