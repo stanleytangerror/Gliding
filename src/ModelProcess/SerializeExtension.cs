@@ -25,6 +25,14 @@ namespace ModelProcess
             {
                 writer.Write(i32);
             }
+            else if (value is UInt16 u16)
+            {
+                writer.Write(u16);
+            }
+            else if (value is Int16 i16)
+            {
+                writer.Write(i16);
+            }
             else if (value is double d)
             {
                 writer.Write(d);

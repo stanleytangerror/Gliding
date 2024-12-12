@@ -35,6 +35,7 @@ namespace ModelProcess
     {
         public required string Name = string.Empty;
         public required Guid MaterialId;
+        public required UInt16[] Indices = [];
         public required Vector3[] Positions = [];
         public Vector3[] Normals = [];
         public Vector3[] Tangents = [];

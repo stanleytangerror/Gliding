@@ -42,15 +42,15 @@ namespace ModelProcess
 	{
 		std::string Name;
 		Guid MaterialId;
+		std::vector<u16> Indices;
 		std::vector<Vec3f> Positions;
 		std::vector<Vec3f> Normals;
 		std::vector<Vec3f> Tangents;
 		std::vector<Vec3f> BiTangents;
 		std::vector<std::vector<Vec2f>> TexCoords;
-		//std::vector<u32> Indices;
 	};
 
-	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, Positions, Normals, Tangents, BiTangents, TexCoords);
+	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, Indices, Positions, Normals, Tangents, BiTangents, TexCoords);
 
 	struct GD_COMMON_API Model
 	{

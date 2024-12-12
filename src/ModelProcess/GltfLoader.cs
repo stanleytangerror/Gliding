@@ -109,6 +109,7 @@ namespace ModelProcess
             {
                 Name = $"{srcMesh.LogicalParent.Name}_Primitive",
                 Material = getDstMaterial(srcMesh.Material),
+                Indices = [.. srcMesh.GetIndices()],
                 Positions = GetVertices<Vector3>(srcMesh, VertexSemantic.Position) ?? [],
                 Normals = GetVertices<Vector3>(srcMesh, VertexSemantic.Normal) ?? [],
                 Tangents = GetVertices<Vector3>(srcMesh, VertexSemantic.Tangent) ?? [],

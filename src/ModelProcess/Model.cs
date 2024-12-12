@@ -28,6 +28,7 @@ namespace ModelProcess
     {
         public required string Name { get; set; } = string.Empty;
         public required Material? Material { get; set; }
+        public uint[] Indices { get; set; } = [];
         public Vector3[] Positions { get; set; } = [];
         public Vector3[] Normals { get; set; }    = [];
         public Vector3[] Tangents { get; set; }   = [];
@@ -84,6 +85,7 @@ namespace ModelProcess
                 {
                     Name = m.Name,
                     MaterialId = materialToId[m.Material],
+                    Indices = m.Indices.Select(i => (UInt16) i).ToArray(),
                     Positions = m.Positions,
                     Normals = m.Normals,
                     Tangents = m.Tangents,
