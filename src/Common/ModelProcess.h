@@ -4,6 +4,8 @@
 #include "Serialization.h"
 #include "Math.h"
 
+#pragma pack(push, 1) // all the content should be pack 1 to avoid memory alignment issue
+
 namespace ModelProcess
 {
 	struct GD_COMMON_API Guid
@@ -13,6 +15,8 @@ namespace ModelProcess
 		i16 c;
 		std::array<b8, 8> d;
 	};
+
+	static_assert(std::is_trivially_copyable_v<Guid>, "Guid should be trivially copyable");
 
 	CLASS_SERIALIZE_BYTES(Guid, a, b, c, d);
 
@@ -61,3 +65,5 @@ namespace ModelProcess
 
 	CLASS_SERIALIZE_BYTES(Model, Name, Materials, Meshes);
 }
+
+#pragma pack(pop)
