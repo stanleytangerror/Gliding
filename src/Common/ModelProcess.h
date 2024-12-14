@@ -20,6 +20,27 @@ namespace ModelProcess
 
 	CLASS_SERIALIZE_BYTES(Guid, a, b, c, d);
 
+	enum GD_COMMON_API VertexSemantic : u16
+	{ 
+		Position, Normal, Tangent, BiTangent, TexCoord, Color, Semantic_Count 
+	};
+
+	enum GD_COMMON_API ScalarType : u16
+	{
+		Float, Double, Int32, UInt32, Int16, UInt16
+	};
+
+	struct GD_COMMON_API VertexAttributeMeta
+	{
+		VertexSemantic mSemantic;
+		u16 mSemanticIndex;
+		ScalarType mScalarType;
+		u16 mSizeInBytes;
+		u16 mOffsetInBytes;
+	};
+
+	CLASS_SERIALIZE_BYTES(VertexAttributeMeta, mSemantic, mSemanticIndex, mScalarType, mSizeInBytes, mOffsetInBytes);
+
 	struct GD_COMMON_API Channel
 	{
 		std::string Name;
@@ -46,15 +67,13 @@ namespace ModelProcess
 	{
 		std::string Name;
 		Guid MaterialId;
+
+		std::vector<VertexAttributeMeta> VertexAttributeMetas;
+		std::vector<b8> Vertices;
 		std::vector<u16> Indices;
-		std::vector<Vec3f> Positions;
-		std::vector<Vec3f> Normals;
-		std::vector<Vec3f> Tangents;
-		std::vector<Vec3f> BiTangents;
-		std::vector<std::vector<Vec2f>> TexCoords;
 	};
 
-	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, Indices, Positions, Normals, Tangents, BiTangents, TexCoords);
+	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, VertexAttributeMetas, Vertices, Indices);
 
 	struct GD_COMMON_API Model
 	{

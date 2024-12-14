@@ -92,6 +92,57 @@ T DeserializeFromJson(const json& json)
 
 #pragma region Implementation
 
+template <typename T>
+struct _SerializeTextImpl<T, std::enable_if_t<std::is_enum_v<T>>>
+{
+	void Serialize(const T& in, std::ostringstream& oss)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		_SerializeTextImpl<UnderlyingType>().Serialize(static_cast<UnderlyingType>(in), oss);
+	}
+
+	T Deserialize(std::istringstream& iss)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		auto underlyingValue = _SerializeTextImpl<UnderlyingType>().Deserialize(iss);
+		return static_cast<T>(underlyingValue);
+	}
+};
+
+template <typename T>
+struct _SerializeBytesImpl<T, std::enable_if_t<std::is_enum_v<T>>>
+{
+	void Serialize(const T& in, obytestream& oss)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		_SerializeBytesImpl<UnderlyingType>().Serialize(static_cast<UnderlyingType>(in), oss);
+	}
+
+	T Deserialize(ibytestream& iss)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		auto underlyingValue = _SerializeBytesImpl<UnderlyingType>().Deserialize(iss);
+		return static_cast<T>(underlyingValue);
+	}
+};
+
+template <typename T>
+struct _SerializeJsonImpl<T, std::enable_if_t<std::is_enum_v<T>>>
+{
+	json Serialize(const T& in)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		return json(static_cast<UnderlyingType>(in));
+	}
+
+	T Deserialize(const json& json)
+	{
+		using UnderlyingType = std::underlying_type_t<T>;
+		return static_cast<T>(json.get<UnderlyingType>());
+	}
+};
+
+
 #define SERIALIZE_TEXT_IMPL_SCALAR(SCALAR, STR_TO_SCALAR) \
 	template <> \
 	struct _SerializeTextImpl<SCALAR> \
@@ -116,7 +167,7 @@ SERIALIZE_TEXT_IMPL_SCALAR(int32_t, std::stol);
 SERIALIZE_TEXT_IMPL_SCALAR(uint32_t, std::stoul);
 
 template <typename T>
-struct _SerializeBytesImpl<T, std::enable_if_t<std::is_trivially_copyable_v<T>>>
+struct _SerializeBytesImpl<T, std::enable_if_t<!std::is_enum_v<T> && std::is_trivially_copyable_v<T>>>
 {
 	void Serialize(const T& in, obytestream& oss)
 	{
