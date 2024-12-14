@@ -1,29 +1,7 @@
 ﻿using System.Numerics;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace ModelProcess
 {
-    enum ScalarType
-    {
-        Float, Double, Int32, UInt32, Int16, UInt16
-    }
-
-    enum VertexSemantic
-    {
-        Position,
-        Normal, Tangent, BiTangent,
-        TexCoord, Color
-    }
-
-    struct VertexAttribute
-    {
-        VertexSemantic Semantic;
-        uint SemanticNumber;
-        ScalarType ScalarType;
-        uint Dimension;
-    }
-
     public class Mesh
     {
         public required string Name { get; set; } = string.Empty;
@@ -34,6 +12,7 @@ namespace ModelProcess
         public Vector3[] Tangents { get; set; }   = [];
         public Vector3[] BiTangents { get; set; } = [];
         public List<Vector2[]> TexCoords { get; set; } = [];
+        public Vector4[] Colors { get; set; } = [];
     }
 
     public class Material
@@ -58,15 +37,123 @@ namespace ModelProcess
         public string Name { get; set; } = string.Empty;
         public Material[] Materials { get; set; } = [];
         public Mesh[] Meshes { get; set; } = [];
+    }
 
-        public ModelData ToStorageData()
+    public static class ModelExtensions
+    {
+        public static VertexAttributeMeta[] ToVertexAttributeMetas(this Mesh mesh)
         {
-            var materialToId = this.Materials.ToDictionary(m => m, m => Guid.NewGuid());
+            List<VertexAttributeMeta> result = [];
+            UInt16 offset = 0;
+            if (mesh.Positions?.Length > 0)
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.Position,
+                    SemanticIndex = 0,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 12,
+                    OffsetInBytes = offset,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            if (mesh.Normals?.Length > 0)
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.Normal,
+                    SemanticIndex = 0,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 12,
+                    OffsetInBytes = offset,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            if (mesh.Tangents?.Length > 0)
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.Tangent,
+                    SemanticIndex = 0,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 12,
+                    OffsetInBytes = offset,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            if (mesh.BiTangents?.Length > 0)
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.BiTangent,
+                    SemanticIndex = 0,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 12,
+                    OffsetInBytes = offset,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            foreach (var (channel, index) in mesh.TexCoords.Select((channel, index) => (channel, index)))
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.TexCoord,
+                    SemanticIndex = (UInt16)index,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 8,
+                    OffsetInBytes = offset,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            if (mesh.Colors?.Length > 0)
+            {
+                result.Add(new VertexAttributeMeta
+                {
+                    Semantic = VertexSemantic.Color,
+                    SemanticIndex = 0,
+                    ScalarType = ScalarType.Float,
+                    SizeInBytes = 16,
+                });
+                offset += result.Last().SizeInBytes;
+            }
+            return result.ToArray();
+        }
+
+        public static byte[] ToVerticesData(this Mesh mesh)
+        {
+            var vertexCount = mesh.Positions.Length;
+
+            var resultSize = mesh.ToVertexAttributeMetas().Sum(m => m.SizeInBytes) * vertexCount;
+
+            byte[] result = new byte[resultSize];
+
+            using var stream = new MemoryStream(result);
+            using CustomedBinaryWriter writer = new(stream);
+
+            foreach (var i in Enumerable.Range(0, vertexCount))
+            {
+                if (mesh.Positions.Length > 0) { writer.Serialize(mesh.Positions[i]); }
+                if (mesh.Normals.Length > 0) { writer.Serialize(mesh.Normals[i]); }
+                if (mesh.Tangents.Length > 0) { writer.Serialize(mesh.Tangents[i]); }
+                if (mesh.BiTangents.Length > 0) { writer.Serialize(mesh.BiTangents[i]); }
+                foreach (var texCoord in mesh.TexCoords)
+                {
+                    if (texCoord.Length > 0) { writer.Serialize(texCoord[i]); }
+                }
+                if (mesh.Colors.Length > 0) { writer.Serialize(mesh.Colors[i]); }
+            }
+
+            return result;
+        }
+
+        public static ModelData ToStorageData(this Model model)
+        {
+            var materialToId = model.Materials.ToDictionary(m => m, m => Guid.NewGuid());
 
             ModelData result = new ModelData
             {
-                Name = this.Name,
-                Materials = this.Materials.Select(m => new MaterialData
+                Name = model.Name,
+                Materials = model.Materials.Select(m => new MaterialData
                 {
                     Id = materialToId[m],
                     Name = m.Name,
@@ -81,16 +168,13 @@ namespace ModelProcess
                         Vector4Params = c.Vector4Params,
                     }).ToArray(),
                 }).ToArray(),
-                Meshes = this.Meshes.Select(m => new MeshData
+                Meshes = model.Meshes.Select(m => new MeshData
                 {
                     Name = m.Name,
                     MaterialId = materialToId[m.Material],
-                    Indices = m.Indices.Select(i => (UInt16) i).ToArray(),
-                    Positions = m.Positions,
-                    Normals = m.Normals,
-                    Tangents = m.Tangents,
-                    BiTangents = m.BiTangents,
-                    TexCoords = m.TexCoords,
+                    Indices = m.Indices.Select(i => (UInt16)i).ToArray(),
+                    VertexAttributeMetas = m.ToVertexAttributeMetas(),
+                    Vertices = m.ToVerticesData(),
                 }).ToArray(),
             };
 

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Newtonsoft.Json.Linq;
+using System.Collections;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
@@ -9,7 +10,11 @@ namespace ModelProcess
     {
         public static void Serialize<T>(this CustomedBinaryWriter writer, T value)
         {
-            if (value is UInt64 u64)
+            if (value is byte b)
+            {
+                writer.Write(b);
+            }
+            else if (value is UInt64 u64)
             {
                 writer.Write(u64);
             }
@@ -86,19 +91,27 @@ namespace ModelProcess
             }
             else if(value.GetType().GetCustomAttribute<ByteSerializableAttribute>() != null)
             {
-                var members = value.GetType()
-                    .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
-                    .OrderBy(m => m.MetadataToken);
-
-                foreach (var member in members)
+                if (value.GetType().IsEnum)
                 {
-                    object memberValue = member.MemberType switch
+                    var underlyingValue = Convert.ChangeType(value, Enum.GetUnderlyingType(value.GetType()));
+                    writer.Serialize(underlyingValue);
+                }
+                else
+                {
+                    var members = value.GetType()
+                        .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
+                        .OrderBy(m => m.MetadataToken);
+
+                    foreach (var member in members)
                     {
-                        MemberTypes.Field => ((FieldInfo)member).GetValue(value),
-                        MemberTypes.Property => ((PropertyInfo)member).GetValue(value),
-                    };
-                    writer.Serialize(memberValue);
+                        object memberValue = member.MemberType switch
+                        {
+                            MemberTypes.Field => ((FieldInfo)member).GetValue(value),
+                            MemberTypes.Property => ((PropertyInfo)member).GetValue(value),
+                        };
+                        writer.Serialize(memberValue);
+                    }
                 }
             }
             else
@@ -203,28 +216,38 @@ namespace ModelProcess
             }
             else if (type.GetCustomAttribute<ByteSerializableAttribute>() != null)
             {
-                object instance = Activator.CreateInstance<T>(); // https://stackoverflow.com/a/27226969/2131563, box when T is struct, so that SetValue can work
-                var members = type
-                    .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
-                    .OrderBy(m => m.MetadataToken);
-
-                foreach (var member in members)
+                if (type.IsEnum)
                 {
-                    if (member is FieldInfo fieldInfo)
-                    {
-                        var genericDeserializeMethod = thisMethod.MakeGenericMethod(fieldInfo.FieldType);
-                        var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
-                        fieldInfo.SetValue(instance, memberValue);
-                    }
-                    else if (member is PropertyInfo propertyInfo)
-                    {
-                        var genericDeserializeMethod = thisMethod.MakeGenericMethod(propertyInfo.PropertyType);
-                        var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
-                        propertyInfo.SetValue(instance, memberValue);
-                    }
+                    var underlyingType = Enum.GetUnderlyingType(type);
+                    var genericDeserializeMethod = thisMethod.MakeGenericMethod(underlyingType);
+                    var underlyingValue = genericDeserializeMethod.Invoke(null, [reader]);
+                    return (T)Enum.ToObject(type, underlyingValue);
                 }
-                return (T)instance;
+                else
+                {
+                    object instance = Activator.CreateInstance<T>(); // https://stackoverflow.com/a/27226969/2131563, box when T is struct, so that SetValue can work
+                    var members = type
+                        .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
+                        .OrderBy(m => m.MetadataToken);
+
+                    foreach (var member in members)
+                    {
+                        if (member is FieldInfo fieldInfo)
+                        {
+                            var genericDeserializeMethod = thisMethod.MakeGenericMethod(fieldInfo.FieldType);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
+                            fieldInfo.SetValue(instance, memberValue);
+                        }
+                        else if (member is PropertyInfo propertyInfo)
+                        {
+                            var genericDeserializeMethod = thisMethod.MakeGenericMethod(propertyInfo.PropertyType);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
+                            propertyInfo.SetValue(instance, memberValue);
+                        }
+                    }
+                    return (T)instance;
+                }
             }
             else
             {
@@ -274,7 +297,7 @@ namespace ModelProcess
         public int ReadCollectionSize() => (int) ReadUInt64();
     }
 
-    [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class | AttributeTargets.Enum)]
     public class ByteSerializableAttribute : Attribute
     {
 

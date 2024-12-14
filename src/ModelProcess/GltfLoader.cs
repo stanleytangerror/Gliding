@@ -117,7 +117,8 @@ namespace ModelProcess
                 TexCoords = Enumerable.Range(0, 4)
                     .Select(i => GetVertices<Vector2>(srcMesh, VertexSemantic.TexCoord, number: i) ?? [])
                     .Where(arr => arr is not null)
-                    .ToList()
+                    .ToList(),
+                Colors = GetVertices<Vector4>(srcMesh, VertexSemantic.Color) ?? [],
             };
 
             return dstMesh;

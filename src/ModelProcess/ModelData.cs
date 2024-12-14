@@ -3,6 +3,28 @@
 namespace ModelProcess
 {
     [ByteSerializable]
+    public enum VertexSemantic : UInt16
+    {
+        Position, Normal, Tangent, BiTangent, TexCoord, Color, Semantic_Count
+    }
+
+    [ByteSerializable]
+    public enum ScalarType : UInt16
+    {
+        Float, Double, Int32, UInt32, Int16, UInt16
+    }
+
+    [ByteSerializable]
+    public struct VertexAttributeMeta
+    {
+        public VertexSemantic Semantic;
+        public UInt16 SemanticIndex;
+        public ScalarType ScalarType;
+        public UInt16 SizeInBytes;
+        public UInt16 OffsetInBytes;
+    }
+
+    [ByteSerializable]
     public struct ChannelData
     {
         public required string Name = string.Empty;
@@ -36,11 +58,8 @@ namespace ModelProcess
         public required string Name = string.Empty;
         public required Guid MaterialId;
         public required UInt16[] Indices = [];
-        public required Vector3[] Positions = [];
-        public Vector3[] Normals = [];
-        public Vector3[] Tangents = [];
-        public Vector3[] BiTangents = [];
-        public IList<Vector2[]> TexCoords = [];
+        public required VertexAttributeMeta[] VertexAttributeMetas = [];
+        public required byte[] Vertices = [];
 
         public MeshData()
         {
