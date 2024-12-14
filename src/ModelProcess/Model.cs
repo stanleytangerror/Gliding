@@ -93,7 +93,9 @@ namespace ModelProcess
                 });
                 offset += result.Last().SizeInBytes;
             }
-            foreach (var (channel, index) in mesh.TexCoords.Select((channel, index) => (channel, index)))
+            foreach (var (TexCoord, index) in mesh
+                .TexCoords.Select((channel, index) => (channel, index))
+                .Where((channel, index) => channel.channel.Length > 0))
             {
                 result.Add(new VertexAttributeMeta
                 {

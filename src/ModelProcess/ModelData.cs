@@ -57,9 +57,9 @@ namespace ModelProcess
     {
         public required string Name = string.Empty;
         public required Guid MaterialId;
-        public required UInt16[] Indices = [];
         public required VertexAttributeMeta[] VertexAttributeMetas = [];
         public required byte[] Vertices = [];
+        public required UInt16[] Indices = [];
 
         public MeshData()
         {

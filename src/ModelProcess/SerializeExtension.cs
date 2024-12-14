@@ -126,6 +126,10 @@ namespace ModelProcess
 
             var type = typeof(T);
 
+            if (type == typeof(byte))
+            {
+                return (T)(object)reader.ReadByte();
+            }
             if (type == typeof(UInt64))
             {
                 return (T)(object)reader.ReadUInt64();
@@ -141,6 +145,14 @@ namespace ModelProcess
             else if (type == typeof(Int32))
             {
                 return (T)(object)reader.ReadInt32();
+            }
+            else if (type == typeof(UInt16))
+            {
+                return (T)(object)reader.ReadUInt16();
+            }
+            else if (type == typeof(Int16))
+            {
+                return (T)(object)reader.ReadInt16();
             }
             else if (type == typeof(double))
             {
