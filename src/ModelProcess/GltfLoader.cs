@@ -103,6 +103,7 @@ namespace ModelProcess
                 AddressMode = [
                     GetAddressMode(srcSampler.WrapS),
                     GetAddressMode(srcSampler.WrapT),
+                    GetAddressMode(TextureInterpolationFilter.Linear)
                 ]
             };
 

@@ -15,15 +15,16 @@ namespace ModelProcess
     }
 
     [ByteSerializable]
-    public enum TextureInterpolationFilter
+    public enum TextureInterpolationFilter : UInt16
     {
         Point, Linear
     }
 
     [ByteSerializable]
-    public enum TextureAddressMode
+    public enum TextureAddressMode : UInt16
     {
-        Clamp, Mirror, Wrap, Boarder
+        /* same value with GI::TextureAddressMode::Enum */
+        Wrap = 1, Mirror = 2, Clamp = 3, Boarder = 4, MirrorOnce = 5
     }
 
     [ByteSerializable]
@@ -32,7 +33,7 @@ namespace ModelProcess
         public TextureInterpolationFilter MinFilter;
         public TextureInterpolationFilter MagFilter;
         public TextureInterpolationFilter MipMapFilter;
-        public TextureAddressMode[] AddressMode = new TextureAddressMode[3];
+        public TextureAddressMode[] AddressMode;
 
         public TextureSamplerData()
         {
