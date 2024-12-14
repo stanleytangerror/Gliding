@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using glTFLoader.Schema;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using GLTF = SharpGLTF.Schema2;
@@ -50,11 +51,15 @@ namespace ModelProcess
         {
             var srcModel = GLTF.ModelRoot.Load(path);
 
-            var srcMatToDstMat = srcModel.LogicalMaterials.ToDictionary(material => material, material => LoadMaterial(material));
+            var srcTexToDstTex = srcModel.LogicalTextures.ToDictionary(tex => tex, LoadTexture);
+            var srcMatToDstMat = srcModel.LogicalMaterials.ToDictionary(mat => mat, mat => LoadMaterial(mat, a => srcTexToDstTex[a]));
 
             Model dstModel = new()
             {
                 Name = path,
+                Textures = srcTexToDstTex
+                    .Select(p => p.Value)
+                    .ToArray(),
                 Materials = srcMatToDstMat
                     .Select(p => p.Value)
                     .ToArray(),
@@ -67,7 +72,62 @@ namespace ModelProcess
             return dstModel;
         }
 
-        protected static Material LoadMaterial(GLTF.Material srcMaterial)
+        protected static TextureSamplerData LoadSampler(GLTF.TextureSampler srcSampler)
+        {
+            return new TextureSamplerData
+            {
+                MinFilter = srcSampler.MinFilter switch
+                {
+                    GLTF.TextureMipMapFilter.LINEAR => TextureInterpolationFilter.Linear,
+                    GLTF.TextureMipMapFilter.NEAREST => TextureInterpolationFilter.Point,
+                    GLTF.TextureMipMapFilter.LINEAR_MIPMAP_NEAREST => TextureInterpolationFilter.Linear,
+                    GLTF.TextureMipMapFilter.LINEAR_MIPMAP_LINEAR => TextureInterpolationFilter.Linear,
+                    GLTF.TextureMipMapFilter.NEAREST_MIPMAP_NEAREST => TextureInterpolationFilter.Point,
+                    GLTF.TextureMipMapFilter.NEAREST_MIPMAP_LINEAR => TextureInterpolationFilter.Point,
+                    _ => throw new NotImplementedException(),
+                },
+                MagFilter = srcSampler.MagFilter switch
+                {
+                    GLTF.TextureInterpolationFilter.LINEAR => TextureInterpolationFilter.Linear,
+                    GLTF.TextureInterpolationFilter.NEAREST => TextureInterpolationFilter.Point,
+                    _ => throw new NotImplementedException(),
+                },
+                MipMapFilter = srcSampler.MinFilter switch
+                {
+                    GLTF.TextureMipMapFilter.LINEAR_MIPMAP_NEAREST => TextureInterpolationFilter.Point,
+                    GLTF.TextureMipMapFilter.LINEAR_MIPMAP_LINEAR => TextureInterpolationFilter.Linear,
+                    GLTF.TextureMipMapFilter.NEAREST_MIPMAP_NEAREST => TextureInterpolationFilter.Point,
+                    GLTF.TextureMipMapFilter.NEAREST_MIPMAP_LINEAR => TextureInterpolationFilter.Linear,
+                    _ => throw new NotImplementedException(),
+                },
+                AddressMode = [
+                    GetAddressMode(srcSampler.WrapS),
+                    GetAddressMode(srcSampler.WrapT),
+                ]
+            };
+
+            static TextureAddressMode GetAddressMode(GLTF.TextureWrapMode wrapMode)
+            {
+                return wrapMode switch
+                {
+                    GLTF.TextureWrapMode.REPEAT => TextureAddressMode.Wrap,
+                    GLTF.TextureWrapMode.CLAMP_TO_EDGE => TextureAddressMode.Clamp,
+                    GLTF.TextureWrapMode.MIRRORED_REPEAT => TextureAddressMode.Mirror,
+                    _ => throw new NotImplementedException()
+                };
+            }
+        }
+
+        protected static Texture LoadTexture(GLTF.Texture srcTexture)
+        {
+            return new Texture
+            {
+                Path = srcTexture.PrimaryImage?.Content.SourcePath,
+                Sampler = LoadSampler(srcTexture.Sampler),
+            };
+        }
+
+        protected static Material LoadMaterial(GLTF.Material srcMaterial, Func<GLTF.Texture, Texture> getDstTexture)
         {
             var dstMaterial = new Material
             {
@@ -76,7 +136,7 @@ namespace ModelProcess
                 {
                     Material.Channel dstChannel = new();
                     dstChannel.Name = srcChannel.Key;
-                    dstChannel.TexturePath = srcChannel.Texture?.PrimaryImage?.Content.SourcePath ?? string.Empty;
+                    dstChannel.Texture = srcChannel.Texture is null ? null : getDstTexture(srcChannel.Texture);
                     dstChannel.TexCoord = srcChannel.TextureCoordinate;
                     dstChannel.ScalarParams = srcChannel.Parameters
                         .Where(p => p.Value is float)

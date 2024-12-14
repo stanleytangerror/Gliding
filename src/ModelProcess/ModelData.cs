@@ -15,6 +15,42 @@ namespace ModelProcess
     }
 
     [ByteSerializable]
+    public enum TextureInterpolationFilter
+    {
+        Point, Linear
+    }
+
+    [ByteSerializable]
+    public enum TextureAddressMode
+    {
+        Clamp, Mirror, Wrap, Boarder
+    }
+
+    [ByteSerializable]
+    public struct TextureSamplerData
+    {
+        public TextureInterpolationFilter MinFilter;
+        public TextureInterpolationFilter MagFilter;
+        public TextureInterpolationFilter MipMapFilter;
+        public TextureAddressMode[] AddressMode = new TextureAddressMode[3];
+
+        public TextureSamplerData()
+        {
+        }
+    }
+
+    [ByteSerializable]
+    public struct TextureData
+    {
+        public required Guid Id;
+        public required string Path = string.Empty;
+        public required TextureSamplerData Sampler;
+        public TextureData()
+        {
+        }
+    }
+
+    [ByteSerializable]
     public struct VertexAttributeMeta
     {
         public VertexSemantic Semantic;
@@ -28,7 +64,7 @@ namespace ModelProcess
     public struct ChannelData
     {
         public required string Name = string.Empty;
-        public string TexturePath = string.Empty;
+        public Guid TextureId;
         public Int32 TexCoord;
         public Dictionary<string, float> ScalarParams = [];
         public Dictionary<string, Vector2> Vector2Params = [];
@@ -70,6 +106,7 @@ namespace ModelProcess
     public struct ModelData
     {
         public required string Name = string.Empty;
+        public required TextureData[] Textures = [];
         public required MaterialData[] Materials = [];
         public required MeshData[] Meshes = [];
 

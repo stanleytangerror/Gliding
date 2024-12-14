@@ -2,6 +2,12 @@
 
 namespace ModelProcess
 {
+    public class Texture
+    {
+        public string? Path { get; set; } = string.Empty;
+        public TextureSamplerData Sampler;
+    }
+
     public class Mesh
     {
         public required string Name { get; set; } = string.Empty;
@@ -23,7 +29,7 @@ namespace ModelProcess
         public class Channel
         { 
             public string Name { get; set; } = string.Empty;
-            public string TexturePath { get; set; } = string.Empty;
+            public Texture? Texture { get; set; }
             public int TexCoord { get; set; }
             public Dictionary<string, float> ScalarParams { get; set; } = [];
             public Dictionary<string, Vector2> Vector2Params { get; set; } = [];
@@ -35,6 +41,7 @@ namespace ModelProcess
     public class Model
     {
         public string Name { get; set; } = string.Empty;
+        public Texture[] Textures { get; set; } = [];
         public Material[] Materials { get; set; } = [];
         public Mesh[] Meshes { get; set; } = [];
     }
@@ -150,11 +157,18 @@ namespace ModelProcess
 
         public static ModelData ToStorageData(this Model model)
         {
+            var textureToId = model.Textures.ToDictionary(t => t, t => Guid.NewGuid());
             var materialToId = model.Materials.ToDictionary(m => m, m => Guid.NewGuid());
 
             ModelData result = new ModelData
             {
                 Name = model.Name,
+                Textures = model.Textures.Select(t => new TextureData
+                {
+                    Id = textureToId[t],
+                    Path = t.Path,
+                    Sampler = t.Sampler,
+                }).ToArray(),
                 Materials = model.Materials.Select(m => new MaterialData
                 {
                     Id = materialToId[m],
@@ -162,7 +176,7 @@ namespace ModelProcess
                     Channels = m.Channels.Select(c => new ChannelData
                     {
                         Name = c.Name,
-                        TexturePath = c.TexturePath,
+                        TextureId = c.Texture is null ? Guid.Empty : textureToId[c.Texture],
                         TexCoord = c.TexCoord,
                         ScalarParams = c.ScalarParams,
                         Vector2Params = c.Vector2Params,
