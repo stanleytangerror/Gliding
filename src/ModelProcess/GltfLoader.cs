@@ -1,7 +1,4 @@
-﻿using glTFLoader.Schema;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using GLTF = SharpGLTF.Schema2;
 
 // using SharpGLTF: https://github.com/vpenades/SharpGLTF/tree/master
@@ -103,7 +100,7 @@ namespace ModelProcess
                 AddressMode = [
                     GetAddressMode(srcSampler.WrapS),
                     GetAddressMode(srcSampler.WrapT),
-                    GetAddressMode(TextureInterpolationFilter.Linear)
+                    TextureAddressMode.Wrap
                 ]
             };
 
