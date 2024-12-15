@@ -19,5 +19,5 @@ File.WriteAllBytes("D:\\Assets\\free_1975_porsche_911_930_turbo\\build.bin", byt
 
 using MemoryStream stream2 = new(bytes);
 using CustomedBinaryReader reader = new(stream2);
-var d = reader.Deserialize<ModelData>();
+var d = reader.Deserialize<ModelData>(null);
 Console.WriteLine(d.Name);

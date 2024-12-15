@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Collections;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
@@ -8,7 +9,7 @@ namespace ModelProcess
 {
     public static class SerializeExtension
     {
-        public static void Serialize<T>(this CustomedBinaryWriter writer, T value)
+        public static void Serialize<T>(this CustomedBinaryWriter writer, T value, MemberInfo? info = null)
         {
             if (value is byte b)
             {
@@ -81,6 +82,17 @@ namespace ModelProcess
                     writer.Serialize(entry.Value);
                 }
             }
+            else if (value is Array array)
+            {
+                if (info?.GetCustomAttribute<FixedSizeArrayAttribute>() is null)
+                {
+                    writer.WriteCollectionSize(array.Cast<object>().Count());
+                }
+                foreach (var item in array)
+                {
+                    writer.Serialize(item);
+                }
+            }
             else if (value is IEnumerable enumerable)
             {
                 writer.WriteCollectionSize(enumerable.Cast<object>().Count());
@@ -89,7 +101,7 @@ namespace ModelProcess
                     writer.Serialize(item);
                 }
             }
-            else if(value.GetType().GetCustomAttribute<ByteSerializableAttribute>() != null)
+            else if (value.GetType().GetCustomAttribute<ByteSerializableAttribute>() != null)
             {
                 if (value.GetType().IsEnum)
                 {
@@ -103,14 +115,14 @@ namespace ModelProcess
                         .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
                         .OrderBy(m => m.MetadataToken);
 
-                    foreach (var member in members)
+                    foreach (var memberInfo in members)
                     {
-                        object memberValue = member.MemberType switch
+                        object memberValue = memberInfo.MemberType switch
                         {
-                            MemberTypes.Field => ((FieldInfo)member).GetValue(value),
-                            MemberTypes.Property => ((PropertyInfo)member).GetValue(value),
+                            MemberTypes.Field => ((FieldInfo)memberInfo).GetValue(value),
+                            MemberTypes.Property => ((PropertyInfo)memberInfo).GetValue(value),
                         };
-                        writer.Serialize(memberValue);
+                        writer.Serialize(memberValue, memberInfo);
                     }
                 }
             }
@@ -120,7 +132,7 @@ namespace ModelProcess
             }
         }
 
-        public static T Deserialize<T>(this CustomedBinaryReader reader)
+        public static T Deserialize<T>(this CustomedBinaryReader reader, MemberInfo? info)
         {
             var thisMethod = typeof(SerializeExtension).GetMethod(nameof(SerializeExtension.Deserialize));
 
@@ -193,8 +205,8 @@ namespace ModelProcess
                 var genericDeserializeValueMethod = thisMethod.MakeGenericMethod(valueType);
                 for (int i = 0; i < count; i++)
                 {
-                    var key = genericDeserializeKeyMethod.Invoke(null, [reader]);
-                    var value = genericDeserializeValueMethod.Invoke(null, [reader]);
+                    var key = genericDeserializeKeyMethod.Invoke(null, [reader, null]);
+                    var value = genericDeserializeValueMethod.Invoke(null, [reader, null]);
                     dict.Add(key, value);
                 }
                 return (T)dict;
@@ -208,7 +220,7 @@ namespace ModelProcess
                 var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
                 for (var i = 0; i < count; i++)
                 {
-                    var item = genericDeserializeMethod.Invoke(null, [reader]);
+                    var item = genericDeserializeMethod.Invoke(null, [reader, null]);
                     list.Add(item);
                 }
                 return (T)list;
@@ -216,12 +228,13 @@ namespace ModelProcess
             else if (type.IsArray)
             {
                 var elementType = type.GetElementType();
-                var count = reader.ReadCollectionSize();
+                var fixedSizeAttribute = info.GetCustomAttribute<FixedSizeArrayAttribute>();
+                var count = fixedSizeAttribute is null ? reader.ReadCollectionSize() : fixedSizeAttribute.Size; // map to array<T, Size> in cpp, do not deserialize size
                 var array = Array.CreateInstance(elementType, count);
                 var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
                 for (int i = 0; i < count; i++)
                 {
-                    var item = genericDeserializeMethod.Invoke(null, [reader]);
+                    var item = genericDeserializeMethod.Invoke(null, [reader, null]);
                     array.SetValue(item, i);
                 }
                 return (T)(object)array;
@@ -232,7 +245,7 @@ namespace ModelProcess
                 {
                     var underlyingType = Enum.GetUnderlyingType(type);
                     var genericDeserializeMethod = thisMethod.MakeGenericMethod(underlyingType);
-                    var underlyingValue = genericDeserializeMethod.Invoke(null, [reader]);
+                    var underlyingValue = genericDeserializeMethod.Invoke(null, [reader, null]);
                     return (T)Enum.ToObject(type, underlyingValue);
                 }
                 else
@@ -243,18 +256,18 @@ namespace ModelProcess
                         .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
                         .OrderBy(m => m.MetadataToken);
 
-                    foreach (var member in members)
+                    foreach (var memberInfo in members)
                     {
-                        if (member is FieldInfo fieldInfo)
+                        if (memberInfo is FieldInfo fieldInfo)
                         {
                             var genericDeserializeMethod = thisMethod.MakeGenericMethod(fieldInfo.FieldType);
-                            var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader, memberInfo]);
                             fieldInfo.SetValue(instance, memberValue);
                         }
-                        else if (member is PropertyInfo propertyInfo)
+                        else if (memberInfo is PropertyInfo propertyInfo)
                         {
                             var genericDeserializeMethod = thisMethod.MakeGenericMethod(propertyInfo.PropertyType);
-                            var memberValue = genericDeserializeMethod.Invoke(null, [reader]);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader, memberInfo]);
                             propertyInfo.SetValue(instance, memberValue);
                         }
                     }
@@ -313,5 +326,15 @@ namespace ModelProcess
     public class ByteSerializableAttribute : Attribute
     {
 
+    }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    public class FixedSizeArrayAttribute : Attribute
+    {
+        public int Size { get; init; }
+        public FixedSizeArrayAttribute(int size)
+        {
+            Size = size;
+        }
     }
 }

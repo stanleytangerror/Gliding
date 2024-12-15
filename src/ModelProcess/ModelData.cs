@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Microsoft.VisualBasic;
+using System.Numerics;
 
 namespace ModelProcess
 {
@@ -33,6 +34,7 @@ namespace ModelProcess
         public TextureInterpolationFilter MinFilter;
         public TextureInterpolationFilter MagFilter;
         public TextureInterpolationFilter MipMapFilter;
+        [FixedSizeArray(3)]
         public TextureAddressMode[] AddressMode;
 
         public TextureSamplerData()
