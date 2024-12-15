@@ -310,7 +310,7 @@ namespace GI
 
     struct GD_COMMON_API TextureAddressMode
     {
-        enum GD_COMMON_API Enum
+        enum GD_COMMON_API Enum : u16
         {
             WRAP = 1,
             MIRROR = 2,

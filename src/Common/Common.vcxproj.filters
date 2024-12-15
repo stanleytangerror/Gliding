@@ -111,5 +111,8 @@
     <ClCompile Include="DirectedGraph.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="ModelProcess.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

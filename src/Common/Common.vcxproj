@@ -43,6 +43,7 @@
     <ClCompile Include="CommonPch.cpp" />
     <ClCompile Include="DirectedGraph.cpp" />
     <ClCompile Include="GraphicsInfrastructure.cpp" />
+    <ClCompile Include="ModelProcess.cpp" />
     <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="Profile.cpp" />
     <ClCompile Include="StringUtils.cpp" />
