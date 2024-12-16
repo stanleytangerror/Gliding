@@ -72,7 +72,7 @@ public:
 
 	std::unique_ptr<
 		TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
+		std::shared_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>
 		>							mTestModel;
 };

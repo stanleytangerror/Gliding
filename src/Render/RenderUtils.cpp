@@ -297,11 +297,11 @@ TransformNode<std::pair<
 }
 
 TransformNode<std::pair<
-	std::unique_ptr<Geometry>,
+	std::shared_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>* RenderUtils::FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model)
 {
 	auto result = new TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
+		std::shared_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
 
 	std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>> textures;
@@ -319,18 +319,22 @@ TransformNode<std::pair<
 		materials[mat.Id] = std::shared_ptr<RenderMaterial>(RenderMaterial::GenerateRenderMaterialFromMaterialData(frameGraph, mat, textures));
 	}
 
+	std::map<Guid, std::pair<std::shared_ptr<Geometry>, std::shared_ptr<RenderMaterial>>> meshes;
 	for (const auto& mesh : model.Meshes)
 	{
 		Geometry* geo = GenerateGeometryFromMeshData(mesh);
 		geo->CreateAndInitialResource(frameGraph);
 
-		const auto& mat = materials[mesh.MaterialId];
-		//const Transformf& trans = mesh->mTransform;
+		meshes[mesh.Id] =
+		{
+			std::shared_ptr<Geometry>(geo),
+			materials[mesh.MaterialId]
+		};
+	}
 
-		result->PushChild({
-			std::unique_ptr<Geometry>(geo),
-			mat },
-			Transformf::Identity());
+	for (const auto& inst : model.MeshInstances)
+	{
+		result->PushChild(meshes[inst.MeshId], Transformf(inst.LocalTransform));
 	}
 
 	return result;

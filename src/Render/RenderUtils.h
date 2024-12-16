@@ -54,7 +54,7 @@ namespace RenderUtils
 	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
 
 	TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
+		std::shared_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
 		FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model);
 
