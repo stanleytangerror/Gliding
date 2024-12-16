@@ -461,69 +461,87 @@ struct _SerializeJsonImpl<std::vector<T>>
 	}
 };
 
-template <typename T, int DIM>
-struct _SerializeTextImpl<Eigen::Matrix<T, DIM, 1>>
+template <typename T, int RowSize, int ColSize>
+struct _SerializeTextImpl<Eigen::Matrix<T, RowSize, ColSize>>
 {
-	void Serialize(const Eigen::Matrix<T, DIM, 1>& in, std::ostringstream& oss)
+	void Serialize(const Eigen::Matrix<T, RowSize, ColSize>& in, std::ostringstream& oss)
 	{
-		for (int i = 0; i < DIM; ++i)
+		for (int i = 0; i < RowSize; ++i)
 		{
-			_SerializeTextImpl<std::decay_t<T>>().Serialize(in(i, 0), oss);
+			for (int j = 0; j < ColSize; ++j)
+			{
+				_SerializeTextImpl<std::decay_t<T>>().Serialize(in(i, j), oss);
+			}
 		}
 	}
 
-	Eigen::Matrix<T, DIM, 1> Deserialize(std::istringstream& iss)
+	Eigen::Matrix<T, RowSize, ColSize> Deserialize(std::istringstream& iss)
 	{
-		Eigen::Matrix<T, DIM, 1> result;
-		for (int i = 0; i < DIM; ++i)
+		Eigen::Matrix<T, RowSize, ColSize> result;
+		for (int i = 0; i < RowSize; ++i)
 		{
-			result(i, 0) = _SerializeTextImpl<std::decay_t<T>>().Deserialize(iss);
+			for (int j = 0; j < ColSize; ++j)
+			{
+				result(i, j) = _SerializeTextImpl<std::decay_t<T>>().Deserialize(iss);
+			}
 		}
 		return result;
 	}
 };
 
-template <typename T, int DIM>
-struct _SerializeBytesImpl<Eigen::Matrix<T, DIM, 1>>
+template <typename T, int RowSize, int ColSize>
+struct _SerializeBytesImpl<Eigen::Matrix<T, RowSize, ColSize>>
 {
-	void Serialize(const Eigen::Matrix<T, DIM, 1>& in, obytestream& oss)
+	void Serialize(const Eigen::Matrix<T, RowSize, ColSize>& in, obytestream& oss)
 	{
-		for (auto i = 0; i < DIM; ++i)
+		for (int i = 0; i < RowSize; ++i)
 		{
-			_SerializeBytesImpl<std::decay_t<T>>().Serialize(in(i, 0), oss);
+			for (int j = 0; j < ColSize; ++j)
+			{
+				_SerializeBytesImpl<std::decay_t<T>>().Serialize(in(i, j), oss);
+			}
 		}
 	}
 
-	Eigen::Matrix<T, DIM, 1> Deserialize(ibytestream& iss)
+	Eigen::Matrix<T, RowSize, ColSize> Deserialize(ibytestream& iss)
 	{
-		Eigen::Matrix<T, DIM, 1> result;
-		for (auto i = 0; i < DIM; ++i)
+		Eigen::Matrix<T, RowSize, ColSize> result;
+		for (int i = 0; i < RowSize; ++i)
 		{
-			result(i, 0) = _SerializeBytesImpl<std::decay_t<T>>().Deserialize(iss);
+			for (int j = 0; j < ColSize; ++j)
+			{
+				result(i, j) = _SerializeBytesImpl<std::decay_t<T>>().Deserialize(iss);
+			}
 		}
 		return result;
 	}
 };
 
-template <typename T, int DIM>
-struct _SerializeJsonImpl<Eigen::Matrix<T, DIM, 1>>
+template <typename T, int RowSize, int ColSize>
+struct _SerializeJsonImpl<Eigen::Matrix<T, RowSize, ColSize>>
 {
-	json Serialize(const Eigen::Matrix<T, DIM, 1>& in)
+	json Serialize(const Eigen::Matrix<T, RowSize, ColSize>& in)
 	{
 		json result;
-		for (auto i = 0; i < DIM; ++i)
+		for (int i = 0; i < RowSize; ++i)
 		{
-			result[i] = _SerializeJsonImpl<std::decay_t<T>>().Serialize(in(i, 0));
+			for (int j = 0; j < ColSize; ++j)
+			{
+				result[i * ColSize + j] = _SerializeJsonImpl<std::decay_t<T>>().Serialize(in(i, j));
+			}
 		}
 		return result;
 	}
 
-	Eigen::Matrix<T, DIM, 1> Deserialize(const json& json)
+	Eigen::Matrix<T, RowSize, ColSize> Deserialize(const json& json)
 	{
-		Eigen::Matrix<T, DIM, 1> result;
-		for (int i = 0; i < DIM; ++i)
+		Eigen::Matrix<T, RowSize, ColSize> result;
+		for (int i = 0; i < RowSize; ++i)
 		{
-			result(i, 0) = _SerializeJsonImpl<std::decay_t<T>>().Deserialize(json[i]);
+			for (int j = 0; j < ColSize; ++j)
+			{
+				result(i, j) = _SerializeJsonImpl<std::decay_t<T>>().Deserialize(json[i * ColSize + j]);
+			}
 		}
 		return result;
 	}

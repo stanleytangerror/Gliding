@@ -126,6 +126,7 @@ namespace ModelProcess
 
 	struct GD_COMMON_API Mesh
 	{
+		Guid Id;
 		std::string Name;
 		Guid MaterialId;
 
@@ -134,7 +135,15 @@ namespace ModelProcess
 		std::vector<u16> Indices;
 	};
 
-	CLASS_SERIALIZE_BYTES(Mesh, Name, MaterialId, VertexAttributeMetas, Vertices, Indices);
+	CLASS_SERIALIZE_BYTES(Mesh, Id, Name, MaterialId, VertexAttributeMetas, Vertices, Indices);
+
+	struct GD_COMMON_API MeshInstance
+	{
+		Guid MeshId;
+		Mat44f LocalTransform;
+	};
+
+	CLASS_SERIALIZE_BYTES(MeshInstance, MeshId, LocalTransform);
 
 	struct GD_COMMON_API Model
 	{
@@ -142,9 +151,10 @@ namespace ModelProcess
 		std::vector<Texture> Textures;
 		std::vector<Material> Materials;
 		std::vector<Mesh> Meshes;
+		std::vector<MeshInstance> MeshInstances;
 	};
 
-	CLASS_SERIALIZE_BYTES(Model, Name, Textures, Materials, Meshes);
+	CLASS_SERIALIZE_BYTES(Model, Name, Textures, Materials, Meshes, MeshInstances);
 
 	GD_COMMON_API float GetScalarParam(const Channel& channel, const char* name, float defaultValue = 0.0f);
 	GD_COMMON_API Vec2f GetVec2fParam(const Channel& channel, const char* name, const Vec2f& defaultValue = Vec2f::Zero());
