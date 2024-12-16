@@ -1,5 +1,6 @@
 #include "Render/RenderPch.h"
 #include "RenderUtils.h"
+#include "Common/ModelProcess.h"
 #include "Geometry.h"
 #include "World/Scene.h"
 #include "RenderMaterial.h"
@@ -26,6 +27,17 @@ namespace
 			.SetAddress({ mapType(type[0]),
 					mapType(type[1]),
 					mapType(type[2]) });
+	}
+
+	GI::SamplerDesc ToSamplerDesc(const ModelProcess::Sampler& sampler)
+	{
+		return GI::SamplerDesc()
+			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+			.SetAddress({ 
+				sampler.mAddressMode[0],
+				sampler.mAddressMode[1],
+				sampler.mAddressMode[2]
+				});
 	}
 }
 
@@ -284,6 +296,46 @@ TransformNode<std::pair<
 	return result;
 }
 
+TransformNode<std::pair<
+	std::unique_ptr<Geometry>,
+	std::shared_ptr<RenderMaterial>>>* RenderUtils::FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model)
+{
+	auto result = new TransformNode<std::pair<
+		std::unique_ptr<Geometry>,
+		std::shared_ptr<RenderMaterial>>>;
+
+	std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>> textures;
+	for (const auto& tex : model.Textures)
+	{
+		textures[tex.mId] = {
+			new FileTexture(frameGraph, tex.mPath.c_str(), Utils::LoadFileContent(tex.mPath.c_str())),
+			ToSamplerDesc(tex.mSampler)
+		};
+	}
+
+	std::map<Guid, std::shared_ptr<RenderMaterial>> materials;
+	for (const auto& mat : model.Materials)
+	{
+		materials[mat.Id] = std::shared_ptr<RenderMaterial>(RenderMaterial::GenerateRenderMaterialFromMaterialData(frameGraph, mat, textures));
+	}
+
+	for (const auto& mesh : model.Meshes)
+	{
+		Geometry* geo = GenerateGeometryFromMeshData(mesh);
+		geo->CreateAndInitialResource(frameGraph);
+
+		const auto& mat = materials[mesh.MaterialId];
+		//const Transformf& trans = mesh->mTransform;
+
+		result->PushChild({
+			std::unique_ptr<Geometry>(geo),
+			mat },
+			Transformf::Identity());
+	}
+
+	return result;
+}
+
 Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData)
 {
 	const i32 vertexCount = meshRawData->mVertexCount;
@@ -343,4 +395,45 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRa
 	}
 
 	return Geometry::GenerateGeometry(vertices, vertexTotalStride, indices, inputDesc);
+}
+
+Geometry* RenderUtils::GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh)
+{
+	static const char* names[] =
+	{
+		"POSITION",
+		"NORMAL",
+		"TANGENT",
+		"BINORMAL",
+		"TEXCOORD",
+		"COLOR"
+	};
+
+	static const GI::Format::Enum formats[] =
+	{
+		GI::Format::FORMAT_R32_FLOAT,
+		GI::Format::FORMAT_R32G32_FLOAT,
+		GI::Format::FORMAT_R32G32B32_FLOAT,
+		GI::Format::FORMAT_R32G32B32A32_FLOAT,
+	};
+
+	std::vector<GI::InputElementDesc> inputDesc;
+	for (const auto& meta : mesh.VertexAttributeMetas)
+	{
+		inputDesc.push_back(GI::InputElementDesc()
+			.SetSemanticName(names[meta.mSemantic])
+			.SetSemanticIndex(meta.mSemanticIndex)
+			.SetFormat(formats[meta.mSizeInBytes / sizeof(f32)])
+			.SetInputSlot(0)
+			.SetAlignedByteOffset(meta.mOffsetInBytes));
+	}
+
+	auto vertexStride = std::accumulate(
+		mesh.VertexAttributeMetas.begin(),
+		mesh.VertexAttributeMetas.end(),
+		0,
+		[](i32 v, const auto& meta) { return v + meta.mSizeInBytes; }
+	);
+
+	return Geometry::GenerateGeometry(mesh.Vertices, vertexStride, mesh.Indices, inputDesc);
 }

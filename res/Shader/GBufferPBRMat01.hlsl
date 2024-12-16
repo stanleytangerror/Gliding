@@ -62,8 +62,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 		normalize(input.worldNormal)));
 	const float3 worldNormal = normalize(mul(tbn, normalFromMap));
 
-	const float roughness = GetRoughnessValue(uv).y;
-	const float metallic = GetMetallicValue(uv).z;
+	const float4 mr = GetMetallicRoughnessValue(uv);
+	const float roughness = mr.y;
+	const float metallic = mr.z;
 
 	PBRStandard matData = (PBRStandard)0;
 	matData.worldNormal = worldNormal;

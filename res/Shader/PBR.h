@@ -12,6 +12,7 @@ DECLARE_MATERIAL_INPUTS(Normal);
 DECLARE_MATERIAL_INPUTS(Metallic);
 DECLARE_MATERIAL_INPUTS(BaseColor);
 DECLARE_MATERIAL_INPUTS(Roughness);
+DECLARE_MATERIAL_INPUTS(MetallicRoughness);
 
 float4 GetBaseColorValue(float2 uv)
 {
@@ -46,6 +47,15 @@ float4 GetRoughnessValue(float2 uv)
 	return RoughnessTex.Sample(RoughnessSampler, uv);
 #else
 	return RoughnessConstantValue;
+#endif
+}
+
+float4 GetMetallicRoughnessValue(float2 uv)
+{
+#ifdef MetallicRoughness_USE_MAP
+	return MetallicRoughnessTex.Sample(MetallicRoughnessSampler, uv);
+#else
+	return MetallicRoughnessConstantValue;
 #endif
 }
 

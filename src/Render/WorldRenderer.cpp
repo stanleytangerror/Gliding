@@ -94,12 +94,16 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
+	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
 	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
 
-	mTestModel.reset(RenderUtils::FromSceneRawData(frameGraph, sceneRawData));
+	//mTestModel.reset(RenderUtils::FromSceneRawData(frameGraph, sceneRawData));
 	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(device));
+
+	const auto& content = Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)");
+	auto model = DeserializeFromBytes<ModelProcess::Model>(content);
+	mTestModel.reset(RenderUtils::FromModelData(frameGraph, model));
 
 	//mTestModel->mRelTransform = UniScalingf(10.f);
 	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
@@ -557,40 +561,44 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
+			const auto& normalChannel = material->mNormalChannel;
+			if (auto tex = normalChannel.mTexture)
 			{
-				{ TextureUsage_Normal,			 "Normal" },
-				{ TextureUsage_Metalness,		 "Metallic" },
-				{ TextureUsage_BaseColor,		 "BaseColor" },
-				{ TextureUsage_Roughness,		 "Roughness" },
-			};
-
-			for (const auto& [usage, paramName] : semanticSlots)
+				data.shaderMacros.push_back(GI::ShaderMacro{ "Normal_USE_MAP", "" });
+				data.srvs.emplace_back("NormalTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("NormalSampler", normalChannel.mSampler);
+			}
+			else
 			{
-				const auto& attr = material->mMatAttriSlots[usage];
-				if (attr.mTexture)
-				{
-					data.shaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
+				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ 0.5f, 0.5f, 1.f, 0.f });
+			}
+			
+			const auto& baseColorChannel = material->mBaseColorChannel;
+			if (auto tex = baseColorChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "BaseColor_USE_MAP", "" });
+				data.srvs.emplace_back("BaseColorTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("BaseColorConstantValue", baseColorChannel.mColor);
+			}
 
-					auto res = attr.mTexture->GetResource();
-					const auto& resDesc = frameGraph->GetResourceDesc(res);
-
-					const auto& srvName = paramName + "Tex";
-					const auto& srv = builder.Read(res,
-							GI::SrvDesc{}
-							.SetFormat(resDesc.GetFormat())
-							.SetViewDimension(GI::GetSrvDimension(resDesc.GetDimension()))
-							.SetTexture2D_MipLevels(resDesc.GetMipLevels()));
-					data.srvs.emplace_back(srvName, srv);
-
-					const auto& samplerName = paramName + "Sampler";
-					const auto& sampler = attr.mSampler;
-					data.samplers.emplace_back(samplerName, sampler);
-				}
-				else
-				{
-					data.cbvs.emplace_back(paramName + "ConstantValue", attr.mConstantValue);
-				}
+			const auto& metallicRoughnessChannel = material->mMetallicRoughnessChannel;
+			if (auto tex = metallicRoughnessChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "MetallicRoughness_USE_MAP", "" });
+				data.srvs.emplace_back("MetallicRoughnessTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("MetallicRoughnessSampler", metallicRoughnessChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("MetallicRoughnessConstantValue", Vec4f{
+					0.f,
+					metallicRoughnessChannel.mRoughnessFactor,
+					metallicRoughnessChannel.mMetallicFactor,
+					0.f });
 			}
 
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
@@ -604,8 +612,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
-				indexCount = geometry->mIndices.size(),
-				cameraProj, cameraTrans, transform
+			indexCount = geometry->mIndices.size(),
+			cameraProj, cameraTrans, transform
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
@@ -687,12 +695,11 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			const char* paramName = "BaseColorTex";
-			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
-			if (attr.mTexture)
+			const auto& baseColorChannel = material->mBaseColorChannel;
+			if (auto tex = baseColorChannel.mTexture)
 			{
-				data.srvs.emplace_back(paramName, builder.ReadTex2DSrv(attr.mTexture->GetResource()));
-				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
+				data.srvs.emplace_back("BaseColorTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
 			}
 
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());

@@ -8,6 +8,13 @@
 
 struct SceneRawData;
 
+namespace ModelProcess
+{
+	struct Mesh;
+	struct Model;
+	struct Material;
+}
+
 namespace RenderUtils
 {
 	void CopyTexture(FrameGraph* frameGraph, 
@@ -45,4 +52,11 @@ namespace RenderUtils
 		GenerateMaterialProbes(FrameGraph* frameGraph);
 
 	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
+
+	TransformNode<std::pair<
+		std::unique_ptr<Geometry>,
+		std::shared_ptr<RenderMaterial>>>*
+		FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model);
+
+	Geometry* GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh);
 }
