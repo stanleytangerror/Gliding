@@ -4,8 +4,12 @@ struct VSInput
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
+#ifdef HAS_TANGENT
 	float3 tangent : TANGENT;
+#endif
+#ifdef HAS_BITANGENT
 	float3 binormal : BINORMAL;
+#endif
 	float2 uv : TEXCOORD;
 };
 
@@ -37,9 +41,22 @@ PSInput VSMain(VSInput vsin)
 	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
 	result.worldPos = mul(worldMat, float4(vsin.position, 1)).xyz;
 	result.uv = vsin.uv;
+
 	result.worldNormal = normalize(mul((float3x3)worldMat, vsin.normal));
-	result.worldBinormal = normalize(mul((float3x3)worldMat, vsin.binormal));
-	result.worldTangent = normalize(mul((float3x3)worldMat, vsin.tangent));
+#ifdef HAS_TANGENT
+	float3 tangent = vsin.tangent;
+#else
+	float3 tangent = float3(0, 1, 0);
+#endif
+
+	result.worldTangent = normalize(mul((float3x3)worldMat, tangent));
+
+#ifdef HAS_BITANGENT
+	float3 binormal = vsin.binormal;
+#else
+	float3 binormal = normalize(cross(vsin.normal, vsin.tangent));
+#endif
+	result.worldBinormal = normalize(mul((float3x3)worldMat, binormal));
 
 	return result;
 }

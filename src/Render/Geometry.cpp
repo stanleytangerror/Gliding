@@ -130,6 +130,8 @@ Geometry* Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertex
 	result->mVertexStride = vertexStride;
 	result->mIndices = indices;
 	result->mVertexElementDescs = inputDescs;
+	result->mHasTangent = std::find_if(inputDescs.begin(), inputDescs.end(), [](const auto& d) { return std::strcmp(d.GetSemanticName(), "TANGNET") == 0; }) != inputDescs.end();
+	result->mHasBiTangent = std::find_if(inputDescs.begin(), inputDescs.end(), [](const auto& d) { return std::strcmp(d.GetSemanticName(), "BITANGNET") == 0; }) != inputDescs.end();
 
 	return result;
 }

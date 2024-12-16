@@ -22,6 +22,8 @@ public:
 	i32					mVertexStride = 0;
 	std::vector<u16>	mIndices;
 	std::vector < GI::InputElementDesc > mVertexElementDescs;
+	bool				mHasTangent = false;
+	bool				mHasBiTangent = false;
 
 	FrameGraphMutableResource	mVb;
 	FrameGraphMutableResource	mIb;

@@ -601,6 +601,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 					0.f });
 			}
 
+			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" });
+			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" });
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			for (i32 i = 0; i < gbufferRtvs.size(); ++i)
@@ -685,6 +687,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	{
 		VbvUsageFuture geoVertices;
 		IbvUsageFuture geoIndices;
+		std::vector<GI::ShaderMacro> shaderMacros;
 		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
 		DsvUsageFuture depthView;
@@ -702,6 +705,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
 			}
 
+			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" });
+			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" });
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.depthView = builder.ReadWriteTex2DDsv(depth);
@@ -716,7 +721,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		{
 			GI::GraphicsPass pass;
 
-			pass.SetShader("GeometryDepth");
+			pass.SetShader("GeometryDepth", data.shaderMacros);
 
 			pass.SetupRasterizer()
 				.SetCullMode(GI::CullMode::NONE)
