@@ -14,8 +14,8 @@ namespace ModelProcess
         public required Material? Material { get; set; }
         public uint[] Indices { get; set; } = [];
         public Vector3[] Positions { get; set; } = [];
-        public Vector3[] Normals { get; set; }    = [];
-        public Vector3[] Tangents { get; set; }   = [];
+        public Vector3[] Normals { get; set; } = [];
+        public Vector3[] Tangents { get; set; } = [];
         public Vector3[] BiTangents { get; set; } = [];
         public List<Vector2[]> TexCoords { get; set; } = [];
         public Vector4[] Colors { get; set; } = [];
@@ -27,7 +27,7 @@ namespace ModelProcess
         public Channel[] Channels { get; set; } = [];
 
         public class Channel
-        { 
+        {
             public string Name { get; set; } = string.Empty;
             public Texture? Texture { get; set; }
             public int TexCoord { get; set; }
@@ -38,12 +38,19 @@ namespace ModelProcess
         }
     }
 
+    public class MeshInstance
+    {
+        public required Mesh Mesh { get; set; }
+        public required Matrix4x4 LocalTransform { get; set; }
+    }
+
     public class Model
     {
         public string Name { get; set; } = string.Empty;
         public Texture[] Textures { get; set; } = [];
         public Material[] Materials { get; set; } = [];
         public Mesh[] Meshes { get; set; } = [];
+        public MeshInstance[] MeshInstances { get; set; } = [];
     }
 
     public static class ModelExtensions
@@ -159,6 +166,7 @@ namespace ModelProcess
         {
             var textureToId = model.Textures.ToDictionary(t => t, t => Guid.NewGuid());
             var materialToId = model.Materials.ToDictionary(m => m, m => Guid.NewGuid());
+            var meshToId = model.Meshes.ToDictionary(m => m, m => Guid.NewGuid());
 
             ModelData result = new ModelData
             {
@@ -186,11 +194,17 @@ namespace ModelProcess
                 }).ToArray(),
                 Meshes = model.Meshes.Select(m => new MeshData
                 {
+                    Id = meshToId[m],
                     Name = m.Name,
                     MaterialId = materialToId[m.Material],
                     Indices = m.Indices.Select(i => (UInt16)i).ToArray(),
                     VertexAttributeMetas = m.ToVertexAttributeMetas(),
                     Vertices = m.ToVerticesData(),
+                }).ToArray(),
+                MeshInstances = model.MeshInstances.Select(i => new MeshInstanceData
+                {
+                    MeshId = meshToId[i.Mesh],
+                    LocalTransform = i.LocalTransform,
                 }).ToArray(),
             };
 

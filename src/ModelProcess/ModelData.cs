@@ -94,6 +94,7 @@ namespace ModelProcess
     [ByteSerializable]
     public struct MeshData
     {
+        public required Guid Id;
         public required string Name = string.Empty;
         public required Guid MaterialId;
         public required VertexAttributeMeta[] VertexAttributeMetas = [];
@@ -106,12 +107,24 @@ namespace ModelProcess
     }
 
     [ByteSerializable]
+    public struct MeshInstanceData
+    {
+        public required Guid MeshId;
+        public required Matrix4x4 LocalTransform;
+
+        public MeshInstanceData()
+        {
+        }
+    }
+
+    [ByteSerializable]
     public struct ModelData
     {
         public required string Name = string.Empty;
         public required TextureData[] Textures = [];
         public required MaterialData[] Materials = [];
         public required MeshData[] Meshes = [];
+        public required MeshInstanceData[] MeshInstances = [];
 
         public ModelData()
         {

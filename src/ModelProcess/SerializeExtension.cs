@@ -63,6 +63,25 @@ namespace ModelProcess
                 writer.Write(v4.Z);
                 writer.Write(v4.W);
             }
+            else if (value is Matrix4x4 m)
+            {
+                writer.Write(m.M11);
+                writer.Write(m.M12);
+                writer.Write(m.M13);
+                writer.Write(m.M14);
+                writer.Write(m.M21);
+                writer.Write(m.M22);
+                writer.Write(m.M23);
+                writer.Write(m.M24);
+                writer.Write(m.M31);
+                writer.Write(m.M32);
+                writer.Write(m.M33);
+                writer.Write(m.M34);
+                writer.Write(m.M41);
+                writer.Write(m.M42);
+                writer.Write(m.M43);
+                writer.Write(m.M44);
+            }
             else if (value is string s)
             {
                 writer.Write(s);
@@ -183,6 +202,14 @@ namespace ModelProcess
             else if (type == typeof(Vector4))
             {
                 return (T)(object)new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            }
+            else if (type == typeof(Matrix4x4))
+            {
+                return (T)(object)new Matrix4x4(
+                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
             }
             else if (type == typeof(string))
             {

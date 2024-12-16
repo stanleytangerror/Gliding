@@ -50,20 +50,17 @@ namespace ModelProcess
 
             var srcTexToDstTex = srcModel.LogicalTextures.ToDictionary(tex => tex, LoadTexture);
             var srcMatToDstMat = srcModel.LogicalMaterials.ToDictionary(mat => mat, mat => LoadMaterial(mat, a => srcTexToDstTex[a]));
+            var srcMeshToDstMesh = srcModel.LogicalMeshes.SelectMany(m => m.Primitives).ToDictionary(p => p, p => LoadMeshPrimitive(p, a => srcMatToDstMat[a]));
 
             Model dstModel = new()
             {
                 Name = path,
-                Textures = srcTexToDstTex
-                    .Select(p => p.Value)
-                    .ToArray(),
-                Materials = srcMatToDstMat
-                    .Select(p => p.Value)
-                    .ToArray(),
-                Meshes = srcModel.LogicalMeshes
-                    .SelectMany(m => m.Primitives)
-                    .Select(p => LoadMeshPrimitive(p, a => srcMatToDstMat[a]))
-                    .ToArray()
+                Textures = srcTexToDstTex.Select(p => p.Value).ToArray(),
+                Materials = srcMatToDstMat.Select(p => p.Value).ToArray(),
+                Meshes = srcMeshToDstMesh.Select(p => p.Value).ToArray(),
+                MeshInstances = srcModel.LogicalNodes
+                    .Where(n => n.Mesh is not null)
+                    .SelectMany(n => LoadMeshInstances(n, srcMeshToDstMesh)).ToArray(),
             };
 
             return dstModel;
@@ -180,6 +177,17 @@ namespace ModelProcess
             };
 
             return dstMesh;
+        }
+
+        protected static IEnumerable<MeshInstance> LoadMeshInstances(GLTF.Node srcNode, IDictionary<GLTF.MeshPrimitive, Mesh> meshes)
+        {
+            return meshes
+                .Where(p => p.Key.LogicalParent == srcNode.Mesh)
+                .Select(p => new MeshInstance
+                {
+                    Mesh = p.Value,
+                    LocalTransform = srcNode.WorldMatrix
+                });
         }
     }
 }
