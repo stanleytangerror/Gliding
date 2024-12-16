@@ -601,8 +601,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 					0.f });
 			}
 
-			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" });
-			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" });
+			if (geometry->mHasTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" }); }
+			if (geometry->mHasBiTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" }); }
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			for (i32 i = 0; i < gbufferRtvs.size(); ++i)
@@ -705,8 +705,8 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
 			}
 
-			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" });
-			data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" });
+			if (geometry->mHasTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" }); }
+			if (geometry->mHasBiTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" }); }
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.depthView = builder.ReadWriteTex2DDsv(depth);
