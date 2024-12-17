@@ -54,7 +54,7 @@ PSInput VSMain(VSInput vsin)
 #ifdef HAS_BITANGENT
 	float3 binormal = vsin.binormal;
 #else
-	float3 binormal = normalize(cross(vsin.normal, vsin.tangent));
+	float3 binormal = normalize(cross(vsin.normal, tangent));
 #endif
 	result.worldBinormal = normalize(mul((float3x3)worldMat, binormal));
 
@@ -67,6 +67,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
 	float2 uv = input.uv;
 	uv.y = 1.0 - uv.y; // gl texture uv
+	// uv.x = 1.0 - uv.x; // gl texture uv
 
 	const float4 baseColor = GetBaseColorValue(uv);
 	clip(baseColor.w - 0.5);
