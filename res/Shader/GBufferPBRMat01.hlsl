@@ -66,8 +66,6 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	PSOutput output;
 
 	float2 uv = input.uv;
-	uv.y = 1.0 - uv.y; // gl texture uv
-	// uv.x = 1.0 - uv.x; // gl texture uv
 
 	const float4 baseColor = GetBaseColorValue(uv);
 	clip(baseColor.w - 0.5);
