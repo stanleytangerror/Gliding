@@ -421,6 +421,13 @@ Geometry* RenderUtils::GenerateGeometryFromMeshData(const ModelProcess::Mesh& me
 		GI::Format::FORMAT_R32G32B32A32_FLOAT,
 	};
 
+	auto vertexStride = std::accumulate(
+		mesh.VertexAttributeMetas.begin(),
+		mesh.VertexAttributeMetas.end(),
+		0,
+		[](i32 v, const auto& meta) { return v + meta.mSizeInBytes; }
+	);
+
 	std::vector<GI::InputElementDesc> inputDesc;
 	for (const auto& meta : mesh.VertexAttributeMetas)
 	{
@@ -431,13 +438,6 @@ Geometry* RenderUtils::GenerateGeometryFromMeshData(const ModelProcess::Mesh& me
 			.SetInputSlot(0)
 			.SetAlignedByteOffset(meta.mOffsetInBytes));
 	}
-
-	auto vertexStride = std::accumulate(
-		mesh.VertexAttributeMetas.begin(),
-		mesh.VertexAttributeMetas.end(),
-		0,
-		[](i32 v, const auto& meta) { return v + meta.mSizeInBytes; }
-	);
 
 	return Geometry::GenerateGeometry(mesh.Vertices, vertexStride, mesh.Indices, inputDesc);
 }
