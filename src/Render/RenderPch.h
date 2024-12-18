@@ -7,7 +7,6 @@
 #define NOMINMAX
 
 #include "Common/CommonMacros.h"
-#include "World/WorldMacros.h"
 #include "Render/RenderMacros.h"
 
 // headers from common

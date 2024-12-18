@@ -6,7 +6,6 @@
 
 #include "Common/CommonMacros.h"
 #include "Common/Profile.h"
-#include "World/WorldMacros.h"
 #include "Render/RenderMacros.h"
 
 // std headers
