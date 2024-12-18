@@ -3,7 +3,6 @@
 #include "RenderModule.h"
 #include "Geometry.h"
 #include "Texture.h"
-#include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "RenderUtils.h"
 #include "Light.h"

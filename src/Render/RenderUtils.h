@@ -44,14 +44,7 @@ namespace RenderUtils
 	TransformNode<std::pair<
 		std::unique_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>*
-	FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData);
-
-	TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>*
 		GenerateMaterialProbes(FrameGraph* frameGraph);
-
-	Geometry* GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData);
 
 	TransformNode<std::pair<
 		std::shared_ptr<Geometry>,

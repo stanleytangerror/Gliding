@@ -2,33 +2,11 @@
 #include "RenderUtils.h"
 #include "Common/ModelProcess.h"
 #include "Geometry.h"
-#include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "Texture.h"
 
 namespace
 {
-	GI::SamplerDesc ToSamplerDesc(const TextureSamplerType& type)
-	{
-		auto mapType = [](SamplerAddrMode mode)
-		{
-			switch (mode)
-			{
-			case TextureSamplerType_Clamp: return GI::TextureAddressMode::CLAMP;
-			case TextureSamplerType_Mirror: return GI::TextureAddressMode::MIRROR;
-			case TextureSamplerType_Wrap: return GI::TextureAddressMode::WRAP;
-			case TextureSamplerType_Decal:
-			default:  Assert(false); return GI::TextureAddressMode::WRAP;
-			}
-		};
-
-		return GI::SamplerDesc()
-			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-			.SetAddress({ mapType(type[0]),
-					mapType(type[1]),
-					mapType(type[2]) });
-	}
-
 	GI::SamplerDesc ToSamplerDesc(const ModelProcess::Sampler& sampler)
 	{
 		return GI::SamplerDesc()
@@ -211,51 +189,6 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph,
 
 TransformNode<std::pair<
 	std::unique_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData)
-{
-	auto result = new TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>;
-
-	std::map<std::string, FileTexture*> textures;
-	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
-	{
-		if (texRawData)
-		{
-			textures[texPath] = new FileTexture(frameGraph, texPath.c_str(), texRawData->mRawData);
-		}
-	}
-	std::map<TextureSamplerType, GI::SamplerDesc> samplers;
-	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
-	{
-		samplers[samplerType] = ToSamplerDesc(samplerType);
-	}
-
-	std::vector<std::shared_ptr<RenderMaterial>> materials;
-	for (const auto& mat : sceneRawData->mMaterials)
-	{
-		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, sceneRawData, textures, samplers));
-	}
-	for (MeshRawData* mesh : sceneRawData->mMeshes)
-	{
-		Geometry* geo = GenerateGeometryFromMeshRawData(mesh);
-		geo->CreateAndInitialResource(frameGraph);
-
-		const auto& mat = materials[mesh->mMaterialIndex];
-		const Transformf& trans = mesh->mTransform;
-
-		result->PushChild({
-			std::unique_ptr<Geometry>(geo),
-			mat },
-			trans);
-	}
-
-	return result;
-}
-
-TransformNode<std::pair<
-	std::unique_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(FrameGraph* frameGraph)
 {
 	auto result = new TransformNode<std::pair<
@@ -338,67 +271,6 @@ TransformNode<std::pair<
 	}
 
 	return result;
-}
-
-Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData)
-{
-	const i32 vertexCount = meshRawData->mVertexCount;
-	const auto& vertexData = meshRawData->mVertexData;
-	const u32 vertexTotalStride = std::accumulate(vertexData.begin(), vertexData.end(), 0, [](u32 a, const auto& p) { return a + p.first.mStrideInBytes; });
-
-	std::vector<b8> vertices(vertexTotalStride * vertexCount, b8(0));
-	std::vector<GI::InputElementDesc> inputDesc;
-
-	static const char* names[] =
-	{
-		"POSITION",
-		"NORMAL",
-		"TANGENT",
-		"BINORMAL",
-		"TEXCOORD",
-		"COLOR"
-	};
-
-	static const GI::Format::Enum formats[] =
-	{
-		GI::Format::FORMAT_R32_FLOAT,
-		GI::Format::FORMAT_R32G32_FLOAT,
-		GI::Format::FORMAT_R32G32B32_FLOAT,
-		GI::Format::FORMAT_R32G32B32A32_FLOAT,
-	};
-
-	u32 vertexStride = 0;
-	for (const auto& p : vertexData)
-	{
-		const VertexAttriMeta& meta = p.first;
-		const std::vector<VertexAttriRawData>& attrData = p.second;
-
-		inputDesc.push_back(GI::InputElementDesc()
-			.SetSemanticName(names[meta.mType])
-			.SetSemanticIndex(meta.mChannelIndex)
-			.SetFormat(formats[meta.mStrideInBytes / sizeof(f32)])
-			.SetInputSlot(meta.mChannelIndex)
-			.SetAlignedByteOffset(vertexStride));
-
-		b8* target = vertices.data() + vertexStride;
-		for (i32 i = 0; i < vertexCount; i += 1, target += vertexTotalStride)
-		{
-			memcpy(target, &attrData[i], meta.mStrideInBytes);
-		}
-
-		vertexStride += meta.mStrideInBytes;
-	}
-
-	std::vector<u16> indices;
-	indices.reserve(meshRawData->mFaces.size() * 3);
-	for (const auto& f : meshRawData->mFaces)
-	{
-		indices.push_back(f[0]);
-		indices.push_back(f[1]);
-		indices.push_back(f[2]);
-	}
-
-	return Geometry::GenerateGeometry(vertices, vertexTotalStride, indices, inputDesc);
 }
 
 Geometry* RenderUtils::GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh)

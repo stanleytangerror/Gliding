@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Common/ModelProcess.h"
-#include "World/Scene.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "FrameGraph.h"
 
@@ -18,9 +17,6 @@ struct RenderMaterial
 		GI::SamplerDesc mSampler;
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
-
-	std::array<MaterialAttriSlot, TextureUsage_Count> mMatAttriSlots;
-
 
 	struct NormalChannel
 	{
@@ -64,12 +60,6 @@ struct RenderMaterial
 	EmissiveChannel mEmissiveChannel;
 	MetallicRoughnessChannel mMetallicRoughnessChannel;
 	BaseColorChannel mBaseColorChannel;
-
-	static RenderMaterial* GenerateRenderMaterialFromRawData(
-		const MaterialRawData* matRawData,
-		const SceneRawData* sceneRawData,
-		const std::map<std::string, class FileTexture*>& textures,
-		const std::map<TextureSamplerType, GI::SamplerDesc>& samplers);
 
 	static RenderMaterial* GenerateRenderMaterialFromMaterialData(
 		FrameGraph* frameGraph,
