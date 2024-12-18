@@ -181,12 +181,19 @@ namespace ModelProcess
 
         protected static IEnumerable<MeshInstance> LoadMeshInstances(GLTF.Node srcNode, IDictionary<GLTF.MeshPrimitive, Mesh> meshes)
         {
+            Matrix4x4 xyzToxnzy = new Matrix4x4(
+                1, 0, 0, 0,  // Row 0
+                0, 0, 1, 0, // Row 1
+                0, -1, 0, 0,  // Row 2
+                0, 0, 0, 1   // Row 3
+            );
+
             return meshes
                 .Where(p => p.Key.LogicalParent == srcNode.Mesh)
                 .Select(p => new MeshInstance
                 {
                     Mesh = p.Value,
-                    LocalTransform = srcNode.WorldMatrix
+                    LocalTransform = Matrix4x4.Transpose(Matrix4x4.Multiply(srcNode.WorldMatrix, xyzToxnzy)) // transpose it to X^T*M to M^T*X
                 });
         }
     }

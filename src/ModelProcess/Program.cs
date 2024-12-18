@@ -1,6 +1,5 @@
 ﻿using ModelProcess;
 using System.Text.Json;
-using System.Xml.Linq;
 
 var model = GltfLoader.Load("D:\\Assets\\free_1975_porsche_911_930_turbo\\scene.gltf");
 
@@ -20,4 +19,4 @@ File.WriteAllBytes("D:\\Assets\\free_1975_porsche_911_930_turbo\\build.bin", byt
 using MemoryStream stream2 = new(bytes);
 using CustomedBinaryReader reader = new(stream2);
 var d = reader.Deserialize<ModelData>(null);
-Console.WriteLine(d.Name);
+ Console.WriteLine(d.Name);

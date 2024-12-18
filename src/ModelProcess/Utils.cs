@@ -41,4 +41,13 @@ namespace ModelProcess
         public static TResult Extend<TResult>(this Vector3 v, float f = 0) => TemplateInitialization<Vector3, TResult>.Extend!(v, f);
         public static TResult Extend<TResult>(this Vector4 v, float f = 0) => TemplateInitialization<Vector4, TResult>.Extend!(v, f);
     }
+
+    public static class MatrixExtensions
+    {
+        public static string ToMathString(this Matrix4x4 matrix) =>
+           $"{{ {matrix.M11}, {matrix.M12}, {matrix.M13}, {matrix.M14},\n" +
+           $"  {matrix.M21}, {matrix.M22}, {matrix.M23}, {matrix.M24},\n" +
+           $"  {matrix.M31}, {matrix.M32}, {matrix.M33}, {matrix.M34},\n" +
+           $"  {matrix.M41}, {matrix.M42}, {matrix.M43}, {matrix.M44} }}";
+    }
 }
