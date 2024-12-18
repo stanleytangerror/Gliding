@@ -24,6 +24,7 @@ struct RenderMaterial
 
 	struct NormalChannel
 	{
+		Vec3f mNormalConstant = { 0.f, 0.f, 1.f };
 		f32 mNormalScale = 1.f;
 		FileTexture* mTexture = nullptr;
 		GI::SamplerDesc mSampler;

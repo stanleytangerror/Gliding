@@ -92,23 +92,24 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
 
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\monobike_derivative\build.bin)"));
+	//auto transform = Transformf::Identity();
 
-	//mTestModel.reset(RenderUtils::FromSceneRawData(frameGraph, sceneRawData));
-	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(device));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\seamless_pbr_texture_metal_01\build.bin)"));
+	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 
-	const auto& content = Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)");
-	auto model = DeserializeFromBytes<ModelProcess::Model>(content);
+	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)"));
+	auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\slum_house\build.bin)"));
+	//auto transform = Transformf(UniScalingf(10.f));
+
 	mTestModel.reset(RenderUtils::FromModelData(frameGraph, model));
 
-	//mTestModel->mRelTransform = UniScalingf(10.f);
-	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
-	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
-	//mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
+	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(frameGraph));
+	//auto transform = Transformf(UniScalingf(10.f));
+
+	mTestModel->mRelTransform = transform;
 }
 
 WorldRenderer::~WorldRenderer()
@@ -570,7 +571,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 			}
 			else
 			{
-				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ 0.5f, 0.5f, 1.f, 0.f });
+				Vec3f n = normalChannel.mNormalConstant * 2.f - Vec3f::Ones();
+				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ n.x(), n.y(), n.z(), 0.f });
 			}
 			
 			const auto& baseColorChannel = material->mBaseColorChannel;

@@ -275,10 +275,10 @@ TransformNode<std::pair<
 	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
 	{
 		RenderMaterial* material = new RenderMaterial;
-		material->mMatAttriSlots[TextureUsage_BaseColor].mConstantValue = Vec4f::Ones() * 0.5f;
-		material->mMatAttriSlots[TextureUsage_Metalness].mConstantValue = Vec4f::Ones() * metallic;
-		material->mMatAttriSlots[TextureUsage_Roughness].mConstantValue = Vec4f::Ones() * roughness;
-		material->mMatAttriSlots[TextureUsage_Normal].mConstantValue = Vec4f{ 0.5f, 0.5f, 1.f, 0.f };
+		material->mBaseColorChannel.mColor = Vec4f::Ones() * 0.5f;
+		material->mMetallicRoughnessChannel.mMetallicFactor = metallic;
+		material->mMetallicRoughnessChannel.mRoughnessFactor = roughness;
+		material->mNormalChannel.mNormalConstant = Vec3f{ 0.f, 0.f, 1.f };
 
 		result->PushChild(std::pair<
 			std::unique_ptr<Geometry>,
