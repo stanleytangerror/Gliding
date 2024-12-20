@@ -408,6 +408,25 @@ struct _SerializeBytesImpl<std::vector<T>, std::enable_if_t<std::is_trivially_co
 	}
 };
 
+template <typename T, int RowSize, int ColSize>
+struct _SerializeBytesImpl<std::vector<Eigen::Matrix<T, RowSize, ColSize>>>
+{
+	void Serialize(const std::vector<T>& in, obytestream& oss)
+	{
+		_SerializeBytesImpl<std::vector<T>::size_type>().Serialize(in.size(), oss);
+		oss.write(reinterpret_cast<const std::byte*>(in.data()), in.size() * sizeof(T));
+	}
+
+	std::vector<T> Deserialize(ibytestream& iss)
+	{
+		std::vector<T> result;
+		auto size = _SerializeBytesImpl<std::vector<T>::size_type>().Deserialize(iss);
+		result.resize(size);
+		iss.read(reinterpret_cast<std::byte*>(result.data()), size * sizeof(T));
+		return result;
+	}
+};
+
 template <typename T>
 struct _SerializeBytesImpl<std::vector<T>, std::enable_if_t<!std::is_trivially_copyable_v<T>>>
 {
