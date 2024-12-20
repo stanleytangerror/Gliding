@@ -487,6 +487,9 @@ struct _SerializeTextImpl<Eigen::Matrix<T, RowSize, ColSize>>
 template <typename T, int RowSize, int ColSize>
 struct _SerializeBytesImpl<Eigen::Matrix<T, RowSize, ColSize>>
 {
+	static_assert(!Eigen::Matrix<T, RowSize, ColSize>::IsRowMajor, "Eigen::Matrix should be column major storage to make this serialization works");
+	static_assert(sizeof(Eigen::Matrix<T, RowSize, ColSize>) == RowSize * ColSize * sizeof(T), "Eigen::Matrix size should be packed 1");
+
 	void Serialize(const Eigen::Matrix<T, RowSize, ColSize>& in, obytestream& oss)
 	{
 		oss.write(reinterpret_cast<const std::byte*>(in.data()), RowSize * ColSize * sizeof(T));
