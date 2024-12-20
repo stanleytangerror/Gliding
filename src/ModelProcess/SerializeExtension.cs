@@ -66,20 +66,20 @@ namespace ModelProcess
             else if (value is Matrix4x4 m)
             {
                 writer.Write(m.M11);
-                writer.Write(m.M12);
-                writer.Write(m.M13);
-                writer.Write(m.M14);
                 writer.Write(m.M21);
-                writer.Write(m.M22);
-                writer.Write(m.M23);
-                writer.Write(m.M24);
                 writer.Write(m.M31);
-                writer.Write(m.M32);
-                writer.Write(m.M33);
-                writer.Write(m.M34);
                 writer.Write(m.M41);
+                writer.Write(m.M12);
+                writer.Write(m.M22);
+                writer.Write(m.M32);
                 writer.Write(m.M42);
+                writer.Write(m.M13);
+                writer.Write(m.M23);
+                writer.Write(m.M33);
                 writer.Write(m.M43);
+                writer.Write(m.M14);
+                writer.Write(m.M24);
+                writer.Write(m.M34);
                 writer.Write(m.M44);
             }
             else if (value is string s)
@@ -205,11 +205,27 @@ namespace ModelProcess
             }
             else if (type == typeof(Matrix4x4))
             {
+                var M11 = reader.ReadSingle();
+                var M21 = reader.ReadSingle();
+                var M31 = reader.ReadSingle();
+                var M41 = reader.ReadSingle();
+                var M12 = reader.ReadSingle();
+                var M22 = reader.ReadSingle();
+                var M32 = reader.ReadSingle();
+                var M42 = reader.ReadSingle();
+                var M13 = reader.ReadSingle();
+                var M23 = reader.ReadSingle();
+                var M33 = reader.ReadSingle();
+                var M43 = reader.ReadSingle();
+                var M14 = reader.ReadSingle();
+                var M24 = reader.ReadSingle();
+                var M34 = reader.ReadSingle();
+                var M44 = reader.ReadSingle();
                 return (T)(object)new Matrix4x4(
-                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
-                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
-                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
-                    reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                    M11, M12, M13, M14, 
+                    M21, M22, M23, M24, 
+                    M31, M32, M33, M34, 
+                    M41, M42, M43, M44);
             }
             else if (type == typeof(string))
             {

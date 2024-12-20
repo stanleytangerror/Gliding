@@ -328,18 +328,13 @@ struct _SerializeBytesImpl<std::array<T, Size>, std::enable_if_t<!std::is_trivia
 {
 	void Serialize(const std::array<T, Size>& in, obytestream& oss)
 	{
-		for (auto&& e : in)
-		{
-			_SerializeBytesImpl<std::decay_t<T>>().Serialize(e, oss);
-		}
+		oss.write(reinterpret_cast<const std::byte*>(in.data()), Size * sizeof(T));
 	}
 
 	std::array<T, Size> Deserialize(ibytestream& iss)
 	{
 		std::array<T, Size> result;
-		auto view = std::ranges::views::iota(0, Size)
-			| std::ranges::views::transform([&iss](auto) { return _SerializeTextImpl<std::decay_t<T>>().Deserialize(iss); });
-		std::ranges::copy(view, result.begin());
+		iss.read(reinterpret_cast<std::byte*>(result.data()), Size * sizeof(T));
 		return result;
 	}
 };
@@ -494,25 +489,13 @@ struct _SerializeBytesImpl<Eigen::Matrix<T, RowSize, ColSize>>
 {
 	void Serialize(const Eigen::Matrix<T, RowSize, ColSize>& in, obytestream& oss)
 	{
-		for (int i = 0; i < RowSize; ++i)
-		{
-			for (int j = 0; j < ColSize; ++j)
-			{
-				_SerializeBytesImpl<std::decay_t<T>>().Serialize(in(i, j), oss);
-			}
-		}
+		oss.write(reinterpret_cast<const std::byte*>(in.data()), RowSize * ColSize * sizeof(T));
 	}
 
 	Eigen::Matrix<T, RowSize, ColSize> Deserialize(ibytestream& iss)
 	{
 		Eigen::Matrix<T, RowSize, ColSize> result;
-		for (int i = 0; i < RowSize; ++i)
-		{
-			for (int j = 0; j < ColSize; ++j)
-			{
-				result(i, j) = _SerializeBytesImpl<std::decay_t<T>>().Deserialize(iss);
-			}
-		}
+		iss.read(reinterpret_cast<std::byte*>(result.data()), RowSize * ColSize * sizeof(T));
 		return result;
 	}
 };
