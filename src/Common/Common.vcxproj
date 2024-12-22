@@ -24,7 +24,6 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="Math_inl.h" />
     <ClInclude Include="ModelProcess.h" />
-    <ClInclude Include="NativeUtils.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="Pool.h" />
     <ClInclude Include="Pool_inl.h" />
@@ -44,7 +43,6 @@
     <ClCompile Include="DirectedGraph.cpp" />
     <ClCompile Include="GraphicsInfrastructure.cpp" />
     <ClCompile Include="ModelProcess.cpp" />
-    <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="Profile.cpp" />
     <ClCompile Include="StringUtils.cpp" />
     <ClCompile Include="Texture.cpp" />
