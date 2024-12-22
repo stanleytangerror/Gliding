@@ -1,20 +1,20 @@
 ﻿using ModelProcess;
 using System.Text.Json;
 
-var model = GltfLoader.Load("D:\\Assets\\free_1975_porsche_911_930_turbo\\scene.gltf");
+var modelName = "hintze-hall_-_vr_tour"; // https://sketchfab.com/3d-models/hintze-hall-vr-tour-058b26fb31ed49df978de31af3dc091f
 
-string jsonString = JsonSerializer.Serialize(model, new JsonSerializerOptions { IncludeFields = true });
-//Console.WriteLine(jsonString);
+var model = GltfLoader.Load($"D:\\Assets\\{modelName}\\scene.gltf");
+
+var storageDate = model.ToStorageData();
+
+string jsonString = JsonSerializer.Serialize(storageDate, new JsonSerializerOptions { IncludeFields = true, WriteIndented = true });
+File.WriteAllText($"D:\\Assets\\{modelName}\\build.json", jsonString);
 
 using MemoryStream stream = new();
 using CustomedBinaryWriter writer = new(stream);
-
-var storageDate = model.ToStorageData();
 writer.Serialize(storageDate);
-Console.WriteLine(stream.Length);
-
 var bytes = stream.ToArray();
-File.WriteAllBytes("D:\\Assets\\free_1975_porsche_911_930_turbo\\build.bin", bytes);
+File.WriteAllBytes($"D:\\Assets\\{modelName}\\build.bin", bytes);
 
 using MemoryStream stream2 = new(bytes);
 using CustomedBinaryReader reader = new(stream2);
