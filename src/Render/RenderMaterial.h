@@ -18,6 +18,13 @@ struct RenderMaterial
 		Vec4f mConstantValue = Vec4f::Zero();
 	};
 
+	struct DiffuseChannel
+	{
+		Vec4f mDiffuseConstant = Vec4f::Ones();
+		FileTexture* mTexture = nullptr;
+		GI::SamplerDesc mSampler;
+	};
+
 	struct NormalChannel
 	{
 		Vec3f mNormalConstant = { 0.f, 0.f, 1.f };
@@ -48,17 +55,27 @@ struct RenderMaterial
 		GI::SamplerDesc mSampler;
 	};
 
-	struct BaseColorChannel
+	struct SpecularGlossinessChannel
 	{
+		Vec3f mSpecularConstant = Vec3f::Zero();
+		f32 mGlossinessConstant = 0.f;
 		FileTexture* mTexture = nullptr;
-		Vec4f mColor = Vec4f::Zero();
 		GI::SamplerDesc mSampler;
 	};
 
+	struct BaseColorChannel
+	{
+		FileTexture* mTexture = nullptr;
+		Vec4f mColor = Vec4f::Ones();
+		GI::SamplerDesc mSampler;
+	};
+
+	DiffuseChannel mDiffuseChannel;
 	NormalChannel mNormalChannel;
 	OcclusionChannel mOcclusionChannel;
 	EmissiveChannel mEmissiveChannel;
 	MetallicRoughnessChannel mMetallicRoughnessChannel;
+	SpecularGlossinessChannel mSpecularGlossinessChannel;
 	BaseColorChannel mBaseColorChannel;
 
 	static RenderMaterial* GenerateRenderMaterialFromMaterialData(

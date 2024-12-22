@@ -26,6 +26,12 @@ RenderMaterial* RenderMaterial::GenerateRenderMaterialFromMaterialData(
 			result->mBaseColorChannel.mSampler = sampler;
 			result->mBaseColorChannel.mColor = ModelProcess::GetVec4fParam(channel, "RGBA");
 		}
+		else if (std::strcmp(channel.Name.c_str(), "Diffuse") == 0)
+		{
+			result->mDiffuseChannel.mTexture = texture;
+			result->mDiffuseChannel.mSampler = sampler;
+			result->mDiffuseChannel.mDiffuseConstant = ModelProcess::GetVec4fParam(channel, "RGBA");
+		}
 		else if (std::strcmp(channel.Name.c_str(), "Normal") == 0)
 		{
 			result->mNormalChannel.mTexture = texture;
@@ -50,6 +56,13 @@ RenderMaterial* RenderMaterial::GenerateRenderMaterialFromMaterialData(
 			result->mMetallicRoughnessChannel.mSampler = sampler;
 			result->mMetallicRoughnessChannel.mMetallicFactor = ModelProcess::GetScalarParam(channel, "MetallicFactor");
 			result->mMetallicRoughnessChannel.mRoughnessFactor = ModelProcess::GetScalarParam(channel, "RoughnessFactor");
+		}
+		else if (std::strcmp(channel.Name.c_str(), "SpecularGlossiness") == 0)
+		{
+			result->mSpecularGlossinessChannel.mTexture = texture;
+			result->mSpecularGlossinessChannel.mSampler = sampler;
+			result->mSpecularGlossinessChannel.mSpecularConstant = ModelProcess::GetVec3fParam(channel, "SpecularFactor");
+			result->mSpecularGlossinessChannel.mGlossinessConstant = ModelProcess::GetScalarParam(channel, "GlossinessFactor");
 		}
 	}
 	

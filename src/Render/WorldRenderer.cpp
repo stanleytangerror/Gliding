@@ -97,8 +97,11 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\seamless_pbr_texture_metal_01\build.bin)"));
 	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 
-	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)"));
-	auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)"));
+	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+
+	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\hintze-hall_-_vr_tour\build.bin)"));
+	auto transform = Transformf(UniScalingf(5.f));
 
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\slum_house\build.bin)"));
 	//auto transform = Transformf(UniScalingf(10.f));
@@ -570,8 +573,19 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 			}
 			else
 			{
-				Vec3f n = normalChannel.mNormalConstant * 2.f - Vec3f::Ones();
-				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ n.x(), n.y(), n.z(), 0.f });
+				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ normalChannel.mNormalConstant.x(), normalChannel.mNormalConstant.y(), normalChannel.mNormalConstant.z(), 0.f });
+			}
+
+			const auto& diffuseChannel = material->mDiffuseChannel;
+			if (auto tex = diffuseChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "Diffuse_USE_MAP", "" });
+				data.srvs.emplace_back("DiffuseTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("DiffuseSampler", diffuseChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("DiffuseConstantValue", diffuseChannel.mDiffuseConstant);
 			}
 			
 			const auto& baseColorChannel = material->mBaseColorChannel;
@@ -601,6 +615,24 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 					metallicRoughnessChannel.mMetallicFactor,
 					0.f });
 			}
+
+			const auto& specularGlossinessChannel = material->mSpecularGlossinessChannel;
+			if (auto tex = specularGlossinessChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "SpecularGlossiness_USE_MAP", "" });
+				data.srvs.emplace_back("SpecularGlossinessTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("SpecularGlossinessSampler", metallicRoughnessChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("SpecularGlossinessConstantValue", Vec4f{
+					specularGlossinessChannel.mSpecularConstant.x(),
+					specularGlossinessChannel.mSpecularConstant.y(),
+					specularGlossinessChannel.mSpecularConstant.z(),
+					specularGlossinessChannel.mGlossinessConstant,
+					});
+			}
+
 
 			if (geometry->mHasTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" }); }
 			if (geometry->mHasBiTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" }); }

@@ -9,10 +9,9 @@ SamplerState name##Sampler;\
 float4 name##ConstantValue;
 
 DECLARE_MATERIAL_INPUTS(Normal);
-DECLARE_MATERIAL_INPUTS(Metallic);
 DECLARE_MATERIAL_INPUTS(BaseColor);
-DECLARE_MATERIAL_INPUTS(Roughness);
 DECLARE_MATERIAL_INPUTS(MetallicRoughness);
+DECLARE_MATERIAL_INPUTS(SpecularGlossiness);
 
 float4 GetBaseColorValue(float2 uv)
 {
@@ -32,24 +31,6 @@ float4 GetNormalValue(float2 uv)
 #endif
 }
 
-float4 GetMetallicValue(float2 uv)
-{
-#ifdef Metallic_USE_MAP
-	return MetallicTex.Sample(MetallicSampler, uv);
-#else
-	return MetallicConstantValue;
-#endif
-}
-
-float4 GetRoughnessValue(float2 uv)
-{
-#ifdef Roughness_USE_MAP
-	return RoughnessTex.Sample(RoughnessSampler, uv);
-#else
-	return RoughnessConstantValue;
-#endif
-}
-
 float4 GetMetallicRoughnessValue(float2 uv)
 {
 #ifdef MetallicRoughness_USE_MAP
@@ -58,6 +39,16 @@ float4 GetMetallicRoughnessValue(float2 uv)
 	return MetallicRoughnessConstantValue;
 #endif
 }
+
+float4 GetSpecularGlosinessValue(float2 uv)
+{
+#ifdef MetallicRoughness_USE_MAP
+	return SpecularGlossinessTex.Sample(SpecularGlossinessSampler, uv);
+#else
+	return SpecularGlossinessConstantValue;
+#endif
+}
+
 
 /* from Frostbite engine */
 struct PBRStandard
