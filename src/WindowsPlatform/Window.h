@@ -2,7 +2,7 @@
 
 #include "WindowsPlatformMacros.h"
 #include "Common/CommonTypes.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include "Common/Platform.h"
 #include <mutex>
 #include <wchar.h>

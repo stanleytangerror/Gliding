@@ -12,7 +12,7 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
-#include "Math.h"
+#include "CommonMath.h"
 
 #define EXPAND(x) x
 #define FOR_EACH_1(what, x, ...) what(x)

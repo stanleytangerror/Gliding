@@ -1,7 +1,7 @@
 #pragma once
 
 #include "D3D12Headers.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include "D3D12Device.h"
 #include "D3D12Resource.h"
 

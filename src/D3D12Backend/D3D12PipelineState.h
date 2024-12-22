@@ -2,7 +2,7 @@
 
 #include "D3D12Headers.h"
 #include "D3D12Device.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include <map>
 
 namespace D3D12Backend

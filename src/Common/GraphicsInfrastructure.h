@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AssertUtils.h"
-#include "Math.h"
+#include "CommonMath.h"
 #include "Platform.h"
 #include "Texture.h"
 #include "StringUtils.h"

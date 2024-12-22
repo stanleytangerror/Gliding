@@ -2,7 +2,7 @@
 
 #include "CommonTypes.h"
 #include "Serialization.h"
-#include "Math.h"
+#include "CommonMath.h"
 #include "GraphicsInfrastructure.h"
 
 #pragma pack(push, 1) // all the content should be pack 1 to avoid memory alignment issue

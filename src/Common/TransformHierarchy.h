@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Math.h"
+#include "CommonMath.h"
 #include <functional>
 
 template <typename T>

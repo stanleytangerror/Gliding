@@ -4,7 +4,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Platform.h"
 #include "Eigen/Eigen"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 
 #ifdef ImGuiIntegrationExport
 #define IMGUI_INTEGRATION_API __declspec(dllexport)

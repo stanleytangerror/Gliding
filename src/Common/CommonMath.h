@@ -198,4 +198,4 @@ namespace Math
 	};
 }
 
-#include "Math_inl.h"
+#include "CommonMath_inl.h"

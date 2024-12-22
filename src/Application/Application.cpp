@@ -1,6 +1,6 @@
 #include "Application.h"
 #include "Common/Platform.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include "Common/Platform.h"
 #include "ImGuiIntegration/ImGuiIntegration.h"
 #include "Render/WorldRenderer.h"

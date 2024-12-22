@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CommonTypes.h"
-#include "Math.h"
+#include "CommonMath.h"
 
 namespace Platform
 {
