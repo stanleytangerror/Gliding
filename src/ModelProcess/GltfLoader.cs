@@ -127,27 +127,25 @@ namespace ModelProcess
             var dstMaterial = new Material
             {
                 Name = srcMaterial.Name,
-                Channels = srcMaterial.Channels.Select(srcChannel =>
+                Channels = srcMaterial.Channels.Select(srcChannel => new Material.Channel()
                 {
-                    Material.Channel dstChannel = new();
-                    dstChannel.Name = srcChannel.Key;
-                    dstChannel.Texture = srcChannel.Texture is null ? null : getDstTexture(srcChannel.Texture);
-                    dstChannel.TexCoord = srcChannel.TextureCoordinate;
-                    dstChannel.ScalarParams = srcChannel.Parameters
+                    Name = srcChannel.Key,
+                    Texture = srcChannel.Texture is null ? null : getDstTexture(srcChannel.Texture),
+                    TexCoord = srcChannel.TextureCoordinate,
+                    ScalarParams = srcChannel.Parameters
                         .Where(p => p.Value is float)
-                        .ToDictionary(p => p.Name, p => (float) p.Value);
-                    dstChannel.Vector2Params = srcChannel.Parameters
+                        .ToDictionary(p => p.Name, p => (float)p.Value),
+                    Vector2Params = srcChannel.Parameters
                         .Where(p => p.Value is Vector2)
-                        .ToDictionary(p => p.Name, p => (Vector2)p.Value);
-                    dstChannel.Vector3Params = srcChannel.Parameters
+                        .ToDictionary(p => p.Name, p => (Vector2)p.Value),
+                    Vector3Params = srcChannel.Parameters
                         .Where(p => p.Value is Vector3)
-                        .ToDictionary(p => p.Name, p => (Vector3)p.Value);
-                    dstChannel.Vector4Params = srcChannel.Parameters
+                        .ToDictionary(p => p.Name, p => (Vector3)p.Value),
+                    Vector4Params = srcChannel.Parameters
                         .Where(p => p.Value is Vector4)
-                        .ToDictionary(p => p.Name, p => (Vector4)p.Value);
-
-                    return dstChannel;
-                }).ToArray()
+                        .ToDictionary(p => p.Name, p => (Vector4)p.Value)
+                }
+                ).ToArray()
             };
 
             return dstMaterial;
