@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using UkooLabs.FbxSharpie.Extensions;
 using FBX = UkooLabs.FbxSharpie;
 
@@ -20,10 +21,10 @@ namespace ModelProcess
             var objects = document.GetRootNodeWithName("Objects");
             var connections = document.GetRootNodeWithName("Connections");
 
-            var matTexUsage = LoadConnections(connections);
             var texIdToDstTexs = objects.GetNodesWithName("Texture").ToDictionary(t => t.GetNodeId(), t => LoadTexture(t));
-            var matIdToDstMats = objects.GetNodesWithName("Material").ToDictionary(m => m.GetNodeId(), m => LoadMaterial(m));
-            var geoIdToDstMesh = objects.GetNodesWithName("Geometry").ToDictionary(g => g.GetNodeId(), g => LoadGeometry(document, g.GetNodeId(), m => matIdToDstMats[m]));
+            var matTexUsage = LoadTextureUsages(connections, t => texIdToDstTexs.TryGetValue(t, out var v) ? v : null);
+            var matIdToDstMats = objects.GetNodesWithName("Material").ToDictionary(m => m.GetNodeId(), m => LoadMaterial(m, matTexUsage[m.GetNodeId()]));
+            var geoIdToDstMesh = objects.GetNodesWithName("Geometry").ToDictionary(g => g.GetNodeId(), g => LoadGeometry(g, m => matIdToDstMats[m]));
 
             Model dstModel = new()
             {
@@ -89,15 +90,18 @@ namespace ModelProcess
             }
         }
 
-        static IEnumerable<(int texId, int matId, string usage)> LoadConnections(FBX.FbxNode connections)
+        static Dictionary<int, (Texture texture, string usage)[]> LoadTextureUsages(FBX.FbxNode connections, Func<int, Texture?> getTexture)
         {
             return connections.Nodes
                 .Where(c => c.Identifier.Value == "C" && c.Properties[0].GetAsString() == "OP")
                 .Select(c => (
-                    c.Properties[1].GetAsIntegr(),
-                    c.Properties[2].GetAsIntegr(),
-                    c.Properties[3].GetAsString()
-                ));
+                    c.Properties[2].GetAsIntegr(), // material id
+                    getTexture(c.Properties[1].GetAsIntegr()), // texture
+                    c.Properties[3].GetAsString()  // usage
+                ))
+                .Where(c => c.Item2 is not null)
+                .GroupBy(p => p.Item1, p => (p.Item2!, p.Item3))
+                .ToDictionary(p => p.Key, p => p.ToArray());
         }
 
         static Texture LoadTexture(FBX.FbxNode srcTexture)
@@ -108,44 +112,60 @@ namespace ModelProcess
             };
         }
 
-        static Material LoadMaterial(FBX.FbxNode node)
+        static Material LoadMaterial(FBX.FbxNode node, (Texture texture, string usage)[] textureUsages)
         {
             return new Material()
             {
-                Name = node.Properties[1].GetAsString()
+                Name = node.Properties[1].GetAsString(),
+                Channels = textureUsages.Select(tu => new Material.Channel
+                {
+                    Name = tu.usage,
+                    Texture = tu.texture,
+                }).ToArray(),
             };
         }
 
-        static Mesh LoadGeometry(FBX.FbxDocument document, int geometryId, Func<int, Material> getDstMaterial)
+        static Mesh LoadGeometry(FBX.FbxNode node, Func<int, Material> getDstMaterial)
         {
-            var vertexIndices = document.GetVertexIndices(geometryId);
+            var id = node.GetNodeId();
 
-            var materials = document.GetGeometryHasMaterials(geometryId) ?
-                    document.GetMaterials(geometryId, vertexIndices, document.GetLayerIndices(geometryId, FBX.FbxLayerElementType.Material)[0]).ToHashSet() : [];
+            // read raw data
+            var indices = node.Nodes.Single(n => n.Identifier.Value == "PolygonVertexIndex").Value.GetAsIntArray();
+            
+            var positions = node.Nodes.Single(n => n.Identifier.Value == "Vertices").Value.GetAsDoubleArray().Select(v => (float)v)
+                .Chunk(3).Select(v => new Vector3(v[0], v[1], v[2])).ToArray();
 
-            if (materials.Count != 1)
+            var normalData = node.Nodes.Where(n => n.Identifier.Value == "LayerElementNormal");
+            if (normalData.Any())
             {
-                throw new Exception($"Invalid material count {materials.Count} for geometry id {geometryId}");
+                var normals = normalData.Single()
+                    .Nodes.Single(n => n.Identifier.Value == "Normals").Value.GetAsDoubleArray().Select(v => (float)v)
+                    .Chunk(3).Select(v => new Vector3(v[0], v[1], v[2])).ToArray();
             }
+
+            foreach (var i in Enumerable.Range(0, 4))
+            {
+                var texCoordData = node.Nodes.Where(n => n.Identifier.Value == "LayerElementUV" && n.Properties[0].GetAsIntegr() == i);
+                if (texCoordData.Any())
+                {
+                    var uv = texCoordData.Single()
+                        .Nodes.Single(n => n.Identifier.Value == "UV").Value.GetAsDoubleArray().Select(v => (float)v)
+                    .Chunk(2).Select(v => new Vector2(v[0], v[1])).ToArray();
+                    var uvIndex = texCoordData.Single()
+                        .Nodes.Single(n => n.Identifier.Value == "UVIndex").Value.GetAsIntArray()
+                        .Chunk(2).Select(v => new Vector2(v[0], v[1])).ToArray();
+                }
+            }
+
+            var materialId = node.Nodes.Single(n => n.Identifier.Value == "LayerElementMaterial").Value.GetAsIntArray().Single();
+
+            // post process
+            var finalIndices = indices.Select(i => (uint)(i % positions.Length));
 
             return new Mesh()
             {
                 Name = "",
-                Material = getDstMaterial(materials.First()),
-                Indices = vertexIndices.Select(i => (uint)i).ToArray(),
-                Positions = document.GetPositions(geometryId, vertexIndices) ?? [],
-                Normals = document.GetGeometryHasNormals(geometryId) ?
-                    document.GetNormals(geometryId, vertexIndices, document.GetLayerIndices(geometryId, FBX.FbxLayerElementType.Normal)[0]) : [],
-                Tangents = document.GetGeometryHasTangents(geometryId) ?
-                    document.GetTangents(geometryId, vertexIndices, document.GetLayerIndices(geometryId, FBX.FbxLayerElementType.Tangent)[0]) : [],
-                BiTangents = document.GetGeometryHasBinormals(geometryId) ?
-                    document.GetBinormals(geometryId, vertexIndices, document.GetLayerIndices(geometryId, FBX.FbxLayerElementType.Binormal)[0]) : [],
-                TexCoords = Enumerable.Range(0, 4)
-                    .Select(i =>
-                        document.GetGeometryHasTexCoords(geometryId) ?
-                        document.GetTexCoords(geometryId, vertexIndices, document.GetLayerIndices(geometryId, FBX.FbxLayerElementType.TexCoord)[i]) : [])
-                    .Where(d => d.Length > 0)
-                    .ToList(),
+                Material = getDstMaterial(materialId),
             };
         }
     }
