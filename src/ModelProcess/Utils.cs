@@ -50,4 +50,29 @@ namespace ModelProcess
            $"  {matrix.M31}, {matrix.M32}, {matrix.M33}, {matrix.M34},\n" +
            $"  {matrix.M41}, {matrix.M42}, {matrix.M43}, {matrix.M44} }}";
     }
+
+    public static class MathUtils
+    {
+        public static Matrix4x4 CreateTransform(Vector3 translation, Vector3 rotation, Vector3 scaling)
+        {
+            // Create scaling matrix
+            var scaleMatrix = Matrix4x4.CreateScale(scaling);
+
+            // Create rotation matrices for each axis
+            var rotationXMatrix = Matrix4x4.CreateRotationX(rotation.X);
+            var rotationYMatrix = Matrix4x4.CreateRotationY(rotation.Y);
+            var rotationZMatrix = Matrix4x4.CreateRotationZ(rotation.Z);
+
+            // Combine the rotation matrices
+            var rotationMatrix = rotationXMatrix * rotationYMatrix * rotationZMatrix;
+
+            // Create translation matrix
+            var translationMatrix = Matrix4x4.CreateTranslation(translation);
+
+            // Combine all transformations: scaling, rotation, and translation
+            var transformMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+
+            return transformMatrix;
+        }
+    }
 }
