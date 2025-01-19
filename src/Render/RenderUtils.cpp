@@ -233,6 +233,8 @@ TransformNode<std::pair<
 	std::shared_ptr<Geometry>,
 	std::shared_ptr<RenderMaterial>>>* RenderUtils::FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model)
 {
+	const auto& modelDirectory = std::filesystem::path(model.Name).parent_path();
+
 	auto result = new TransformNode<std::pair<
 		std::shared_ptr<Geometry>,
 		std::shared_ptr<RenderMaterial>>>;
@@ -240,8 +242,11 @@ TransformNode<std::pair<
 	std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>> textures;
 	for (const auto& tex : model.Textures)
 	{
+		auto texturePath = std::filesystem::path(tex.mPath).is_relative() ?
+			(modelDirectory / tex.mPath).string() : tex.mPath;
+			
 		textures[tex.mId] = {
-			new FileTexture(frameGraph, tex.mPath.c_str(), Utils::LoadFileContent(tex.mPath.c_str())),
+			new FileTexture(frameGraph, texturePath.c_str(), Utils::LoadFileContent(texturePath.c_str())),
 			ToSamplerDesc(tex.mSampler)
 		};
 	}
