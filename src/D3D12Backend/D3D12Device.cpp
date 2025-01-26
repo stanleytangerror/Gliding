@@ -66,6 +66,9 @@ namespace D3D12Backend
 			AssertHResultOk(hr);
 		}
 
+		D3D12_FEATURE_DATA_D3D12_OPTIONS8 options8 = {};
+		HRESULT hr = mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, &options8, sizeof(options8));
+
 #if ENABLE_D3D12_DEBUG_LAYER
 		// create info queue
 		{

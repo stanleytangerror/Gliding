@@ -100,9 +100,15 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)"));
 	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 
-	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\hintze-hall_-_vr_tour\build.bin)"));
-	auto transform = Transformf(UniScalingf(5.f));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\hintze-hall_-_vr_tour\build.bin)"));
+	//auto transform = Transformf(UniScalingf(5.f));
 
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\2019_porsche_935_martini_racing-gltf\build.bin)"));
+	//auto transform = Transformf(UniScalingf(30.f));
+
+	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\Bistro_v5_2\build.bin)"));
+	auto transform = Transformf(UniScalingf(1.f));
+	 
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\slum_house\build.bin)"));
 	//auto transform = Transformf(UniScalingf(10.f));
 
