@@ -63,7 +63,7 @@ namespace UnitTest
 			graphicsInfra->AdaptToWindow(windowInfo, 2);
 
 			auto start = ch::high_resolution_clock::now();
-			while (ch::duration_cast<ch::seconds>(ch::high_resolution_clock::now() - start).count() < 5)
+			while (ch::duration_cast<ch::seconds>(ch::high_resolution_clock::now() - start).count() < 10)
 			{
 				graphicsInfra->StartFrame();
 
@@ -147,6 +147,8 @@ namespace UnitTest
 					pass.mScissorRect = { 0, 0, i32(windowSize.x()), i32(windowSize.y()) };
 
 					pass.SetGeometry(vbv, 0, inputDescs, ibv, 0, ids.size());
+
+					pass.AddCb4f("rtSize", Vec4f{ f32(windowSize.x()), f32(windowSize.y()), 1.f / windowSize.x(), 1.f / windowSize.y() });
 				}
 
 				graphicsInfra->GetRecorder()->AddGraphicsPass(pass);

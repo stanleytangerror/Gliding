@@ -16,11 +16,19 @@ struct PSOutput
 	float4 color : COLOR0;
 };
 
+cbuffer Param : register(b0)
+{
+	float4 rtSize;
+}
+
 PSInput VSMain(VSInput vsin)
 {
 	PSInput result;
 
-	result.position = float4(vsin.position, 0, 1);
+	float2 pos = (vsin.position + float2(0, -0.5)) * 0.5;
+	float invAspectRatio = rtSize.y / rtSize.x;
+
+	result.position = float4(pos * float2(invAspectRatio, 1.0), 0, 1);
 	result.color = float4(vsin.color, 1);
 
 	return result;
