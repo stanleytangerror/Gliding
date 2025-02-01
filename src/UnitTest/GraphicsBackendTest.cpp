@@ -10,10 +10,40 @@ namespace UnitTest
 {
 	TEST_CLASS(GraphicsBackendTest)
 	{
+	protected:
+		static inline HMODULE msPlatformModule;
+		static inline Platform::CreateNativeWindow* msCreateNativeWindow = nullptr;
+		static inline Platform::DestroyNativeWindow* msDestroyNativeWindow = nullptr;
+
+		static inline HMODULE msGraphicsBackendModule;
+		static inline GI::CreateGraphicsInfra* msCreateGraphicsInfra = nullptr;
+
+		TEST_CLASS_INITIALIZE(ClassInitialize)
+		{
+#ifdef _DEBUG
+			msPlatformModule = LoadLibrary(L"WindowsPlatform_Debug_x64.dll");
+			msGraphicsBackendModule = LoadLibrary(L"D3D12Backend_Debug_x64.dll");
+#else
+			msPlatformModule = LoadLibrary(L"WindowsPlatform_Release_x64.dll");
+			msGraphicsBackendModule = LoadLibrary(L"D3D12Backend_Release_x64.dll");
+#endif
+
+			msCreateNativeWindow = reinterpret_cast<Platform::CreateNativeWindow*>(GetProcAddress(msPlatformModule, "CreateNativeWindow"));
+			msDestroyNativeWindow = reinterpret_cast<Platform::DestroyNativeWindow*>(GetProcAddress(msPlatformModule, "DestroyNativeWindow"));
+
+			msCreateGraphicsInfra = reinterpret_cast<GI::CreateGraphicsInfra*>(GetProcAddress(msGraphicsBackendModule, "CreateGraphicsInfra"));
+		}
+
+		TEST_CLASS_CLEANUP(ClassCleanup)
+		{
+			FreeLibrary(msPlatformModule);
+			FreeLibrary(msGraphicsBackendModule);
+		}
+
 	public:
 		TEST_METHOD(CreateDevice_Succeed)
 		{
-			auto graphicsInfra = CreateGraphicsInfra();
+			auto graphicsInfra = msCreateGraphicsInfra();
 			Assert::IsTrue(graphicsInfra != nullptr);
 			delete graphicsInfra;
 		}
@@ -105,32 +135,5 @@ namespace UnitTest
 
 		//	delete graphicsInfra;
 		//}
-
-	protected:
-		static GI::IGraphicsInfra* CreateGraphicsInfra()
-		{
-#ifdef _DEBUG
-			auto graphicsBackendModule = LoadLibrary(L"D3D12Backend_Debug_x64.dll");
-#else
-			auto graphicsBackendModule = LoadLibrary(L"D3D12Backend_Release_x64.dll");
-#endif
-			auto createInfraFunc = reinterpret_cast<GI::CreateGraphicsInfra*>(
-				GetProcAddress(graphicsBackendModule, "CreateGraphicsInfra"));
-
-			return createInfraFunc();
-		}
-
-		static GI::IGraphicsInfra* CreateNewWindow()
-		{
-#ifdef _DEBUG
-			auto graphicsBackendModule = LoadLibrary(L"D3D12Backend_Debug_x64.dll");
-#else
-			auto graphicsBackendModule = LoadLibrary(L"D3D12Backend_Release_x64.dll");
-#endif
-			auto createInfraFunc = reinterpret_cast<GI::CreateGraphicsInfra*>(
-				GetProcAddress(graphicsBackendModule, "CreateGraphicsInfra"));
-
-			return createInfraFunc();
-		}
 	};
 }
