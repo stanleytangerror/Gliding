@@ -6,6 +6,8 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
+namespace ch = std::chrono;
+
 namespace UnitTest
 {
 	TEST_CLASS(GraphicsBackendTest)
@@ -32,6 +34,8 @@ namespace UnitTest
 			msDestroyNativeWindow = reinterpret_cast<Platform::DestroyNativeWindow*>(GetProcAddress(msPlatformModule, "DestroyNativeWindow"));
 
 			msCreateGraphicsInfra = reinterpret_cast<GI::CreateGraphicsInfra*>(GetProcAddress(msGraphicsBackendModule, "CreateGraphicsInfra"));
+
+			SetCurrentDirectory(L"../../..");
 		}
 
 		TEST_CLASS_CLEANUP(ClassCleanup)
@@ -48,92 +52,112 @@ namespace UnitTest
 			delete graphicsInfra;
 		}
 
-		//TEST_METHOD(HelloTriangle_Succeed)
-		//{
-		//	auto graphicsInfra = CreateGraphicsInfra();
+		TEST_METHOD(HelloTriangle_Succeed)
+		{
+			auto window = msCreateNativeWindow(L"TestWindow", Vec2u{ 640, 360 });
+			auto graphicsInfra = msCreateGraphicsInfra();
 
-		//	graphicsInfra->AdaptToWindow(windowInfo, frameCount);
+			const auto windowInfo = window->GetInfo();
+			const auto& windowSize = windowInfo.mSize;
 
-		//	graphicsInfra->StartFrame();
+			graphicsInfra->AdaptToWindow(windowInfo, 2);
 
-		//	std::vector<Vec2f> points =
-		//	{
-		//		Vec2f{ 1.f, -1.f },
-		//		Vec2f{ 1.f, 1.f },
-		//		Vec2f{ -1.f, 1.f },
-		//		Vec2f{ -1.f, -1.f }
-		//	};
-		//	std::vector<b8> vertices(points.size() * sizeof(Vec2f));
-		//	std::copy(points.begin(), points.end(), reinterpret_cast<Vec2f*>(vertices.data()));
+			auto start = ch::high_resolution_clock::now();
+			while (ch::duration_cast<ch::seconds>(ch::high_resolution_clock::now() - start).count() < 5)
+			{
+				graphicsInfra->StartFrame();
 
-		//	auto vb = graphicsInfra->CreateMemoryResource(
-		//		GI::MemoryResourceDesc::Buffer2(vertices.size(), false, false, "Vertices")
-		//		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		//		.SetHeapType(GI::HeapType::UPLOAD));
-		//	graphicsInfra->CopyToUploadBufferResource(vb.get(), vertices);
+				struct DataType { Vec2f pos; Vec3f color; };
+				std::vector<DataType> points =
+				{
+					{ Vec2f{ -1.f, 0.f },     Vec3f{ 1.f, 0.f, 0.f } },
+					{ Vec2f{ 1.f, 0.f },     Vec3f{ 0.f, 1.f, 0.f } },
+					{ Vec2f{ 0.f, 1.732f }, Vec3f{ 0.f, 0.f, 1.f } },
+				};
+				std::vector<b8> vertices(points.size() * sizeof(DataType));
+				std::copy(points.begin(), points.end(), reinterpret_cast<DataType*>(vertices.data()));
 
-		//	GI::VbvUsage vbv;
-		//	vbv.mResource = vb.get();
-		//	vbv.mDesc
-		//		.SetSizeInBytes(vertices.size())
-		//		.SetStrideInBytes(sizeof(Vec2f));
+				auto vb = graphicsInfra->CreateMemoryResource(
+					GI::MemoryResourceDesc::Buffer2(vertices.size(), false, false, "Vertices")
+					.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+					.SetHeapType(GI::HeapType::UPLOAD));
+				graphicsInfra->CopyToUploadBufferResource(vb.get(), vertices);
 
-		//	std::vector<u16> ids = { 0, 1, 2, 0, 2, 3 };
-		//	std::vector<b8> indices(ids.size() * sizeof(u16));
-		//	std::copy(indices.begin(), indices.end(), reinterpret_cast<u16*>(ids.data()));
-		//	auto ib = graphicsInfra->CreateMemoryResource(
-		//		GI::MemoryResourceDesc::Buffer2(indices.size(), false, false, "Indices")
-		//		.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
-		//		.SetHeapType(GI::HeapType::UPLOAD));
-		//	graphicsInfra->CopyToUploadBufferResource(ib.get(), indices);
+				GI::VbvUsage vbv;
+				vbv.mResource = vb.get();
+				vbv.mDesc
+					.SetSizeInBytes(vertices.size())
+					.SetStrideInBytes(sizeof(Vec2f));
 
-		//	GI::IbvUsage ibv;
-		//	ibv.mResource = ib.get();
-		//	ibv.mDesc
-		//		.SetFormat(GI::Format::FORMAT_R16_UINT)
-		//		.SetSizeInBytes(indices.size());
-		//	
-		//	std::vector<GI::InputElementDesc> inputDescs = {
-		//		GI::InputElementDesc()
-		//		.SetSemanticName("POSITION")
-		//		.SetSemanticIndex(0)
-		//		.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
-		//		.SetInputSlot(0)
-		//		.SetAlignedByteOffset(0)
-		//		.SetInputSlotClass(GI::InputClassification::PER_VERTEX_DATA)
-		//		.SetInstanceDataStepRate(0)
-		//	};
+				std::vector<u16> ids = { 0, 1, 2 };
+				std::vector<b8> indices(ids.size() * sizeof(u16));
+				std::copy(ids.begin(), ids.end(), reinterpret_cast<u16*>(indices.data()));
 
-		//	auto rt = graphicsInfra->GetWindowBackBuffer(windowHandle);
-		//	GI::RtvUsage rtv;
-		//	rtv.mResource = rt;
-		//	rtv.mDesc
-		//		.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM);
+				auto ib = graphicsInfra->CreateMemoryResource(
+					GI::MemoryResourceDesc::Buffer2(indices.size(), false, false, "Indices")
+					.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+					.SetHeapType(GI::HeapType::UPLOAD));
+				graphicsInfra->CopyToUploadBufferResource(ib.get(), indices);
 
-		//	GI::GraphicsPass pass;
-		//	{
-		//		pass.SetShader("HelloTriangle");
+				GI::IbvUsage ibv;
+				ibv.mResource = ib.get();
+				ibv.mDesc
+					.SetFormat(GI::Format::FORMAT_R16_UINT)
+					.SetSizeInBytes(indices.size());
 
-		//		pass.SetupDepthStencil()
-		//			.SetDepthEnable(false)
-		//			.SetStencilEnable(false);
+				std::vector<GI::InputElementDesc> inputDescs = {
+					GI::InputElementDesc()
+						.SetSemanticName("POSITION")
+						.SetSemanticIndex(0)
+						.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
+						.SetInputSlot(0)
+						.SetAlignedByteOffset(0)
+						.SetInputSlotClass(GI::InputClassification::PER_VERTEX_DATA)
+						.SetInstanceDataStepRate(0),
+					GI::InputElementDesc()
+						.SetSemanticName("COLOR")
+						.SetSemanticIndex(0)
+						.SetFormat(GI::Format::FORMAT_R32G32B32_FLOAT)
+						.SetInputSlot(0)
+						.SetAlignedByteOffset(sizeof(Vec2f))
+						.SetInputSlotClass(GI::InputClassification::PER_VERTEX_DATA)
+						.SetInstanceDataStepRate(0)
+				};
 
-		//		pass.SetRtv(0, rtv);
-		//		pass.mViewPort.SetTopLeftX(targetOffset.x()).SetTopLeftY(targetOffset.y()).SetWidth(targetRect.x()).SetHeight(targetRect.y());
-		//		pass.mScissorRect = { 0, 0, i32(data.targetSize.x()), i32(data.targetSize.y()) };
+				auto rt = graphicsInfra->GetWindowBackBuffer(windowInfo.mNativeHandle);
 
-		//		pass.SetGeometry(vbv, 0, inputDescs, ibv, 0, ids.size());
+				GI::RtvUsage rtv;
+				rtv.mResource = rt;
+				rtv.mDesc
+					.SetViewDimension(GI::RtvDimension::TEXTURE2D)
+					.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM);
 
-		//		pass.AddCb4f("RtSize", Vec4f{ targetRect.x(), targetRect.y(), 1.f / targetRect.x(), 1.f / targetRect.y() });
-		//	}
+				graphicsInfra->GetRecorder()->AddClearOperation(rtv, Vec4f{ 0.5f, 0.5f, 0.5f, 1.0f });
 
-		//	graphicsInfra->GetRecorder()->AddGraphicsPass(pass);
+				GI::GraphicsPass pass;
+				{
+					pass.SetShader("HelloTriangle");
 
-		//	graphicsInfra->EndFrame();
+					pass.SetupDepthStencil()
+						.SetDepthEnable(false)
+						.SetStencilEnable(false);
 
-		//	graphicsInfra->Present();
+					pass.SetRtv(0, rtv);
+					pass.mViewPort.SetTopLeftX(0).SetTopLeftY(0).SetWidth(windowSize.x()).SetHeight(windowSize.y());
+					pass.mScissorRect = { 0, 0, i32(windowSize.x()), i32(windowSize.y()) };
 
-		//	delete graphicsInfra;
-		//}
+					pass.SetGeometry(vbv, 0, inputDescs, ibv, 0, ids.size());
+				}
+
+				graphicsInfra->GetRecorder()->AddGraphicsPass(pass);
+
+				graphicsInfra->EndFrame();
+
+				graphicsInfra->Present();
+			}
+
+			delete graphicsInfra;
+			msDestroyNativeWindow(window);
+		}
 	};
 }

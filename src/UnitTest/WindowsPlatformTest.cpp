@@ -34,7 +34,7 @@ namespace UnitTest
 	public:
 		TEST_METHOD(CreateWindow_Succeed)
 		{
-			auto window = msCreateNativeWindow(L"MainWindow", Vec2u{ 640, 360 });
+			auto window = msCreateNativeWindow(L"TestWindow", Vec2u{ 640, 360 });
 
 			Sleep(1000);
 			Assert::IsTrue(window->IsAlive());
