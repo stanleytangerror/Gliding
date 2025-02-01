@@ -14,7 +14,7 @@ namespace WindowsPlatform
 	{
 	public:
 		WindowItem(const wchar_t* title, const Vec2u& initSize);
-		virtual ~WindowItem();
+		~WindowItem() override;
 
 		std::vector<Platform::Message>	ConsumeAllMessages() override;
 		Platform::WindowInfo	GetInfo() override;

@@ -101,7 +101,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="GraphicsBackendTest.cpp" />
     <ClCompile Include="UnitTest.cpp" />
+    <ClCompile Include="WindowsPlatformTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Includes.h" />

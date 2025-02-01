@@ -31,6 +31,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
 {
+	const std::string assetDir = R"(D:\Assets\)";
+
 	auto infra = mRenderModule->GetGraphicsInfra();
 	auto* frameGraph = renderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -62,8 +64,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	mSphere.reset(Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph));
 	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph));
 	
-	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	auto skyTexPath = assetDir + R"(Panorama_of_Marienplatz.dds)";
+	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath.c_str(), Utils::LoadFileContent(skyTexPath.c_str()));
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -91,25 +93,25 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\monobike_derivative\build.bin)"));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(monobike_derivative\build.bin)").c_str()));
 	//auto transform = Transformf::Identity();
 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\seamless_pbr_texture_metal_01\build.bin)"));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(seamless_pbr_texture_metal_01\build.bin)").c_str()));
 	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\free_1975_porsche_911_930_turbo\build.bin)"));
-	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(free_1975_porsche_911_930_turbo\build.bin)").c_str()));
+	auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\hintze-hall_-_vr_tour\build.bin)"));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(hintze-hall_-_vr_tour\build.bin)").c_str()));
 	//auto transform = Transformf(UniScalingf(5.f));
 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\2019_porsche_935_martini_racing-gltf\build.bin)"));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(2019_porsche_935_martini_racing-gltf\build.bin)").c_str()));
 	//auto transform = Transformf(UniScalingf(30.f));
 
-	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\Bistro_v5_2\build.bin)"));
-	auto transform = Transformf(UniScalingf(1.f));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(Bistro_v5_2\build.bin)").c_str()));
+	//auto transform = Transformf(UniScalingf(1.f));
 	 
-	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent(R"(D:\Assets\slum_house\build.bin)"));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(slum_house\build.bin)"));
 	//auto transform = Transformf(UniScalingf(10.f));
 
 	mTestModel.reset(RenderUtils::FromModelData(frameGraph, model));

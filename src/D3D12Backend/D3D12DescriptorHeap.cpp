@@ -16,7 +16,7 @@ namespace D3D12Backend
 		mDescriptorHeap->SetName(Utils::ToWString(name).c_str());
 
 		mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		mGpuBase = mDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		mGpuBase = deviceVisible ? mDescriptorHeap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{};
 	}
 
 

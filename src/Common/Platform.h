@@ -32,6 +32,7 @@ namespace Platform
 			eClosing = 0b100
 		};
 
+		virtual							~IWindow() {}
 		virtual std::vector<Message>	ConsumeAllMessages() = 0;
 		virtual WindowInfo				GetInfo() = 0;
 		virtual bool					IsAlive() = 0;

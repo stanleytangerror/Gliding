@@ -68,6 +68,8 @@ namespace D3D12Backend
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS8 options8 = {};
 		HRESULT hr = mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, &options8, sizeof(options8));
+		// TODO
+		//Assert(hr == S_OK && options8.UnalignedBlockTexturesSupported);
 
 #if ENABLE_D3D12_DEBUG_LAYER
 		// create info queue
@@ -116,16 +118,21 @@ namespace D3D12Backend
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor({},
+		mNullResourceId = {};
+
+		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(
+			mNullResourceId,
 			GI::SrvDesc()
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
 			.SetTexture2D_MipLevels(1)
 			.SetTexture2D_MostDetailedMip(0));
 
-		mNullSamplerCpuDesc = mResMgr->CreateSampler(GI::SamplerDesc()
+		mDefaultSampler
 			.SetFilter(GI::Filter::MIN_MAG_MIP_POINT)
-			.SetAddressXYZ(GI::TextureAddressMode::WRAP));
+			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
+
+		mNullSamplerCpuDesc = mResMgr->CreateSampler(mDefaultSampler);
 	}
 
 	void D3D12Device::StartFrame()
@@ -191,6 +198,8 @@ namespace D3D12Backend
 			q->ReleaseSwapChainResources();
 		}
 
+		mResMgr->ReleaseResource(mNullResourceId);
+		mResMgr->ReleaseSampler(mDefaultSampler);
 		mResMgr->Update();
 		mResMgr = nullptr;
 

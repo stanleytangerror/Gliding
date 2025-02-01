@@ -54,6 +54,7 @@ void Application::Destroy()
 	Profile::Destroy();
 
 	FreeLibrary(mGraphicsBackendModule);
+	FreeLibrary(mPlatformModule);
 }
 
 void Application::Run()

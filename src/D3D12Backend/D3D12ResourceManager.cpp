@@ -19,6 +19,9 @@ namespace D3D12Backend
 
 	ResourceManager::~ResourceManager()
 	{
+		Assert(mSamplerMapping.empty());
+		Assert(mResourceIdMapping.empty());
+		Assert(mResourceViewMapping.empty());
 		Assert(mReleaseQueue.empty());
 	}
 
@@ -293,12 +296,27 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
+	void ResourceManager::ReleaseSampler(const GI::SamplerDesc& desc)
+	{
+		const auto hash = Utils::HashPod(desc);
+		auto it = mSamplerMapping.find(hash);
+		Assert(it != mSamplerMapping.end());
+
+		u64 plannedValue = 0;
+		for (i32 t = 0; t < Count; ++t)
+		{
+			auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+			plannedValue = std::max(plannedValue, q->GetGpuPlannedValue());
+		};
+		it->second.first->ReleaseCpuDesc(plannedValue, it->second.second);
+
+		mSamplerMapping.erase(it);
+	}
+
 	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
 	{
-		ReleaseItem item;
-		item.mResourceId = id;
-
 		// release view
+		// if Id is not valid, still need to release NullSrv etc.
 		u64 plannedValue = 0;
 		for (i32 t = 0; t < Count; ++t)
 		{
@@ -312,16 +330,23 @@ namespace D3D12Backend
 			{
 				p.first->ReleaseCpuDesc(plannedValue, p.second);
 			}
+			mResourceViewMapping.erase(it);
 		}
 		
 		// release resource
-		for (i32 t = 0; t < Count; ++t)
+		if (id)
 		{
-			D3D12GpuQueue* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
-			item.mGpuQueueTimePoints[q] = q->GetGpuPlannedValue();
-		};
+			ReleaseItem item;
+			item.mResourceId = id;
 
-		mReleaseQueue.push_back(item);
+			for (i32 t = 0; t < Count; ++t)
+			{
+				D3D12GpuQueue* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+				item.mGpuQueueTimePoints[q] = q->GetGpuPlannedValue();
+			};
+
+			mReleaseQueue.push_back(item);
+		}
 	}
 
 	CommitedResource* ResourceManager::GetResource(GI::CommittedResourceId id) const

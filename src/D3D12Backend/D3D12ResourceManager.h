@@ -29,6 +29,7 @@ namespace D3D12Backend
 		DescriptorPtr	CreateRtvDescriptor(GI::CommittedResourceId resourceId, const GI::RtvDesc& desc);
 		DescriptorPtr	CreateDsvDescriptor(GI::CommittedResourceId resourceId, const GI::DsvDesc& desc);
 		DescriptorPtr	CreateSampler(const GI::SamplerDesc& desc);
+		void			ReleaseSampler(const GI::SamplerDesc& desc);
 
 	protected:
 

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#define _SILENCE_ALL_CXX23_DEPRECATION_WARNINGS
+
 // std headers
 #include <cstdlib>
 #include <cmath>
