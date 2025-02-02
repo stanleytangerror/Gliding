@@ -196,6 +196,7 @@ namespace D3D12Backend
 		{
 			q->CpuWaitForThisQueue(q->GetGpuPlannedValue());
 			q->ReleaseSwapChainResources();
+			q->CleanupContexts();
 		}
 
 		mResMgr->ReleaseResource(mNullResourceId);

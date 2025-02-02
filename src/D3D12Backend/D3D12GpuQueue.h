@@ -20,6 +20,7 @@ namespace D3D12Backend
 
 		GraphicsContext*		AllocGraphicContext();
 		ComputeContext*			AllocComputeContext();
+		void					CleanupContexts();
 
 		u64						GetGpuPlannedValue() const { return mGpuPlannedValue; }
 		u64						GetGpuCompletedValue() const { return mGpuCompletedValue; }

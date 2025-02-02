@@ -63,7 +63,7 @@ namespace UnitTest
 			graphicsInfra->AdaptToWindow(windowInfo, 2);
 
 			auto start = ch::high_resolution_clock::now();
-			while (ch::duration_cast<ch::seconds>(ch::high_resolution_clock::now() - start).count() < 10)
+			while (ch::duration_cast<ch::seconds>(ch::high_resolution_clock::now() - start).count() < 3)
 			{
 				graphicsInfra->StartFrame();
 

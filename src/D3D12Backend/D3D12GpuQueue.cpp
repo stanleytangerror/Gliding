@@ -36,12 +36,12 @@ namespace D3D12Backend
 		mGraphicContextPool = new SuspendedReleasePool<GraphicsContext>(
 			[&]() { return new GraphicsContext(mDevice, this); },
 			[](GraphicsContext* ctx) { ctx->Reset(); },
-			[](GraphicsContext* ctx) {});
+			[](GraphicsContext* ctx) { delete ctx; });
 
 		mComputeContextPool = new SuspendedReleasePool<ComputeContext>(
 			[&]() { return new ComputeContext(mDevice, this); },
-			[](ComputeContext* ctx) {},
-			[](ComputeContext* ctx) {});
+			[](ComputeContext* ctx) { ctx->Reset(); },
+			[](ComputeContext* ctx) { delete ctx; });
 	}
 
 	D3D12GpuQueue::~D3D12GpuQueue()
@@ -66,6 +66,13 @@ namespace D3D12Backend
 	ComputeContext* D3D12GpuQueue::AllocComputeContext()
 	{
 		return mComputeContextPool->AllocItem();
+	}
+
+
+	void D3D12GpuQueue::CleanupContexts()
+	{
+		mGraphicContextPool->Clear();
+		mComputeContextPool->Clear();
 	}
 
 	void D3D12GpuQueue::Execute()
