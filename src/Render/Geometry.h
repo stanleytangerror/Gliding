@@ -8,7 +8,7 @@ struct MeshRawData;
 class GD_RENDER_API Geometry
 {
 public:
-	Geometry* CreateAndInitialResource(FrameGraph* frameGraph);
+	Geometry* CreateAndInitialResource(FrameGraph* frameGraph, bool isPermanent = true);
 	bool IsGraphicsResourceReady() const { return mVb.IsValid() && mIb.IsValid(); };
 
 	FrameGraphResource	GetVb() const { return mVb; }
