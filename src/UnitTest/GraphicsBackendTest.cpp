@@ -3,6 +3,7 @@
 #include "../Common/Serialization.h"
 #include "../Common/GraphicsInfrastructure.h"
 #include <Windows.h> // Added header
+#include <span>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -74,8 +75,7 @@ namespace UnitTest
 					{ Vec2f{ 1.f, 0.f },     Vec3f{ 0.f, 1.f, 0.f } },
 					{ Vec2f{ 0.f, 1.732f }, Vec3f{ 0.f, 0.f, 1.f } },
 				};
-				std::vector<b8> vertices(points.size() * sizeof(DataType));
-				std::copy(points.begin(), points.end(), reinterpret_cast<DataType*>(vertices.data()));
+				auto vertices = std::as_bytes(std::span(points));
 
 				auto vb = graphicsInfra->CreateMemoryResource(
 					GI::MemoryResourceDesc::Buffer2(vertices.size(), false, false, "Vertices")
@@ -90,8 +90,7 @@ namespace UnitTest
 					.SetStrideInBytes(sizeof(Vec2f));
 
 				std::vector<u16> ids = { 0, 1, 2 };
-				std::vector<b8> indices(ids.size() * sizeof(u16));
-				std::copy(ids.begin(), ids.end(), reinterpret_cast<u16*>(indices.data()));
+				auto indices = std::as_bytes(std::span(ids));
 
 				auto ib = graphicsInfra->CreateMemoryResource(
 					GI::MemoryResourceDesc::Buffer2(indices.size(), false, false, "Indices")
@@ -201,8 +200,7 @@ namespace UnitTest
 					Vec2f{ 1.f, 1.f },
 					Vec2f{ 0.f, 1.f },
 				};
-				std::vector<b8> vertices(points.size() * sizeof(Vec2f));
-				std::copy(points.begin(), points.end(), reinterpret_cast<Vec2f*>(vertices.data()));
+				auto vertices = std::as_bytes(std::span(points));
 
 				auto vb = graphicsInfra->CreateMemoryResource(
 					GI::MemoryResourceDesc::Buffer2(vertices.size(), false, false, "Vertices")
@@ -222,8 +220,7 @@ namespace UnitTest
 					.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR);
 
 				std::vector<u16> ids = { 0, 1, 2, 0, 2, 3 };
-				std::vector<b8> indices(ids.size() * sizeof(u16));
-				std::copy(ids.begin(), ids.end(), reinterpret_cast<u16*>(indices.data()));
+				auto indices = std::as_bytes(std::span(ids));
 
 				auto ib = graphicsInfra->CreateMemoryResource(
 					GI::MemoryResourceDesc::Buffer2(indices.size(), false, false, "Indices")

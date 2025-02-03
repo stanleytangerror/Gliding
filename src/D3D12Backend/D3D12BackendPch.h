@@ -26,6 +26,7 @@
 #include <thread>
 #include <numeric>
 #include <filesystem>
+#include <span>
 
 // headers from common
 #include "Common/CommonTypes.h"

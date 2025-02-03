@@ -11,7 +11,7 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 	frameGraph->AddInitialResourcePass("InitialGeometryVertices", mVb,
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			infra->CopyToUploadBufferResource(resource, mVertices);
+			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(mVertices)));
 		});
 
 	mIb = frameGraph->CreatePermanent(
@@ -22,9 +22,7 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
 	frameGraph->AddInitialResourcePass("InitialGeometryIndices", mIb,
 		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			std::vector<b8> buf(mIndices.size() * sizeof(u16));
-			std::memcpy(buf.data(), mIndices.data(), buf.size());
-			infra->CopyToUploadBufferResource(resource, buf);
+			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(mIndices)));
 		});
 
 	return this;

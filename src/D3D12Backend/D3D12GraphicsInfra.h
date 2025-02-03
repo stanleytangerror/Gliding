@@ -15,7 +15,7 @@ namespace D3D12Backend
 
 		void InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image) override;
 
-		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
+		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::span<const b8>& data) override;
 
 		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const override;
 

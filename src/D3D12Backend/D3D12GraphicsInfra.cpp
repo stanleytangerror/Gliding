@@ -60,7 +60,7 @@ namespace D3D12Backend
 		return D3D12Utils::InitialD3DResourceFromImage(mCurrentRecorder->GetContext(), resource, image);
 	}
 
-	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data)
+	void D3D12GraphicsInfra::CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::span<const b8>& data)
 	{
 		Assert(resource->GetDimension() == GI::ResourceDimension::BUFFER);
 		Assert(resource->GetSize().x() >= data.size());

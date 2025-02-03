@@ -1022,7 +1022,7 @@ namespace GI
 
 		virtual void                                        InitialMemoryResourceFromImage(IGraphicMemoryResource* resource, const IImage& image) = 0;
 
-        virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::vector<b8>& data) = 0;
+        virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::span<const b8>& data) = 0;
 
         virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const = 0;
 

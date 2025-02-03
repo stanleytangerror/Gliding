@@ -24,3 +24,4 @@
 #include <cstddef>
 #include <string>
 #include <xstring>
+#include <span>
