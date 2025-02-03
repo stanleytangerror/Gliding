@@ -1,28 +1,38 @@
 #include "Render/RenderPch.h"
 #include "Geometry.h"
 
-Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
+Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph, bool isPermanent)
 {
-	mVb = frameGraph->CreatePermanent(
-		GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
+	mVb = isPermanent ?
+		frameGraph->CreatePermanent(
+			GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
+				.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+				.SetHeapType(GI::HeapType::UPLOAD)) :
+		frameGraph->CreateTransient(
+			GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryVertices", mVb,
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[this, vertices=mVertices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(mVertices)));
+			infra->CopyToUploadBufferResource(resource, std::span(vertices));
 		});
 
-	mIb = frameGraph->CreatePermanent(
-		GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
+	mIb = isPermanent ?
+		frameGraph->CreatePermanent(
+			GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD)) :
+		frameGraph->CreateTransient(
+			GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryIndices", mIb,
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[this, indices = mIndices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(mIndices)));
+			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(indices)));
 		});
 
 	return this;
