@@ -59,7 +59,7 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 
 #if DEBUG_FRAME_GRAPH
 	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
+		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetDeviceResourceId());
 #endif
 
 	return FrameGraphMutableResource{ resourceId };
@@ -78,7 +78,7 @@ void ResourceRegistry::UnimportResource(GI::IGraphicMemoryResource* resource)
 
 #if DEBUG_FRAME_GRAPH
 	DEBUG_PRINT("[Unimport] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
+		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetDeviceResourceId());
 #endif
 }
 

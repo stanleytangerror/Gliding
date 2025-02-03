@@ -14,38 +14,38 @@ namespace D3D12Backend
 
 	GraphicMemoryResource::~GraphicMemoryResource()
 	{
-		mDevice->GetResourceManager()->ReleaseResource(mId);
+		mDevice->GetResourceManager()->ReleaseResource(mDeviceResourceId);
 	}
 
 
 
 	GI::HeapType::Enum GraphicMemoryResource::GetHeapType() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetHeapType();
+		return mDevice->GetResourceManager()->GetResource(mDeviceResourceId)->GetHeapType();
 	}
 
 
 	GI::ResourceDimension::Enum GraphicMemoryResource::GetDimension() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetDimension();
+		return mDevice->GetResourceManager()->GetResource(mDeviceResourceId)->GetDimension();
 	}
 
 
 	Vec3u GraphicMemoryResource::GetSize() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetSize();
+		return mDevice->GetResourceManager()->GetResource(mDeviceResourceId)->GetSize();
 	}
 
 
 	GI::Format::Enum GraphicMemoryResource::GetFormat() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetFormat();
+		return mDevice->GetResourceManager()->GetResource(mDeviceResourceId)->GetFormat();
 	}
 
 
 	u16 GraphicMemoryResource::GetMipLevelCount() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetMipLevelCount();
+		return mDevice->GetResourceManager()->GetResource(mDeviceResourceId)->GetMipLevelCount();
 	}
 
 	const char* GraphicMemoryResource::GetDebugName() const

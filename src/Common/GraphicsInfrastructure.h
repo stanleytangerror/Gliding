@@ -31,7 +31,7 @@
 	    IGraphicMemoryResource* mResource = nullptr; \
         Base##Desc mDesc; \
         IGraphicMemoryResource* GetResource() const { return mResource; } \
-        CommittedResourceId GetResourceId() const { return mResource->GetResourceId(); } \
+        CommittedResourceId GetDeviceResourceId() const { return mResource->GetDeviceResourceId(); } \
         Base##Desc GetUsage() const { return mDesc; } \
     };
 
@@ -601,12 +601,12 @@ namespace GI
     class GD_COMMON_API IGraphicMemoryResource
     {
     public:
-        IGraphicMemoryResource(CommittedResourceId id) : mId(id) {}
+        IGraphicMemoryResource(CommittedResourceId id) : mDeviceResourceId(id) {}
         /* https://stackoverflow.com/a/3628611/2131563
          * You can add the pure specifier to an interface's destructor, but the linker will still want an implementation for it like so: virtual ~IAnimal() = 0 {}. */
         virtual                         ~IGraphicMemoryResource() {}
 
-        CommittedResourceId			    GetResourceId() const { return mId; }
+        CommittedResourceId			    GetDeviceResourceId() const { return mDeviceResourceId; }
 
         virtual HeapType::Enum          GetHeapType() const = 0;
         virtual ResourceDimension::Enum GetDimension() const = 0;
@@ -616,7 +616,7 @@ namespace GI
         virtual const char*             GetDebugName() const = 0;
 
     protected:
-        const CommittedResourceId       mId;
+        const CommittedResourceId       mDeviceResourceId;
     };
 
     struct GD_COMMON_API SrvDesc
@@ -1136,8 +1136,6 @@ namespace GI
 		DepthStencilDesc& SetupDepthStencil() { return mDepthStencilDesc; }
         BlendDesc& SetupBlend() { return mBlendDesc; }
         
-        bool IsReadyForExecute() const;
-
 	public:
         std::string                                 mVsFile;
         std::string                                 mPsFile;
@@ -1231,8 +1229,6 @@ namespace GI
 			AddShaderMacros(args...);
 		}
 		void AddShaderMacros() {}
-
-		bool IsReadyForExecute() const;
 
 	public:
         std::string                                 mCsFile;
