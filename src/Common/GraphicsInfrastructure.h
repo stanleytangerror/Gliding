@@ -1024,7 +1024,7 @@ namespace GI
 
         virtual void                                        CopyToUploadBufferResource(IGraphicMemoryResource* resource, const std::span<const b8>& data) = 0;
 
-        virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const = 0;
+        virtual std::unique_ptr<IImage>     CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name) const = 0;
 
 		virtual void                        AdaptToWindow(const Platform::WindowInfo& windowInfo, u8 frameCount) = 0;
 		virtual void                        ResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& windowSize) = 0;

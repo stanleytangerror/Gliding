@@ -72,7 +72,7 @@ namespace D3D12Backend
 		memcpy(pVertexDataBegin, data.data(), data.size());
 	}
 
-	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const
+	std::unique_ptr<GI::IImage> D3D12GraphicsInfra::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name) const
 	{
 		return std::move(WindowsImage::CreateFromImageMemory(ext, content, name));
 	}

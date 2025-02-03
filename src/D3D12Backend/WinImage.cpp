@@ -70,7 +70,7 @@ namespace D3D12Backend
 		return content;
 	}
 
-	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name)
+	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name)
 	{
 		switch (ext)
 		{

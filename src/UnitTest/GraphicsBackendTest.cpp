@@ -172,9 +172,10 @@ namespace UnitTest
 			graphicsInfra->AdaptToWindow(windowInfo, 2);
 
 			auto texturePath = R"(res\Scene\lion.dds)";
+			auto textureData = Utils::LoadFileContent(texturePath);
 			auto image = graphicsInfra->CreateFromImageMemory(
 				Utils::GetTextureExtension(texturePath), 
-				Utils::LoadFileContent(texturePath), 
+				std::span(textureData), 
 				texturePath);
 
 			auto start = ch::high_resolution_clock::now();

@@ -65,7 +65,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph));
 	
 	auto skyTexPath = assetDir + R"(Panorama_of_Marienplatz.dds)";
-	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath.c_str(), Utils::LoadFileContent(skyTexPath.c_str()));
+	auto skyTexContent = Utils::LoadFileContent(skyTexPath.c_str());
+	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath.c_str(), std::span(skyTexContent));
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)

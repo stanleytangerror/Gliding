@@ -244,9 +244,10 @@ TransformNode<std::pair<
 	{
 		auto texturePath = std::filesystem::path(tex.mPath).is_relative() ?
 			(modelDirectory / tex.mPath).string() : tex.mPath;
-			
+		
+		const auto& content = Utils::LoadFileContent(texturePath.c_str());
 		textures[tex.mId] = {
-			new FileTexture(frameGraph, texturePath.c_str(), Utils::LoadFileContent(texturePath.c_str())),
+			new FileTexture(frameGraph, texturePath.c_str(), std::span(content)),
 			ToSamplerDesc(tex.mSampler)
 		};
 	}

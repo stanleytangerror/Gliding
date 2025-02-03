@@ -6,7 +6,7 @@ namespace D3D12Backend
 	class WindowsImage : public GI::IImage
 	{
 	public:
-		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name);
+		static std::unique_ptr<WindowsImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name);
 
 		WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name);
 

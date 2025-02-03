@@ -23,6 +23,7 @@
 #include <string>
 #include <xstring>
 #include <chrono>
+#include <span>
 
 // headers from common
 #include "Common/CommonTypes.h"

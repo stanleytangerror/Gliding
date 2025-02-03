@@ -7,7 +7,7 @@
 class GD_RENDER_API FileTexture
 {
 public:
-	FileTexture(FrameGraph* frameGraph, const char* filePath, const std::vector<b8>& content);
+	FileTexture(FrameGraph* frameGraph, const char* filePath, const std::span<const b8>& content);
 
 	FrameGraphResource				GetResource() const { return mResource; }
 

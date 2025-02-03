@@ -37,3 +37,4 @@
 #include <thread>
 #include <numeric>
 #include <filesystem>
+#include <span>
