@@ -68,6 +68,8 @@ namespace D3D12Backend
 
 		mMonitor.OnCreateResource(resource, d3d12Desc, desc.GetName().c_str());
 
+		DEBUG_PRINT("Create %d %s \n", resourceId, desc.GetName().c_str());
+
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, desc.GetName().c_str()));
 	}
 
@@ -89,6 +91,8 @@ namespace D3D12Backend
 		mResourceIdMapping[resourceId] = std::unique_ptr<CommitedResource>(result);
 
 		mMonitor.OnPossessResourceWithOwnership(resource, desc, name);
+
+		DEBUG_PRINT("Possess %d %s \n", resourceId, name);
 
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, name));
 	}
@@ -296,25 +300,28 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	void ResourceManager::ReleaseSampler(const GI::SamplerDesc& desc)
+	void ResourceManager::ReleaseAllSamplers()
 	{
-		const auto hash = Utils::HashPod(desc);
-		auto it = mSamplerMapping.find(hash);
-		Assert(it != mSamplerMapping.end());
-
-		u64 plannedValue = 0;
-		for (i32 t = 0; t < Count; ++t)
+		for (const auto& [hash, p] : mSamplerMapping)
 		{
-			auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
-			plannedValue = std::max(plannedValue, q->GetGpuPlannedValue());
-		};
-		it->second.first->ReleaseCpuDesc(plannedValue, it->second.second);
+			const auto& [allocator, ptr] = p;
 
-		mSamplerMapping.erase(it);
+			u64 plannedValue = 0;
+			for (i32 t = 0; t < Count; ++t)
+			{
+				auto* q = mDevice->GetGpuQueue(D3D12GpuQueueType(t));
+				plannedValue = std::max(plannedValue, q->GetGpuPlannedValue());
+			};
+			allocator->ReleaseCpuDesc(plannedValue, ptr);
+		}
+
+		mSamplerMapping.clear();
 	}
 
 	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
 	{
+		DEBUG_PRINT("Release %d \n", id);
+
 		// release view
 		// if Id is not valid, still need to release NullSrv etc.
 		u64 plannedValue = 0;

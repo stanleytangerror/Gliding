@@ -200,7 +200,7 @@ namespace D3D12Backend
 		}
 
 		mResMgr->ReleaseResource(mNullResourceId);
-		mResMgr->ReleaseSampler(mDefaultSampler);
+		mResMgr->ReleaseAllSamplers();
 		mResMgr->Update();
 		mResMgr = nullptr;
 
