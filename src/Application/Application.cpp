@@ -61,9 +61,10 @@ void Application::Run()
 {
 	mAppLifeCycle = AppLifeCycle::Running;
 
-	while (true)
+	bool continueLoop = true;
+	while (continueLoop)
 	{
-		LogicFrame();
+		LogicFrame(continueLoop);
 	}
 }
 
@@ -96,14 +97,14 @@ protected:
 	Vec2f				mDeltaDragInPixelSpace = Vec2f::Zero();
 };
 
-void Application::LogicFrame()
+void Application::LogicFrame(bool& continueLoop)
 {
 	PROFILE_EVENT(Application::LogicFrame);
 
 	mTimer->OnStartNewFrame();
 	DEBUG_PRINT(" ===================== Frame no %lld, last frame duration %f ======================== ", mTimer->GetFrameNo(), mTimer->GetLastFrameDeltaTime());
 
-	HandleMessages();
+	HandleMessages(continueLoop);
 	
 	AddGui();
 
@@ -114,14 +115,16 @@ void Application::LogicFrame()
 	Profile::Flush();
 }
 
-void Application::HandleMessages()
+void Application::HandleMessages(bool& continueLoop)
 {
-	const auto& messageProcess = [this](Platform::IWindow* window)
+	const auto& messageProcess = [this, &continueLoop](Platform::IWindow* window)
 	{
 		const auto& windowInfo = window->GetInfo();
 		for (const auto& msg : window->ConsumeAllMessages())
 		{
-			if (msg.message == WM_SIZE)
+			switch (msg.message)
+			{
+			case WM_SIZE:
 			{
 				UINT width = LOWORD(msg.lParam);
 				UINT height = HIWORD(msg.lParam);
@@ -129,6 +132,15 @@ void Application::HandleMessages()
 
 				this->mRenderModule->OnResizeWindow(windowInfo.mNativeHandle, newSize);
 				DEBUG_PRINT("Window %d size (%d, %d)", windowInfo.mNativeHandle, newSize.x(), newSize.y());
+				break;
+			}
+			case WM_DESTROY:
+			{
+				continueLoop = false;
+				break;
+			}
+			default:
+				break;
 			}
 
 			ImGuiIntegration::WindowProcHandler(windowInfo.mNativeHandle, msg);

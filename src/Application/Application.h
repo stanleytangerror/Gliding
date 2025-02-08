@@ -21,8 +21,8 @@ public:
 	void			Run();
 
 protected:
-	void			LogicFrame();
-	void			HandleMessages();
+	void			LogicFrame(bool& continueLoop);
+	void			HandleMessages(bool& continueLoop);
 	void			AddGui();
 
 	HMODULE							mGraphicsBackendModule = {};
