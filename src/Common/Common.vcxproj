@@ -19,6 +19,7 @@
     <ClInclude Include="Container.h" />
     <ClInclude Include="DirectedGraph.h" />
     <ClInclude Include="FreeList.h" />
+    <ClInclude Include="Functional.h" />
     <ClInclude Include="GraphicsInfrastructure.h" />
     <ClInclude Include="IndexAllocator.h" />
     <ClInclude Include="CommonMath.h" />

@@ -101,6 +101,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FunctionalTest.cpp" />
     <ClCompile Include="GraphicsBackendTest.cpp" />
     <ClCompile Include="PoolTest.cpp" />
     <ClCompile Include="SerializationTest.cpp" />

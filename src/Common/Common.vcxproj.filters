@@ -76,6 +76,9 @@
     <ClInclude Include="ModelProcess.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Functional.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
