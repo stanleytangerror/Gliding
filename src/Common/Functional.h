@@ -25,7 +25,7 @@ struct MyFunc : IMyFunc<Ret, Args...>
 
 	void MoveTo(void* p) override
 	{
-		auto c = new (p) MyFunc(std::move(callable));
+		new (p) MyFunc(std::move(callable));
 	}
 };
 
