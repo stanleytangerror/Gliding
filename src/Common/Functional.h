@@ -90,6 +90,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 		if (other.IsLocal())
 		{
 			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
 		}
 		else
 		{
