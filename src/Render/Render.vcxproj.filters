@@ -54,6 +54,9 @@
     <ClInclude Include="FrameGraph.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderPch.cpp">
@@ -90,6 +93,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="FrameGraph.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

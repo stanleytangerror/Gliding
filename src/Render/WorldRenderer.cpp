@@ -115,12 +115,10 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(slum_house\build.bin)"));
 	//auto transform = Transformf(UniScalingf(10.f));
 
-	mTestModel.reset(RenderUtils::FromModelData(frameGraph, model));
-
 	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(frameGraph));
 	//auto transform = Transformf(UniScalingf(10.f));
 
-	mTestModel->mRelTransform = transform;
+	mScene->AddModelData(frameGraph, model, transform);
 }
 
 WorldRenderer::~WorldRenderer()
@@ -130,7 +128,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	mTestModel->CalcAbsTransform();
+	mScene->UpdateAbsoluteTransforms();
 }
 
 FrameGraphMutableResource WorldRenderer::Render()
@@ -216,15 +214,9 @@ FrameGraphMutableResource WorldRenderer::Render()
 		frameGraph->AddClearPass("InitialLightViewDepth", {}, {}, 
 			lightView.mLightViewDepth, true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
 
-		mTestModel->ForEach([&](const auto& node)
+		mScene->ForEachMeshInstance([frameGraph, &lightView](const auto& transform, const auto& geo, const auto& mat)
 			{
-				Geometry* geo = node.mContent.first.get();
-				RenderMaterial* mat = node.mContent.second.get();
-
-				if (geo && mat)
-				{
-					RenderGeometryDepthWithMaterial(frameGraph, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
-				}
+				RenderGeometryDepthWithMaterial(frameGraph, geo, mat, transform, lightView.mLightViewDepth);
 			});
 	}
 
@@ -237,15 +229,9 @@ FrameGraphMutableResource WorldRenderer::Render()
 			{ gbufferData.mGBuffers.begin(), gbufferData.mGBuffers.end() }, { 0.f, 0.f, 0.f, 1.f },
 			cameraView.mMainViewDepth, true, cameraView.mCameraProj.GetFarPlaneDeviceDepth(), true, 0);
 
-		mTestModel->ForEach([&](const auto& node)
+		mScene->ForEachMeshInstance([frameGraph, &gbufferData, &cameraView](const auto& transform, const auto& geo, const auto& mat)
 			{
-				Geometry* geo = node.mContent.first.get();
-				RenderMaterial* mat = node.mContent.second.get();
-
-				if (geo && mat)
-				{
-					RenderGeometryWithMaterial(frameGraph, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
-				}
+				RenderGeometryWithMaterial(frameGraph, geo, mat, transform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
 			});
 	}
 

@@ -5,13 +5,13 @@
 RenderMaterial* RenderMaterial::GenerateRenderMaterialFromMaterialData(
 	FrameGraph* frameGraph, 
 	const ModelProcess::Material& material,
-	const std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>>& textureMap)
+	const std::map<Guid, std::pair<std::shared_ptr<FileTexture>, GI::SamplerDesc>>& textureMap)
 {
 	RenderMaterial* result = new RenderMaterial;
 
 	for (const auto& channel : material.Channels)
 	{
-		FileTexture* texture = nullptr;
+		std::shared_ptr<FileTexture> texture;
 		GI::SamplerDesc sampler;
 		auto it = textureMap.find(channel.TextureId);
 		if (it != textureMap.end())

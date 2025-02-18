@@ -414,10 +414,10 @@ FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
 {
 }
 
-void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
+void FrameGraphBuilder::HandlePassBuilder(RenderPassBuilder&& passBuilder)
 {
 	PassHandle passHandle = mPasses.size();
-	mPasses.push_back({ passBuilder.mPassName, passBuilder.mPassFunction });
+	mPasses.emplace_back(passBuilder.mPassName, std::move(passBuilder.mPassFunction));
 	const auto passNode = mResourceGraph.AddNode();
 
 	mPassNodes.Insert(passHandle, passNode);
@@ -501,12 +501,12 @@ void FrameGraphBuilder::CompileAndExecute()
 
 	const auto& nodes = DirectedGraph::TopoSort(mResourceGraph);
 
-	std::vector<Pass> sortedPasses;
+	std::vector<size_t> sortedPassIndices;
 	for (auto n : nodes)
 	{
 		if (mPassNodes.ContainsValue(n))
 		{
-			sortedPasses.push_back(mPasses[mPassNodes.GetKeyByValue(n)]);
+			sortedPassIndices.push_back(mPassNodes.GetKeyByValue(n));
 
 #if DEBUG_FRAME_GRAPH
 			DebugOutputPassNode(n, "[Pass] ");
@@ -516,9 +516,9 @@ void FrameGraphBuilder::CompileAndExecute()
 
 	{
 		PROFILE_EVENT(Execute);
-		for (const auto& pass : sortedPasses)
+		for (auto passIdx : sortedPassIndices)
 		{
-			pass.mExecute();
+			mPasses[passIdx].mExecute();
 		}
 	}
 }
@@ -650,7 +650,10 @@ void FrameGraph::AddClearPass(const char* name, std::vector<FrameGraphMutableRes
 		});
 }
 
-void FrameGraph::AddInitialResourcePass(const char* name, FrameGraphMutableResource& resource, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write)
+void FrameGraph::AddInitialResourcePass(
+	const char* name,
+	FrameGraphMutableResource& resource,
+	MoveOnlyFunction<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)>&& write)
 {
 	struct PassData
 	{
@@ -663,7 +666,7 @@ void FrameGraph::AddInitialResourcePass(const char* name, FrameGraphMutableResou
 			data.targetResource = builder.Write(resource);
 			builder.MarkSideEffect(data.targetResource);
 		},
-		[write](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		[write = std::move(write)](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
 			write(infra, resources.Get(data.targetResource.mId));
 		});

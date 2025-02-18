@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/TransformHierarchy.h"
+#include "Scene.h"
 #include "Texture.h"
 #include "Geometry.h"
 #include "RenderMaterial.h"
@@ -69,10 +70,5 @@ private:
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
 public:
-
-	std::unique_ptr<
-		TransformNode<std::pair<
-		std::shared_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>
-		>							mTestModel;
+	std::unique_ptr<Scene>			mScene = std::make_unique<Scene>();
 };

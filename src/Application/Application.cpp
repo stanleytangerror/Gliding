@@ -196,7 +196,7 @@ void Application::AddGui()
 							dragInViewSpace.norm() * Math::Pi<f32>() * 2.f,
 							dragInWorldSpace.cross(camTrans.CamDirInWorldSpace()).normalized());
 
-						worldRenderer->mTestModel->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mTestModel->mRelTransform;
+						worldRenderer->mScene->GetContentHierarchy()->mRelTransform = Transformf(rotInWorldSpace) * worldRenderer->mScene->GetContentHierarchy()->mRelTransform;
 					}
 				}
 

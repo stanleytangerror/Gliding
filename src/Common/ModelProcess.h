@@ -21,7 +21,7 @@ struct GD_COMMON_API Guid
 
 	bool IsValid() const
 	{
-		return a == 0 && b == 0 && c == 0 && d == 0;
+		return !(a == 0 && b == 0 && c == 0 && d == 0);
 	}
 };
 static_assert(std::is_trivially_copyable_v<Guid>, "Guid should be trivially copyable");

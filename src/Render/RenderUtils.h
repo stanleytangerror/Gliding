@@ -46,10 +46,5 @@ namespace RenderUtils
 		std::shared_ptr<RenderMaterial>>>*
 		GenerateMaterialProbes(FrameGraph* frameGraph);
 
-	TransformNode<std::pair<
-		std::shared_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>*
-		FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model);
-
 	Geometry* GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh);
 }

@@ -5,20 +5,6 @@
 #include "RenderMaterial.h"
 #include "Texture.h"
 
-namespace
-{
-	GI::SamplerDesc ToSamplerDesc(const ModelProcess::Sampler& sampler)
-	{
-		return GI::SamplerDesc()
-			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-			.SetAddress({ 
-				sampler.mAddressMode[0],
-				sampler.mAddressMode[1],
-				sampler.mAddressMode[2]
-				});
-	}
-}
-
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, 
 	FrameGraphMutableResource& target,
 	const Vec2f& targetOffset, const Vec2f& targetRect,
@@ -224,56 +210,6 @@ TransformNode<std::pair<
 		{
 			genMesh(roughness, metallic, 10.f * Vec3f{ roughness - 0.5f, 0.f, metallic - 0.5f });
 		}
-	}
-
-	return result;
-}
-
-TransformNode<std::pair<
-	std::shared_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>* RenderUtils::FromModelData(FrameGraph* frameGraph, const ModelProcess::Model& model)
-{
-	const auto& modelDirectory = std::filesystem::path(model.Name).parent_path();
-
-	auto result = new TransformNode<std::pair<
-		std::shared_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>;
-
-	std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>> textures;
-	for (const auto& tex : model.Textures)
-	{
-		auto texturePath = std::filesystem::path(tex.mPath).is_relative() ?
-			(modelDirectory / tex.mPath).string() : tex.mPath;
-		
-		const auto& content = Utils::LoadFileContent(texturePath.c_str());
-		textures[tex.mId] = {
-			new FileTexture(frameGraph, texturePath.c_str(), std::span(content)),
-			ToSamplerDesc(tex.mSampler)
-		};
-	}
-
-	std::map<Guid, std::shared_ptr<RenderMaterial>> materials;
-	for (const auto& mat : model.Materials)
-	{
-		materials[mat.Id] = std::shared_ptr<RenderMaterial>(RenderMaterial::GenerateRenderMaterialFromMaterialData(frameGraph, mat, textures));
-	}
-
-	std::map<Guid, std::pair<std::shared_ptr<Geometry>, std::shared_ptr<RenderMaterial>>> meshes;
-	for (const auto& mesh : model.Meshes)
-	{
-		Geometry* geo = GenerateGeometryFromMeshData(mesh);
-		geo->CreateAndInitialResource(frameGraph);
-
-		meshes[mesh.Id] =
-		{
-			std::shared_ptr<Geometry>(geo),
-			materials[mesh.MaterialId]
-		};
-	}
-
-	for (const auto& inst : model.MeshInstances)
-	{
-		result->PushChild(meshes[inst.MeshId], Transformf(inst.LocalTransform));
 	}
 
 	return result;

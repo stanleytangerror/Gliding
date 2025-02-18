@@ -3,6 +3,7 @@
 #include "Common/ModelProcess.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "FrameGraph.h"
+#include "Texture.h"
 
 namespace ModelProcess
 {
@@ -11,17 +12,10 @@ namespace ModelProcess
 
 struct RenderMaterial
 {
-	struct MaterialAttriSlot
-	{
-		class FileTexture* mTexture = nullptr;
-		GI::SamplerDesc mSampler;
-		Vec4f mConstantValue = Vec4f::Zero();
-	};
-
 	struct DiffuseChannel
 	{
 		Vec4f mDiffuseConstant = Vec4f::Ones();
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
@@ -29,21 +23,21 @@ struct RenderMaterial
 	{
 		Vec3f mNormalConstant = { 0.f, 0.f, 1.f };
 		f32 mNormalScale = 1.f;
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
 	struct OcclusionChannel
 	{
 		f32 mOcclusionStrength = 1.f;
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
 	struct EmissiveChannel
 	{
 		f32 mEmissiveStrength = 1.f;
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
@@ -51,7 +45,7 @@ struct RenderMaterial
 	{
 		f32 mMetallicFactor = 1.f;
 		f32 mRoughnessFactor = 1.f;
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
@@ -59,13 +53,13 @@ struct RenderMaterial
 	{
 		Vec3f mSpecularConstant = Vec3f::Zero();
 		f32 mGlossinessConstant = 0.f;
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		GI::SamplerDesc mSampler;
 	};
 
 	struct BaseColorChannel
 	{
-		FileTexture* mTexture = nullptr;
+		std::shared_ptr<FileTexture> mTexture;
 		Vec4f mColor = Vec4f::Ones();
 		GI::SamplerDesc mSampler;
 	};
@@ -81,5 +75,5 @@ struct RenderMaterial
 	static RenderMaterial* GenerateRenderMaterialFromMaterialData(
 		FrameGraph* frameGraph,
 		const ModelProcess::Material& material,
-		const std::map<Guid, std::pair<FileTexture*, GI::SamplerDesc>>& textureMap);
+		const std::map<Guid, std::pair<std::shared_ptr<FileTexture>, GI::SamplerDesc>>& textureMap);
 };
