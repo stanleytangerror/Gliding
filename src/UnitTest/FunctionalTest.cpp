@@ -156,11 +156,11 @@ namespace UnitTest
 					Assert::IsTrue(p->memberValid);
 					return p->member + a + b;
 			});
-			Assert::IsFalse(p.operator bool());
+			Assert::IsFalse(static_cast<bool>(p));
 			Assert::AreEqual(1, Counter<int>::InstanceCount);
 			MoveOnlyFunction<int(int, int)> f1;
 			f1 = std::move(f);
-			Assert::IsFalse(f.operator bool());
+			Assert::IsFalse(static_cast<bool>(f));
 			Assert::AreEqual(1, Counter<int>::InstanceCount);
 			auto r = f1(2, 3);
 			Assert::AreEqual(1, Counter<int>::InstanceCount);
