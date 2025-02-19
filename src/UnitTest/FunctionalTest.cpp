@@ -169,11 +169,11 @@ namespace UnitTest
 
 		static MemoryAuditor auditor;
 
-		struct A
+		struct Movable0
 		{
 			int i = 0;
-			A(int i) : i(i) {}
-			~A()
+			Movable0(int i) : i(i) {}
+			~Movable0()
 			{
 				std::cout << "Dtor" << std::endl;
 			}
@@ -192,12 +192,37 @@ namespace UnitTest
 		TEST_METHOD(NoMemoryLeak)
 		{
 			{
-				auto p = std::make_unique<A>(1);
+				auto p = std::make_unique<Movable0>(1);
 				auto f = MoveOnlyFunction<int(int, int)>(
 					[p = std::move(p)](int a, int b)
 					{
 						return p->i + a + b;
 					});
+				MoveOnlyFunction<int(int, int)> f1;
+				f1 = std::move(f);
+				auto r = f1(2, 3);
+				Assert::AreEqual(6, r);
+			}
+			Assert::IsFalse(auditor.IsLeaking());
+		}
+
+		struct Callable0
+		{
+			std::unique_ptr<int> i;
+
+			Callable0(std::unique_ptr<int>&& i) : i(std::move(i)) {}
+
+			int operator()(int a, int b)
+			{
+				return *i + a + b;
+			}
+		};
+
+		TEST_METHOD(NoMemoryLeak1)
+		{
+			{
+				auto p = std::make_unique<int>(1);
+				auto f = MoveOnlyFunction<int(int, int)>(Callable0(std::move(p)));
 				MoveOnlyFunction<int(int, int)> f1;
 				f1 = std::move(f);
 				auto r = f1(2, 3);

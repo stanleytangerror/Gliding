@@ -21,7 +21,7 @@ template <typename Callable, typename Ret, typename... Args>
 struct MyFunc : IMyFunc<Ret, Args...>
 {
 	Callable callable;
-	MyFunc(Callable c) : callable(std::move(c)) {}
+	MyFunc(Callable&& c) : callable(std::move(c)) {}
 
 	Ret operator() (Args... args) override
 	{
@@ -60,7 +60,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 	} storage;
 
 	template <typename Callable>
-	MoveOnlyFunction(Callable c)
+	MoveOnlyFunction(Callable&& c)
 	{
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		storage.buffer.fill({});
