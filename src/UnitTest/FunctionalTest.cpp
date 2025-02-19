@@ -200,8 +200,7 @@ namespace UnitTest
 					});
 				MoveOnlyFunction<int(int, int)> f1;
 				f1 = std::move(f);
-				auto r = f1(2, 3);
-				Assert::AreEqual(6, r);
+				Assert::AreEqual(6, f1(2, 3));
 			}
 			Assert::IsFalse(auditor.IsLeaking());
 		}
@@ -222,11 +221,14 @@ namespace UnitTest
 		{
 			{
 				auto p = std::make_unique<int>(1);
-				auto f = MoveOnlyFunction<int(int, int)>(Callable0(std::move(p)));
+				auto f0 = MoveOnlyFunction<int(int, int)>(Callable0(std::move(p)));
+
 				MoveOnlyFunction<int(int, int)> f1;
-				f1 = std::move(f);
-				auto r = f1(2, 3);
-				Assert::AreEqual(6, r);
+				f1 = std::move(f0);
+				Assert::AreEqual(6, f1(2, 3));
+
+				MoveOnlyFunction<int(int, int)> f2 = std::move(f1);
+				Assert::AreEqual(6, f2(2, 3));
 			}
 			Assert::IsFalse(auditor.IsLeaking());
 		}
