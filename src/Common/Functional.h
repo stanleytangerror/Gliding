@@ -4,12 +4,13 @@
 /* https://blog.rink.nu/2024/02/24/implementing-a-stdfunction-like-wrapper-in-c-part-1-type-erasing/
  */
 
-#define MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE 0
+#define MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE 1
 
 template <typename Ret, typename... Args>
 struct IMyFunc
 {
 	virtual Ret operator() (Args... args) = 0;
+	virtual ~IMyFunc() {}
 
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 	virtual void MoveTo(void* p) = 0;
@@ -109,6 +110,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 		if (other.IsLocal())
 		{
 			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			other.storage.ptr = nullptr;
 			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
 		}
 		else
@@ -117,6 +119,11 @@ struct MoveOnlyFunction<Ret(Args...)>
 			std::swap(storage.ptr, other.storage.ptr);
 		}
 		return *this;
+	}
+
+	operator bool() const
+	{
+		return storage.ptr != nullptr;
 	}
 
 	~MoveOnlyFunction()
