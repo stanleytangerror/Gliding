@@ -251,6 +251,23 @@ namespace UnitTest
 			
 			Assert::IsFalse(auditor.IsLeaking());
 		}
+
+		TEST_METHOD(CaptureTwice)
+		{
+			auto i = std::make_unique<int>(1);
+			auto f0 = MoveOnlyFunction<int(int, int)>(
+				[i = std::move(i)](int a, int b)
+				{
+					return *i + a + b;
+				});
+			auto f1 = MoveOnlyFunction<int(int, int)>(
+				[f0 = std::move(f0)](int a, int b)
+				{
+					return f0(a, b);
+				});
+
+			Assert::AreEqual(6, f1(2, 3));
+		}
 	};
 
 	MemoryAuditor FunctionalTest::auditor;

@@ -4,7 +4,7 @@
 /* https://blog.rink.nu/2024/02/24/implementing-a-stdfunction-like-wrapper-in-c-part-1-type-erasing/
  */
 
-#if 0
+#if 1
 
 #define MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE 1
 
@@ -67,13 +67,13 @@ struct MoveOnlyFunction<Ret(Args...)>
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		storage.buffer.fill({});
 #endif
+		storage.ptr = nullptr;
 
 		using T = MyFunc<Callable, Ret, Args...>;
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		if constexpr (sizeof(Callable) <= SmallObjectSize)
 		{
-			new (storage.buffer.data()) T(std::move(c));
-			storage.ptr = reinterpret_cast<T*>(storage.buffer.data());
+			storage.ptr = new (storage.buffer.data()) T(std::move(c));
 		}
 		else
 #endif
@@ -97,6 +97,8 @@ struct MoveOnlyFunction<Ret(Args...)>
 		if (other.IsLocal())
 		{
 			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			other.storage.buffer.fill({});
+			other.storage.ptr = nullptr;
 			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
 		}
 		else
@@ -112,6 +114,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 		if (other.IsLocal())
 		{
 			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			other.storage.buffer.fill({});
 			other.storage.ptr = nullptr;
 			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
 		}
@@ -130,15 +133,15 @@ struct MoveOnlyFunction<Ret(Args...)>
 
 	~MoveOnlyFunction()
 	{
+		if (storage.ptr != nullptr)
+		{
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		if (IsLocal())
-		{
-			std::destroy_at(storage.ptr);
-		}
-		else
+			if (IsLocal())
+			{
+				storage.ptr->~IMyFunc<Ret, Args...>();
+			}
+			else
 #endif
-		{
-			if (storage.ptr != nullptr)
 			{
 				delete storage.ptr;
 			}
