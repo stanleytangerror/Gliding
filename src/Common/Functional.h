@@ -71,7 +71,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 
 		using T = MyFunc<Callable, Ret, Args...>;
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		if constexpr (sizeof(Callable) <= SmallObjectSize)
+		if constexpr (sizeof(T) <= SmallObjectSize)
 		{
 			storage.ptr = new (storage.buffer.data()) T(std::move(c));
 		}
@@ -96,7 +96,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		if (other.IsLocal())
 		{
-			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			other.storage.ptr->MoveTo(storage.buffer.data());
 			other.storage.buffer.fill({});
 			other.storage.ptr = nullptr;
 			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
@@ -113,7 +113,7 @@ struct MoveOnlyFunction<Ret(Args...)>
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		if (other.IsLocal())
 		{
-			other.storage.ptr->MoveTo(this->storage.buffer.data());
+			other.storage.ptr->MoveTo(storage.buffer.data());
 			other.storage.buffer.fill({});
 			other.storage.ptr = nullptr;
 			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
