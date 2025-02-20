@@ -373,12 +373,13 @@ public:
 		TPassData data = {};
 		setup(builder, data);
 		
-		builder.SetPassFunction([data, this, execute = std::move(execute)] ()
+		builder.SetPassFunction(
+			[data = std::move(data), infra = mInfra, resourceRegistry = mResourceRegistry.get(), execute = std::move(execute)]() mutable
 		{
-			RenderPassResources resources = { mResourceRegistry.get() };
-			execute(data, resources, mInfra);
+			RenderPassResources resources = { resourceRegistry };
+			execute(data, resources, infra);
 		});
-		
+
 		mFrameGraphBuilder->HandlePassBuilder(std::move(builder));
 	}
 

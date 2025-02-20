@@ -984,6 +984,7 @@ namespace GI
 		};
 
     public:
+        virtual ~IImage() {}
 		virtual MemoryResourceDesc GetResourceDesc() const = 0;
         virtual ImageContent GetImageContent() const = 0;
     };

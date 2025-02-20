@@ -14,7 +14,7 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph, bool isPerm
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryVertices", mVb,
-		[this, vertices=mVertices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[vertices=mVertices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
 			infra->CopyToUploadBufferResource(resource, std::span(vertices));
 		});
@@ -30,7 +30,7 @@ Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph, bool isPerm
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryIndices", mIb,
-		[this, indices = mIndices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[indices = mIndices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
 			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(indices)));
 		});

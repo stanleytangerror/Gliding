@@ -4,6 +4,8 @@
 /* https://blog.rink.nu/2024/02/24/implementing-a-stdfunction-like-wrapper-in-c-part-1-type-erasing/
  */
 
+#if 0
+
 #define MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE 1
 
 template <typename Ret, typename... Args>
@@ -156,3 +158,10 @@ private:
 	}
 #endif
 };
+
+#else
+
+template <typename T>
+using MoveOnlyFunction = std::move_only_function<T>;
+
+#endif

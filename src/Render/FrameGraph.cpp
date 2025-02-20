@@ -666,7 +666,7 @@ void FrameGraph::AddInitialResourcePass(
 			data.targetResource = builder.Write(resource);
 			builder.MarkSideEffect(data.targetResource);
 		},
-		[write = std::move(write)](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		[write = std::move(write)](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra) mutable
 		{
 			write(infra, resources.Get(data.targetResource.mId));
 		});
