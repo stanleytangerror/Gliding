@@ -27,7 +27,7 @@ public:
 protected:
 	std::unique_ptr<TransformNode<MeshInstance>> mContentHierarchy = std::make_unique<TransformNode<MeshInstance>>();
 
-	std::map<Guid, std::shared_ptr<Geometry>> mGeometries;
+	std::map<Guid, std::unique_ptr<Geometry>> mGeometries;
 	std::map<Guid, std::shared_ptr<RenderMaterial>> mRenderMaterials;
 	std::map<Guid, std::pair<std::shared_ptr<FileTexture>, GI::SamplerDesc>> mTextures;
 };

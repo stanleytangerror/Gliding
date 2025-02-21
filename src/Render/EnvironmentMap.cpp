@@ -3,11 +3,11 @@
 #include "Geometry.h"
 
 FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
+	const Geometry* quad, 
 	FrameGraph* frameGraph, 
 	const FrameGraphResource& sky, i32 resolution, i32 semiSphereBusbarSampleCount)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
 
 	{
 		mPanoramicSkySampler
@@ -39,15 +39,15 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.sky = builder.ReadTex2DSrv(sky);
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.panoramicSkySampler = builder.Read(mPanoramicSkySampler);
 
 			data.rtv = builder.WriteTex2DRtv(irradianceMap);
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-			indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			rtSize, semiSphereBusbarSampleCount
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -87,11 +87,9 @@ FrameGraphResource EnvironmentMap::GenerateIrradianceMap(
 }
 
 FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
-	FrameGraph* frameGraph, i32 resolution)
+	const Geometry* quad, FrameGraph* frameGraph, i32 resolution)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
-
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -118,13 +116,13 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.rtv = builder.WriteTex2DRtv(integrateBrdf);
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-				indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+				indexCount = quad->mIndices.size(),
 				rtSize
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -157,6 +155,7 @@ FrameGraphResource EnvironmentMap::GenerateIntegratedBRDF(
 }
 
 FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
+	const Geometry* quad,
 	FrameGraph* frameGraph,
 	const FrameGraphResource& src, i32 resolution)
 {
@@ -191,7 +190,7 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 	for (i32 i = 0; i < levelCount; ++i)
 	{
 		f32 roughness = f32(i) / (levelCount - 1);
-		PrefilterEnvironmentMap(frameGraph, filteredMap, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
+		PrefilterEnvironmentMap(quad, frameGraph, filteredMap, rtvs[i], src, Vec2i{ dstSize.x(), dstSize.y() }, roughness);
 		dstSize = dstSize * 0.5f;
 	}
 
@@ -199,14 +198,13 @@ FrameGraphResource EnvironmentMap::GeneratePrefilteredEnvironmentMap(
 }
 
 void EnvironmentMap::PrefilterEnvironmentMap(
+	const Geometry* quad,
 	FrameGraph* frameGraph, 
 	FrameGraphMutableResource& targetResource, GI::RtvDesc& targetDesc, 
 	const FrameGraphResource& src,
 	const Vec2i& targetSize, f32 roughness)
 {
 	static GI::SamplerDesc mPanoramicSkySampler;
-	static Geometry* mQuad = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
-
 	{
 		mPanoramicSkySampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -226,16 +224,16 @@ void EnvironmentMap::PrefilterEnvironmentMap(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.sampler = mPanoramicSkySampler;
 			data.src = builder.ReadTex2DSrv(src);
 
 			data.target = builder.Write(targetResource, targetDesc);
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-				indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+				indexCount = quad->mIndices.size(),
 				targetSize, roughness
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)

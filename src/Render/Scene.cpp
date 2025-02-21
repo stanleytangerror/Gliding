@@ -46,9 +46,9 @@ void Scene::AddModelData(FrameGraph* frameGraph, const ModelProcess::Model& mode
 		Assert(mGeometries.find(mesh.Id) == mGeometries.end());
 		Assert(geo2Mat.find(mesh.Id) == geo2Mat.end());
 
-		Geometry* geo = RenderUtils::GenerateGeometryFromMeshData(mesh);
+		auto geo = RenderUtils::GenerateGeometryFromMeshData(mesh);
 		geo->CreateAndInitialResource(frameGraph);
-		mGeometries[mesh.Id] = std::shared_ptr<Geometry>(geo);
+		mGeometries[mesh.Id] = std::move(geo);
 		geo2Mat[mesh.Id] = mesh.MaterialId;
 	}
 

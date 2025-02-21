@@ -61,9 +61,6 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		sunLight.mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mSphere.reset(Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph));
-	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph));
-	
 	auto skyTexPath = assetDir + R"(Panorama_of_Marienplatz.dds)";
 	auto skyTexContent = Utils::LoadFileContent(skyTexPath.c_str());
 	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath.c_str(), std::span(skyTexContent));
@@ -93,6 +90,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetAddressXYZ(GI::TextureAddressMode::BORDER)
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
+
+	mGeometryCollection->CreateAndInitialResource(frameGraph);
 
 	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(monobike_derivative\build.bin)").c_str()));
 	//auto transform = Transformf::Identity();
@@ -142,6 +141,8 @@ FrameGraphMutableResource WorldRenderer::Render()
 	auto& envLighting = blackboard->Get<EnvLighting>();
 	auto& gbufferData = blackboard->Get<GBufferData>();
 
+	auto quad = mGeometryCollection->GetQuad();
+
 	{
 		lightView.mLightViewDepth = frameGraph->CreateTransient(
 			GI::MemoryResourceDesc::RenderTarget2D(
@@ -181,7 +182,7 @@ FrameGraphMutableResource WorldRenderer::Render()
 
 	if (!envLighting.mPanoramicSky.IsValid())
 	{
-		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, 1024);
+		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(quad, frameGraph, 1024);
 
 		const auto& srcSize = frameGraph->GetResourceDesc(mSkyTexture->GetResource()).GetSize();
 		const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };
@@ -196,14 +197,15 @@ FrameGraphMutableResource WorldRenderer::Render()
 		RenderUtils::CopyTexture(frameGraph,
 			envLighting.mPanoramicSky,
 			Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
+			quad,
 			mSkyTexture->GetResource(), 
 			mNoMipMapLinearSampler, 
 			Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity).c_str());
 
-		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(frameGraph, envLighting.mPanoramicSky, 8, 10);
-		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, envLighting.mPanoramicSky, 1024);
+		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(quad, frameGraph, envLighting.mPanoramicSky, 8, 10);
+		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(quad, frameGraph, envLighting.mPanoramicSky, 1024);
 
-		RenderUtils::GaussianBlur(frameGraph, envLighting.mPanoramicSky, envLighting.mPanoramicSky, 2);
+		RenderUtils::GaussianBlur(quad, frameGraph, envLighting.mPanoramicSky, envLighting.mPanoramicSky, 2);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -248,6 +250,7 @@ void WorldRenderer::RenderGBufferChannels(FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -267,7 +270,7 @@ void WorldRenderer::RenderGBufferChannels(FrameGraphMutableResource& target)
 		const auto& [idx, unary] = gbufferSemantics[i];
 
 		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
-			target, { i * width, 0.f }, { width, height }, 
+			target, { i * width, 0.f }, { width, height }, quad,
 			gbufferData.mGBuffers[idx], mNoMipMapLinearSampler, unary);
 	}
 }
@@ -279,10 +282,12 @@ void WorldRenderer::RenderShadowMaskChannel(FrameGraphMutableResource& target)
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;
 	auto& cameraView = frameGraph->GetBlackboard()->Get<MainCameraState>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, targetSize.y() - height }, { width, height },
+		quad,
 		cameraView.mShadowMask,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
@@ -293,10 +298,12 @@ void WorldRenderer::RenderLightViewDepthChannel(FrameGraphMutableResource& targe
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 	auto& lightView = frameGraph->GetBlackboard()->Get<LightViewData>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, size }, { size, size },
+		quad,
 		lightView.mLightViewDepth,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
@@ -310,6 +317,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 	auto& sunLight = frameGraph->GetBlackboard()->Get<DirectionalLight>();
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
+
+	auto quad = mGeometryCollection->GetQuad();
 
 	//RENDER_EVENT(infra, DeferredLighting);
 
@@ -365,8 +374,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 	frameGraph->AddPass<PassData>("DeferredLighting",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
 			data.gBufferSrvs[0] = builder.ReadTex2DSrv(gbufferData.mGBuffers[0]);
 			data.gBufferSrvs[1] = builder.ReadTex2DSrv(gbufferData.mGBuffers[1]);
@@ -385,8 +394,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-			indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 				cameraProj, cameraTrans, sunLight
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -469,19 +478,21 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 	const auto& cameraTrans = camState.mCameraTrans;
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 
+	auto quad = mGeometryCollection->GetQuad();
+
 	frameGraph->AddPass<PassData>("RenderSky",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.panoramicSky = builder.ReadTex2DSrv(envLighting.mPanoramicSky);
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.WriteTex2DRtv(target);
 			data.depth = builder.ReadWriteTex2DDsv(depth);
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-			indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			targetSize = frameGraph->GetResourceDesc(target).GetSize(),
 			camProj = camState.mCameraProj,
 			camTrans = camState.mCameraTrans
@@ -532,7 +543,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 		});
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry* geometry, RenderMaterial* material,
+void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, const Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView)
 {
@@ -701,7 +712,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(
 	FrameGraph* frameGraph, 
-	Geometry* geometry, RenderMaterial* material,
+	const Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	FrameGraphMutableResource& depth)
 {
@@ -800,7 +811,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 
 	//RENDER_EVENT(infra, ShadowMask);
 
-	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
+	auto quad = mGeometryCollection->GetQuad();
 
 	struct PassData
 	{
@@ -815,11 +826,16 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 	};
 
 	frameGraph->AddPass<PassData>("RenderShadowMask",
-		[&]
+		[
+			frameGraph, quad,
+			&lightViewDepth, &lightViewDepthSampler,
+			&cameraViewDepth, &cameraViewDepthSampler,
+			&shadowMask
+		]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.lightViewDepth = builder.ReadTex2DSrv(lightViewDepth);
 			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
 			data.cameraViewDepth = builder.ReadTex2DSrv(cameraViewDepth);
@@ -828,8 +844,8 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 			data.shadowMask = builder.WriteTex2DRtv(shadowMask);
 		},
 		[
-			inputLayout = geometry->mVertexElementDescs,
-			indexCount = geometry->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			cameraTrans, cameraProj,
 			lightViewTrans, lightViewProj
 		]

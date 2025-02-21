@@ -121,7 +121,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
-	auto geo = std::unique_ptr<Geometry>(Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
+	auto geo = Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
 		{
 			GI::InputElementDesc()
 				.SetSemanticName("POSITION")
@@ -135,7 +135,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 				.SetSemanticName("COLOR")
 				.SetFormat(GI::Format::FORMAT_R32_UINT)
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
-		}));
+		});
 
 	geo->CreateAndInitialResource(frameGraph, false);
 

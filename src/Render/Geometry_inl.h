@@ -3,7 +3,7 @@
 #include "Geometry.h"
 
 template <typename TVertex>
-Geometry* Geometry::GenerateGeometry(
+std::unique_ptr<Geometry> Geometry::GenerateGeometry(
 	const std::vector<TVertex>& vertices,
 	const std::vector<u16>& indices,
 	const std::vector<GI::InputElementDesc>& inputDescs)

@@ -50,7 +50,10 @@ void Application::Destroy()
 {
 	ImGuiIntegration::Shutdown();
 	mAppLifeCycle = AppLifeCycle::Destroying;
+	
 	mRenderModule->Destroy();
+	mRenderModule = nullptr;
+
 	Profile::Destroy();
 
 	FreeLibrary(mGraphicsBackendModule);

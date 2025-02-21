@@ -5,8 +5,9 @@
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
+	, mQuad(Geometry::GenerateQuad())
 {
-	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(mRenderModule->GetFrameGraph()));
+	mQuad->CreateAndInitialResource(mRenderModule->GetFrameGraph());
 }
 
 ScreenRenderer::~ScreenRenderer()

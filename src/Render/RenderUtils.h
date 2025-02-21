@@ -20,15 +20,19 @@ namespace RenderUtils
 	void CopyTexture(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& target,
 		const Vec2f& targetOffset, const Vec2f& targetRect,
+		const Geometry* quad,
 		const FrameGraphResource& source,
 		const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary = nullptr);
 
 	void CopyTexture(FrameGraph* frameGraph, 
 		FrameGraphMutableResource& target,
 		const FrameGraphResource& source,
+		const Geometry* quad,
 		const GI::SamplerDesc& sourceSampler);
 
-	void GaussianBlur(FrameGraph* frameGraph, 
+	void GaussianBlur(
+		const Geometry* quad,
+		FrameGraph* frameGraph,
 		FrameGraphMutableResource& target,
 		const FrameGraphResource& source, i32 kernelSizeInPixel);
 
@@ -41,10 +45,10 @@ namespace RenderUtils
 
 	//////////////////////////////////////////////////////////////////////////
 
-	TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>*
-		GenerateMaterialProbes(FrameGraph* frameGraph);
+	//TransformNode<std::pair<
+	//	std::unique_ptr<Geometry>,
+	//	std::shared_ptr<RenderMaterial>>>*
+	//	GenerateMaterialProbes(const Geometry* geo, FrameGraph* frameGraph);
 
-	Geometry* GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh);
+	std::unique_ptr<Geometry> GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh);
 }

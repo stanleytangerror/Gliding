@@ -30,15 +30,15 @@ public:
 
 public:
 	template <typename TVertex>
-	static Geometry* GenerateGeometry(
+	static std::unique_ptr<Geometry> GenerateGeometry(
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
 		const std::vector<GI::InputElementDesc>& inputDescs);
 
-	static Geometry* GenerateQuad();
-	static Geometry* GenerateSphere(i32 subDev);
+	static std::unique_ptr<Geometry> GenerateQuad();
+	static std::unique_ptr<Geometry> GenerateSphere(i32 subDev);
 
-	static Geometry* GenerateGeometry(
+	static std::unique_ptr<Geometry> GenerateGeometry(
 		const std::vector<b8>& vertices, i32 vertexStride,
 		const std::vector<u16>& indices,
 		const std::vector<GI::InputElementDesc>& inputDescs);
@@ -66,5 +66,19 @@ namespace GeometryUtils
 		static std::vector<GI::InputElementDesc> GetInputDesc();
 	};
 }
+
+class GeometryCollection
+{
+public:
+	GeometryCollection();
+	void CreateAndInitialResource(FrameGraph* frameGraph);
+
+	Geometry* GetQuad() const { return mQuad.get(); }
+	Geometry* GetSphere() const { return mSphere.get(); }
+
+private:
+	std::unique_ptr<Geometry> mQuad;
+	std::unique_ptr<Geometry> mSphere;
+};
 
 #include "Geometry_inl.h"
