@@ -57,11 +57,6 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 		.SetMipLevels(resource->GetMipLevelCount())
 		.SetName(resource->GetDebugName());
 
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetDeviceResourceId());
-#endif
-
 	return FrameGraphMutableResource{ resourceId };
 }
 
@@ -75,11 +70,6 @@ void ResourceRegistry::UnimportResource(GI::IGraphicMemoryResource* resource)
 
 	Assert(mImportedResourceDescs.find(idHandle) != mImportedResourceDescs.end());
 	mImportedResourceDescs.erase(idHandle);
-
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Unimport] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetDeviceResourceId());
-#endif
 }
 
 GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResource& resource) const
