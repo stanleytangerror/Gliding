@@ -23,6 +23,7 @@ namespace D3D12Backend
 		std::unique_ptr<GI::IGraphicMemoryResource>	PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
 		void				ReleaseResource(GI::CommittedResourceId id);
 		CommitedResource*	GetResource(GI::CommittedResourceId id) const;
+		CommitedResource*	GetResource(const GI::IGraphicMemoryResource* resource) const;
 
 		DescriptorPtr	CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc);
 		DescriptorPtr	CreateUavDescriptor(GI::CommittedResourceId resourceId, const GI::UavDesc& desc);

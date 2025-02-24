@@ -139,7 +139,7 @@ void D3D12Utils::InitialD3DResourceFromImage(D3D12Backend::D3D12CommandContext* 
 	D3D12Backend::D3D12Device* device = context->GetDevice();
 
 	// https://github.com/microsoft/DirectXTex/wiki/CreateTexture
-	auto resultDeviceResource = device->GetResourceManager()->GetResource(resource->GetDeviceResourceId());
+	auto resultDeviceResource = device->GetResourceManager()->GetResource(resource);
 	resultDeviceResource->Transition(context, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	const auto& subImages = image.GetImageContent().subImages;
@@ -164,7 +164,7 @@ void D3D12Utils::InitialD3DResourceFromImage(D3D12Backend::D3D12CommandContext* 
 		.SetHeapType(GI::HeapType::UPLOAD));
 	// unresolved external symbol IID_ID3D12Device: https://github.com/microsoft/DirectX-Graphics-Samples/issues/567#issuecomment-525846757
 
-	auto innerUploadResource = device->GetResourceManager()->GetResource(textureUploadHeap->GetDeviceResourceId());
+	auto innerUploadResource = device->GetResourceManager()->GetResource(textureUploadHeap.get());
 
 	UpdateSubresources(
 		context->GetCommandList(),

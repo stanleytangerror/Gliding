@@ -65,7 +65,7 @@ namespace D3D12Backend
 		Assert(resource->GetDimension() == GI::ResourceDimension::BUFFER);
 		Assert(resource->GetSize().x() >= data.size());
 
-		auto dx12Res = mDevice->GetResourceManager()->GetResource(resource->GetDeviceResourceId());
+		auto dx12Res = mDevice->GetResourceManager()->GetResource(resource);
 		u8* pVertexDataBegin = nullptr;
 		CD3DX12_RANGE readRange(0, 0);
 		AssertHResultOk(dx12Res->GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
@@ -220,11 +220,10 @@ namespace D3D12Backend
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::RtvUsage& rtv, const Vec4f& value)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-		auto resId = rtv.GetDeviceResourceId();
 
-		resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		resourceManager->GetResource(rtv.GetResource())->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(resId, rtv.GetUsage());
+		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetDeviceResourceId(), rtv.GetUsage());
 		float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 		mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
 	}
@@ -232,11 +231,10 @@ namespace D3D12Backend
 	void D3D12GraphicsRecorder::AddClearOperation(const GI::DsvUsage& dsv, bool clearDepth, float depth, bool clearStencil, u32 stencil)
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-		auto resId = dsv.GetDeviceResourceId();
 
-		resourceManager->GetResource(resId)->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		resourceManager->GetResource(dsv.GetResource())->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(resId, dsv.GetUsage());
+		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetDeviceResourceId(), dsv.GetUsage());
 		auto flag =
 			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 			(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
@@ -248,9 +246,7 @@ namespace D3D12Backend
 	{
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
 
-		auto destId = (dest)->GetDeviceResourceId();
-		auto srcId = (src)->GetDeviceResourceId();
-		mContext->CopyResource(resourceManager->GetResource(destId), resourceManager->GetResource(srcId));
+		mContext->CopyResource(resourceManager->GetResource(dest), resourceManager->GetResource(src));
 	}
 
 
@@ -260,8 +256,8 @@ namespace D3D12Backend
 		Assert(srcBuffer->GetDimension() == GI::ResourceDimension::BUFFER);
 
 		ResourceManager* resourceManager = mContext->GetDevice()->GetResourceManager();
-		auto destRes = resourceManager->GetResource(destTexture->GetDeviceResourceId());
-		auto srcRes = resourceManager->GetResource(srcBuffer->GetDeviceResourceId());
+		auto destRes = resourceManager->GetResource(destTexture);
+		auto srcRes = resourceManager->GetResource(srcBuffer);
 
 		destRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_DEST);
 		if (srcRes->GetHeapType() == GI::HeapType::DEFAULT) { srcRes->Transition(mContext, D3D12_RESOURCE_STATE_COPY_SOURCE); }
@@ -288,19 +284,19 @@ namespace D3D12Backend
 		// transitions
 		for (const auto& [_, srv] : pass.mSrvParams)
 		{
-			auto res = resourceManager->GetResource(srv.GetDeviceResourceId());
+			auto res = resourceManager->GetResource(srv.GetResource());
 			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}
 
 		for (auto i = 0; i < pass.mRtvCount; ++i)
 		{
-			auto res = resourceManager->GetResource(pass.mRtvs[i].GetDeviceResourceId());
+			auto res = resourceManager->GetResource(pass.mRtvs[i].GetResource());
 			res->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 
 		if (pass.mHasDsv)
 		{
-			auto res = resourceManager->GetResource(pass.mDsv.GetDeviceResourceId());
+			auto res = resourceManager->GetResource(pass.mDsv.GetResource());
 			res->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		}
 
@@ -489,7 +485,7 @@ namespace D3D12Backend
 		std::vector<D3D12_VERTEX_BUFFER_VIEW> vbvs(pass.mVbvs.size(), D3D12_VERTEX_BUFFER_VIEW{});
 		for (auto i = 0; i < vbvs.size(); ++i)
 		{
-			vbvs[i].BufferLocation = resourceManager->GetResource(pass.mVbvs[i].GetDeviceResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+			vbvs[i].BufferLocation = resourceManager->GetResource(pass.mVbvs[i].GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
 			vbvs[i].SizeInBytes = pass.mVbvs[i].GetUsage().GetSizeInBytes();
 			vbvs[i].StrideInBytes = pass.mVbvs[i].GetUsage().GetStrideInBytes();
 		}
@@ -497,7 +493,7 @@ namespace D3D12Backend
 
 		D3D12_INDEX_BUFFER_VIEW ibv;
 		{
-			ibv.BufferLocation = resourceManager->GetResource(pass.mIbv.GetDeviceResourceId())->GetD3D12Resource()->GetGPUVirtualAddress();
+			ibv.BufferLocation = resourceManager->GetResource(pass.mIbv.GetResource())->GetD3D12Resource()->GetGPUVirtualAddress();
 			ibv.SizeInBytes = pass.mIbv.GetUsage().GetSizeInBytes();
 			ibv.Format = D3D12Utils::ToDxgiFormat(pass.mIbv.GetUsage().GetFormat());
 		}
@@ -513,13 +509,13 @@ namespace D3D12Backend
 		// transitions
 		for (const auto& [_, srv] : pass.mSrvParams)
 		{
-			auto res = resourceManager->GetResource(srv.GetDeviceResourceId());
+			auto res = resourceManager->GetResource(srv.GetResource());
 			res->Transition(mContext, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		}
 
 		for (const auto& [_, uav] : pass.mUavParams)
 		{
-			auto res = resourceManager->GetResource(uav.GetDeviceResourceId());
+			auto res = resourceManager->GetResource(uav.GetResource());
 			res->Transition(mContext, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		}
 
@@ -608,8 +604,7 @@ namespace D3D12Backend
 
 	void D3D12GraphicsRecorder::AddPreparePresent(GI::IGraphicMemoryResource* res)
 	{
-		auto resId = res->GetDeviceResourceId();
-		auto devieRes = mContext->GetDevice()->GetResourceManager()->GetResource(resId);
+		auto devieRes = mContext->GetDevice()->GetResourceManager()->GetResource(res);
 		devieRes->Transition(mContext, D3D12_RESOURCE_STATE_PRESENT);
 	}
 

@@ -19,7 +19,7 @@ namespace D3D12Backend
 
 		std::swap(res, mGpuResource);
 
-		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource->GetDeviceResourceId())->GetD3D12Resource();
+		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource.get())->GetD3D12Resource();
 
 		mGpuBaseVirtualAddr = d3dRes->GetGPUVirtualAddress();
 		Assert(mGpuBaseVirtualAddr == Math::Align(mGpuBaseVirtualAddr, msGpuAddrAlignment));

@@ -362,6 +362,12 @@ namespace D3D12Backend
 		return it == mResourceIdMapping.end() ? nullptr : it->second.get();
 	}
 
+	D3D12Backend::CommitedResource* ResourceManager::GetResource(const GI::IGraphicMemoryResource* resource) const
+	{
+		auto it = mResourceIdMapping.find(resource->GetDeviceResourceId());
+		return it == mResourceIdMapping.end() ? nullptr : it->second.get();
+	}
+
 	void ResourceManager::Update()
 	{
 		u64 completedValue = std::numeric_limits<u64>::max();
