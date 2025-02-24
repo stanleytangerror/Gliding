@@ -25,10 +25,10 @@ namespace D3D12Backend
 		CommitedResource*	GetResource(GI::CommittedResourceId id) const;
 		CommitedResource*	GetResource(const GI::IGraphicMemoryResource* resource) const;
 
-		DescriptorPtr	CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc);
-		DescriptorPtr	CreateUavDescriptor(GI::CommittedResourceId resourceId, const GI::UavDesc& desc);
-		DescriptorPtr	CreateRtvDescriptor(GI::CommittedResourceId resourceId, const GI::RtvDesc& desc);
-		DescriptorPtr	CreateDsvDescriptor(GI::CommittedResourceId resourceId, const GI::DsvDesc& desc);
+		DescriptorPtr	CreateSrvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::SrvDesc& desc);
+		DescriptorPtr	CreateUavDescriptor(const GI::IGraphicMemoryResource* resource, const GI::UavDesc& desc);
+		DescriptorPtr	CreateRtvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::RtvDesc& desc);
+		DescriptorPtr	CreateDsvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::DsvDesc& desc);
 		DescriptorPtr	CreateSampler(const GI::SamplerDesc& desc);
 
 		void			ReleaseAllSamplers();

@@ -65,7 +65,6 @@ namespace D3D12Backend
 		D3D12PipelineStateLibrary* mPipelineStateLib = nullptr;
 		D3D12ShaderLibrary* mShaderLib = nullptr;
 
-		GI::CommittedResourceId	mNullResourceId;
 		DescriptorPtr	mNullSrvCpuDesc;
 		GI::SamplerDesc	mDefaultSampler;
 		DescriptorPtr	mNullSamplerCpuDesc;

@@ -223,7 +223,7 @@ namespace D3D12Backend
 
 		resourceManager->GetResource(rtv.GetResource())->Transition(mContext, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetDeviceResourceId(), rtv.GetUsage());
+		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateRtvDescriptor(rtv.GetResource(), rtv.GetUsage());
 		float rgba[4] = { value.x(), value.y(), value.z(), value.w() };
 		mContext->GetCommandList()->ClearRenderTargetView(descriptor.Get(), rgba, 0, nullptr);
 	}
@@ -234,7 +234,7 @@ namespace D3D12Backend
 
 		resourceManager->GetResource(dsv.GetResource())->Transition(mContext, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetDeviceResourceId(), dsv.GetUsage());
+		const auto& descriptor = mContext->GetDevice()->GetResourceManager()->CreateDsvDescriptor(dsv.GetResource(), dsv.GetUsage());
 		auto flag =
 			(clearDepth ? D3D12_CLEAR_FLAG_DEPTH : 0) |
 			(clearStencil ? D3D12_CLEAR_FLAG_STENCIL : 0);
@@ -409,7 +409,7 @@ namespace D3D12Backend
 				auto it = pass.mSrvParams.find(srvName);
 				if (it != pass.mSrvParams.end())
 				{
-					const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetDeviceResourceId(), it->second.GetUsage());
+					const auto& descriptor = resourceManager->CreateSrvDescriptor(it->second.GetResource(), it->second.GetUsage());
 					srvHandles[srvParam.mBindPoint] = descriptor.Get();
 				}
 			}
@@ -466,12 +466,12 @@ namespace D3D12Backend
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
 		for (auto i = 0; i < pass.mRtvCount; ++i)
 		{
-			rtvHandles[i] = resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetDeviceResourceId(), pass.mRtvs[i].GetUsage()).Get();
+			rtvHandles[i] = resourceManager->CreateRtvDescriptor(pass.mRtvs[i].GetResource(), pass.mRtvs[i].GetUsage()).Get();
 		}
 
 		if (pass.mHasDsv)
 		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetDeviceResourceId(), pass.mDsv.GetUsage()).Get();
+			CD3DX12_CPU_DESCRIPTOR_HANDLE dsHandle = resourceManager->CreateDsvDescriptor(pass.mDsv.GetResource(), pass.mDsv.GetUsage()).Get();
 			commandList->OMSetRenderTargets(pass.mRtvCount, rtvHandles, false, &dsHandle);
 		}
 		else
@@ -547,7 +547,7 @@ namespace D3D12Backend
 			std::map<std::string, DescriptorPtr> srvs;
 			for (const auto& [name, srv] : pass.mSrvParams)
 			{
-				srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetDeviceResourceId(), srv.GetUsage());
+				srvs[name] = resourceManager->CreateSrvDescriptor(srv.GetResource(), srv.GetUsage());
 			}
 			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& srvHandles = BindSrvUavParams(mContext, cs->GetSrvBindings(), srvs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 			
@@ -555,7 +555,7 @@ namespace D3D12Backend
 			std::map<std::string, DescriptorPtr> uavs;
 			for (const auto& [name, uav] : pass.mUavParams)
 			{
-				uavs[name] = resourceManager->CreateUavDescriptor(uav.GetDeviceResourceId(), uav.GetUsage());
+				uavs[name] = resourceManager->CreateUavDescriptor(uav.GetResource(), uav.GetUsage());
 			}
 			const std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>& uavHandles = BindSrvUavParams(mContext, cs->GetUavBindings(), uavs, mContext->GetDevice()->GetNullSrvUavCbvCpuDesc());
 

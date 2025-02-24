@@ -25,16 +25,6 @@
 				Class& Set##Name(const CAT(Temp, __LINE__) & Name) { m##Name = Name; return *this;  } \
                 CAT(Temp, __LINE__) Get##Name() const { return m##Name; }
 
-#define RESOURCE_DESC_USAGE(Base) \
-    struct GD_COMMON_API Base##Usage \
-    { \
-	    IGraphicMemoryResource* mResource = nullptr; \
-        Base##Desc mDesc; \
-        IGraphicMemoryResource* GetResource() const { return mResource; } \
-        CommittedResourceId GetDeviceResourceId() const { return mResource->GetDeviceResourceId(); } \
-        Base##Desc GetUsage() const { return mDesc; } \
-    };
-
 #define RENDER_EVENT(infra, format)\
 	GI::GraphicsScopedEvent _GraphicsScopedEvent_##_FILE_##_LINE_NO_(infra->GetRecorder(), #format); \
 	PROFILE_EVENT(format)
@@ -708,12 +698,22 @@ namespace GI
         CONTINOUS_SETTER_VALUE(IbvDesc, Format::Enum, Format, Format::FORMAT_R16_UINT);
     };
 
-	RESOURCE_DESC_USAGE(Srv);
-	RESOURCE_DESC_USAGE(Uav);
-	RESOURCE_DESC_USAGE(Dsv);
-	RESOURCE_DESC_USAGE(Rtv);
-	RESOURCE_DESC_USAGE(Vbv);
-	RESOURCE_DESC_USAGE(Ibv);
+	template <typename DESC>
+	struct ResourceUsage
+	{
+		IGraphicMemoryResource* mResource = nullptr;
+		DESC mDesc;
+
+		IGraphicMemoryResource* GetResource() const { return mResource; }
+		DESC GetUsage() const { return mDesc; }
+	};
+
+	using SrvUsage = ResourceUsage<SrvDesc>;
+	using UavUsage = ResourceUsage<UavDesc>;
+	using DsvUsage = ResourceUsage<DsvDesc>;
+	using RtvUsage = ResourceUsage<RtvDesc>;
+	using VbvUsage = ResourceUsage<VbvDesc>;
+	using IbvUsage = ResourceUsage<IbvDesc>;
 
     struct GD_COMMON_API ShaderMacro
     {

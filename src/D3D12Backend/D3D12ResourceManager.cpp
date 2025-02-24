@@ -97,8 +97,10 @@ namespace D3D12Backend
 		return std::unique_ptr<GI::IGraphicMemoryResource>(new GraphicMemoryResource(mDevice, resourceId, name));
 	}
 
-	DescriptorPtr ResourceManager::CreateSrvDescriptor(GI::CommittedResourceId resourceId, const GI::SrvDesc& desc)
+	DescriptorPtr ResourceManager::CreateSrvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::SrvDesc& desc)
 	{
+		auto resourceId = resource ?  resource->GetDeviceResourceId() : GI::CommittedResourceId{};
+
 		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
 		{
 			mResourceViewMapping[resourceId] = {};
@@ -145,8 +147,10 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateUavDescriptor(GI::CommittedResourceId resourceId, const GI::UavDesc& desc)
+	DescriptorPtr ResourceManager::CreateUavDescriptor(const GI::IGraphicMemoryResource* resource, const GI::UavDesc& desc)
 	{
+		auto resourceId = resource->GetDeviceResourceId();
+
 		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
 		{
 			mResourceViewMapping[resourceId] = {};
@@ -190,8 +194,10 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateRtvDescriptor(GI::CommittedResourceId resourceId, const GI::RtvDesc& desc)
+	DescriptorPtr ResourceManager::CreateRtvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::RtvDesc& desc)
 	{
+		auto resourceId = resource->GetDeviceResourceId();
+
 		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
 		{
 			mResourceViewMapping[resourceId] = {};
@@ -228,8 +234,10 @@ namespace D3D12Backend
 		return { ptr };
 	}
 
-	DescriptorPtr ResourceManager::CreateDsvDescriptor(GI::CommittedResourceId resourceId, const GI::DsvDesc& desc)
+	DescriptorPtr ResourceManager::CreateDsvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::DsvDesc& desc)
 	{
+		auto resourceId = resource->GetDeviceResourceId();
+
 		if (mResourceViewMapping.find(resourceId) == mResourceViewMapping.end())
 		{
 			mResourceViewMapping[resourceId] = {};

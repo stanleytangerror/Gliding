@@ -118,10 +118,8 @@ namespace D3D12Backend
 		mPipelineStateLib = new D3D12PipelineStateLibrary(this);
 		mShaderLib = new D3D12ShaderLibrary;
 
-		mNullResourceId = {};
-
 		mNullSrvCpuDesc = mResMgr->CreateSrvDescriptor(
-			mNullResourceId,
+			nullptr,
 			GI::SrvDesc()
 			.SetViewDimension(GI::SrvDimension::TEXTURE2D)
 			.SetFormat(GI::Format::FORMAT_R8G8B8A8_UNORM)
@@ -199,7 +197,7 @@ namespace D3D12Backend
 			q->CleanupContexts();
 		}
 
-		mResMgr->ReleaseResource(mNullResourceId);
+		mResMgr->ReleaseResource({});
 		mResMgr->ReleaseAllSamplers();
 		mResMgr->Update();
 		mResMgr = nullptr;
