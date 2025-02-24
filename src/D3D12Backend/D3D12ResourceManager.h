@@ -3,6 +3,7 @@
 #include "D3D12Headers.h"
 #include "D3D12DescriptorAllocator.h"
 #include "Common/IndexAllocator.h"
+#include "Common/GraphicsInfrastructure.h"
 
 namespace D3D12Backend
 {
@@ -21,8 +22,7 @@ namespace D3D12Backend
 
 		std::unique_ptr<GI::IGraphicMemoryResource>	CreateResource(const GI::MemoryResourceDesc& desc);
 		std::unique_ptr<GI::IGraphicMemoryResource>	PossessResourceWithOwnership(ID3D12Resource* resource, const char* name, D3D12_RESOURCE_STATES currentState);
-		void				ReleaseResource(GI::CommittedResourceId id);
-		CommitedResource*	GetResource(GI::CommittedResourceId id) const;
+		void				ReleaseResource(GI::IGraphicMemoryResource* resource);
 		CommitedResource*	GetResource(const GI::IGraphicMemoryResource* resource) const;
 
 		DescriptorPtr	CreateSrvDescriptor(const GI::IGraphicMemoryResource* resource, const GI::SrvDesc& desc);
@@ -34,7 +34,6 @@ namespace D3D12Backend
 		void			ReleaseAllSamplers();
 
 	protected:
-
 		struct ReleaseItem
 		{
 			GI::CommittedResourceId			mResourceId;

@@ -138,10 +138,10 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
+		auto rawDeviceRes = resource ? GetResource(resource)->GetD3D12Resource() : nullptr;
 		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].get();
 		const auto& ptr = descAlloc->AllocCpuDesc();
-		mDevice->GetDevice()->CreateShaderResourceView(res, &d3d12Desc, ptr.Get());
+		mDevice->GetDevice()->CreateShaderResourceView(rawDeviceRes, &d3d12Desc, ptr.Get());
 
 		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
@@ -185,10 +185,10 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
+		auto rawDeviceRes = resource ? GetResource(resource)->GetD3D12Resource() : nullptr;
 		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].get();
 		const auto& ptr = descAlloc->AllocCpuDesc();
-		mDevice->GetDevice()->CreateUnorderedAccessView(res, nullptr, &d3d12Desc, ptr.Get());
+		mDevice->GetDevice()->CreateUnorderedAccessView(rawDeviceRes, nullptr, &d3d12Desc, ptr.Get());
 
 		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
@@ -225,10 +225,10 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
+		auto rawDeviceRes = resource ? GetResource(resource)->GetD3D12Resource() : nullptr;
 		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_RTV].get();
 		const auto& ptr = descAlloc->AllocCpuDesc();
-		mDevice->GetDevice()->CreateRenderTargetView(res, &d3d12Desc, ptr.Get());
+		mDevice->GetDevice()->CreateRenderTargetView(rawDeviceRes, &d3d12Desc, ptr.Get());
 
 		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
@@ -265,10 +265,10 @@ namespace D3D12Backend
 			}
 		}
 
-		auto res = resourceId ? GetResource(resourceId)->GetD3D12Resource() : nullptr;
+		auto rawDeviceRes = resource ? GetResource(resource)->GetD3D12Resource() : nullptr;
 		auto descAlloc = mDescAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_DSV].get();
 		const auto& ptr = descAlloc->AllocCpuDesc();
-		mDevice->GetDevice()->CreateDepthStencilView(res, &d3d12Desc, ptr.Get());
+		mDevice->GetDevice()->CreateDepthStencilView(rawDeviceRes, &d3d12Desc, ptr.Get());
 
 		viewMapping[hash] = { descAlloc, ptr };
 		return { ptr };
@@ -326,12 +326,13 @@ namespace D3D12Backend
 		mSamplerMapping.clear();
 	}
 
-	void ResourceManager::ReleaseResource(GI::CommittedResourceId id)
+	void ResourceManager::ReleaseResource(GI::IGraphicMemoryResource* resource)
 	{
-		DEBUG_PRINT("Release %d \n", id);
-
 		// release view
 		// if Id is not valid, still need to release NullSrv etc.
+		auto id = resource ? resource->GetDeviceResourceId() : GI::CommittedResourceId{};
+		
+		DEBUG_PRINT("Release %d \n", resource);
 		u64 plannedValue = 0;
 		for (i32 t = 0; t < Count; ++t)
 		{
@@ -349,8 +350,10 @@ namespace D3D12Backend
 		}
 		
 		// release resource
-		if (id)
+		if (resource)
 		{
+			auto id = resource->GetDeviceResourceId();
+
 			ReleaseItem item;
 			item.mResourceId = id;
 
@@ -362,12 +365,6 @@ namespace D3D12Backend
 
 			mReleaseQueue.push_back(item);
 		}
-	}
-
-	CommitedResource* ResourceManager::GetResource(GI::CommittedResourceId id) const
-	{
-		auto it = mResourceIdMapping.find(id);
-		return it == mResourceIdMapping.end() ? nullptr : it->second.get();
 	}
 
 	D3D12Backend::CommitedResource* ResourceManager::GetResource(const GI::IGraphicMemoryResource* resource) const
