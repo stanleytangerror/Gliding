@@ -218,38 +218,40 @@ protected:
 	u16							mResourceIdCounter = 0;
 };
 
-#define MUTABLE_RESOURCE_USAGE_FUTURE(Name) \
-struct GD_RENDER_API Name##UsageFuture \
-{ \
-	FrameGraphMutableResource resource; \
-	GI::##Name##Desc desc; \
-	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
-	{ \
-		this->resource = o.resource; \
-		this->desc = o.desc; \
-		return *this; \
-	} \
+template <typename DESC>
+struct FrameGraphResourceUsage
+{
+	FrameGraphResource resource;
+	DESC desc;
+
+	FrameGraphResourceUsage<DESC>& operator=(const FrameGraphResourceUsage<DESC>& o)
+	{
+		resource = o.resource;
+		desc = o.desc;
+		return *this;
+	}
 };
 
-#define RESOURCE_USAGE_FUTURE(Name) \
-struct GD_RENDER_API Name##UsageFuture \
-{ \
-	FrameGraphResource resource; \
-	GI::##Name##Desc desc; \
-	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
-	{ \
-		this->resource = o.resource; \
-		this->desc = o.desc; \
-		return *this; \
-	} \
+template <typename DESC>
+struct FrameGraphMutableResourceUsage
+{
+	FrameGraphMutableResource resource;
+	DESC desc;
+
+	FrameGraphMutableResourceUsage<DESC>& operator=(const FrameGraphMutableResourceUsage<DESC>& o)
+	{
+		resource = o.resource;
+		desc = o.desc;
+		return *this;
+	}
 };
 
-MUTABLE_RESOURCE_USAGE_FUTURE(Dsv);
-MUTABLE_RESOURCE_USAGE_FUTURE(Rtv);
-MUTABLE_RESOURCE_USAGE_FUTURE(Uav);
-RESOURCE_USAGE_FUTURE(Srv);
-RESOURCE_USAGE_FUTURE(Vbv);
-RESOURCE_USAGE_FUTURE(Ibv);
+using DsvUsageFuture = FrameGraphMutableResourceUsage<GI::DsvDesc>;
+using RtvUsageFuture = FrameGraphMutableResourceUsage<GI::RtvDesc>;
+using UavUsageFuture = FrameGraphMutableResourceUsage<GI::UavDesc>;
+using SrvUsageFuture = FrameGraphResourceUsage<GI::SrvDesc>;
+using VbvUsageFuture = FrameGraphResourceUsage<GI::VbvDesc>;
+using IbvUsageFuture = FrameGraphResourceUsage<GI::IbvDesc>;
 
 class GD_RENDER_API RenderPassBuilder
 {
