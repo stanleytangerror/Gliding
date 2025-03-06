@@ -17,7 +17,7 @@ namespace details
 		virtual ~IMyFunc() {}
 
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		virtual void MoveTo(IMyFunc<Ret, Args...>* p) = 0;
+		virtual void MoveTo(IMyFunc* p) = 0;
 #endif
 	};
 
