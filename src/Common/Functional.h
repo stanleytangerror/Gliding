@@ -8,35 +8,38 @@
 
 #define MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE 1
 
-template <typename Ret, typename... Args>
-struct IMyFunc
+namespace details
 {
-	virtual Ret operator() (Args... args) = 0;
-	virtual ~IMyFunc() {}
+	template <typename Ret, typename... Args>
+	struct IMyFunc
+	{
+		virtual Ret operator() (Args... args) = 0;
+		virtual ~IMyFunc() {}
 
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-	virtual void MoveTo(void* p) = 0;
+		virtual void MoveTo(IMyFunc<Ret, Args...>* p) = 0;
 #endif
-};
+	};
 
-template <typename Callable, typename Ret, typename... Args>
-struct MyFunc : IMyFunc<Ret, Args...>
-{
-	Callable callable;
-	MyFunc(Callable&& c) : callable(std::move(c)) {}
-
-	Ret operator() (Args... args) override
+	template <typename Callable, typename Ret, typename... Args>
+	struct MyFunc : IMyFunc<Ret, Args...>
 	{
-		return callable(args...);
-	}
+		Callable callable;
+		MyFunc(Callable&& c) : callable(std::move(c)) {}
+
+		Ret operator() (Args... args) override
+		{
+			return callable(args...);
+		}
 
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-	void MoveTo(void* p) override
-	{
-		new (p) MyFunc(std::move(callable));
-	}
+		void MoveTo(IMyFunc<Ret, Args...>* p) override
+		{
+			std::construct_at(reinterpret_cast<MyFunc*>(p), std::move(callable));
+		}
 #endif
-};
+	};
+}
 
 template <typename T>
 struct MoveOnlyFunction;
@@ -49,62 +52,47 @@ struct MoveOnlyFunction<Ret(Args...)>
 	static inline constexpr size_t SmallObjectSize = StorageSize - sizeof(void*);
 #endif
 
-	union Storage
-	{
-		std::max_align_t dummy1;
-		struct
-		{
+	using Basic = details::IMyFunc<Ret, Args...>;
+
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-			std::array<std::byte, SmallObjectSize> buffer;
+	alignas(alignof(std::max_align_t)) std::array<std::byte, SmallObjectSize> buffer;
 #endif
-			IMyFunc<Ret, Args...>* ptr;
-		};
-	} storage;
+
+	Basic* pimpl = nullptr;
 
 	template <typename Callable>
 	MoveOnlyFunction(Callable&& c)
 	{
-#if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		storage.buffer.fill({});
-#endif
-		storage.ptr = nullptr;
+		using Impl = details::MyFunc<Callable, Ret, Args...>;
 
-		using T = MyFunc<Callable, Ret, Args...>;
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		if constexpr (sizeof(T) <= SmallObjectSize)
+		if constexpr (sizeof(Impl) <= SmallObjectSize)
 		{
-			storage.ptr = new (storage.buffer.data()) T(std::move(c));
+			pimpl = std::construct_at(reinterpret_cast<Impl*>(buffer.data()), std::move(c));
 		}
 		else
 #endif
 		{
-			storage.ptr = new T(std::move(c));
+			pimpl = new Impl(std::move(c));
 		}
 	}
 
-	MoveOnlyFunction()
-	{
-#if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
-		storage.buffer.fill({});
-#endif
-		storage.ptr = nullptr;
-	}
-	
+	MoveOnlyFunction() {}
+
 	MoveOnlyFunction(MoveOnlyFunction&& other)
-		: MoveOnlyFunction()
 	{
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		if (other.IsLocal())
 		{
-			other.storage.ptr->MoveTo(storage.buffer.data());
-			other.storage.buffer.fill({});
-			other.storage.ptr = nullptr;
-			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
+			pimpl = reinterpret_cast<Basic*>(buffer.data());
+
+			other.pimpl->MoveTo(pimpl);
+			other.pimpl = nullptr;
 		}
 		else
 #endif
 		{
-			std::swap(storage.ptr, other.storage.ptr);
+			std::swap(pimpl, other.pimpl);
 		}
 	}
 
@@ -113,51 +101,51 @@ struct MoveOnlyFunction<Ret(Args...)>
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 		if (other.IsLocal())
 		{
-			other.storage.ptr->MoveTo(storage.buffer.data());
-			other.storage.buffer.fill({});
-			other.storage.ptr = nullptr;
-			storage.ptr = reinterpret_cast<IMyFunc<Ret, Args...>*>(storage.buffer.data());
+			pimpl = reinterpret_cast<Basic*>(buffer.data());
+			
+			other.pimpl->MoveTo(pimpl);
+			other.pimpl = nullptr;
 		}
 		else
 #endif
 		{
-			std::swap(storage.ptr, other.storage.ptr);
+			std::swap(pimpl, other.pimpl);
 		}
 		return *this;
 	}
 
 	operator bool() const
 	{
-		return storage.ptr != nullptr;
+		return pimpl != nullptr;
 	}
 
 	~MoveOnlyFunction()
 	{
-		if (storage.ptr != nullptr)
+		if (pimpl != nullptr)
 		{
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 			if (IsLocal())
 			{
-				storage.ptr->~IMyFunc<Ret, Args...>();
+				std::destroy_at(reinterpret_cast<Basic*>(pimpl));
 			}
 			else
 #endif
 			{
-				delete storage.ptr;
+				delete pimpl;
 			}
 		}
 	}
 
 	Ret operator() (Args... args) const
 	{
-		return storage.ptr->operator()(args...);
+		return (*pimpl)(args...);
 	}
 
 private:
 #if MOVE_ONLY_FUNCTION_ENABLE_LOCAL_STORAGE
 	bool IsLocal() const noexcept
 	{
-		return storage.ptr == reinterpret_cast<const IMyFunc<Ret, Args...>*>(storage.buffer.data());
+		return pimpl == reinterpret_cast<const Basic*>(buffer.data());
 	}
 #endif
 };
