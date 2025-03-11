@@ -15,13 +15,13 @@ namespace D3D12Backend
 
 		void InitialMemoryResourceFromImage(GI::IGraphicMemoryResource* resource, const GI::IImage& image) override;
 
-		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::vector<b8>& data) override;
+		void CopyToUploadBufferResource(GI::IGraphicMemoryResource* resource, const std::span<const b8>& data) override;
 
-		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name) const override;
+		std::unique_ptr<GI::IImage> CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name) const override;
 
-		void                        AdaptToWindow(u8 windowId, const WindowRuntimeInfo& windowInfo) override;
-		void                        ResizeWindow(u8 windowId, const Vec2u& windowSize) override;
-		GI::IGraphicMemoryResource* GetWindowBackBuffer(u8 windowId) override;
+		void                        AdaptToWindow(const Platform::WindowInfo& windowInfo, u8 frameCount) override;
+		void                        ResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& windowSize) override;
+		GI::IGraphicMemoryResource* GetWindowBackBuffer(Platform::NativeWindowHandle windowHandle) override;
 
 		void                        StartFrame() override;
 		void                        EndFrame() override;

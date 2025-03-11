@@ -7,14 +7,13 @@
 #define NOMINMAX
 
 #include "Common/CommonMacros.h"
-#include "World/WorldMacros.h"
 #include "Render/RenderMacros.h"
 
 // headers from common
 #include "Common/CommonTypes.h"
 #include "Common/CommonUtils.h"
 #include "Common/AssertUtils.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include "Common/FreeList.h"
 #include "Common/StringUtils.h"
 #include "Common/Timer.h"
@@ -38,3 +37,4 @@
 #include <thread>
 #include <numeric>
 #include <filesystem>
+#include <span>

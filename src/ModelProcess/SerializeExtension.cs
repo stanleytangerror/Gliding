@@ -1,0 +1,381 @@
+﻿using System.Collections;
+using System.Numerics;
+using System.Reflection;
+using System.Text;
+
+namespace ModelProcess
+{
+    public static class SerializeExtension
+    {
+        public static void Serialize<T>(this CustomedBinaryWriter writer, T value, MemberInfo? info = null)
+        {
+            if (value is byte b)
+            {
+                writer.Write(b);
+            }
+            else if (value is UInt64 u64)
+            {
+                writer.Write(u64);
+            }
+            else if (value is Int64 i64)
+            {
+                writer.Write(i64);
+            }
+            else if (value is UInt32 u32)
+            {
+                writer.Write(u32);
+            }
+            else if (value is Int32 i32)
+            {
+                writer.Write(i32);
+            }
+            else if (value is UInt16 u16)
+            {
+                writer.Write(u16);
+            }
+            else if (value is Int16 i16)
+            {
+                writer.Write(i16);
+            }
+            else if (value is double d)
+            {
+                writer.Write(d);
+            }
+            else if (value is float f)
+            {
+                writer.Write(f);
+            }
+            else if (value is Vector2 v2)
+            {
+                writer.Write(v2.X);
+                writer.Write(v2.Y);
+            }
+            else if (value is Vector3 v3)
+            {
+                writer.Write(v3.X);
+                writer.Write(v3.Y);
+                writer.Write(v3.Z);
+            }
+            else if (value is Vector4 v4)
+            {
+                writer.Write(v4.X);
+                writer.Write(v4.Y);
+                writer.Write(v4.Z);
+                writer.Write(v4.W);
+            }
+            else if (value is Matrix4x4 m)
+            {
+                writer.Write(m.M11);
+                writer.Write(m.M21);
+                writer.Write(m.M31);
+                writer.Write(m.M41);
+                writer.Write(m.M12);
+                writer.Write(m.M22);
+                writer.Write(m.M32);
+                writer.Write(m.M42);
+                writer.Write(m.M13);
+                writer.Write(m.M23);
+                writer.Write(m.M33);
+                writer.Write(m.M43);
+                writer.Write(m.M14);
+                writer.Write(m.M24);
+                writer.Write(m.M34);
+                writer.Write(m.M44);
+            }
+            else if (value is string s)
+            {
+                writer.Write(s);
+            }
+            else if (value is Guid guid)
+            {
+                writer.Write(guid.ToByteArray());
+            }
+            else if (value is IDictionary dict)
+            {
+                writer.WriteCollectionSize(dict.Cast<object>().Count());
+                foreach (DictionaryEntry entry in dict)
+                {
+                    writer.Serialize(entry.Key);
+                    writer.Serialize(entry.Value);
+                }
+            }
+            else if (value is Array array)
+            {
+                if (info?.GetCustomAttribute<FixedSizeArrayAttribute>() is null)
+                {
+                    writer.WriteCollectionSize(array.Cast<object>().Count());
+                }
+                foreach (var item in array)
+                {
+                    writer.Serialize(item);
+                }
+            }
+            else if (value is IEnumerable enumerable)
+            {
+                writer.WriteCollectionSize(enumerable.Cast<object>().Count());
+                foreach (var item in enumerable)
+                {
+                    writer.Serialize(item);
+                }
+            }
+            else if (value.GetType().GetCustomAttribute<ByteSerializableAttribute>() != null)
+            {
+                if (value.GetType().IsEnum)
+                {
+                    var underlyingValue = Convert.ChangeType(value, Enum.GetUnderlyingType(value.GetType()));
+                    writer.Serialize(underlyingValue);
+                }
+                else
+                {
+                    var members = value.GetType()
+                        .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
+                        .OrderBy(m => m.MetadataToken);
+
+                    foreach (var memberInfo in members)
+                    {
+                        object memberValue = memberInfo.MemberType switch
+                        {
+                            MemberTypes.Field => ((FieldInfo)memberInfo).GetValue(value),
+                            MemberTypes.Property => ((PropertyInfo)memberInfo).GetValue(value),
+                        };
+                        writer.Serialize(memberValue, memberInfo);
+                    }
+                }
+            }
+            else
+            {
+                throw new NotImplementedException($"Not implemented type {value.GetType().FullName}");
+            }
+        }
+
+        public static T Deserialize<T>(this CustomedBinaryReader reader, MemberInfo? info)
+        {
+            var thisMethod = typeof(SerializeExtension).GetMethod(nameof(SerializeExtension.Deserialize));
+
+            var type = typeof(T);
+
+            if (type == typeof(byte))
+            {
+                return (T)(object)reader.ReadByte();
+            }
+            if (type == typeof(UInt64))
+            {
+                return (T)(object)reader.ReadUInt64();
+            }
+            else if (type == typeof(Int64))
+            {
+                return (T)(object)reader.ReadInt64();
+            }
+            else if (type == typeof(UInt32))
+            {
+                return (T)(object)reader.ReadUInt32();
+            }
+            else if (type == typeof(Int32))
+            {
+                return (T)(object)reader.ReadInt32();
+            }
+            else if (type == typeof(UInt16))
+            {
+                return (T)(object)reader.ReadUInt16();
+            }
+            else if (type == typeof(Int16))
+            {
+                return (T)(object)reader.ReadInt16();
+            }
+            else if (type == typeof(double))
+            {
+                return (T)(object)reader.ReadDouble();
+            }
+            else if (type == typeof(float))
+            {
+                return (T)(object)reader.ReadSingle();
+            }
+            else if (type == typeof(Vector2))
+            {
+                return (T)(object)new Vector2(reader.ReadSingle(), reader.ReadSingle());
+            }
+            else if (type == typeof(Vector3))
+            {
+                return (T)(object)new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            }
+            else if (type == typeof(Vector4))
+            {
+                return (T)(object)new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            }
+            else if (type == typeof(Matrix4x4))
+            {
+                var M11 = reader.ReadSingle();
+                var M21 = reader.ReadSingle();
+                var M31 = reader.ReadSingle();
+                var M41 = reader.ReadSingle();
+                var M12 = reader.ReadSingle();
+                var M22 = reader.ReadSingle();
+                var M32 = reader.ReadSingle();
+                var M42 = reader.ReadSingle();
+                var M13 = reader.ReadSingle();
+                var M23 = reader.ReadSingle();
+                var M33 = reader.ReadSingle();
+                var M43 = reader.ReadSingle();
+                var M14 = reader.ReadSingle();
+                var M24 = reader.ReadSingle();
+                var M34 = reader.ReadSingle();
+                var M44 = reader.ReadSingle();
+                return (T)(object)new Matrix4x4(
+                    M11, M12, M13, M14, 
+                    M21, M22, M23, M24, 
+                    M31, M32, M33, M34, 
+                    M41, M42, M43, M44);
+            }
+            else if (type == typeof(string))
+            {
+                return (T)(object)reader.ReadString();
+            }
+            else if (type == typeof(Guid))
+            {
+                return (T)(object)new Guid(reader.ReadBytes(16));
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+            {
+                var keyType = type.GetGenericArguments()[0];
+                var valueType = type.GetGenericArguments()[1];
+                var dictType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+                var dict = (IDictionary)Activator.CreateInstance(dictType);
+                var count = reader.ReadCollectionSize();
+                var genericDeserializeKeyMethod = thisMethod.MakeGenericMethod(keyType);
+                var genericDeserializeValueMethod = thisMethod.MakeGenericMethod(valueType);
+                for (int i = 0; i < count; i++)
+                {
+                    var key = genericDeserializeKeyMethod.Invoke(null, [reader, null]);
+                    var value = genericDeserializeValueMethod.Invoke(null, [reader, null]);
+                    dict.Add(key, value);
+                }
+                return (T)dict;
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IList<>))
+            {
+                var elementType = type.GetGenericArguments()[0];
+                var listType = typeof(List<>).MakeGenericType(elementType);
+                var list = (IList)Activator.CreateInstance(listType);
+                var count = reader.ReadCollectionSize();
+                var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
+                for (var i = 0; i < count; i++)
+                {
+                    var item = genericDeserializeMethod.Invoke(null, [reader, null]);
+                    list.Add(item);
+                }
+                return (T)list;
+            }
+            else if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                var fixedSizeAttribute = info.GetCustomAttribute<FixedSizeArrayAttribute>();
+                var count = fixedSizeAttribute is null ? reader.ReadCollectionSize() : fixedSizeAttribute.Size; // map to array<T, Size> in cpp, do not deserialize size
+                var array = Array.CreateInstance(elementType, count);
+                var genericDeserializeMethod = thisMethod.MakeGenericMethod(elementType);
+                for (int i = 0; i < count; i++)
+                {
+                    var item = genericDeserializeMethod.Invoke(null, [reader, null]);
+                    array.SetValue(item, i);
+                }
+                return (T)(object)array;
+            }
+            else if (type.GetCustomAttribute<ByteSerializableAttribute>() != null)
+            {
+                if (type.IsEnum)
+                {
+                    var underlyingType = Enum.GetUnderlyingType(type);
+                    var genericDeserializeMethod = thisMethod.MakeGenericMethod(underlyingType);
+                    var underlyingValue = genericDeserializeMethod.Invoke(null, [reader, null]);
+                    return (T)Enum.ToObject(type, underlyingValue);
+                }
+                else
+                {
+                    object instance = Activator.CreateInstance<T>(); // https://stackoverflow.com/a/27226969/2131563, box when T is struct, so that SetValue can work
+                    var members = type
+                        .GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Where(m => m.MemberType == MemberTypes.Field || m.MemberType == MemberTypes.Property)
+                        .OrderBy(m => m.MetadataToken);
+
+                    foreach (var memberInfo in members)
+                    {
+                        if (memberInfo is FieldInfo fieldInfo)
+                        {
+                            var genericDeserializeMethod = thisMethod.MakeGenericMethod(fieldInfo.FieldType);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader, memberInfo]);
+                            fieldInfo.SetValue(instance, memberValue);
+                        }
+                        else if (memberInfo is PropertyInfo propertyInfo)
+                        {
+                            var genericDeserializeMethod = thisMethod.MakeGenericMethod(propertyInfo.PropertyType);
+                            var memberValue = genericDeserializeMethod.Invoke(null, [reader, memberInfo]);
+                            propertyInfo.SetValue(instance, memberValue);
+                        }
+                    }
+                    return (T)instance;
+                }
+            }
+            else
+            {
+                throw new NotImplementedException($"Not implemented type {type.FullName}");
+            }
+        }
+    }
+
+    public class CustomedBinaryWriter : BinaryWriter
+    {
+        protected static Encoding encoding = Encoding.UTF8;
+
+        public CustomedBinaryWriter(Stream stream)
+            : base(stream, encoding)
+        {
+        }
+
+        public override void Write(string value)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            WriteCollectionSize(encoding.GetByteCount(value));
+            Write(value.ToCharArray());
+        }
+
+        public void WriteCollectionSize(int size)
+        {
+            Write((UInt64)size);
+        }
+    }
+    public class CustomedBinaryReader : BinaryReader
+    {
+        protected static Encoding encoding = Encoding.UTF8;
+
+        public CustomedBinaryReader(Stream stream)
+            : base(stream, encoding)
+        {
+        }
+
+        public override string ReadString()
+        {
+            var byteCount = (int) ReadUInt64();
+            char[] chars = ReadChars(byteCount);
+            return new string(chars);
+        }
+
+        public int ReadCollectionSize() => (int) ReadUInt64();
+    }
+
+    [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class | AttributeTargets.Enum)]
+    public class ByteSerializableAttribute : Attribute
+    {
+
+    }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    public class FixedSizeArrayAttribute : Attribute
+    {
+        public int Size { get; init; }
+        public FixedSizeArrayAttribute(int size)
+        {
+            Size = size;
+        }
+    }
+}

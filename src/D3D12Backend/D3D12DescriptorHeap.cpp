@@ -1,4 +1,4 @@
-#include "D3D12BackendPch.h"
+#include "D3D12Backend/D3D12BackendPch.h"
 #include "D3D12DescriptorHeap.h"
 #include "D3D12Utils.h"
 
@@ -16,7 +16,7 @@ namespace D3D12Backend
 		mDescriptorHeap->SetName(Utils::ToWString(name).c_str());
 
 		mCpuBase = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		mGpuBase = mDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		mGpuBase = deviceVisible ? mDescriptorHeap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{};
 	}
 
 

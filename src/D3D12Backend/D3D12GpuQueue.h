@@ -20,6 +20,7 @@ namespace D3D12Backend
 
 		GraphicsContext*		AllocGraphicContext();
 		ComputeContext*			AllocComputeContext();
+		void					CleanupContexts();
 
 		u64						GetGpuPlannedValue() const { return mGpuPlannedValue; }
 		u64						GetGpuCompletedValue() const { return mGpuCompletedValue; }
@@ -32,10 +33,10 @@ namespace D3D12Backend
 		void					IncreaseGpuPlannedValue(u64 value);
 		bool					IsGpuValueFinished(u64 value);
 
-		SwapChain*				CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2u& size, const int32_t frameCount);
+		SwapChain*				CreateSwapChain(Platform::NativeWindowHandle windowHandle, const Vec2u& size, const int32_t frameCount);
 		void					ReleaseSwapChainResources();
 		std::vector<SwapChain*>	GetSwapChains() const;
-		SwapChain*				GetSwapChain(u32 windowId) const;
+		SwapChain*				GetSwapChain(Platform::NativeWindowHandle windowHandle) const;
 
 		static D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(D3D12GpuQueueType type);
 
@@ -57,7 +58,7 @@ namespace D3D12Backend
 		SuspendedReleasePool<GraphicsContext>* mGraphicContextPool = nullptr;
 		SuspendedReleasePool<ComputeContext>* mComputeContextPool = nullptr;
 
-		std::map<u32, std::unique_ptr<SwapChain>>	mSwapChains;
+		std::map<Platform::NativeWindowHandle, std::unique_ptr<SwapChain>>	mSwapChains;
 	};
 
 }

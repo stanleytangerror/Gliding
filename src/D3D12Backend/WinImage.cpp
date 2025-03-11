@@ -1,11 +1,12 @@
-#include "D3D12BackendPch.h"
+#include "D3D12Backend/D3D12BackendPch.h"
 #include "WinImage.h"
 #include "D3D12Utils.h"
 
 namespace D3D12Backend
 {
-	WindowsImage::WindowsImage(std::unique_ptr<DirectX::ScratchImage>&& image, const char* name)
-		: mImage(std::forward<std::unique_ptr<DirectX::ScratchImage>>(image))
+	WindowsImage::WindowsImage(const std::span<const b8>& content, std::unique_ptr<DirectX::ScratchImage>&& image, const char* name)
+		: mRawContent(content.begin(), content.end())
+		, mImage(std::forward<std::unique_ptr<DirectX::ScratchImage>>(image))
 		, mName(name)
 	{}
 
@@ -70,7 +71,7 @@ namespace D3D12Backend
 		return content;
 	}
 
-	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::vector<b8>& content, const char* name)
+	std::unique_ptr<WindowsImage> WindowsImage::CreateFromImageMemory(const TextureFileExt::Enum& ext, const std::span<const b8>& content, const char* name)
 	{
 		switch (ext)
 		{
@@ -80,7 +81,7 @@ namespace D3D12Backend
 			auto image = std::make_unique<DirectX::ScratchImage>();
 			auto hr = DirectX::LoadFromDDSMemory(content.data(), content.size(), DirectX::DDS_FLAGS_NONE, nullptr, *image);
 			AssertHResultOk(hr);
-			return std::make_unique<WindowsImage>(std::move(image), name);
+			return std::make_unique<WindowsImage>(content, std::move(image), name);
 		}
 		case TextureFileExt::PNG:
 		case TextureFileExt::BMP:
@@ -92,7 +93,7 @@ namespace D3D12Backend
 			auto image = std::make_unique<DirectX::ScratchImage>();
 			auto hr = DirectX::LoadFromWICMemory(content.data(), content.size(), DirectX::WIC_FLAGS_NONE, nullptr, *image);
 			AssertHResultOk(hr);
-			return std::make_unique<WindowsImage>(std::move(image), name);
+			return std::make_unique<WindowsImage>(content, std::move(image), name);
 		}
 		default:
 			Assert(false);

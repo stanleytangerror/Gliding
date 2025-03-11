@@ -1,4 +1,4 @@
-#include "D3D12BackendPch.h"
+#include "D3D12Backend/D3D12BackendPch.h"
 #include "D3D12ConstantBuffer.h"
 #include "D3D12Resource.h"
 
@@ -19,7 +19,7 @@ namespace D3D12Backend
 
 		std::swap(res, mGpuResource);
 
-		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource->GetResourceId())->GetD3D12Resource();
+		auto d3dRes = mDevice->GetResourceManager()->GetResource(mGpuResource.get())->GetD3D12Resource();
 
 		mGpuBaseVirtualAddr = d3dRes->GetGPUVirtualAddress();
 		Assert(mGpuBaseVirtualAddr == Math::Align(mGpuBaseVirtualAddr, msGpuAddrAlignment));

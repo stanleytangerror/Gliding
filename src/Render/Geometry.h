@@ -8,7 +8,7 @@ struct MeshRawData;
 class GD_RENDER_API Geometry
 {
 public:
-	Geometry* CreateAndInitialResource(FrameGraph* frameGraph);
+	Geometry* CreateAndInitialResource(FrameGraph* frameGraph, bool isPermanent = true);
 	bool IsGraphicsResourceReady() const { return mVb.IsValid() && mIb.IsValid(); };
 
 	FrameGraphResource	GetVb() const { return mVb; }
@@ -22,21 +22,23 @@ public:
 	i32					mVertexStride = 0;
 	std::vector<u16>	mIndices;
 	std::vector < GI::InputElementDesc > mVertexElementDescs;
+	bool				mHasTangent = false;
+	bool				mHasBiTangent = false;
 
 	FrameGraphMutableResource	mVb;
 	FrameGraphMutableResource	mIb;
 
 public:
 	template <typename TVertex>
-	static Geometry* GenerateGeometry(
+	static std::unique_ptr<Geometry> GenerateGeometry(
 		const std::vector<TVertex>& vertices,
 		const std::vector<u16>& indices,
 		const std::vector<GI::InputElementDesc>& inputDescs);
 
-	static Geometry* GenerateQuad();
-	static Geometry* GenerateSphere(i32 subDev);
+	static std::unique_ptr<Geometry> GenerateQuad();
+	static std::unique_ptr<Geometry> GenerateSphere(i32 subDev);
 
-	static Geometry* GenerateGeometry(
+	static std::unique_ptr<Geometry> GenerateGeometry(
 		const std::vector<b8>& vertices, i32 vertexStride,
 		const std::vector<u16>& indices,
 		const std::vector<GI::InputElementDesc>& inputDescs);
@@ -64,5 +66,19 @@ namespace GeometryUtils
 		static std::vector<GI::InputElementDesc> GetInputDesc();
 	};
 }
+
+class GeometryCollection
+{
+public:
+	GeometryCollection();
+	void CreateAndInitialResource(FrameGraph* frameGraph);
+
+	Geometry* GetQuad() const { return mQuad.get(); }
+	Geometry* GetSphere() const { return mSphere.get(); }
+
+private:
+	std::unique_ptr<Geometry> mQuad;
+	std::unique_ptr<Geometry> mSphere;
+};
 
 #include "Geometry_inl.h"

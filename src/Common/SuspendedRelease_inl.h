@@ -4,14 +4,7 @@
 template <class T>
 SuspendedReleasePool<T>::~SuspendedReleasePool()
 {
-	Assert(mSuspendQueue.empty());
-	Assert(mAliveItems.empty());
-	
-	for (const auto& obj : mAvailablePool)
-	{
-		mDeallocFun(obj);
-	}
-	mAvailablePool.clear();
+	Clear();
 }
 
 template <class T>
@@ -68,4 +61,17 @@ void SuspendedReleasePool<T>::ScheduleReleaseAllActiveItemsAtTimestamp(u64 relea
 	{
 		ScheduleReleaseItemAtTimestamp(releasingTime, item);
 	}
+}
+
+template <class T>
+void SuspendedReleasePool<T>::Clear()
+{
+	Assert(mSuspendQueue.empty());
+	Assert(mAliveItems.empty());
+
+	for (const auto& obj : mAvailablePool)
+	{
+		mDeallocFun(obj);
+	}
+	mAvailablePool.clear();
 }

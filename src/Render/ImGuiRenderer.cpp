@@ -1,4 +1,4 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "ImGuiRenderer.h"
 #include "RenderModule.h"
 #include "Geometry.h"
@@ -121,10 +121,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 		Assert(uiData->TotalIdxCount >= indexOffset);
 	}
 
-	// TODO fix this
-	//std::unique_ptr<Geometry> geo;
-
-	Geometry* geo = Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
+	auto geo = Geometry::GenerateGeometry(vertexBuffer, indexBuffer,
 		{
 			GI::InputElementDesc()
 				.SetSemanticName("POSITION")
@@ -140,7 +137,7 @@ void ImGuiRenderer::Render(FrameGraphMutableResource& target, ImDrawData* uiData
 				.SetAlignedByteOffset(IM_OFFSETOF(ImDrawVert, col))
 		});
 
-	geo->CreateAndInitialResource(frameGraph);
+	geo->CreateAndInitialResource(frameGraph, false);
 
 	// Render command lists
 	vertexOffset = 0;

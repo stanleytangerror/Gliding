@@ -2,6 +2,7 @@
 
 #include "Common/GraphicsInfrastructure.h"
 #include "Common/TransformHierarchy.h"
+#include "Scene.h"
 #include "Texture.h"
 #include "Geometry.h"
 #include "RenderMaterial.h"
@@ -36,16 +37,16 @@ private:
 	void DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableResource& target);
 
 	static void RenderGeometryWithMaterial(FrameGraph* frameGraph, 
-		Geometry* geometry, RenderMaterial* material,
+		const Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView);
 
 	static void RenderGeometryDepthWithMaterial(FrameGraph* frameGraph, 
-		Geometry* geometry, RenderMaterial* material,
+		const Geometry* geometry, RenderMaterial* material,
 		const Transformf& transform,
 		FrameGraphMutableResource& depthView);
 
-	static void RenderShadowMask(FrameGraph* frameGraph,
+	void RenderShadowMask(FrameGraph* frameGraph,
 		FrameGraphMutableResource& shadowMask,
 		FrameGraphResource lightViewDepth, const GI::SamplerDesc& lightViewDepthSampler,
 		FrameGraphResource cameraViewDepth, const GI::SamplerDesc& cameraViewDepthSampler);
@@ -54,8 +55,7 @@ private:
 	RenderModule*	mRenderModule = nullptr;
 	Vec2u			mRenderSize = {};
 
-	std::unique_ptr<Geometry> mQuad;
-	std::unique_ptr<Geometry> mSphere;
+	std::unique_ptr<GeometryCollection> mGeometryCollection = std::make_unique<GeometryCollection>();
 
 	std::unique_ptr<FileTexture> mSkyTexture;
 	GI::SamplerDesc mPanoramicSkySampler;
@@ -69,10 +69,5 @@ private:
 	GI::SamplerDesc mFilteredEnvMapSampler;
 
 public:
-
-	std::unique_ptr<
-		TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>
-		>							mTestModel;
+	std::unique_ptr<Scene>			mScene = std::make_unique<Scene>();
 };

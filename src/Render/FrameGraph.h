@@ -5,6 +5,7 @@
 #include "Common/Container.h"
 #include "Common/DirectedGraph.h"
 #include "Common/StringUtils.h"
+#include "Common/Functional.h"
 
 class RenderPassResources;
 
@@ -217,38 +218,40 @@ protected:
 	u16							mResourceIdCounter = 0;
 };
 
-#define MUTABLE_RESOURCE_USAGE_FUTURE(Name) \
-struct GD_RENDER_API Name##UsageFuture \
-{ \
-	FrameGraphMutableResource resource; \
-	GI::##Name##Desc desc; \
-	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
-	{ \
-		this->resource = o.resource; \
-		this->desc = o.desc; \
-		return *this; \
-	} \
+template <typename DESC>
+struct FrameGraphResourceUsage
+{
+	FrameGraphResource resource;
+	DESC desc;
+
+	FrameGraphResourceUsage<DESC>& operator=(const FrameGraphResourceUsage<DESC>& o)
+	{
+		resource = o.resource;
+		desc = o.desc;
+		return *this;
+	}
 };
 
-#define RESOURCE_USAGE_FUTURE(Name) \
-struct GD_RENDER_API Name##UsageFuture \
-{ \
-	FrameGraphResource resource; \
-	GI::##Name##Desc desc; \
-	Name##UsageFuture& operator=(const Name##UsageFuture& o) \
-	{ \
-		this->resource = o.resource; \
-		this->desc = o.desc; \
-		return *this; \
-	} \
+template <typename DESC>
+struct FrameGraphMutableResourceUsage
+{
+	FrameGraphMutableResource resource;
+	DESC desc;
+
+	FrameGraphMutableResourceUsage<DESC>& operator=(const FrameGraphMutableResourceUsage<DESC>& o)
+	{
+		resource = o.resource;
+		desc = o.desc;
+		return *this;
+	}
 };
 
-MUTABLE_RESOURCE_USAGE_FUTURE(Dsv);
-MUTABLE_RESOURCE_USAGE_FUTURE(Rtv);
-MUTABLE_RESOURCE_USAGE_FUTURE(Uav);
-RESOURCE_USAGE_FUTURE(Srv);
-RESOURCE_USAGE_FUTURE(Vbv);
-RESOURCE_USAGE_FUTURE(Ibv);
+using DsvUsageFuture = FrameGraphMutableResourceUsage<GI::DsvDesc>;
+using RtvUsageFuture = FrameGraphMutableResourceUsage<GI::RtvDesc>;
+using UavUsageFuture = FrameGraphMutableResourceUsage<GI::UavDesc>;
+using SrvUsageFuture = FrameGraphResourceUsage<GI::SrvDesc>;
+using VbvUsageFuture = FrameGraphResourceUsage<GI::VbvDesc>;
+using IbvUsageFuture = FrameGraphResourceUsage<GI::IbvDesc>;
 
 class GD_RENDER_API RenderPassBuilder
 {
@@ -288,14 +291,14 @@ public:
 
 	void MarkSideEffect(const FrameGraphResource& resource);
 
-	void SetPassFunction(std::function<void()> func) { mPassFunction = func; }
+	void SetPassFunction(MoveOnlyFunction<void()>&& func) { mPassFunction = std::move(func); }
 
 protected:
 	FrameGraphBuilder*					mBuilder = nullptr;
 	std::string							mPassName;
 	std::vector<FrameGraphResource::Id>	mInputResources;
 	std::vector<FrameGraphResource::Id>	mOutputResources;
-	std::function<void()>				mPassFunction;
+	MoveOnlyFunction<void()>			mPassFunction;
 	std::vector<FrameGraphResource::Id>	mSideEffectResources;
 };
 
@@ -320,10 +323,12 @@ class GD_RENDER_API FrameGraphBuilder
 {
 public:
 	FrameGraphBuilder(ResourceRegistry* registry);
+	FrameGraphBuilder(const FrameGraphBuilder&) = delete;
+	FrameGraphBuilder& operator=(const FrameGraphBuilder&) = delete;
 
 	ResourceRegistry*			GetResourceRegistry() const { return mResourceRegistry; }
 
-	void						HandlePassBuilder(const RenderPassBuilder& passBuilder);
+	void						HandlePassBuilder(RenderPassBuilder&& passBuilder);
 	void						MarkOutputNode(const FrameGraphResource::Id& resourceId);
 	void						CompileAndExecute();
 
@@ -334,7 +339,7 @@ public:
 protected:
 	struct Pass {
 		std::string mPassName;
-		std::function<void()> mExecute;
+		MoveOnlyFunction<void()> mExecute;
 	};
 	using PassHandle = u32;
 
@@ -363,20 +368,21 @@ public:
 	void AddPass(
 		const char* name,
 		std::function<void(RenderPassBuilder& builder, TPassData& data)> setup,
-		std::function<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)> execute)
+		MoveOnlyFunction<void(const TPassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)>&& execute)
 	{
 		auto builder = RenderPassBuilder(mFrameGraphBuilder.get(), name);
 
 		TPassData data = {};
 		setup(builder, data);
 		
-		builder.SetPassFunction([data, this, execute] ()
+		builder.SetPassFunction(
+			[data = std::move(data), infra = mInfra, resourceRegistry = mResourceRegistry.get(), execute = std::move(execute)]() mutable
 		{
-			RenderPassResources resources = { mResourceRegistry.get() };
-			execute(data, resources, mInfra);
+			RenderPassResources resources = { resourceRegistry };
+			execute(data, resources, infra);
 		});
-		
-		mFrameGraphBuilder->HandlePassBuilder(builder);
+
+		mFrameGraphBuilder->HandlePassBuilder(std::move(builder));
 	}
 
 	Blackboard* GetBlackboard() const { return mBlackboard.get(); }
@@ -397,7 +403,7 @@ public:
 	void AddInitialResourcePass(
 		const char* name,
 		FrameGraphMutableResource& resource,
-		std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write);
+		MoveOnlyFunction<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)>&& write);
 
 private:
 	std::unique_ptr<Blackboard>			mBlackboard;

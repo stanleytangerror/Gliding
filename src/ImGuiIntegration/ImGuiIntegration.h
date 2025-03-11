@@ -2,8 +2,9 @@
 
 #include "Common/CommonMacros.h"
 #include "Common/CommonTypes.h"
+#include "Common/Platform.h"
 #include "Eigen/Eigen"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 
 #ifdef ImGuiIntegrationExport
 #define IMGUI_INTEGRATION_API __declspec(dllexport)
@@ -18,12 +19,12 @@ extern "C"
 	namespace ImGuiIntegration
 	{
 		IMGUI_INTEGRATION_API bool			Initial();
-		IMGUI_INTEGRATION_API bool			AttachToWindow(const u64 windowHandle);
+		IMGUI_INTEGRATION_API bool			AttachToWindow(Platform::NativeWindowHandle windowHandle);
 		IMGUI_INTEGRATION_API void			BeginUI();
 		IMGUI_INTEGRATION_API ImDrawData*	EndUI();
 		IMGUI_INTEGRATION_API void			Shutdown();
 
-		IMGUI_INTEGRATION_API u64			WindowProcHandler(const u64 windowHandle, u32 msg, u64 wParam, u64 lParam);
+		IMGUI_INTEGRATION_API u64			WindowProcHandler(Platform::NativeWindowHandle windowHandle, Platform::Message message);
 	}
 }
 

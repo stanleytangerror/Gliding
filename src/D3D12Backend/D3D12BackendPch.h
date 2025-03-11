@@ -26,17 +26,18 @@
 #include <thread>
 #include <numeric>
 #include <filesystem>
+#include <span>
 
 // headers from common
 #include "Common/CommonTypes.h"
 #include "Common/CommonUtils.h"
 #include "Common/AssertUtils.h"
-#include "Common/Math.h"
+#include "Common/CommonMath.h"
 #include "Common/FreeList.h"
 #include "Common/StringUtils.h"
 #include "Common/Timer.h"
 #include "Common/Profile.h"
 #include "Common/SuspendedRelease.h"
 #include "Common/Pool.h"
-#include "Common/PresentPort.h"
+#include "Common/Platform.h"
 

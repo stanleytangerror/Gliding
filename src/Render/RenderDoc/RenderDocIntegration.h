@@ -2,7 +2,7 @@
 
 #include "renderdoc_app.h"
 #include "Common/GraphicsInfrastructure.h"
-#include "Common/PresentPort.h"
+#include "Common/Platform.h"
 
 class RenderDocApi;
 
@@ -13,8 +13,8 @@ public:
 
 	bool CaptureNextFrame();
 
-	void OnStartFrame(GI::DevicePtr device, PortHandle windowHandle);
-	void OnEndFrame(GI::DevicePtr device, PortHandle windowHandle);
+	void OnStartFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle);
+	void OnEndFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle);
 
 private:
 	using RenderDocApi = RENDERDOC_API_1_0_0;

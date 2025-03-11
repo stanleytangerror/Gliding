@@ -1,12 +1,13 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "ScreenRenderer.h"
 #include "RenderModule.h"
 #include "Geometry.h"
 
 ScreenRenderer::ScreenRenderer(RenderModule* renderModule)
 	: mRenderModule(renderModule)
+	, mQuad(Geometry::GenerateQuad())
 {
-	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(mRenderModule->GetFrameGraph()));
+	mQuad->CreateAndInitialResource(mRenderModule->GetFrameGraph());
 }
 
 ScreenRenderer::~ScreenRenderer()

@@ -1,42 +1,17 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "RenderUtils.h"
+#include "Common/ModelProcess.h"
 #include "Geometry.h"
-#include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "Texture.h"
-
-namespace
-{
-	GI::SamplerDesc ToSamplerDesc(const TextureSamplerType& type)
-	{
-		auto mapType = [](SamplerAddrMode mode)
-		{
-			switch (mode)
-			{
-			case TextureSamplerType_Clamp: return GI::TextureAddressMode::CLAMP;
-			case TextureSamplerType_Mirror: return GI::TextureAddressMode::MIRROR;
-			case TextureSamplerType_Wrap: return GI::TextureAddressMode::WRAP;
-			case TextureSamplerType_Decal:
-			default:  Assert(false); return GI::TextureAddressMode::WRAP;
-			}
-		};
-
-		return GI::SamplerDesc()
-			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-			.SetAddress({ mapType(type[0]),
-					mapType(type[1]),
-					mapType(type[2]) });
-	}
-}
 
 void RenderUtils::CopyTexture(FrameGraph* frameGraph, 
 	FrameGraphMutableResource& target,
 	const Vec2f& targetOffset, const Vec2f& targetRect,
+	const Geometry* quad,
 	const FrameGraphResource& source,
 	const GI::SamplerDesc& sourceSampler, const char* sourcePixelUnary)
 {
-	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
-
 	struct PassData
 	{
 		VbvUsageFuture geoVertices;
@@ -53,16 +28,16 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 		(RenderPassBuilder& builder, PassData& data)
 		{
 			data.source = builder.ReadTex2DSrv(source);
-			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.sourceSampler = builder.Read(sourceSampler);
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 			data.target = builder.WriteTex2DRtv(target);
 			data.sourcePixelUnary = sourcePixelUnary;
 		},
 		[
-			inputLayout = geometry->mVertexElementDescs,
-			indexCount = geometry->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			targetOffset, targetRect
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -94,13 +69,14 @@ void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 void RenderUtils::CopyTexture(FrameGraph* frameGraph,
 	FrameGraphMutableResource& target,
 	const FrameGraphResource& source,
+	const Geometry* quad,
 	const GI::SamplerDesc& sourceSampler)
 {
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
-	CopyTexture(frameGraph, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, source, sourceSampler);
+	CopyTexture(frameGraph, target, Vec2f::Zero(), Vec2f{ targetSize.x(), targetSize.y() }, quad, source, sourceSampler);
 }
 
-void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, Geometry* geometry, bool isHorizontal)
+void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel, const GI::SamplerDesc& sampler, const Geometry* geometry, bool isHorizontal)
 {
 	auto NormalDistPdf = [](f32 x, f32 stdDev) { return exp(-0.5f * (x * x / stdDev / stdDev) / stdDev) / Math::Sqrt(2.f * Math::Pi<f32>()); };
 
@@ -176,12 +152,12 @@ void GaussianBlur1D(FrameGraph* frameGraph, FrameGraphMutableResource& target, c
 		});
 }
 
-void RenderUtils::GaussianBlur(FrameGraph* frameGraph, 
+void RenderUtils::GaussianBlur(
+	const Geometry* quad,
+	FrameGraph* frameGraph, 
 	FrameGraphMutableResource& target, const FrameGraphResource& source, i32 kernelSizeInPixel)
 {
 	static GI::SamplerDesc sampler;
-	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
-	
 	{
 		sampler
 			.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -193,106 +169,52 @@ void RenderUtils::GaussianBlur(FrameGraph* frameGraph,
 	const auto desc = GI::MemoryResourceDesc::RenderTarget2D(Vec2u{ sourceDesc.GetWidth(), sourceDesc.GetHeight() }, sourceDesc.GetFormat(), GI::ResourceFlag::ALLOW_RENDER_TARGET, "GaussianBlurIntermediateRt");
 	auto interRtFg = frameGraph->CreateTransient(desc);
 
-	GaussianBlur1D(frameGraph, interRtFg, source, kernelSizeInPixel, sampler, geometry, true);
-	GaussianBlur1D(frameGraph, target, interRtFg, kernelSizeInPixel, sampler, geometry, false);
+	GaussianBlur1D(frameGraph, interRtFg, source, kernelSizeInPixel, sampler, quad, true);
+	GaussianBlur1D(frameGraph, target, interRtFg, kernelSizeInPixel, sampler, quad, false);
 }
+//
+//TransformNode<std::pair<
+//	std::unique_ptr<Geometry>,
+//	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(const Geometry* geo, FrameGraph* frameGraph)
+//{
+//	auto result = new TransformNode<std::pair<
+//		std::unique_ptr<Geometry>,
+//		std::shared_ptr<RenderMaterial>>>;
+//
+//	static GI::SamplerDesc sampler;
+//
+//	{
+//		sampler
+//			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
+//			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
+//	}
+//
+//	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
+//	{
+//		RenderMaterial* material = new RenderMaterial;
+//		material->mBaseColorChannel.mColor = Vec4f::Ones() * 0.5f;
+//		material->mMetallicRoughnessChannel.mMetallicFactor = metallic;
+//		material->mMetallicRoughnessChannel.mRoughnessFactor = roughness;
+//		material->mNormalChannel.mNormalConstant = Vec3f{ 0.f, 0.f, 1.f };
+//
+//		result->PushChild(std::pair<
+//			std::unique_ptr<Geometry>,
+//			std::shared_ptr<RenderMaterial>>{ geo, material }, Transformf(Translationf(pos)));
+//	};
+//
+//	for (f32 roughness = 0.f; roughness <= 1.05f; roughness += 0.25f)
+//	{
+//		for (f32 metallic = 0.f; metallic <= 1.05f; metallic += 0.25f)
+//		{
+//			genMesh(roughness, metallic, 10.f * Vec3f{ roughness - 0.5f, 0.f, metallic - 0.5f });
+//		}
+//	}
+//
+//	return result;
+//}
 
-TransformNode<std::pair<
-	std::unique_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>*
-RenderUtils::FromSceneRawData(FrameGraph* frameGraph, SceneRawData* sceneRawData)
+std::unique_ptr<Geometry> RenderUtils::GenerateGeometryFromMeshData(const ModelProcess::Mesh& mesh)
 {
-	auto result = new TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>;
-
-	std::map<std::string, FileTexture*> textures;
-	for (const auto& [texPath, texRawData] : sceneRawData->mTextures)
-	{
-		if (texRawData)
-		{
-			textures[texPath] = new FileTexture(frameGraph, texPath.c_str(), texRawData->mRawData);
-		}
-	}
-	std::map<TextureSamplerType, GI::SamplerDesc> samplers;
-	for (const TextureSamplerType& samplerType : sceneRawData->mSamplers)
-	{
-		samplers[samplerType] = ToSamplerDesc(samplerType);
-	}
-
-	std::vector<std::shared_ptr<RenderMaterial>> materials;
-	for (const auto& mat : sceneRawData->mMaterials)
-	{
-		materials.emplace_back(RenderMaterial::GenerateRenderMaterialFromRawData(mat, sceneRawData, textures, samplers));
-	}
-	for (MeshRawData* mesh : sceneRawData->mMeshes)
-	{
-		Geometry* geo = GenerateGeometryFromMeshRawData(mesh);
-		geo->CreateAndInitialResource(frameGraph);
-
-		const auto& mat = materials[mesh->mMaterialIndex];
-		const Transformf& trans = mesh->mTransform;
-
-		result->PushChild({
-			std::unique_ptr<Geometry>(geo),
-			mat },
-			trans);
-	}
-
-	return result;
-}
-
-TransformNode<std::pair<
-	std::unique_ptr<Geometry>,
-	std::shared_ptr<RenderMaterial>>>* RenderUtils::GenerateMaterialProbes(FrameGraph* frameGraph)
-{
-	auto result = new TransformNode<std::pair<
-		std::unique_ptr<Geometry>,
-		std::shared_ptr<RenderMaterial>>>;
-
-
-	static Geometry* geo = Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph);
-	static GI::SamplerDesc sampler;
-
-	{
-		sampler
-			.SetFilter(GI::Filter::MIN_MAG_MIP_LINEAR)
-			.SetAddressXYZ(GI::TextureAddressMode::WRAP);
-	}
-
-	auto genMesh = [&](f32 roughness, f32 metallic, const Vec3f& pos)
-	{
-		RenderMaterial* material = new RenderMaterial;
-		material->mMatAttriSlots[TextureUsage_BaseColor].mConstantValue = Vec4f::Ones() * 0.5f;
-		material->mMatAttriSlots[TextureUsage_Metalness].mConstantValue = Vec4f::Ones() * metallic;
-		material->mMatAttriSlots[TextureUsage_Roughness].mConstantValue = Vec4f::Ones() * roughness;
-		material->mMatAttriSlots[TextureUsage_Normal].mConstantValue = Vec4f{ 0.5f, 0.5f, 1.f, 0.f };
-
-		result->PushChild(std::pair<
-			std::unique_ptr<Geometry>,
-			std::shared_ptr<RenderMaterial>>{ geo, material }, Transformf(Translationf(pos)));
-	};
-
-	for (f32 roughness = 0.f; roughness <= 1.05f; roughness += 0.25f)
-	{
-		for (f32 metallic = 0.f; metallic <= 1.05f; metallic += 0.25f)
-		{
-			genMesh(roughness, metallic, 10.f * Vec3f{ roughness - 0.5f, 0.f, metallic - 0.5f });
-		}
-	}
-
-	return result;
-}
-
-Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRawData)
-{
-	const i32 vertexCount = meshRawData->mVertexCount;
-	const auto& vertexData = meshRawData->mVertexData;
-	const u32 vertexTotalStride = std::accumulate(vertexData.begin(), vertexData.end(), 0, [](u32 a, const auto& p) { return a + p.first.mStrideInBytes; });
-
-	std::vector<b8> vertices(vertexTotalStride * vertexCount, b8(0));
-	std::vector<GI::InputElementDesc> inputDesc;
-
 	static const char* names[] =
 	{
 		"POSITION",
@@ -311,36 +233,23 @@ Geometry* RenderUtils::GenerateGeometryFromMeshRawData(const MeshRawData* meshRa
 		GI::Format::FORMAT_R32G32B32A32_FLOAT,
 	};
 
-	u32 vertexStride = 0;
-	for (const auto& p : vertexData)
-	{
-		const VertexAttriMeta& meta = p.first;
-		const std::vector<VertexAttriRawData>& attrData = p.second;
+	auto vertexStride = std::accumulate(
+		mesh.VertexAttributeMetas.begin(),
+		mesh.VertexAttributeMetas.end(),
+		0,
+		[](i32 v, const auto& meta) { return v + meta.mSizeInBytes; }
+	);
 
+	std::vector<GI::InputElementDesc> inputDesc;
+	for (const auto& meta : mesh.VertexAttributeMetas)
+	{
 		inputDesc.push_back(GI::InputElementDesc()
-			.SetSemanticName(names[meta.mType])
-			.SetSemanticIndex(meta.mChannelIndex)
-			.SetFormat(formats[meta.mStrideInBytes / sizeof(f32)])
-			.SetInputSlot(meta.mChannelIndex)
-			.SetAlignedByteOffset(vertexStride));
-
-		b8* target = vertices.data() + vertexStride;
-		for (i32 i = 0; i < vertexCount; i += 1, target += vertexTotalStride)
-		{
-			memcpy(target, &attrData[i], meta.mStrideInBytes);
-		}
-
-		vertexStride += meta.mStrideInBytes;
+			.SetSemanticName(names[meta.mSemantic])
+			.SetSemanticIndex(meta.mSemanticIndex)
+			.SetFormat(formats[meta.mSizeInBytes / sizeof(f32)])
+			.SetInputSlot(0)
+			.SetAlignedByteOffset(meta.mOffsetInBytes));
 	}
 
-	std::vector<u16> indices;
-	indices.reserve(meshRawData->mFaces.size() * 3);
-	for (const auto& f : meshRawData->mFaces)
-	{
-		indices.push_back(f[0]);
-		indices.push_back(f[1]);
-		indices.push_back(f[2]);
-	}
-
-	return Geometry::GenerateGeometry(vertices, vertexTotalStride, indices, inputDesc);
+	return Geometry::GenerateGeometry(mesh.Vertices, vertexStride, mesh.Indices, inputDesc);
 }

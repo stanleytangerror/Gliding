@@ -1,20 +1,25 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "Texture.h"
 
-FileTexture::FileTexture(FrameGraph* frameGraph, const char* filePath, const std::vector<b8>& content)
+FileTexture::FileTexture(FrameGraph* frameGraph, const char* filePath, const std::span<const b8>& content)
 	: mFilePath(filePath)
-	, mContent(content)
 	, mTextureExtension(Utils::GetTextureExtension(filePath))
-	, mImage(frameGraph->GetInfra()->CreateFromImageMemory(Utils::GetTextureExtension(filePath), mContent, filePath))
 {
-	auto resource = frameGraph->CreatePermanent(mImage->GetResourceDesc());
+	auto image = frameGraph->GetInfra()->CreateFromImageMemory(Utils::GetTextureExtension(filePath), content, filePath);
+
+	auto resource = frameGraph->CreatePermanent(image->GetResourceDesc());
 
 	frameGraph->AddInitialResourcePass("InitialFileTexture", resource,
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[image = std::move(image)](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			infra->InitialMemoryResourceFromImage(resource, *mImage.get());
+			infra->InitialMemoryResourceFromImage(resource, *(image.get()));
 		});
 
 	mResource = resource;
+}
+
+FileTexture::~FileTexture()
+{
+	DEBUG_PRINT("Dtor FileTexture %s", mFilePath.c_str());
 }
 

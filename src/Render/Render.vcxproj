@@ -20,13 +20,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -62,8 +62,8 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectName)/$(ProjectName)Pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -86,8 +86,8 @@
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectName)Pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>$(ProjectName)/$(ProjectName)Pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\RenderDoc-1.16;$(SolutionDir)Dependencies\imgui-1.87;$(SolutionDir)packages;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessorDefinitions>$(ProjectName)_Export;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
@@ -115,6 +115,7 @@
     <ClInclude Include="RenderModule.h" />
     <ClInclude Include="RenderPch.h" />
     <ClInclude Include="RenderUtils.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="WorldRenderer.h" />
@@ -129,6 +130,7 @@
     <ClCompile Include="RenderModule.cpp" />
     <ClCompile Include="RenderPch.cpp" />
     <ClCompile Include="RenderUtils.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="WorldRenderer.cpp" />
@@ -139,9 +141,6 @@
     </ProjectReference>
     <ProjectReference Include="..\ImGuiIntegration\ImGuiIntegration.vcxproj">
       <Project>{1122a6ae-e522-4a89-95c9-cefde43c0b04}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\World\World.vcxproj">
-      <Project>{cc4a2cf2-ce68-48fd-b843-285a25b2e06a}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

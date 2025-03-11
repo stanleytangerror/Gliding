@@ -1,5 +1,5 @@
-#include "RenderPch.h"
-#include "RenderDocIntegration.h"
+#include "Render/RenderPch.h"
+#include "Render/RenderDoc/RenderDocIntegration.h"
 #include <windows.h>
 
 const char* RenderDocIntegration::DllName = "renderdoc.dll";
@@ -36,7 +36,7 @@ bool RenderDocIntegration::CaptureNextFrame()
 	}
 }
 
-void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, PortHandle windowHandle)
+void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle)
 {
 	if (!mApi) { return; }
 
@@ -54,7 +54,7 @@ void RenderDocIntegration::OnStartFrame(GI::DevicePtr device, PortHandle windowH
 	}
 }
 
-void RenderDocIntegration::OnEndFrame(GI::DevicePtr device, PortHandle windowHandle)
+void RenderDocIntegration::OnEndFrame(GI::DevicePtr device, Platform::NativeWindowHandle windowHandle)
 {
 	if (!mApi) { return; }
 

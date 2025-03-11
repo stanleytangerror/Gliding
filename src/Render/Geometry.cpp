@@ -1,30 +1,38 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "Geometry.h"
 
-Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph)
+Geometry* Geometry::CreateAndInitialResource(FrameGraph* frameGraph, bool isPermanent)
 {
-	mVb = frameGraph->CreatePermanent(
-		GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
+	mVb = isPermanent ?
+		frameGraph->CreatePermanent(
+			GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
+				.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+				.SetHeapType(GI::HeapType::UPLOAD)) :
+		frameGraph->CreateTransient(
+			GI::MemoryResourceDesc::Buffer2(mVertices.size(), false, false, "GeometryVertices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryVertices", mVb,
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[vertices=mVertices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			infra->CopyToUploadBufferResource(resource, mVertices);
+			infra->CopyToUploadBufferResource(resource, std::span(vertices));
 		});
 
-	mIb = frameGraph->CreatePermanent(
-		GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
+	mIb = isPermanent ?
+		frameGraph->CreatePermanent(
+			GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
+			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
+			.SetHeapType(GI::HeapType::UPLOAD)) :
+		frameGraph->CreateTransient(
+			GI::MemoryResourceDesc::Buffer2(mIndices.size() * sizeof(u16), false, false, "GeometryIndices")
 			.SetInitState(GI::ResourceState::STATE_GENERIC_READ)
 			.SetHeapType(GI::HeapType::UPLOAD));
 
 	frameGraph->AddInitialResourcePass("InitialGeometryIndices", mIb,
-		[this](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
+		[indices = mIndices](GI::IGraphicsInfra* infra, GI::IGraphicMemoryResource* resource)
 		{
-			std::vector<b8> buf(mIndices.size() * sizeof(u16));
-			std::memcpy(buf.data(), mIndices.data(), buf.size());
-			infra->CopyToUploadBufferResource(resource, buf);
+			infra->CopyToUploadBufferResource(resource, std::as_bytes(std::span(indices)));
 		});
 
 	return this;
@@ -44,7 +52,7 @@ GI::IbvDesc	Geometry::GetIbvDesc() const
 		.SetFormat(GI::Format::FORMAT_R16_UINT);
 }
 
-Geometry* Geometry::GenerateQuad()
+std::unique_ptr<Geometry> Geometry::GenerateQuad()
 {
 	return Geometry::GenerateGeometry<Vec2f>(
 		{
@@ -65,7 +73,7 @@ Geometry* Geometry::GenerateQuad()
 		});
 }
 
-Geometry* Geometry::GenerateSphere(i32 subDev)
+std::unique_ptr<Geometry> Geometry::GenerateSphere(i32 subDev)
 {
 	std::vector<GeometryUtils::VertexPosNormTanUv> vertices;
 	std::vector<u16> indices;
@@ -122,16 +130,18 @@ Geometry* Geometry::GenerateSphere(i32 subDev)
 	return Geometry::GenerateGeometry<GeometryUtils::VertexPosNormTanUv>(vertices, indices, GeometryUtils::VertexPosNormTanUv::GetInputDesc());
 }
 
-Geometry* Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<GI::InputElementDesc>& inputDescs)
+std::unique_ptr<Geometry> Geometry::GenerateGeometry(const std::vector<b8>& vertices, i32 vertexStride, const std::vector<u16>& indices, const std::vector<GI::InputElementDesc>& inputDescs)
 {
-	Geometry* result = new Geometry;
+	auto result = std::make_unique<Geometry>();
 
 	result->mVertices = vertices;
 	result->mVertexStride = vertexStride;
 	result->mIndices = indices;
 	result->mVertexElementDescs = inputDescs;
+	result->mHasTangent = std::find_if(inputDescs.begin(), inputDescs.end(), [](const auto& d) { return std::strcmp(d.GetSemanticName(), "TANGENT") == 0; }) != inputDescs.end();
+	result->mHasBiTangent = std::find_if(inputDescs.begin(), inputDescs.end(), [](const auto& d) { return std::strcmp(d.GetSemanticName(), "BITANGENT") == 0; }) != inputDescs.end();
 
-	return result;
+	return std::move(result);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -180,4 +190,16 @@ std::vector<GI::InputElementDesc> GeometryUtils::VertexPosNormTanUv::GetInputDes
 				.SetFormat(GI::Format::FORMAT_R32G32_FLOAT)
 				.SetAlignedByteOffset(48)
 	};
+}
+
+GeometryCollection::GeometryCollection()
+	: mQuad(Geometry::GenerateQuad())
+	, mSphere(Geometry::GenerateSphere(40))
+{
+}
+
+void GeometryCollection::CreateAndInitialResource(FrameGraph* frameGraph)
+{
+	mQuad->CreateAndInitialResource(frameGraph, true);
+	mSphere->CreateAndInitialResource(frameGraph, true);
 }

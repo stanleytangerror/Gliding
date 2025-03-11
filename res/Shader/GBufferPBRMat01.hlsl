@@ -4,8 +4,12 @@ struct VSInput
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
+#ifdef HAS_TANGENT
 	float3 tangent : TANGENT;
+#endif
+#ifdef HAS_BITANGENT
 	float3 binormal : BINORMAL;
+#endif
 	float2 uv : TEXCOORD;
 };
 
@@ -37,9 +41,22 @@ PSInput VSMain(VSInput vsin)
 	result.position = mul(projMat, mul(viewMat, mul(worldMat, float4(vsin.position, 1))));
 	result.worldPos = mul(worldMat, float4(vsin.position, 1)).xyz;
 	result.uv = vsin.uv;
+
 	result.worldNormal = normalize(mul((float3x3)worldMat, vsin.normal));
-	result.worldBinormal = normalize(mul((float3x3)worldMat, vsin.binormal));
-	result.worldTangent = normalize(mul((float3x3)worldMat, vsin.tangent));
+#ifdef HAS_TANGENT
+	float3 tangent = vsin.tangent;
+#else
+	float3 tangent = float3(0, 1, 0);
+#endif
+
+	result.worldTangent = normalize(mul((float3x3)worldMat, tangent));
+
+#ifdef HAS_BITANGENT
+	float3 binormal = vsin.binormal;
+#else
+	float3 binormal = normalize(cross(vsin.normal, tangent));
+#endif
+	result.worldBinormal = normalize(mul((float3x3)worldMat, binormal));
 
 	return result;
 }
@@ -49,7 +66,6 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 	PSOutput output;
 
 	float2 uv = input.uv;
-	uv.y = 1.0 - uv.y; // gl texture uv
 
 	const float4 baseColor = GetBaseColorValue(uv);
 	clip(baseColor.w - 0.5);
@@ -62,8 +78,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 		normalize(input.worldNormal)));
 	const float3 worldNormal = normalize(mul(tbn, normalFromMap));
 
-	const float roughness = GetRoughnessValue(uv).y;
-	const float metallic = GetMetallicValue(uv).z;
+	const float4 mr = GetMetallicRoughnessValue(uv);
+	const float roughness = mr.y;
+	const float metallic = mr.z;
 
 	PBRStandard matData = (PBRStandard)0;
 	matData.worldNormal = worldNormal;

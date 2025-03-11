@@ -1,4 +1,4 @@
-#include "D3D12BackendPch.h"
+#include "D3D12Backend/D3D12BackendPch.h"
 #include "D3D12Resource.h"
 
 namespace D3D12Backend
@@ -11,41 +11,38 @@ namespace D3D12Backend
 
 	}
 
-
 	GraphicMemoryResource::~GraphicMemoryResource()
 	{
-		mDevice->GetResourceManager()->ReleaseResource(mId);
+		mDevice->GetResourceManager()->ReleaseResource(this);
 	}
-
-
 
 	GI::HeapType::Enum GraphicMemoryResource::GetHeapType() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetHeapType();
+		return mDevice->GetResourceManager()->GetResource(this)->GetHeapType();
 	}
 
 
 	GI::ResourceDimension::Enum GraphicMemoryResource::GetDimension() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetDimension();
+		return mDevice->GetResourceManager()->GetResource(this)->GetDimension();
 	}
 
 
 	Vec3u GraphicMemoryResource::GetSize() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetSize();
+		return mDevice->GetResourceManager()->GetResource(this)->GetSize();
 	}
 
 
 	GI::Format::Enum GraphicMemoryResource::GetFormat() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetFormat();
+		return mDevice->GetResourceManager()->GetResource(this)->GetFormat();
 	}
 
 
 	u16 GraphicMemoryResource::GetMipLevelCount() const
 	{
-		return mDevice->GetResourceManager()->GetResource(mId)->GetMipLevelCount();
+		return mDevice->GetResourceManager()->GetResource(this)->GetMipLevelCount();
 	}
 
 	const char* GraphicMemoryResource::GetDebugName() const

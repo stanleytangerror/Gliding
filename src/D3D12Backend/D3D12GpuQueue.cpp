@@ -1,4 +1,4 @@
-#include "D3D12BackendPch.h"
+#include "D3D12Backend/D3D12BackendPch.h"
 #include "D3D12GpuQueue.h"
 
 //#define DEBUG_PRINT_COMMAND_QUEUE DEBUG_PRINT
@@ -36,12 +36,12 @@ namespace D3D12Backend
 		mGraphicContextPool = new SuspendedReleasePool<GraphicsContext>(
 			[&]() { return new GraphicsContext(mDevice, this); },
 			[](GraphicsContext* ctx) { ctx->Reset(); },
-			[](GraphicsContext* ctx) {});
+			[](GraphicsContext* ctx) { delete ctx; });
 
 		mComputeContextPool = new SuspendedReleasePool<ComputeContext>(
 			[&]() { return new ComputeContext(mDevice, this); },
-			[](ComputeContext* ctx) {},
-			[](ComputeContext* ctx) {});
+			[](ComputeContext* ctx) { ctx->Reset(); },
+			[](ComputeContext* ctx) { delete ctx; });
 	}
 
 	D3D12GpuQueue::~D3D12GpuQueue()
@@ -66,6 +66,13 @@ namespace D3D12Backend
 	ComputeContext* D3D12GpuQueue::AllocComputeContext()
 	{
 		return mComputeContextPool->AllocItem();
+	}
+
+
+	void D3D12GpuQueue::CleanupContexts()
+	{
+		mGraphicContextPool->Clear();
+		mComputeContextPool->Clear();
 	}
 
 	void D3D12GpuQueue::Execute()
@@ -164,12 +171,12 @@ namespace D3D12Backend
 	}
 
 
-	SwapChain* D3D12GpuQueue::CreateSwapChain(u32 windowId, HWND windowHandle, const Vec2u& size, const int32_t frameCount)
+	SwapChain* D3D12GpuQueue::CreateSwapChain(Platform::NativeWindowHandle windowHandle, const Vec2u& size, const int32_t frameCount)
 	{
-		Assert(mSwapChains.find(windowId) == mSwapChains.end());
+		Assert(mSwapChains.find(windowHandle) == mSwapChains.end());
 
-		const auto& swapChain = new SwapChain(mDevice, this, windowHandle, size, frameCount, windowId == u32(PresentPortType::DebugPort) ? "DebugWindow" : "MainWindow");
-		mSwapChains.emplace(windowId, swapChain);
+		const auto& swapChain = new SwapChain(mDevice, this, windowHandle, size, frameCount, Utils::FormatString("SwapChain_%x", windowHandle).c_str());
+		mSwapChains.emplace(windowHandle, swapChain);
 		return swapChain;
 	}
 
@@ -193,9 +200,9 @@ namespace D3D12Backend
 	}
 
 
-	D3D12Backend::SwapChain* D3D12GpuQueue::GetSwapChain(u32 windowId) const
+	D3D12Backend::SwapChain* D3D12GpuQueue::GetSwapChain(Platform::NativeWindowHandle windowHandle) const
 	{
-		auto it = mSwapChains.find(windowId);
+		auto it = mSwapChains.find(windowHandle);
 		Assert(it != mSwapChains.end());
 
 		return it->second.get();

@@ -1,9 +1,8 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "WorldRenderer.h"
 #include "RenderModule.h"
 #include "Geometry.h"
 #include "Texture.h"
-#include "World/Scene.h"
 #include "RenderMaterial.h"
 #include "RenderUtils.h"
 #include "Light.h"
@@ -32,6 +31,8 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 	: mRenderModule(renderModule)
 	, mRenderSize(renderSize)
 {
+	const std::string assetDir = R"(D:\Assets\)";
+
 	auto infra = mRenderModule->GetGraphicsInfra();
 	auto* frameGraph = renderModule->GetFrameGraph();
 	auto* blackboard = frameGraph->GetBlackboard();
@@ -60,11 +61,9 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		sunLight.mLightViewProj.mViewWidth = 200.f;
 	}
 
-	mSphere.reset(Geometry::GenerateSphere(40)->CreateAndInitialResource(frameGraph));
-	mQuad.reset(Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph));
-	
-	const char* skyTexPath = R"(D:\Assets\Panorama_of_Marienplatz.dds)";
-	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath, Utils::LoadFileContent(skyTexPath));
+	auto skyTexPath = assetDir + R"(Panorama_of_Marienplatz.dds)";
+	auto skyTexContent = Utils::LoadFileContent(skyTexPath.c_str());
+	mSkyTexture = std::make_unique<FileTexture>(frameGraph, skyTexPath.c_str(), std::span(skyTexContent));
 
 	mPanoramicSkySampler
 		.SetFilter(GI::Filter::MIN_MAG_LINEAR_MIP_POINT)
@@ -92,19 +91,33 @@ WorldRenderer::WorldRenderer(RenderModule* renderModule, const Vec2u& renderSize
 		.SetBorderColor(Vec4f::Ones() * farPlaneDeviceDepth)
 		.SetComparisonFunc(GI::ComparisonFunction::LESS_EQUAL);
 
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\monobike_derivative\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\seamless_pbr_texture_metal_01\scene.gltf)", Math::Axis3D_Yp);
-	SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\free_1975_porsche_911_930_turbo\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\slum_house\scene.gltf)", Math::Axis3D_Yp);
-	//SceneRawData* sceneRawData = SceneRawData::LoadScene(R"(D:\Assets\city_test\scene.gltf)", Math::Axis3D_Yp);
+	mGeometryCollection->CreateAndInitialResource(frameGraph);
 
-	mTestModel.reset(RenderUtils::FromSceneRawData(frameGraph, sceneRawData));
-	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(device));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(monobike_derivative\build.bin)").c_str()));
+	//auto transform = Transformf::Identity();
 
-	//mTestModel->mRelTransform = UniScalingf(10.f);
-	mTestModel->mRelTransform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
-	//mTestModel->mRelTransform = Translationf(0.f, 0.f, 10.f);
-	//mTestModel->mRelTransform = Transformf(Translationf(0.f, 0.f, 100.f)) * Transformf(UniScalingf(0.01f));
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(seamless_pbr_texture_metal_01\build.bin)").c_str()));
+	//auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+
+	auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(free_1975_porsche_911_930_turbo\build.bin)").c_str()));
+	auto transform = Transformf(UniScalingf(25.f)) * Translationf(0.f, 0.f, -1.f);
+
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(hintze-hall_-_vr_tour\build.bin)").c_str()));
+	//auto transform = Transformf(UniScalingf(5.f));
+
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(2019_porsche_935_martini_racing-gltf\build.bin)").c_str()));
+	//auto transform = Transformf(UniScalingf(30.f));
+
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(Bistro_v5_2\build.bin)").c_str()));
+	//auto transform = Transformf(UniScalingf(1.f));
+	 
+	//auto model = DeserializeFromBytes<ModelProcess::Model>(Utils::LoadFileContent((assetDir + R"(slum_house\build.bin)"));
+	//auto transform = Transformf(UniScalingf(10.f));
+
+	//mTestModel.reset(RenderUtils::GenerateMaterialProbes(frameGraph));
+	//auto transform = Transformf(UniScalingf(10.f));
+
+	mScene->AddModelData(frameGraph, model, transform);
 }
 
 WorldRenderer::~WorldRenderer()
@@ -114,7 +127,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::TickFrame(Timer* timer)
 {
-	mTestModel->CalcAbsTransform();
+	mScene->UpdateAbsoluteTransforms();
 }
 
 FrameGraphMutableResource WorldRenderer::Render()
@@ -127,6 +140,8 @@ FrameGraphMutableResource WorldRenderer::Render()
 	auto& cameraView = blackboard->Get<MainCameraState>();
 	auto& envLighting = blackboard->Get<EnvLighting>();
 	auto& gbufferData = blackboard->Get<GBufferData>();
+
+	auto quad = mGeometryCollection->GetQuad();
 
 	{
 		lightView.mLightViewDepth = frameGraph->CreateTransient(
@@ -167,7 +182,7 @@ FrameGraphMutableResource WorldRenderer::Render()
 
 	if (!envLighting.mPanoramicSky.IsValid())
 	{
-		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(frameGraph, 1024);
+		envLighting.mBRDFIntegrationMap = EnvironmentMap::GenerateIntegratedBRDF(quad, frameGraph, 1024);
 
 		const auto& srcSize = frameGraph->GetResourceDesc(mSkyTexture->GetResource()).GetSize();
 		const Vec2u skyRtSize = { 1024, 1024 * srcSize.y() / srcSize.x() };
@@ -182,14 +197,15 @@ FrameGraphMutableResource WorldRenderer::Render()
 		RenderUtils::CopyTexture(frameGraph,
 			envLighting.mPanoramicSky,
 			Vec2f::Zero(), Vec2f{ skyRtSize.x(), skyRtSize.y() },
+			quad,
 			mSkyTexture->GetResource(), 
 			mNoMipMapLinearSampler, 
 			Utils::FormatString("float4(color.xyz * %.2f, 1)", mSkyLightIntensity).c_str());
 
-		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(frameGraph, envLighting.mPanoramicSky, 8, 10);
-		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(frameGraph, envLighting.mPanoramicSky, 1024);
+		envLighting.mIrradianceMap = EnvironmentMap::GenerateIrradianceMap(quad, frameGraph, envLighting.mPanoramicSky, 8, 10);
+		envLighting.mFilteredEnvMap = EnvironmentMap::GeneratePrefilteredEnvironmentMap(quad, frameGraph, envLighting.mPanoramicSky, 1024);
 
-		RenderUtils::GaussianBlur(frameGraph, envLighting.mPanoramicSky, envLighting.mPanoramicSky, 2);
+		RenderUtils::GaussianBlur(quad, frameGraph, envLighting.mPanoramicSky, envLighting.mPanoramicSky, 2);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -200,15 +216,9 @@ FrameGraphMutableResource WorldRenderer::Render()
 		frameGraph->AddClearPass("InitialLightViewDepth", {}, {}, 
 			lightView.mLightViewDepth, true, sunLight.mLightViewProj.GetFarPlaneDeviceDepth(), true, 0);
 
-		mTestModel->ForEach([&](const auto& node)
+		mScene->ForEachMeshInstance([frameGraph, &lightView](const auto& transform, const auto& geo, const auto& mat)
 			{
-				Geometry* geo = node.mContent.first.get();
-				RenderMaterial* mat = node.mContent.second.get();
-
-				if (geo && mat)
-				{
-					RenderGeometryDepthWithMaterial(frameGraph, geo, mat, node.mAbsTransform, lightView.mLightViewDepth);
-				}
+				RenderGeometryDepthWithMaterial(frameGraph, geo, mat, transform, lightView.mLightViewDepth);
 			});
 	}
 
@@ -221,15 +231,9 @@ FrameGraphMutableResource WorldRenderer::Render()
 			{ gbufferData.mGBuffers.begin(), gbufferData.mGBuffers.end() }, { 0.f, 0.f, 0.f, 1.f },
 			cameraView.mMainViewDepth, true, cameraView.mCameraProj.GetFarPlaneDeviceDepth(), true, 0);
 
-		mTestModel->ForEach([&](const auto& node)
+		mScene->ForEachMeshInstance([frameGraph, &gbufferData, &cameraView](const auto& transform, const auto& geo, const auto& mat)
 			{
-				Geometry* geo = node.mContent.first.get();
-				RenderMaterial* mat = node.mContent.second.get();
-
-				if (geo && mat)
-				{
-					RenderGeometryWithMaterial(frameGraph, geo, mat, node.mAbsTransform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
-				}
+				RenderGeometryWithMaterial(frameGraph, geo, mat, transform, gbufferData.mGBuffers, cameraView.mMainViewDepth);
 			});
 	}
 
@@ -246,6 +250,7 @@ void WorldRenderer::RenderGBufferChannels(FrameGraphMutableResource& target)
 {
 	auto frameGraph = mRenderModule->GetFrameGraph();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	const std::pair<i32, const char*> gbufferSemantics[] =
 	{
@@ -265,7 +270,7 @@ void WorldRenderer::RenderGBufferChannels(FrameGraphMutableResource& target)
 		const auto& [idx, unary] = gbufferSemantics[i];
 
 		RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
-			target, { i * width, 0.f }, { width, height }, 
+			target, { i * width, 0.f }, { width, height }, quad,
 			gbufferData.mGBuffers[idx], mNoMipMapLinearSampler, unary);
 	}
 }
@@ -277,10 +282,12 @@ void WorldRenderer::RenderShadowMaskChannel(FrameGraphMutableResource& target)
 	const f32 width = f32(targetSize.x()) * 0.25f;
 	const f32 height = f32(targetSize.y()) * 0.25f;
 	auto& cameraView = frameGraph->GetBlackboard()->Get<MainCameraState>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, targetSize.y() - height }, { width, height },
+		quad,
 		cameraView.mShadowMask,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(color.xxx), 1)");
 }
@@ -291,10 +298,12 @@ void WorldRenderer::RenderLightViewDepthChannel(FrameGraphMutableResource& targe
 	const auto& targetSize = frameGraph->GetResourceDesc(target).GetSize();
 	const f32 size = f32(targetSize.y()) * 0.25f;
 	auto& lightView = frameGraph->GetBlackboard()->Get<LightViewData>();
+	auto quad = mGeometryCollection->GetQuad();
 
 	RenderUtils::CopyTexture(mRenderModule->GetFrameGraph(), 
 		target, 
 		{ 0.f, size }, { size, size },
+		quad,
 		lightView.mLightViewDepth,
 		mNoMipMapLinearSampler, "float4(LinearToSrgb(pow(color.xxx, 5)), 1)");
 }
@@ -308,6 +317,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 	auto& sunLight = frameGraph->GetBlackboard()->Get<DirectionalLight>();
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 	auto& gbufferData = frameGraph->GetBlackboard()->Get<GBufferData>();
+
+	auto quad = mGeometryCollection->GetQuad();
 
 	//RENDER_EVENT(infra, DeferredLighting);
 
@@ -363,8 +374,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 	frameGraph->AddPass<PassData>("DeferredLighting",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.lightingSceneSampler = builder.Read(mLightingSceneSampler);
 			data.gBufferSrvs[0] = builder.ReadTex2DSrv(gbufferData.mGBuffers[0]);
 			data.gBufferSrvs[1] = builder.ReadTex2DSrv(gbufferData.mGBuffers[1]);
@@ -383,8 +394,8 @@ void WorldRenderer::DeferredLighting(FrameGraph* frameGraph, FrameGraphMutableRe
 			data.targetSize = frameGraph->GetResourceDesc(target).GetSize();
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-			indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 				cameraProj, cameraTrans, sunLight
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
@@ -467,19 +478,21 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 	const auto& cameraTrans = camState.mCameraTrans;
 	auto& envLighting = frameGraph->GetBlackboard()->Get<EnvLighting>();
 
+	auto quad = mGeometryCollection->GetQuad();
+
 	frameGraph->AddPass<PassData>("RenderSky",
 		[&](RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(mQuad->GetVb(), mQuad->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(mQuad->GetIb(), mQuad->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.panoramicSky = builder.ReadTex2DSrv(envLighting.mPanoramicSky);
 			data.panoramicSampler = builder.Read(mPanoramicSkySampler);
 			data.target = builder.WriteTex2DRtv(target);
 			data.depth = builder.ReadWriteTex2DDsv(depth);
 		},
 		[
-			inputLayout = mQuad->mVertexElementDescs,
-			indexCount = mQuad->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			targetSize = frameGraph->GetResourceDesc(target).GetSize(),
 			camProj = camState.mCameraProj,
 			camTrans = camState.mCameraTrans
@@ -530,7 +543,7 @@ void WorldRenderer::RenderSky(FrameGraph* frameGraph, FrameGraphMutableResource&
 		});
 }
 
-void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry* geometry, RenderMaterial* material,
+void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, const Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	std::array<FrameGraphMutableResource, 3>& gbufferRtvs, FrameGraphMutableResource& depthView)
 {
@@ -557,42 +570,78 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			const std::pair<MaterialParamSemantic, std::string> semanticSlots[] =
+			const auto& normalChannel = material->mNormalChannel;
+			if (auto tex = normalChannel.mTexture)
 			{
-				{ TextureUsage_Normal,			 "Normal" },
-				{ TextureUsage_Metalness,		 "Metallic" },
-				{ TextureUsage_BaseColor,		 "BaseColor" },
-				{ TextureUsage_Roughness,		 "Roughness" },
-			};
-
-			for (const auto& [usage, paramName] : semanticSlots)
+				data.shaderMacros.push_back(GI::ShaderMacro{ "Normal_USE_MAP", "" });
+				data.srvs.emplace_back("NormalTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("NormalSampler", normalChannel.mSampler);
+			}
+			else
 			{
-				const auto& attr = material->mMatAttriSlots[usage];
-				if (attr.mTexture)
-				{
-					data.shaderMacros.push_back(GI::ShaderMacro{ paramName + "_USE_MAP", "" });
-
-					auto res = attr.mTexture->GetResource();
-					const auto& resDesc = frameGraph->GetResourceDesc(res);
-
-					const auto& srvName = paramName + "Tex";
-					const auto& srv = builder.Read(res,
-							GI::SrvDesc{}
-							.SetFormat(resDesc.GetFormat())
-							.SetViewDimension(GI::GetSrvDimension(resDesc.GetDimension()))
-							.SetTexture2D_MipLevels(resDesc.GetMipLevels()));
-					data.srvs.emplace_back(srvName, srv);
-
-					const auto& samplerName = paramName + "Sampler";
-					const auto& sampler = attr.mSampler;
-					data.samplers.emplace_back(samplerName, sampler);
-				}
-				else
-				{
-					data.cbvs.emplace_back(paramName + "ConstantValue", attr.mConstantValue);
-				}
+				data.cbvs.emplace_back("NormalConstantValue", Vec4f{ normalChannel.mNormalConstant.x(), normalChannel.mNormalConstant.y(), normalChannel.mNormalConstant.z(), 0.f });
 			}
 
+			const auto& diffuseChannel = material->mDiffuseChannel;
+			if (auto tex = diffuseChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "Diffuse_USE_MAP", "" });
+				data.srvs.emplace_back("DiffuseTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("DiffuseSampler", diffuseChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("DiffuseConstantValue", diffuseChannel.mDiffuseConstant);
+			}
+			
+			const auto& baseColorChannel = material->mBaseColorChannel;
+			if (auto tex = baseColorChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "BaseColor_USE_MAP", "" });
+				data.srvs.emplace_back("BaseColorTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("BaseColorConstantValue", baseColorChannel.mColor);
+			}
+
+			const auto& metallicRoughnessChannel = material->mMetallicRoughnessChannel;
+			if (auto tex = metallicRoughnessChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "MetallicRoughness_USE_MAP", "" });
+				data.srvs.emplace_back("MetallicRoughnessTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("MetallicRoughnessSampler", metallicRoughnessChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("MetallicRoughnessConstantValue", Vec4f{
+					0.f,
+					metallicRoughnessChannel.mRoughnessFactor,
+					metallicRoughnessChannel.mMetallicFactor,
+					0.f });
+			}
+
+			const auto& specularGlossinessChannel = material->mSpecularGlossinessChannel;
+			if (auto tex = specularGlossinessChannel.mTexture)
+			{
+				data.shaderMacros.push_back(GI::ShaderMacro{ "SpecularGlossiness_USE_MAP", "" });
+				data.srvs.emplace_back("SpecularGlossinessTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("SpecularGlossinessSampler", metallicRoughnessChannel.mSampler);
+			}
+			else
+			{
+				data.cbvs.emplace_back("SpecularGlossinessConstantValue", Vec4f{
+					specularGlossinessChannel.mSpecularConstant.x(),
+					specularGlossinessChannel.mSpecularConstant.y(),
+					specularGlossinessChannel.mSpecularConstant.z(),
+					specularGlossinessChannel.mGlossinessConstant,
+					});
+			}
+
+
+			if (geometry->mHasTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" }); }
+			if (geometry->mHasBiTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" }); }
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			for (i32 i = 0; i < gbufferRtvs.size(); ++i)
@@ -604,8 +653,8 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 		},
 		[
 			inputLayout = geometry->mVertexElementDescs,
-				indexCount = geometry->mIndices.size(),
-				cameraProj, cameraTrans, transform
+			indexCount = geometry->mIndices.size(),
+			cameraProj, cameraTrans, transform
 		]
 		(const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
 		{
@@ -663,7 +712,7 @@ void WorldRenderer::RenderGeometryWithMaterial(FrameGraph* frameGraph, Geometry*
 
 void WorldRenderer::RenderGeometryDepthWithMaterial(
 	FrameGraph* frameGraph, 
-	Geometry* geometry, RenderMaterial* material,
+	const Geometry* geometry, RenderMaterial* material,
 	const Transformf& transform,
 	FrameGraphMutableResource& depth)
 {
@@ -677,6 +726,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 	{
 		VbvUsageFuture geoVertices;
 		IbvUsageFuture geoIndices;
+		std::vector<GI::ShaderMacro> shaderMacros;
 		std::vector<std::pair<std::string, SrvUsageFuture>> srvs;
 		std::vector<std::pair<std::string, GI::SamplerDesc>> samplers;
 		DsvUsageFuture depthView;
@@ -687,14 +737,15 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		[&]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			const char* paramName = "BaseColorTex";
-			const auto& attr = material->mMatAttriSlots[TextureUsage_BaseColor];
-			if (attr.mTexture)
+			const auto& baseColorChannel = material->mBaseColorChannel;
+			if (auto tex = baseColorChannel.mTexture)
 			{
-				data.srvs.emplace_back(paramName, builder.ReadTex2DSrv(attr.mTexture->GetResource()));
-				data.samplers.emplace_back(std::string(paramName) + "Sampler", builder.Read(attr.mSampler));
+				data.srvs.emplace_back("BaseColorTex", builder.ReadTex2DSrv(tex->GetResource()));
+				data.samplers.emplace_back("BaseColorSampler", baseColorChannel.mSampler);
 			}
 
+			if (geometry->mHasTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_TANGENT", "" }); }
+			if (geometry->mHasBiTangent) { data.shaderMacros.push_back(GI::ShaderMacro{ "HAS_BITANGENT", "" }); }
 			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
 			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
 			data.depthView = builder.ReadWriteTex2DDsv(depth);
@@ -709,7 +760,7 @@ void WorldRenderer::RenderGeometryDepthWithMaterial(
 		{
 			GI::GraphicsPass pass;
 
-			pass.SetShader("GeometryDepth");
+			pass.SetShader("GeometryDepth", data.shaderMacros);
 
 			pass.SetupRasterizer()
 				.SetCullMode(GI::CullMode::NONE)
@@ -760,7 +811,7 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 
 	//RENDER_EVENT(infra, ShadowMask);
 
-	static Geometry* geometry = Geometry::GenerateQuad()->CreateAndInitialResource(frameGraph);
+	auto quad = mGeometryCollection->GetQuad();
 
 	struct PassData
 	{
@@ -775,11 +826,16 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 	};
 
 	frameGraph->AddPass<PassData>("RenderShadowMask",
-		[&]
+		[
+			frameGraph, quad,
+			&lightViewDepth, &lightViewDepthSampler,
+			&cameraViewDepth, &cameraViewDepthSampler,
+			&shadowMask
+		]
 		(RenderPassBuilder& builder, PassData& data)
 		{
-			data.geoVertices = builder.ReadVbv(geometry->GetVb(), geometry->GetVbvDesc());
-			data.geoIndices = builder.ReadIbv(geometry->GetIb(), geometry->GetIbvDesc());
+			data.geoVertices = builder.ReadVbv(quad->GetVb(), quad->GetVbvDesc());
+			data.geoIndices = builder.ReadIbv(quad->GetIb(), quad->GetIbvDesc());
 			data.lightViewDepth = builder.ReadTex2DSrv(lightViewDepth);
 			data.lightViewDepthSampler = builder.Read(lightViewDepthSampler);
 			data.cameraViewDepth = builder.ReadTex2DSrv(cameraViewDepth);
@@ -788,8 +844,8 @@ void WorldRenderer::RenderShadowMask(FrameGraph* frameGraph,
 			data.shadowMask = builder.WriteTex2DRtv(shadowMask);
 		},
 		[
-			inputLayout = geometry->mVertexElementDescs,
-			indexCount = geometry->mIndices.size(),
+			inputLayout = quad->mVertexElementDescs,
+			indexCount = quad->mIndices.size(),
 			cameraTrans, cameraProj,
 			lightViewTrans, lightViewProj
 		]

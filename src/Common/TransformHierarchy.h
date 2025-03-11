@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Math.h"
+#include "CommonMath.h"
 #include <functional>
 
 template <typename T>
@@ -11,37 +11,31 @@ struct TransformNode
 	Transformf						mRelTransform = Transformf::Identity();
 	Transformf						mAbsTransform = Transformf::Identity();
 
-	std::vector<TransformNode<T>>	mChildren;
+	std::vector<std::unique_ptr<TransformNode<T>>>	mChildren;
 	TransformNode<T>*				mParent = nullptr;
 
-	//void CalcAbsTransform(const Transformf& parentAbsTrans)
-	//{
-	//	mAbsTransform = parentAbsTrans * mRelTransform;
-
-	//	OutputDebugString(Math::ToString(mRelTransform.matrix()).c_str());
-	//	OutputDebugString(Math::ToString(mAbsTransform.matrix()).c_str());
-	//	for (TransformNode<T>& child : mChildren)
-	//	{
-	//		child.CalcAbsTransform(mAbsTransform);
-	//	}
-	//}
-
-	void PushChild(const T& content, const Transformf& relTransform = Transformf::Identity())
+	TransformNode<T>* PushChild(const T& content, const Transformf& relTransform = Transformf::Identity())
 	{
-		mChildren.push_back({});
-		auto& node = mChildren.back();
-		node.mContent = content;
-		node.mParent = this;
-		node.mRelTransform = relTransform;
+		mChildren.push_back(std::make_unique<TransformNode<T>>());
+
+		const auto& node = mChildren.back();
+		node->mContent = content;
+		node->mParent = this;
+		node->mRelTransform = relTransform;
+
+		return node.get();
 	}
 
-	void PushChild(T&& content, const Transformf& relTransform = Transformf::Identity())
+	TransformNode<T>* PushChild(T&& content, const Transformf& relTransform = Transformf::Identity())
 	{
-		mChildren.push_back({});
-		auto& node = mChildren.back();
-		node.mContent = std::forward<T>(content);
-		node.mParent = this;
-		node.mRelTransform = relTransform;
+		mChildren.push_back(std::make_unique<TransformNode<T>>());
+
+		const auto& node = mChildren.back();
+		std::swap(node->mContent, content);
+		node->mParent = this;
+		node->mRelTransform = relTransform;
+
+		return node.get();
 	}
 
 	void CalcAbsTransform()
@@ -59,9 +53,9 @@ struct TransformNode
 	{
 		action(*this);
 
-		for (TransformNode<T>& child : mChildren)
+		for (const auto& child : mChildren)
 		{
-			child.ForEach(action);
+			child->ForEach(action);
 		}
 	}
 

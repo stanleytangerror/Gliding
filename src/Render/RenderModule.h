@@ -4,7 +4,7 @@
 #include "WorldRenderer.h"
 #include "ScreenRenderer.h"
 #include "ImGuiRenderer.h"
-#include "Common/PresentPort.h"
+#include "Common/Platform.h"
 #include "Common/GraphicsInfrastructure.h"
 #include "imgui.h"
 #include "FrameGraph.h"
@@ -14,15 +14,19 @@ class RenderDocIntegration;
 class WorldRenderer;
 class ImGuiRenderer;
 
+enum class GD_COMMON_API WindowType : u8
+{
+	MainPort = 0,
+	DebugPort = 1,
+};
+
 class GD_RENDER_API RenderModule
 {
 public:
-	using CreateGraphicsInfra = GI::IGraphicsInfra* ();
+	RenderModule(GI::CreateGraphicsInfra* createGraphicsBackend);
 
-	RenderModule(CreateGraphicsInfra* createGraphicsBackend);
-
-	void AdaptWindow(PresentPortType type, const WindowRuntimeInfo& windowInfo);
-	void OnResizeWindow(u8 windowId, const Vec2u& size);
+	void AdaptWindow(WindowType type, const Platform::WindowInfo& windowInfo, u8 frameCount);
+	void OnResizeWindow(Platform::NativeWindowHandle windowHandle, const Vec2u& size);
 
 	void Initial();
 
@@ -37,7 +41,7 @@ public:
 	void				Destroy();
 
 protected:
-	CreateGraphicsInfra*					mCreateGraphicsInfra = nullptr;
+	GI::CreateGraphicsInfra*				mCreateGraphicsInfra = nullptr;
 	GI::IGraphicsInfra*						mGraphicInfra = nullptr;
 	RenderDocIntegration*					mRenderDoc = nullptr;
 
@@ -46,7 +50,7 @@ protected:
 	std::unique_ptr<WorldRenderer>			mWorldRenderer;
 	std::unique_ptr<ImGuiRenderer>			mImGuiRenderer;
 
-	std::map<PresentPortType, WindowRuntimeInfo> mWindowInfo;
+	std::map<WindowType, Platform::WindowInfo> mWindows;
 
 public:
 	ImDrawData*								mUiData = nullptr;

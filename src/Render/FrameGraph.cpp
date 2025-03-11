@@ -1,4 +1,4 @@
-#include "RenderPch.h"
+#include "Render/RenderPch.h"
 #include "FrameGraph.h"
 #include <ranges>
 
@@ -57,11 +57,6 @@ FrameGraphMutableResource ResourceRegistry::ImportResource(GI::IGraphicMemoryRes
 		.SetMipLevels(resource->GetMipLevelCount())
 		.SetName(resource->GetDebugName());
 
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Import] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
-#endif
-
 	return FrameGraphMutableResource{ resourceId };
 }
 
@@ -75,11 +70,6 @@ void ResourceRegistry::UnimportResource(GI::IGraphicMemoryResource* resource)
 
 	Assert(mImportedResourceDescs.find(idHandle) != mImportedResourceDescs.end());
 	mImportedResourceDescs.erase(idHandle);
-
-#if DEBUG_FRAME_GRAPH
-	DEBUG_PRINT("[Unimport] %d:\t%s (reource id %d)",
-		resourceId.GetDebugName().c_str(), resource->GetDebugName(), resource->GetResourceId());
-#endif
 }
 
 GI::IGraphicMemoryResource* ResourceRegistry::GetResource(const FrameGraphResource& resource) const
@@ -376,49 +366,37 @@ GI::IGraphicMemoryResource* RenderPassResources::Get(const FrameGraphResource::I
 GI::SrvUsage RenderPassResources::Get(const SrvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::SrvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::SrvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::RtvUsage RenderPassResources::Get(const RtvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::RtvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::RtvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::DsvUsage RenderPassResources::Get(const DsvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::DsvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::DsvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::UavUsage RenderPassResources::Get(const UavUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::UavUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::UavDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::VbvUsage RenderPassResources::Get(const VbvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::VbvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::VbvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 GI::IbvUsage RenderPassResources::Get(const IbvUsageFuture& usage) const
 {
 	auto resource = mResourceRegistry->GetResource(usage.resource);
-	auto result = GI::IbvUsage(resource);
-	std::memcpy(&result, &(usage.desc), sizeof(GI::IbvDesc));
-	return result;
+	return { resource, usage.desc };
 }
 
 FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
@@ -426,10 +404,10 @@ FrameGraphBuilder::FrameGraphBuilder(ResourceRegistry* registry)
 {
 }
 
-void FrameGraphBuilder::HandlePassBuilder(const RenderPassBuilder& passBuilder)
+void FrameGraphBuilder::HandlePassBuilder(RenderPassBuilder&& passBuilder)
 {
 	PassHandle passHandle = mPasses.size();
-	mPasses.push_back({ passBuilder.mPassName, passBuilder.mPassFunction });
+	mPasses.emplace_back(passBuilder.mPassName, std::move(passBuilder.mPassFunction));
 	const auto passNode = mResourceGraph.AddNode();
 
 	mPassNodes.Insert(passHandle, passNode);
@@ -513,12 +491,12 @@ void FrameGraphBuilder::CompileAndExecute()
 
 	const auto& nodes = DirectedGraph::TopoSort(mResourceGraph);
 
-	std::vector<Pass> sortedPasses;
+	std::vector<size_t> sortedPassIndices;
 	for (auto n : nodes)
 	{
 		if (mPassNodes.ContainsValue(n))
 		{
-			sortedPasses.push_back(mPasses[mPassNodes.GetKeyByValue(n)]);
+			sortedPassIndices.push_back(mPassNodes.GetKeyByValue(n));
 
 #if DEBUG_FRAME_GRAPH
 			DebugOutputPassNode(n, "[Pass] ");
@@ -528,9 +506,9 @@ void FrameGraphBuilder::CompileAndExecute()
 
 	{
 		PROFILE_EVENT(Execute);
-		for (const auto& pass : sortedPasses)
+		for (auto passIdx : sortedPassIndices)
 		{
-			pass.mExecute();
+			mPasses[passIdx].mExecute();
 		}
 	}
 }
@@ -662,7 +640,10 @@ void FrameGraph::AddClearPass(const char* name, std::vector<FrameGraphMutableRes
 		});
 }
 
-void FrameGraph::AddInitialResourcePass(const char* name, FrameGraphMutableResource& resource, std::function<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)> write)
+void FrameGraph::AddInitialResourcePass(
+	const char* name,
+	FrameGraphMutableResource& resource,
+	MoveOnlyFunction<void(GI::IGraphicsInfra*, GI::IGraphicMemoryResource*)>&& write)
 {
 	struct PassData
 	{
@@ -675,7 +656,7 @@ void FrameGraph::AddInitialResourcePass(const char* name, FrameGraphMutableResou
 			data.targetResource = builder.Write(resource);
 			builder.MarkSideEffect(data.targetResource);
 		},
-		[write](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra)
+		[write = std::move(write)](const PassData& data, const RenderPassResources& resources, GI::IGraphicsInfra* infra) mutable
 		{
 			write(infra, resources.Get(data.targetResource.mId));
 		});

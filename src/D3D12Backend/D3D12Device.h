@@ -6,7 +6,6 @@
 #include "D3D12PipelineState.h"
 #include "D3D12Shader.h"
 #include "D3D12ResourceManager.h"
-#include "Common/PresentPort.h"
 
 namespace D3D12Backend
 {
@@ -67,6 +66,7 @@ namespace D3D12Backend
 		D3D12ShaderLibrary* mShaderLib = nullptr;
 
 		DescriptorPtr	mNullSrvCpuDesc;
+		GI::SamplerDesc	mDefaultSampler;
 		DescriptorPtr	mNullSamplerCpuDesc;
 
 		std::array<std::queue<PostSyncOperation>, Count>	mPostSyncQueues;

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Math.h">
+    <ClInclude Include="CommonMath.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="CommonTypes.h">
@@ -31,7 +31,7 @@
     <ClInclude Include="Pool_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="Math_inl.h">
+    <ClInclude Include="CommonMath_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="TransformHierarchy.h">
@@ -49,16 +49,10 @@
     <ClInclude Include="SuspendedRelease_inl.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="PresentPort.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="IndexAllocator.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="NativeUtils.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="GraphicsInfrastructure.h">
@@ -68,6 +62,21 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="DirectedGraph.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Stream.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialization.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelProcess.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Functional.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,11 +104,13 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="NativeUtils.cpp" />
     <ClCompile Include="GraphicsInfrastructure.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="DirectedGraph.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
